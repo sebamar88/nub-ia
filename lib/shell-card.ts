@@ -64,7 +64,7 @@ export interface CardRenderOptions {
 	panel?: boolean;
 }
 
-export const CARD_GLYPH = "✿";
+export const CARD_GLYPH = "∞";
 // Frame and title paint with the same role for every tone except INFO, whose
 // rounded frame stays in the theme's plain border role while its title
 // carries the accent role — the rose look every informational card (sidebar,

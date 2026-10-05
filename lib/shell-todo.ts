@@ -85,7 +85,7 @@ export interface TodoRenderOptions {
 /** Tool results carry the snapshot under this key; the old rpiv-todo shape is read too. */
 export const TODO_DETAILS_KEY = "gentleTodo";
 export const TODO_TOOL_NAME = "todo";
-export const TODO_GLYPH = "❀";
+export const TODO_GLYPH = "∾";
 const STATUS_ALIASES: Record<string, TodoStatus> = { completed: TODO_STATUS.DONE, complete: TODO_STATUS.DONE, doing: TODO_STATUS.IN_PROGRESS, todo: TODO_STATUS.PENDING };
 const STATUS_GLYPH: Record<TodoStatus, string> = { [TODO_STATUS.PENDING]: "○", [TODO_STATUS.IN_PROGRESS]: "◐", [TODO_STATUS.DONE]: "✓" };
 const STATUS_ROLE: Record<TodoStatus, string> = { [TODO_STATUS.PENDING]: "text", [TODO_STATUS.IN_PROGRESS]: "accent", [TODO_STATUS.DONE]: "dim" };

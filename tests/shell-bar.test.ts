@@ -108,31 +108,31 @@ test("visual visibility hides only selected optional status segments", () => {
 });
 
 test("Status title stays plain without an active review", () => {
-	const lines = renderShellSidebarBar(model(), plainTheme, 60);
-	assert.match(lines[0], /^╭─ ✿ Status ─+╮$/);
-	assert.doesNotMatch(lines.slice(1).join("\n"), /🌹 RDD/);
+	const lines = renderShellSidebarBar(model(), plainTheme, 54);
+	assert.match(lines[0], /^╭─ ∞ Status ─+╮$/);
+	assert.doesNotMatch(lines.slice(1).join("\n"), /◈ RDD/);
 });
 
 test("Status title stays plain above the review lifecycle block", () => {
-	const lines = renderShellSidebarBar(model({ review: { state: "reviewing", scope: "first.ts +2 files" } }), plainTheme, 60);
-	assert.match(lines[0], /^╭─ ✿ Status ─+╮$/);
-	assert.match(lines.slice(1).join("\n"), /🌹 RDD[\s\S]*Reviewers running…[\s\S]*first\.ts \+2 files/);
+	const lines = renderShellSidebarBar(model({ review: { state: "reviewing", scope: "first.ts +2 files" } }), plainTheme, 54);
+	assert.match(lines[0], /^╭─ ∞ Status ─+╮$/);
+	assert.match(lines.slice(1).join("\n"), /◈ RDD[\s\S]*Reviewers running…[\s\S]*first\.ts \+2 files/);
 });
 
 test("review lifecycle block omits the scope line when the candidate scope is unknown", () => {
-	const known = renderShellSidebarBar(model({ review: { state: "checking", scope: "first.ts" } }), plainTheme, 60);
-	const unknown = renderShellSidebarBar(model({ review: { state: "checking", scope: REVIEW_SCOPE_UNAVAILABLE } }), plainTheme, 60);
+	const known = renderShellSidebarBar(model({ review: { state: "checking", scope: "first.ts" } }), plainTheme, 54);
+	const unknown = renderShellSidebarBar(model({ review: { state: "checking", scope: REVIEW_SCOPE_UNAVAILABLE } }), plainTheme, 54);
 	const text = unknown.join("\n");
-	assert.match(text, /🌹 RDD[\s\S]*Updating…/);
+	assert.match(text, /◈ RDD[\s\S]*Updating…/);
 	assert.doesNotMatch(text, /Candidate scope unavailable/);
 	assert.equal(unknown.length, known.length - 1);
 });
 
 test("rdd visibility hides only the review lifecycle block", () => {
 	const data = model({ review: { state: "reviewing", scope: "first.ts +2" }, changes: { files: 2, added: 1, deleted: 1 } });
-	assert.match(renderShellSidebarBar(data, plainTheme, 60, DEFAULT_VISUAL_SETTINGS).join("\n"), /🌹 RDD[\s\S]*Reviewers running…/);
+	assert.match(renderShellSidebarBar(data, plainTheme, 60, DEFAULT_VISUAL_SETTINGS).join("\n"), /◈ RDD[\s\S]*Reviewers running…/);
 	const hidden = renderShellSidebarBar(data, plainTheme, 60, { ...DEFAULT_VISUAL_SETTINGS, visibility: { ...DEFAULT_VISUAL_SETTINGS.visibility, rdd: false } }).join("\n");
-	assert.doesNotMatch(hidden, /🌹 RDD|Reviewers running|first\.ts \+2 files/);
+	assert.doesNotMatch(hidden, /◈ RDD|Reviewers running|first\.ts \+2 files/);
 	assert.match(hidden, /Changes[\s\S]*2 files/);
 });
 
@@ -141,7 +141,7 @@ test("Status and review lifecycle block respect terminal width", () => {
 		for (const review of [undefined, { state: "reviewing" as const, scope: "first.ts +2 files" }, { state: "approved" as const, scope: REVIEW_SCOPE_UNAVAILABLE }]) {
 			const lines = renderShellSidebarBar(model({ review }), plainTheme, width);
 			for (const line of lines) assert.ok(visibleWidth(line) <= width, `${width}: ${line}`);
-			if (width >= 20) assert.match(lines[0], /^╭─ ✿ Status ─+╮$/);
+			if (width >= 20) assert.match(lines[0], /^╭─ ∞ Status ─+╮$/);
 		}
 	}
 });
@@ -175,13 +175,13 @@ test("renderShellBar renders one line with the segments in order", () => {
 	assert.equal(rest.length, 0);
 	assert.equal(
 		line,
-		"✿ gentle shell ⟡ ~/work/gentle-pi main ⟡ gpt-5.5 · medium ⟡ ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub",
+		"∞ nub-ia ⟡ ~/work/gentle-pi main ⟡ gpt-5.5 · medium ⟡ ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub",
 	);
 });
 
 test("renderShellBar colors the brand, model, effort, and gauge by role", () => {
 	const [line] = renderShellBar(model(), taggedTheme, 400);
-	assert.match(line, /<accent>✿ gentle shell<\/accent>/);
+	assert.match(line, /<accent>∞ nub-ia<\/accent>/);
 	assert.match(line, /<text>gpt-5\.5<\/text>/);
 	assert.match(line, /<syntaxFunction>medium<\/syntaxFunction>/);
 	assert.match(line, /<accent>▰▰▰▰<\/accent><border>▱▱▱▱<\/border>/);
@@ -279,14 +279,14 @@ test("renderShellBar compacts the path and branch before it sacrifices an extens
 
 test("renderShellBar drops the session name, then trailing segments, before truncating", () => {
 	const wide = model({ sessionName: "Release notes", statuses: ["MCP: 3 servers enabled"] });
-	const [atNinety] = renderShellBar(wide, plainTheme, 90);
+	const [atNinety] = renderShellBar(wide, plainTheme, 84);
 	assert.ok(visibleWidth(atNinety) <= 90, `line overflowed: ${visibleWidth(atNinety)}`);
 	assert.doesNotMatch(atNinety, /Release notes/);
 	assert.match(atNinety, /gpt-5\.5/);
 
 	const [atFifty] = renderShellBar(wide, plainTheme, 50);
 	assert.ok(visibleWidth(atFifty) <= 50, `line overflowed: ${visibleWidth(atFifty)}`);
-	assert.match(atFifty, /^✿ gentle shell/);
+	assert.match(atFifty, /^∞ nub-ia/);
 });
 
 test("shellEnabled stays off inside a Gentle Agents child", () => {
@@ -303,7 +303,7 @@ test("shellEnabled honors GENTLE_PI_SHELL=0", () => {
 test("renderShellSidebarBar paints the Status card frame with border and the title with accent", () => {
 	const lines = renderShellSidebarBar(model(), taggedTheme, 46);
 	assert.match(lines[0], /^<border>╭<\/border>/);
-	assert.match(lines[0], /<accent>✿ Status<\/accent>/);
+	assert.match(lines[0], /<accent>∞ Status<\/accent>/);
 	assert.match(lines[lines.length - 1], /^<border>╰<\/border>/);
 });
 
@@ -388,7 +388,7 @@ test("buildShellHeaderModel keeps only the header's fields from the bar model", 
 test("renderShellHeaderBar draws the brand, identity, and right-aligned counters (plus the standing usage segment) in one line", () => {
 	const header = buildShellHeaderModel(model({ profile: "team" }));
 	const { text: line } = renderShellHeaderBar(header, plainTheme, 120);
-	const left = "✿ Gentle Shell ⟡ ~/work/gentle-pi main ⟡ gpt-5.5 · medium · team";
+	const left = "∞ Nub-IA ⟡ ~/work/gentle-pi main ⟡ gpt-5.5 · medium · team";
 	const right = "ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub ⟡ usage";
 	assert.equal(line, left + " ".repeat(120 - visibleWidth(left) - visibleWidth(right)) + right);
 	assert.equal(visibleWidth(line), 120);
@@ -405,7 +405,7 @@ test("renderShellHeaderBar colors the brand bold and by role", () => {
 	const bolding = { fg: (color: string, text: string) => `<${color}>${text}</${color}>`, bold: (text: string) => `**${text}**` };
 	const header = buildShellHeaderModel(model());
 	const { text: line } = renderShellHeaderBar(header, bolding, 120);
-	assert.match(line, /<accent>\*\*✿ Gentle Shell\*\*<\/accent>/);
+	assert.match(line, /<accent>\*\*∞ Nub-IA\*\*<\/accent>/);
 });
 
 test("renderShellHeaderBar drops the profile, then the effort, then the whole location before the right group", () => {
@@ -415,42 +415,42 @@ test("renderShellHeaderBar drops the profile, then the effort, then the whole lo
 	assert.match(wide, /~\/work\/gentle-pi main/);
 	assert.match(wide, /ctx ▰▰▰▰▱▱▱▱ 45% ⟡ \$9\.49 sub ⟡ usage$/);
 
-	// 100 cols: the profile no longer fits, but effort and location still do.
-	const { text: noProfile } = renderShellHeaderBar(withProfile, plainTheme, 100);
+	// 94 cols (100 minus the six columns the shorter brand saves): the profile no longer fits, but effort and location still do.
+	const { text: noProfile } = renderShellHeaderBar(withProfile, plainTheme, 94);
 	assert.doesNotMatch(noProfile, /team/);
 	assert.match(noProfile, /gpt-5\.5 · medium/);
 	assert.match(noProfile, /~\/work\/gentle-pi main/);
-	assert.equal(visibleWidth(noProfile), 100);
+	assert.equal(visibleWidth(noProfile), 94);
 
 	// 90 cols: effort goes too, only the bare model id remains next to location.
-	const { text: noEffort } = renderShellHeaderBar(withProfile, plainTheme, 90);
+	const { text: noEffort } = renderShellHeaderBar(withProfile, plainTheme, 84);
 	assert.doesNotMatch(noEffort, /medium/);
 	assert.doesNotMatch(noEffort, /team/);
 	assert.match(noEffort, /gpt-5\.5/);
 	assert.match(noEffort, /~\/work\/gentle-pi main/);
-	assert.equal(visibleWidth(noEffort), 90);
+	assert.equal(visibleWidth(noEffort), 84);
 
 	// 82 cols: the whole location segment goes; brand and model survive with the counters.
-	const { text: noLocation } = renderShellHeaderBar(withProfile, plainTheme, 82);
+	const { text: noLocation } = renderShellHeaderBar(withProfile, plainTheme, 76);
 	assert.doesNotMatch(noLocation, /~\/work\/gentle-pi/);
 	assert.match(noLocation, /gpt-5\.5/);
-	assert.match(noLocation, /✿ Gentle Shell/);
+	assert.match(noLocation, /∞ Nub-IA/);
 	assert.match(noLocation, /ctx ▰▰▰▰▱▱▱▱ 45% ⟡ \$9\.49 sub ⟡ usage$/);
-	assert.equal(visibleWidth(noLocation), 82);
+	assert.equal(visibleWidth(noLocation), 76);
 
 	// 60 cols: even the standing usage segment is gone now; brand+model and ctx/cost survive.
-	const { text: noUsage } = renderShellHeaderBar(withProfile, plainTheme, 60);
+	const { text: noUsage } = renderShellHeaderBar(withProfile, plainTheme, 54);
 	assert.doesNotMatch(noUsage, /~\/work\/gentle-pi/);
 	assert.doesNotMatch(noUsage, /usage/);
 	assert.match(noUsage, /gpt-5\.5/);
-	assert.match(noUsage, /✿ Gentle Shell/);
+	assert.match(noUsage, /∞ Nub-IA/);
 	assert.match(noUsage, /ctx ▰▰▰▰▱▱▱▱ 45% ⟡ \$9\.49 sub$/);
-	assert.equal(visibleWidth(noUsage), 60);
+	assert.equal(visibleWidth(noUsage), 54);
 });
 
 test("renderShellHeaderBar returns an empty string only once the brand itself cannot fit", () => {
 	assert.equal(renderShellHeaderBar(buildShellHeaderModel(model()), plainTheme, 3).text, "");
-	assert.match(renderShellHeaderBar(buildShellHeaderModel(model()), plainTheme, 40).text, /✿ Gentle Shell/);
+	assert.match(renderShellHeaderBar(buildShellHeaderModel(model()), plainTheme, 40).text, /∞ Nub-IA/);
 });
 
 // T8: the usage segment. It rides after cost in the right group, shows every
@@ -491,23 +491,23 @@ test("renderShellHeaderBar degrades the usage segment (gauges, then secondary wi
 	// 100 cols: the gauges no longer fit, but both windows still show as text
 	// (a positive match on the bare "5h 26% · week 12%" run rules out any
 	// gauge glyph sneaking in between them; ctx's own gauge is unrelated).
-	const noGauges = renderShellHeaderBar(header, plainTheme, 100, "alt+u").text;
+	const noGauges = renderShellHeaderBar(header, plainTheme, 94, "alt+u").text;
 	assert.match(noGauges, /usage 5h 26% · week 12% · alt\+u$/);
 	assert.match(noGauges, /ctx ▰▰▰▰▱▱▱▱ 45% ⟡ \$9\.49 sub/, "ctx/cost are untouched while usage still degrades");
-	assert.equal(visibleWidth(noGauges), 100);
+	assert.equal(visibleWidth(noGauges), 94);
 
 	// 80 cols: only the first window remains.
-	const primaryOnly = renderShellHeaderBar(header, plainTheme, 80, "alt+u").text;
+	const primaryOnly = renderShellHeaderBar(header, plainTheme, 74, "alt+u").text;
 	assert.match(primaryOnly, /usage 5h 26% · alt\+u$/);
 	assert.doesNotMatch(primaryOnly, /week/);
 	assert.match(primaryOnly, /ctx ▰▰▰▰▱▱▱▱ 45% ⟡ \$9\.49 sub/);
-	assert.equal(visibleWidth(primaryOnly), 80);
+	assert.equal(visibleWidth(primaryOnly), 74);
 
 	// 70 cols: the whole usage segment is gone, ctx/cost remain intact.
-	const noUsage = renderShellHeaderBar(header, plainTheme, 70, "alt+u").text;
+	const noUsage = renderShellHeaderBar(header, plainTheme, 64, "alt+u").text;
 	assert.doesNotMatch(noUsage, /usage/);
 	assert.match(noUsage, /ctx ▰▰▰▰▱▱▱▱ 45% ⟡ \$9\.49 sub$/);
-	assert.equal(visibleWidth(noUsage), 70);
+	assert.equal(visibleWidth(noUsage), 64);
 });
 
 test("renderShellHeaderBar's usage span always points at the usage text, not ctx/cost", () => {
@@ -533,7 +533,7 @@ test("the sidebar Status card in the float style is a float panel two rows talle
 	useCardStyle(t, CARD_STYLE.FLOAT);
 	const float = renderShellSidebarBar(model({ review: { state: "reviewing", scope: "first.ts +2 files" } }), theme, 60);
 	assert.equal(float.length, neon.length + 2);
-	assert.equal(stripAnsi(float[1]!), ` ▎ ✿ Status${" ".repeat(49)}`);
+	assert.equal(stripAnsi(float[1]!), ` ▎ ∞ Status${" ".repeat(49)}`);
 	assert.equal(stripAnsi(float[2]!), ` ▎${" ".repeat(57)} `, "a blank separator row follows the header");
 	assertFloatRows(float, 60);
 	assert.deepEqual(float.slice(3, -1).map(bodyText), neon.slice(1, -1).map(bodyText));

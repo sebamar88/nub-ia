@@ -41,7 +41,7 @@ function card(overrides: Partial<Card> = {}): Card {
 
 test("renderCard draws the rounded frame with the title in the top rule and wraps the body inside", () => {
 	const lines = renderCard(card(), plainTheme, 48, { expanded: true }).map(stripAnsi);
-	assert.match(lines[0], /^╭─ ✿ Gentle AI · review preflight ─+╮$/);
+	assert.match(lines[0], /^╭─ ∞ Gentle AI · review preflight ─+╮$/);
 	assert.match(lines[1], /^│ Receipt-driven development is enabled, and +│$/);
 	for (const line of lines) assert.equal(visibleWidth(line), 48, `"${line}" is not 48 wide`);
 	assert.ok(lines.some((line) => /^│ +│$/.test(line)), "blank body lines keep the frame");
@@ -60,18 +60,18 @@ test("renderCard uses the card tone across the full frame while preserving conte
 	// INFO paints the rose frame: the rounded border in the plain border role,
 	// the title in accent — the same look every sidebar card already used.
 	const info = renderCard(card(), taggedTheme, 80, { expanded: true });
-	assert.match(info[0], /^<border>╭<\/border><border>─ <\/border><accent>✿ Gentle AI<\/accent> <muted>·<\/muted> <muted>review preflight<\/muted><border> ─+<\/border><border>╮<\/border>$/);
+	assert.match(info[0], /^<border>╭<\/border><border>─ <\/border><accent>∞ Gentle AI<\/accent> <muted>·<\/muted> <muted>review preflight<\/muted><border> ─+<\/border><border>╮<\/border>$/);
 	assert.match(info[1], /^<border>│<\/border> <text>.*<border>│<\/border>$/);
 	assert.match(info[info.length - 1], /^<border>╰<\/border><border>─+╯<\/border>$/);
 
 	const warning = renderCard(card({ tone: CARD_TONE.WARNING, subtitle: undefined }), taggedTheme, 80, { expanded: true });
 	assert.match(warning[0], /^<warning>╭<\/warning>/);
-	assert.match(warning[0], /<warning>✿ Gentle AI<\/warning>/);
+	assert.match(warning[0], /<warning>∞ Gentle AI<\/warning>/);
 	assert.match(warning[1], /^<warning>│<\/warning> /);
 	assert.match(warning[warning.length - 1], /^<warning>╰<\/warning>/);
 
 	const error = renderCard(card({ tone: CARD_TONE.ERROR }), taggedTheme, 80, { expanded: true, hint: "ctrl+o to expand" });
-	assert.match(error[0], /^<error>╭<\/error><error>─ <\/error><error>✿ Gentle AI<\/error> <muted>·<\/muted> <muted>review preflight<\/muted><error> ─+<\/error> <dim>ctrl\+o to expand<\/dim> <error>╮<\/error>$/);
+	assert.match(error[0], /^<error>╭<\/error><error>─ <\/error><error>∞ Gentle AI<\/error> <muted>·<\/muted> <muted>review preflight<\/muted><error> ─+<\/error> <dim>ctrl\+o to expand<\/dim> <error>╮<\/error>$/);
 	assert.match(error[1], /^<error>│<\/error> <text>.*<error>│<\/error>$/);
 	assert.match(error[error.length - 1], /^<error>╰<\/error><error>─+╯<\/error>$/);
 	assert.equal(CARD_TONE.SUCCESS, "success");
@@ -79,7 +79,7 @@ test("renderCard uses the card tone across the full frame while preserving conte
 
 test("renderCard places a hint at the right end of the top rule without background fill", () => {
 	const lines = renderCard(card(), plainTheme, 60, { expanded: false, hint: "ctrl+o expand" });
-	assert.match(stripAnsi(lines[0]), /^╭─ ✿ Gentle AI · review preflight ─+ ctrl\+o expand ╮$/);
+	assert.match(stripAnsi(lines[0]), /^╭─ ∞ Gentle AI · review preflight ─+ ctrl\+o expand ╮$/);
 	assert.equal(visibleWidth(lines[0]), 60);
 
 	assert.doesNotMatch(lines.join("\n"), /\x1b\[44m/);
@@ -121,7 +121,7 @@ test("renderCard keeps the top rule at width with a two-cell glyph", () => {
 
 test("renderCard drops the hint before truncating title content", () => {
 	const lines = renderCard(card(), plainTheme, 40, { expanded: false, hint: "ctrl+o expand" }).map(stripAnsi);
-	assert.equal(lines[0], "╭─ ✿ Gentle AI · review preflight ─────╮");
+	assert.equal(lines[0], "╭─ ∞ Gentle AI · review preflight ─────╮");
 	assert.ok(!lines[0].includes("ctrl+o"));
 	assert.equal(visibleWidth(lines[0]), 40);
 });

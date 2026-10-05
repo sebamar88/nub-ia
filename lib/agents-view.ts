@@ -429,7 +429,7 @@ export class AgentsView {
 		if (modeLabel) this.modeRegion.render(modeWidth);
 		const scope = this.deps.sessionId === undefined ? "" : `${SCOPE_LABEL[this.scope]} · `;
 		const controlsWidth = (closeLabel ? closeWidth + 1 : 0) + (modeLabel ? modeWidth + 1 : 0);
-		const title = truncateToWidth(`❀ Agents · ${scope}${this.counts()}`, Math.max(0, inner - 3 - controlsWidth), "…");
+		const title = truncateToWidth(`∾ Agents · ${scope}${this.counts()}`, Math.max(0, inner - 3 - controlsWidth), "…");
 		const mode = modeLabel ? ` ${theme.fg(this.hoveredControl === "mode" ? "warning" : ROLE.KEY, modeLabel)}` : "";
 		const close = closeLabel ? ` ${theme.fg(this.hoveredControl === "close" ? "warning" : ROLE.KEY, closeLabel)}` : "";
 		const top = theme.fg(ROLE.FRAME, "╭─ ") + theme.fg(ROLE.TITLE, title) + theme.fg(ROLE.FRAME, ` ${rule(inner - visibleWidth(title) - 3 - controlsWidth)}`) + mode + close + theme.fg(ROLE.FRAME, "╮");

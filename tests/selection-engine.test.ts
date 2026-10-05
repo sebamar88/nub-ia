@@ -126,7 +126,7 @@ test("T2 float prompt actual editor fallback and neon bytes remain exact at all 
 			assert.deepEqual(fallback.render(width), neon);
 			const rows = editor.render(width);
 			if (width < 10) assert.deepEqual(rows, neon);
-			else assert.match(stripAnsi(rows[0]), /^ ▎ ✿/);
+			else assert.match(stripAnsi(rows[0]), /^ ▎ ∞/);
 			assert.ok(rows.every((row) => visibleWidth(row) <= width));
 		}
 	} finally { editor.dispose(); fallback.dispose(); setCardStyle(previous); }

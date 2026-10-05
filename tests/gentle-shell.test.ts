@@ -745,7 +745,7 @@ test("gentleShell frames the editor with the petal prompt and a hint while empty
 	assert.equal(ui.workingVisible, false, "pi's own Working row must be hidden");
 	editor.focused = true;
 	const lines = editor.render(60).map(stripAnsi);
-	assert.match(lines[0], /^╭─ ✿ ─+╮$/);
+	assert.match(lines[0], /^╭─ ∞ ─+╮$/);
 	assert.doesNotMatch(editor.render(60).join("\n"), /\x1b\[44m/, "prompt must not paint passive backgrounds");
 	assert.match(lines[1], /^│.*type, or \/ for commands +│$/);
 	assert.match(lines[lines.length - 1], /^╰─+╯$/);
@@ -1858,14 +1858,14 @@ test("gentleShell shows working while the agent runs and queued when messages wa
 	const editor = installedPrompt(ctx, ui, handlers);
 
 	for (const handler of handlers.get("agent_start") ?? []) handler({}, ctx);
-	assert.match(stripAnsi(editor.render(60)[0]), /^╭─ ✿ working… ─+╮$/);
+	assert.match(stripAnsi(editor.render(60)[0]), /^╭─ ∞ working… ─+╮$/);
 	pending.value = true;
-	assert.match(stripAnsi(editor.render(60)[0]), /^╭─ [✿❀❁✾] queued ─+╮$/);
+	assert.match(stripAnsi(editor.render(60)[0]), /^╭─ [∞∾∝∿] queued ─+╮$/);
 	for (const handler of handlers.get("agent_end") ?? []) handler({}, ctx);
 	assert.match(stripAnsi(editor.render(60)[0]), /queued/, "low-level run end is not settled");
 	pending.value = false;
 	for (const handler of handlers.get("agent_settled") ?? []) handler({}, ctx);
-	assert.match(stripAnsi(editor.render(60)[0]), /^╭─ ✿ ─+╮$/);
+	assert.match(stripAnsi(editor.render(60)[0]), /^╭─ ∞ ─+╮$/);
 	editor.dispose();
 });
 
@@ -2685,7 +2685,7 @@ test("potato repaints start/settle and shows queued state on the host's next ren
 	let before = renders.mock.callCount();
 	for (const handler of handlers.get("agent_start") ?? []) handler({}, ctx);
 	assert.ok(renders.mock.callCount() > before);
-	assert.match(stripAnsi(editor.render(60)[0]), /✿ working/);
+	assert.match(stripAnsi(editor.render(60)[0]), /∞ working/);
 	before = renders.mock.callCount();
 	pending.value = true;
 	assert.equal(renders.mock.callCount(), before, "changing the queue flag is not a Gentle repaint event");
@@ -2694,7 +2694,7 @@ test("potato repaints start/settle and shows queued state on the host's next ren
 	// this proves next-render visibility, not real Pi enqueue-to-paint latency.
 	fakeTui.requestRender();
 	assert.equal(renders.mock.callCount(), before + 1);
-	assert.match(stripAnsi(editor.render(60)[0]), /✿ queued/);
+	assert.match(stripAnsi(editor.render(60)[0]), /∞ queued/);
 	before = renders.mock.callCount();
 	for (const handler of handlers.get("agent_settled") ?? []) handler({}, ctx);
 	assert.ok(renders.mock.callCount() > before);
@@ -3215,7 +3215,7 @@ test("below-input header remains a fullscreen widget without the rail and follow
 		const pending = commands.get("gentle:customize")!.handler("", ctx);
 		await overlayReady;
 		await customizeAction(ui, "Header placement: below-input");
-		assert.match(widget(tui, plainTheme).render(180).join("\n"), /Gentle Shell/);
+		assert.match(widget(tui, plainTheme).render(180).join("\n"), /Nub-IA/);
 		assert.equal(widget(tui, plainTheme).render(180).length, 2);
 		tui.mode = "regular";
 		assert.deepEqual(widget(tui, plainTheme).render(180), []);
@@ -3238,14 +3238,14 @@ test("narrow fullscreen with a below-input header shows only the bottom bar, car
 		const widget = ui.widgets.get("gentle-shell-below-input-header") as (tui: unknown, theme: ShellBarTheme) => { render(width: number): string[] };
 		const topBottom = footer.render(100);
 		assert.equal(topBottom.length, 1, "top placement keeps the compact bar contract");
-		assert.match(topBottom[0]!, /gentle shell/);
+		assert.match(topBottom[0]!, /nub-ia/);
 		const pending = commands.get("gentle:customize")!.handler("", ctx);
 		await overlayReady;
 		await customizeAction(ui, "Header placement: below-input");
 		assert.deepEqual(widget(tui, plainTheme).render(100), [], "no second status row below the input at narrow width");
 		const narrow = footer.render(100);
 		assert.equal(narrow.length, 2);
-		assert.match(narrow[0]!, /Gentle Shell/, "bottom-only bar reuses the header row");
+		assert.match(narrow[0]!, /Nub-IA/, "bottom-only bar reuses the header row");
 		assert.match(narrow[0]!, /ctx .* 45%/);
 		assert.match(narrow[0]!, /\$0\.000 sub/);
 		assert.match(narrow[0]!, /usage/);
@@ -3259,7 +3259,7 @@ test("narrow fullscreen with a below-input header shows only the bottom bar, car
 		}
 		tui.terminal.columns = 180;
 		assert.equal(widget(tui, plainTheme).render(180).length, 2, "wide keeps the below-input header");
-		assert.match(footer.render(180).join("\n"), /gentle shell/, "wide keeps the compact bottom bar");
+		assert.match(footer.render(180).join("\n"), /nub-ia/, "wide keeps the compact bottom bar");
 		tui.terminal.columns = 100;
 		await customizeAction(ui, "Status placement: hidden");
 		assert.deepEqual(footer.render(100), [], "hidden never paints a bottom bar");
@@ -3310,7 +3310,7 @@ test("T4d unified float footer uses one live owner and restores legacy Changes o
 			const rows = footer.render(width);
 			assert.equal(rows.length, 6);
 			assert.match(stripAnsi(rows[2]!), /1 file · \+2 −0/);
-			assert.match(stripAnsi(rows[3]!), /Gentle Shell/);
+			assert.match(stripAnsi(rows[3]!), /Nub-IA/);
 			assert.match(stripAnsi(rows[4]!), /^  MCP ready/);
 			assert.ok(rows.slice(1).every((row) => row.startsWith(bg)));
 			assert.deepEqual(changes.render(width), []);
@@ -3387,7 +3387,7 @@ test("T4d unified float footer uses one live owner and restores legacy Changes o
 		assert.equal(widget("gentle-shell-changes").render(240).length, 1, "top placement restores standalone Changes");
 		const above = railHeader.render(240);
 		assert.equal(above.length, 4);
-		assert.match(stripAnsi(above[1]!), /Gentle Shell/);
+		assert.match(stripAnsi(above[1]!), /Nub-IA/);
 		assert.equal(stripAnsi(above[3]!), "▔".repeat(240));
 		ui.overlayView!.handleInput("\x1b");
 		await pending;
@@ -4881,7 +4881,7 @@ test("gentleShell shows the unsupported note for a provider with no built-in or 
 	const opened = commands.get("gentle:usage")!.handler("", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
-	assert.match(plain[1], /✿ acme-cloud · no subscription usage for this provider/);
+	assert.match(plain[1], /∞ acme-cloud · no subscription usage for this provider/);
 	ui.closeOverlay?.();
 	await opened;
 });
@@ -4950,7 +4950,7 @@ test("a registered source's rejecting fetch never crashes the shell or poisons t
 	const opened = commands.get("gentle:usage")!.handler("", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
-	assert.match(plain[1], /✿ acme-cloud · fetch failed · r to retry/);
+	assert.match(plain[1], /∞ acme-cloud · fetch failed · r to retry/);
 	ui.closeOverlay?.();
 	await opened;
 });
@@ -5001,7 +5001,7 @@ test("gentleShell leaves a generic failure note when a registered source resolve
 	const opened = commands.get("gentle:usage")!.handler("", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
-	assert.match(plain[1], /✿ acme-cloud · fetch failed · r to retry/);
+	assert.match(plain[1], /∞ acme-cloud · fetch failed · r to retry/);
 	ui.closeOverlay?.();
 	await opened;
 });
@@ -5069,7 +5069,7 @@ test("gentleShell registers /gentle:usage and opens the subscriptions overlay", 
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
 	assert.match(plain[0], /Subscriptions/);
-	assert.match(plain[1], /✿ openai-codex · pro/);
+	assert.match(plain[1], /∞ openai-codex · pro/);
 	ui.closeOverlay?.();
 	await opened;
 });
@@ -5114,7 +5114,7 @@ test("gentleShell draws the review preflight message as a Gentle card", (t) => {
 		assert.doesNotMatch(renderer(message, { expanded }, sentinelTheme).render(80).join("\n"), /\x1b\[44m/);
 	}
 	const expanded = renderer(message, { expanded: true }, plainTheme).render(80).map(stripAnsi);
-	assert.match(expanded[0], /^╭─ ✿ Gentle AI · review preflight ─+ .*collapse ╮$/);
+	assert.match(expanded[0], /^╭─ ∞ Gentle AI · review preflight ─+ .*collapse ╮$/);
 	assert.match(expanded[1], /^│ Receipt-driven development is enabled\. +│$/);
 	assert.ok(expanded.some((line) => line.includes("gentle_review")));
 	const collapsed = renderer({ ...message, content: [{ type: "text", text: message.content }] }, { expanded: false }, plainTheme).render(80).map(stripAnsi);
@@ -5137,7 +5137,7 @@ test("the review preflight card paints the rose INFO frame (border) and title (a
 	const message = { customType: "gentle-pi.review-preflight", content: "Receipt-driven development is enabled." };
 	const lines = renderer(message, { expanded: true }, taggedTheme).render(60);
 	assert.match(lines[0]!, /^<border>╭<\/border>/);
-	assert.match(lines[0]!, /<accent>✿ Gentle AI<\/accent>/);
+	assert.match(lines[0]!, /<accent>∞ Gentle AI<\/accent>/);
 });
 
 test("gentleShell keeps a dev-binary override visible above the editor for the whole session", async (t) => {
@@ -5761,13 +5761,13 @@ test("a valid response-header snapshot clears a prior refresh failure", async (_
 	await settle();
 	const opened = commands.get("gentle:usage")!.handler("", ctx);
 	await settle();
-	assert.ok(openPanelLines(ui).some((line) => line.includes("✿ openai-codex · fetch failed")), "the failed refresh is visible first");
+	assert.ok(openPanelLines(ui).some((line) => line.includes("∞ openai-codex · fetch failed")), "the failed refresh is visible first");
 
 	for (const handler of handlers.get("after_provider_response") ?? []) {
 		handler({ status: 200, headers: { "x-codex-primary-used-percent": "10", "x-codex-primary-window-minutes": "300" } }, ctx);
 	}
 	const lines = openPanelLines(ui);
-	assert.ok(lines.some((line) => line.includes("✿ openai-codex · updated just now")), "the header snapshot is recorded");
+	assert.ok(lines.some((line) => line.includes("∞ openai-codex · updated just now")), "the header snapshot is recorded");
 	assert.ok(lines.some((line) => line.includes("10%")), "the header snapshot's window renders");
 	assert.equal(lines.some((line) => line.includes("fetch failed")), false, "a valid header snapshot clears the failure");
 	ui.closeOverlay?.();
@@ -5823,12 +5823,12 @@ test("an older overlapping refresh cannot mark a provider failed after a newer o
 	await settle();
 	const opened = commands.get("gentle:usage")!.handler("", ctx);
 	await settle();
-	assert.ok(openPanelLines(ui).some((line) => line.includes("✿ openai-codex · pro")), "the newer refresh's snapshot is showing");
+	assert.ok(openPanelLines(ui).some((line) => line.includes("∞ openai-codex · pro")), "the newer refresh's snapshot is showing");
 
 	releaseStaleFailure();
 	await settle();
 	const lines = openPanelLines(ui);
-	assert.ok(lines.some((line) => line.includes("✿ openai-codex")), "the newer refresh's snapshot stands");
+	assert.ok(lines.some((line) => line.includes("∞ openai-codex")), "the newer refresh's snapshot stands");
 	assert.equal(lines.some((line) => line.includes("fetch failed")), false, "the older refresh's late failure must not mark the provider failed");
 	ui.closeOverlay?.();
 	await opened;

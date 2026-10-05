@@ -171,7 +171,7 @@ test("renderTodoCard draws the framed list with status glyphs and keeps every li
 	const lines = renderTodoCard(seeded(), plainTheme, 60, { collapsed: false, staleTurns: 0, collapseKey: "ctrl+shift+t" });
 	for (const line of lines) assert.equal(visibleWidth(line), 60, `"${stripAnsi(line)}" is not 60 wide`);
 	const plain = lines.map(stripAnsi);
-	assert.match(plain[0], /^╭─ ❀ Todos ▾ Collapse · 1 of 3 ─+ ctrl\+shift\+t collapse ╮$/);
+	assert.match(plain[0], /^╭─ ∾ Todos ▾ Collapse · 1 of 3 ─+ ctrl\+shift\+t collapse ╮$/);
 	assert.match(plain[1], /^│ ✓ ~Add quiet tool rendering~ +│$/);
 	assert.match(plain[2], /^│ ◐ Fix quiet tools conflict · fixing conflict +│$/);
 	assert.match(plain[3], /^│ ○ Show git bash tails +│$/);
@@ -196,19 +196,19 @@ test("renderTodoCard folds a long list: done tasks become one row and the open o
 
 test("renderTodoCard keeps the configured collapse shortcut in the header while stale state remains visible", () => {
 	const freshExpanded = renderTodoCard(seeded(), plainTheme, 70, { collapsed: false, staleTurns: 0, collapseKey: "ctrl+shift+t" }).map(stripAnsi);
-	assert.match(freshExpanded[0], /^╭─ ❀ Todos ▾ Collapse · 1 of 3 ─+ ctrl\+shift\+t collapse ╮$/);
+	assert.match(freshExpanded[0], /^╭─ ∾ Todos ▾ Collapse · 1 of 3 ─+ ctrl\+shift\+t collapse ╮$/);
 
 	const freshCollapsed = renderTodoCard(seeded(), plainTheme, 70, { collapsed: true, staleTurns: 0, collapseKey: "ctrl+shift+t" }).map(stripAnsi);
 	assert.equal(freshCollapsed.length, 3);
-	assert.match(freshCollapsed[0], /^╭─ ❀ Todos ▸ Expand · 1 of 3 ─+ ctrl\+shift\+t expand ╮$/);
+	assert.match(freshCollapsed[0], /^╭─ ∾ Todos ▸ Expand · 1 of 3 ─+ ctrl\+shift\+t expand ╮$/);
 	assert.match(freshCollapsed[1], /^│ ◐ Fix quiet tools conflict · fixing conflict +│$/);
 
 	const staleExpanded = renderTodoCard(seeded(), plainTheme, 70, { collapsed: false, staleTurns: 2, collapseKey: "ctrl+shift+t" }).map(stripAnsi);
-	assert.match(staleExpanded[0], /^╭─ ❀ Todos ▾ Collapse · 1 of 3 ─+ ctrl\+shift\+t collapse ╮$/);
+	assert.match(staleExpanded[0], /^╭─ ∾ Todos ▾ Collapse · 1 of 3 ─+ ctrl\+shift\+t collapse ╮$/);
 	assert.match(staleExpanded[1], /^│ stale · 2 turns +│$/);
 
 	const staleCollapsed = renderTodoCard(seeded(), plainTheme, 70, { collapsed: true, staleTurns: 2, collapseKey: "ctrl+shift+t" }).map(stripAnsi);
-	assert.match(staleCollapsed[0], /^╭─ ❀ Todos ▸ Expand · 1 of 3 ─+ ctrl\+shift\+t expand ╮$/);
+	assert.match(staleCollapsed[0], /^╭─ ∾ Todos ▸ Expand · 1 of 3 ─+ ctrl\+shift\+t expand ╮$/);
 	assert.match(staleCollapsed[1], /^│ stale · 2 turns +│$/);
 	assert.match(staleCollapsed[2], /^│ ◐ Fix quiet tools conflict · fixing conflict +│$/);
 
@@ -279,11 +279,11 @@ test("renderTodoCard paints the sidebar rail and the bottom widget with the same
 	};
 	const sidebar = renderTodoCard(seeded(), taggedTheme, 60, { scrollable: true, collapsed: false, staleTurns: 0 });
 	assert.match(sidebar[0], /<border>╭<\/border>/);
-	assert.match(sidebar[0], /<accent>❀ Todos/);
+	assert.match(sidebar[0], /<accent>∾ Todos/);
 
 	const bottom = renderTodoCard(seeded(), taggedTheme, 60, { collapsed: false, staleTurns: 0 });
 	assert.match(bottom[0], /<border>╭<\/border>/);
-	assert.match(bottom[0], /<accent>❀ Todos/);
+	assert.match(bottom[0], /<accent>∾ Todos/);
 });
 
 // H1 (odd/tasks/usage-click-and-changes-attribution.md): the same shared
@@ -309,7 +309,7 @@ test("renderTodoCard keeps stale indicators and collapse hints in scrollable lis
 	const state = applyTodo(emptyTodo(), { action: "write", tasks }, 1).state;
 	const lines = renderTodoCard(state, plainTheme, 70, { scrollable: true, collapsed: false, staleTurns: 2, collapseKey: "alt+t" }).map(stripAnsi);
 	assert.equal(lines.length, 43, "top rule, stale row, every task, bottom rule");
-	assert.match(lines[0], /^╭─ ❀ Todos ▾ Collapse · 25 of 40 ─+ alt\+t collapse ╮$/);
+	assert.match(lines[0], /^╭─ ∾ Todos ▾ Collapse · 25 of 40 ─+ alt\+t collapse ╮$/);
 	assert.match(lines[1], /^│ stale · 2 turns +│$/);
 	assert.match(lines[2], /^│ ✓ ~Task 1~ +│$/);
 	assert.match(lines[41], /^│ ○ Task 40 +│$/);
@@ -346,7 +346,7 @@ test("renderTodoCard in the float style keeps its clickable control on the heade
 		assert.equal(float.length, neon.length + 2, "the top padding and separator rows add two rows");
 		const action = options.collapsed ? "▸ Expand" : "▾ Collapse";
 		const hint = options.collapseKey ? `ctrl\\+shift\\+t {3}` : "";
-		assert.match(stripAnsi(float[1]!), new RegExp(`^ ▎ ❀ Todos ${action}  1 of 3 +${hint}$`), "row 1 is the clickable header");
+		assert.match(stripAnsi(float[1]!), new RegExp(`^ ▎ ∾ Todos ${action}  1 of 3 +${hint}$`), "row 1 is the clickable header");
 		assert.match(stripAnsi(float[2]!), /^ ▎ +$/, "a blank separator row follows the header");
 		assertFloatRows(float, 60);
 		assert.deepEqual(float.slice(3, -1).map(bodyText), neon.slice(1, -1).map(bodyText));
@@ -354,7 +354,7 @@ test("renderTodoCard in the float style keeps its clickable control on the heade
 	useCardStyle(t, CARD_STYLE.FLOAT);
 	const tagged = withBackground({ ...plainTheme, fg: (color: string, text: string) => `<${color}>${text}</${color}>` });
 	const [, header] = renderTodoCard(seeded(), tagged, 120, { collapsed: false, staleTurns: 0, hovered: true });
-	assert.match(stripAnsi(header!), /^ <border>▎<\/border> <accent>❀ Todos <[a-zA-Z]+>▾ Collapse<\/[a-zA-Z]+><\/accent>  <muted>1 of 3<\/muted> +$/, "the hovered control keeps its own role and case");
+	assert.match(stripAnsi(header!), /^ <border>▎<\/border> <accent>∾ Todos <[a-zA-Z]+>▾ Collapse<\/[a-zA-Z]+><\/accent>  <muted>1 of 3<\/muted> +$/, "the hovered control keeps its own role and case");
 });
 
 test("float Todos keeps the configured shortcut visible at rail width without repeating the action", (t) => {

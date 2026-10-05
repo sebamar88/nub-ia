@@ -76,7 +76,7 @@ test("StatsView shows a loading state, then the overview once sessions load", as
 	assert.ok(events.includes("render"));
 	const text = joined(view);
 	assert.doesNotMatch(text, /Loading/);
-	assert.match(text, /✿ Stats/);
+	assert.match(text, /∞ Stats/);
 	assert.match(text, /\[× Close\]/);
 	assert.match(text, /Overview/);
 	assert.match(text, /All time · All projects/);

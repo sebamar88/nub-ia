@@ -67,8 +67,8 @@ export interface PromptFrameOptions {
 
 // A terminal cell cannot grow, so the petal earns presence with weight and
 // the brightest rose in the theme. Working spins through four flowers.
-export const PROMPT_PETAL = "✿";
-const PETAL_FRAMES = ["✿", "❀", "❁", "✾"] as const;
+export const PROMPT_PETAL = "∞";
+const PETAL_FRAMES = ["∞", "∾", "∝", "∿"] as const;
 export const PROMPT_HINT = "type, or / for commands";
 export const DOUBLE_ESC_CANCEL_HINT = "esc again to cancel";
 export const IDLE_ESC_CLEAR_HINT = "esc again to clear";

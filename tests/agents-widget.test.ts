@@ -84,7 +84,7 @@ test("renderAgentsCard paints the quiet-state INFO card with the rose frame (bor
 	const taggedTheme = { fg: (color: string, text: string) => `<${color}>${text}</${color}>` };
 	const lines = renderAgentsCard([task({ status: TASK_STATUS.RUNNING })], taggedTheme, 60, 5000, { collapsed: false });
 	assert.match(lines[0]!, /^<border>╭<\/border>/);
-	assert.match(lines[0]!, /<accent>❀ Agents<\/accent>/);
+	assert.match(lines[0]!, /<accent>∾ Agents<\/accent>/);
 });
 
 test("renderAgentsCard draws columns for agent, task, and model · tokens · cost · time, with the batch time in the rule", () => {
@@ -95,7 +95,7 @@ test("renderAgentsCard draws columns for agent, task, and model · tokens · cos
 	const lines = renderAgentsCard(tasks, plainTheme, 84, 85_000, { collapsed: false });
 	for (const line of lines) assert.equal(visibleWidth(line), 84, `"${stripAnsi(line)}" is not 84 wide`);
 	const plain = lines.map(stripAnsi);
-	assert.match(plain[0], /^╭─ ❀ Agents · 1 active · 1 done ─+ 1m24s ╮$/);
+	assert.match(plain[0], /^╭─ ∾ Agents · 1 active · 1 done ─+ 1m24s ╮$/);
 	assert.match(plain[1], /^│ ✓  sdd-explore  map footer data sources +claude-sonnet-5 · 34k · \$0\.270 · 25s │$/);
 	assert.match(plain[2], /^│ ◐  sdd-apply    write gentle-shell footer +claude-sonnet-5 · 12k · \$0\.090 · 41s │$/);
 	assert.match(plain[3], /^╰─+╯$/);
@@ -195,7 +195,7 @@ test("renderAgentsCard shows questions and failures in place of the task, and co
 		task({ id: "c", status: TASK_STATUS.QUEUED, createdAt: 1500, startedAt: null, tokens: 0, cost: 0 }),
 	];
 	const plain = renderAgentsCard(tasks, plainTheme, 80, 3000, { collapsed: false }).map(stripAnsi);
-	assert.match(plain[0], /^╭─ ❀ Agents · 1 waiting · 1 queued · 1 failed ─+ 2s ╮$/);
+	assert.match(plain[0], /^╭─ ∾ Agents · 1 waiting · 1 queued · 1 failed ─+ 2s ╮$/);
 	// The waiting row carries no tokens/cost of its own, but the failed row
 	// below it does, so those columns stay reserved (blank) rather than
 	// collapsing — the whole point of fixed columns over the old per-row join.
@@ -349,7 +349,7 @@ test("renderAgentsCard in the float style is a float panel two rows taller than 
 		const float = renderAgentsCard(tasks, theme, 84, 85_000, options);
 		setCardStyle(CARD_STYLE.NEON);
 		assert.equal(float.length, neon.length + 2, "the top padding and separator rows add two rows");
-		assert.match(stripAnsi(float[1]!), /^ ▎ ❀ Agents  1 active · 1 done +\S.*\S {3}$/, "header on row 1, hint right-aligned");
+		assert.match(stripAnsi(float[1]!), /^ ▎ ∾ Agents  1 active · 1 done +\S.*\S {3}$/, "header on row 1, hint right-aligned");
 		assert.match(stripAnsi(float[2]!), /^ ▎ +$/, "a blank separator row follows the header");
 		assertFloatRows(float, 84);
 		for (const [index, row] of float.slice(3, -1).entries()) {
@@ -364,5 +364,5 @@ test("renderAgentsCard in the float style is a float panel two rows taller than 
 	useCardStyle(t, CARD_STYLE.FLOAT);
 	const tagged = withBackground({ fg: (color: string, text: string) => `<${color}>${text}</${color}>` });
 	const [, header] = renderAgentsCard([task({ status: TASK_STATUS.WAITING })], tagged, 120, 5000, { collapsed: true, collapseKey: "ctrl+a" });
-	assert.match(stripAnsi(header!), /^ <warning>▎<\/warning> <warning>❀ Agents<\/warning>  <muted>1 waiting<\/muted> +<muted>ctrl\+a expand<\/muted> {3}$/);
+	assert.match(stripAnsi(header!), /^ <warning>▎<\/warning> <warning>∾ Agents<\/warning>  <muted>1 waiting<\/muted> +<muted>ctrl\+a expand<\/muted> {3}$/);
 });

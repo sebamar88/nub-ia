@@ -125,7 +125,7 @@ const PENDING_NOTE: Record<string, string> = {
 	[ANTHROPIC_PROVIDER]: "usage arrives with the first response",
 };
 const UNSUPPORTED_NOTE = "no subscription usage for this provider";
-const ACTIVE_MARK = "✿";
+const ACTIVE_MARK = "∞";
 // What a targeted provider with no snapshot says after a refresh actually ran
 // and answered nothing. Generic on purpose: it names no endpoint, key, or
 // account detail, exactly like the other notes here.

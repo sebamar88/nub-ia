@@ -8,7 +8,7 @@ import { CARD_TONE, panelExtraRows, panelInnerWidth, renderCard, type CardTheme,
 // event. One row per task: glyph, agent, task summary, then
 // model · effort · tokens · cost · time right-aligned.
 
-export const AGENTS_GLYPH = "❀";
+export const AGENTS_GLYPH = "∾";
 
 export interface AgentsWidgetOptions {
 	collapsed: boolean;

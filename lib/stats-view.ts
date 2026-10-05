@@ -59,7 +59,7 @@ const ROLE = {
 	ERROR: "error",
 } as const;
 
-const TITLE = "✿ Stats";
+const TITLE = "∞ Stats";
 const CLOSE_BUTTON = "[× Close]";
 const CLOSE_BUTTON_NARROW = "[×]";
 const FOOTNOTE = "Local Pi sessions on this machine · subagent runs not included";
@@ -130,9 +130,9 @@ export function tokenBreakdown(totals: TokenTotals): string {
 
 export function literaryComparison(tokens: number): string {
 	const ratio = tokens / DON_QUIXOTE_TOKENS;
-	if (ratio >= 1) return `✿ That's ~${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}x the tokens in Don Quixote.`;
+	if (ratio >= 1) return `∞ That's ~${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}x the tokens in Don Quixote.`;
 	const share = ratio * 100;
-	return `✿ That's ~${share >= 10 ? Math.round(share) : share.toFixed(1)}% of the tokens in Don Quixote.`;
+	return `∞ That's ~${share >= 10 ? Math.round(share) : share.toFixed(1)}% of the tokens in Don Quixote.`;
 }
 
 export class StatsView {

@@ -157,17 +157,17 @@ test("renderUsagePanel puts the active provider first and explains missing data"
 	const claude = parseAnthropicHeaders({ "anthropic-ratelimit-unified-5h-utilization": "0.2" }, NOW);
 	assert.ok(claude);
 	const both = renderUsagePanel([codex, claude], plainTheme, 100, NOW, { provider: "anthropic" });
-	assert.match(both[0], /^✿ anthropic · updated just now$/);
+	assert.match(both[0], /^∞ anthropic · updated just now$/);
 	assert.match(both[1], /^ {2}claude 5h +[▰▱]{16} +20%$/);
 	assert.match(both.find((line) => line.startsWith("openai-codex")) ?? "", /^openai-codex · pro/);
 
 	const apiKey = renderUsagePanel([codex], plainTheme, 100, NOW, { provider: "openai" });
-	assert.match(apiKey[0], /^✿ openai · no subscription usage for this provider$/);
+	assert.match(apiKey[0], /^∞ openai · no subscription usage for this provider$/);
 	assert.match(apiKey[1], /^openai-codex · pro/);
 
 	const pending = renderUsagePanel([], plainTheme, 100, NOW, { provider: "anthropic" });
-	assert.deepEqual(pending, ["✿ anthropic · usage arrives with the first response"]);
-	assert.deepEqual(renderUsagePanel([], plainTheme, 100, NOW, { provider: "openai-codex" }), ["✿ openai-codex · no usage yet · r to fetch"]);
+	assert.deepEqual(pending, ["∞ anthropic · usage arrives with the first response"]);
+	assert.deepEqual(renderUsagePanel([], plainTheme, 100, NOW, { provider: "openai-codex" }), ["∞ openai-codex · no usage yet · r to fetch"]);
 });
 
 // NaN Cloud quota: per-model allowances for the billing period, plus the
@@ -246,7 +246,7 @@ test("parseNanQuota degrades to no data instead of throwing", () => {
 test("nan is a supported usage provider with its own pending note", () => {
 	assert.ok(SUPPORTED_USAGE_PROVIDERS.includes("nan"));
 	assert.equal(providerNote("nan"), "no usage yet · r to fetch");
-	assert.deepEqual(renderUsagePanel([], plainTheme, 100, NOW, { provider: "nan" }), ["✿ nan · no usage yet · r to fetch"]);
+	assert.deepEqual(renderUsagePanel([], plainTheme, 100, NOW, { provider: "nan" }), ["∞ nan · no usage yet · r to fetch"]);
 });
 
 // A generic hook: any extension can register a usage source for its own
@@ -299,7 +299,7 @@ test("a registered provider is supported without touching the built-in note map"
 	registry.register({ schema: USAGE_SOURCE_SCHEMA, provider: "acme-cloud", fetch: async () => undefined });
 	assert.equal(providerNote("acme-cloud", registry), "no usage yet · r to fetch");
 	assert.equal(providerNote("nan", registry), "no usage yet · r to fetch", "the static built-ins are unaffected");
-	assert.deepEqual(renderUsagePanel([], plainTheme, 100, NOW, { provider: "acme-cloud" }, registry), ["✿ acme-cloud · no usage yet · r to fetch"]);
+	assert.deepEqual(renderUsagePanel([], plainTheme, 100, NOW, { provider: "acme-cloud" }, registry), ["∞ acme-cloud · no usage yet · r to fetch"]);
 });
 
 // A registered source's resolved value crosses the same trust boundary a
@@ -377,7 +377,7 @@ test("renderUsagePanel lists each NaN model allowance with its reset on the same
 	const usage = parseNanQuota(NAN_QUOTA, NOW);
 	const lines = renderUsagePanel([usage], plainTheme, 80, NOW, { provider: "nan" });
 	for (const line of lines) assert.ok(visibleWidth(line) <= 80, `too wide: ${line}`);
-	assert.match(lines[0], /^✿ nan · updated just now$/);
+	assert.match(lines[0], /^∞ nan · updated just now$/);
 	assert.match(lines[1], /^ {2}glm5\.3 +[▰▱]{16} +27% · resets in \d+d \d+h$/);
 	// The rolling window a model reports is a row of its own, with its own reset.
 	assert.match(lines[2], /^ {2}glm5\.3 4h +[▰▱]{16} +30% · resets in \d+h \d+m$/);
@@ -606,7 +606,7 @@ test("renderUsagePanel draws the targeted scope in scope order with no-data and 
 	const codex = parseCodexUsage(CODEX_PAYLOAD, NOW);
 	const nan = parseNanQuota(NAN_QUOTA, NOW);
 	const lines = scopePanel([nan, codex], ["openai-codex", "nan", "acme-cloud"], ["acme-cloud"]);
-	assert.match(lines[0], /^✿ openai-codex · pro/);
+	assert.match(lines[0], /^∞ openai-codex · pro/);
 	assert.match(lines.find((line) => line.startsWith("nan")) ?? "", /^nan · /, "a targeted provider with data renders like any other");
 	assert.match(lines.find((line) => line.startsWith("acme-cloud")) ?? "", /^acme-cloud · fetch failed · r to retry$/);
 });
@@ -633,14 +633,14 @@ test("renderUsagePanel never presents a provider outside the current scope after
 	const codex = parseCodexUsage(CODEX_PAYLOAD, NOW);
 	const nan = parseNanQuota(NAN_QUOTA, NOW);
 	const lines = scopePanel([nan, codex], ["openai-codex"]);
-	assert.ok(lines.some((line) => line.startsWith("✿ openai-codex · pro")));
+	assert.ok(lines.some((line) => line.startsWith("∞ openai-codex · pro")));
 	assert.equal(lines.some((line) => line.startsWith("nan ·")), false, "the previous profile's provider is not current scope");
 });
 
 test("renderUsagePanel renders the failure note beside a retained snapshot, and only after a real failure", () => {
 	const codex = parseCodexUsage(CODEX_PAYLOAD, NOW);
 	const afterFailure = scopePanel([codex], ["openai-codex"], ["openai-codex"]);
-	assert.match(afterFailure[0], /^✿ openai-codex · pro/, "the retained snapshot stays the provider's headline");
+	assert.match(afterFailure[0], /^∞ openai-codex · pro/, "the retained snapshot stays the provider's headline");
 	assert.match(afterFailure[1], /^ {2}codex week /, "the last good snapshot survives the failed refresh");
 	assert.ok(afterFailure.some((line) => /^ {2}fetch failed · r to retry$/.test(line)), "the failure is visible beside the retained snapshot");
 	assert.equal(scopePanel([codex], ["openai-codex"]).some((line) => line.includes("fetch failed")), false, "a provider whose latest refresh succeeded carries no failure note");

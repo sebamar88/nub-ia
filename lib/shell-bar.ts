@@ -98,7 +98,7 @@ const ROLE = {
 	SESSION: "dim",
 } as const;
 
-export const SHELL_BAR_BRAND = "✿ gentle shell";
+export const SHELL_BAR_BRAND = "∞ nub-ia";
 export const SHELL_BAR_SEPARATOR = "⟡";
 export const SHELL_BAR_GAUGE_CELLS = GAUGE_CELLS;
 const RIGHT_PADDING = 2;
@@ -230,7 +230,7 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 			],
 		}]),
 		...(model.review && presentation?.visibility.rdd !== false ? [{
-			title: "🌹 RDD",
+			title: "◈ RDD",
 			lines: [
 				value(REVIEW_SIDEBAR_LABELS[model.review.state]),
 				// Unknown scope is an internal sentinel, not something the user acts on.
@@ -251,7 +251,7 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 	return renderCard({ title: "Status", body, tone: CARD_TONE.INFO }, theme, width, { expanded: true, panel: true });
 }
 
-const HEADER_BRAND = "✿ Gentle Shell";
+const HEADER_BRAND = "∞ Nub-IA";
 
 // Narrower than the width, widest first: dropping the profile, then the
 // effort, then the whole location keeps the brand and the bare model id
