@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import registerRtkRewrite, { RTK_INSTALL_HINT, parseSemver, resolveRtkBinary, rewriteWithRtk, rtkVersionSupported } from "../extensions/rtk-rewrite.ts";
+import registerRtkRewrite, { RTK_INSTALL_HINT, parseSemver, quoteForShell, resolveRtkBinary, rewriteWithRtk, rtkVersionSupported } from "../extensions/rtk-rewrite.ts";
 
 type Exec = Parameters<typeof rewriteWithRtk>[0];
 
@@ -130,4 +130,11 @@ test("installer: a digest mismatch rejects the download and leaves nothing behin
 	const fetch = async (_url: string, destination: string) => { writeFileSync(destination, "not the real archive"); };
 	await assert.rejects(installRtk({ root, platform: "linux", arch: "x64", fetch }), (error: unknown) => error instanceof RtkInstallerError && (error as { code: string }).code === "RTK_DIGEST_MISMATCH");
 	assert.equal(existsSync(packageLocalRtkPath(root, "linux")), false);
+});
+
+test("quoteForShell makes a Windows path usable from Git Bash and quotes spaces and non-ASCII", () => {
+	assert.equal(quoteForShell("C:\\Users\\dev\\nub-ia\\.rtk\\0.51.0\\rtk.exe"), "C:/Users/dev/nub-ia/.rtk/0.51.0/rtk.exe");
+	assert.equal(quoteForShell("C:\\Users\\Sebastián Martinez\\nub-ia\\.rtk\\0.51.0\\rtk.exe"), "'C:/Users/Sebastián Martinez/nub-ia/.rtk/0.51.0/rtk.exe'");
+	assert.equal(quoteForShell("/home/dev/nub-ia/.rtk/0.51.0/rtk"), "/home/dev/nub-ia/.rtk/0.51.0/rtk");
+	assert.equal(quoteForShell("/opt/it's/rtk"), "'/opt/it'\\''s/rtk'");
 });

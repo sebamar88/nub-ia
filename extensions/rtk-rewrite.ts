@@ -76,8 +76,14 @@ export async function rewriteWithRtk(exec: ExecLike, command: string, signal?: A
 	return binary === "rtk" || !rewritten.startsWith("rtk ") ? rewritten : `${quoteForShell(binary)}${rewritten.slice(3)}`;
 }
 
-function quoteForShell(path: string): string {
-	return /^[A-Za-z0-9_./:\\-]+$/.test(path) ? path : `'${path.replace(/'/g, "'\\''")}'`;
+/**
+ * Pi runs the bash tool through Git Bash on Windows, so a Windows path must
+ * use forward slashes (backslashes are escapes there); any path with spaces,
+ * quotes, or non-ASCII characters is single-quoted.
+ */
+export function quoteForShell(path: string): string {
+	const normalized = path.replace(/\\/g, "/");
+	return /^[A-Za-z0-9_./:-]+$/.test(normalized) ? normalized : `'${normalized.replace(/'/g, "'\\''")}'`;
 }
 
 function isBashCall(event: ToolCallEvent): event is ToolCallEvent & { input: { command?: unknown } } {

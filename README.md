@@ -101,7 +101,7 @@ antes de ejecutarlo (`git status` → `rtk git status`, `pnpm test` → `rtk pnp
 antes de que llegue al modelo. Las reglas viven en rtk; la extensión solo delega.
 
 El binario viene incluido: el `postinstall` (`scripts/install-rtk.mjs`) descarga la release pinneada de rtk para tu
-plataforma (Linux x64/arm64, macOS x64/arm64, Windows x64), verifica su SHA-256 contra el digest fijado en
+plataforma (Linux x64/arm64, macOS x64/arm64, Windows x64; en Windows se descomprime con PowerShell y la ruta se pasa a Git Bash con barras normales), verifica su SHA-256 contra el digest fijado en
 `scripts/rtk-installer.mjs` y lo deja en `<paquete>/.rtk/<versión>/`. La extensión usa esa copia antes que cualquier `rtk`
 del PATH (`GENTLE_SHELL_RTK_BIN` lo fuerza a otra ruta). Si la descarga falla, la instalación no se rompe: los comandos
 pasan sin filtrar y la barra de estado indica cómo reintentar (`pnpm run install:rtk`). `GENTLE_PI_SKIP_RTK_INSTALL=1` salta

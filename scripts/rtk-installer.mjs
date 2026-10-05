@@ -108,11 +108,17 @@ function download(url, destination, redirects = 0) {
 	});
 }
 
-// Both archive flavours hold a single top-level `rtk`/`rtk.exe`. System tar
-// (bsdtar on macOS and Windows 10+, GNU tar on Linux) extracts .tar.gz and,
-// on bsdtar, .zip; a Linux host without zip support never needs it.
+// Both archive flavours hold a single top-level `rtk`/`rtk.exe`. Linux and
+// macOS extract the .tar.gz with the system tar. Windows ships a .zip: the
+// `tar` found first under Git Bash is GNU tar, which cannot read zip, so
+// PowerShell's Expand-Archive (present on every supported Windows) is used.
 async function extract(archive, into, platform) {
-	await execFileAsync("tar", ["-xf", archive, "-C", into], { timeout: 60_000 });
+	if (platform === "win32") {
+		const script = `Expand-Archive -LiteralPath '${archive.replace(/'/g, "''")}' -DestinationPath '${into.replace(/'/g, "''")}' -Force`;
+		await execFileAsync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { timeout: 60_000 });
+	} else {
+		await execFileAsync("tar", ["-xf", archive, "-C", into], { timeout: 60_000 });
+	}
 	const binary = join(into, rtkExecutableName(platform));
 	if (!existsSync(binary)) throw new RtkInstallerError("RTK_ARCHIVE_UNEXPECTED", `archive did not contain ${rtkExecutableName(platform)}`);
 	return binary;
