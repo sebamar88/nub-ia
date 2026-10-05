@@ -321,9 +321,9 @@ test("resolveHome honours --isolated and reads GENTLE_SHELL_HOME", () => {
 	assert.deepEqual(resolved, { mode: "isolated", dir: "/custom/isolated", source: "flag" });
 });
 
-test("resolveHome falls back to <homedir>/.gentle-shell/agent for --isolated with no override", () => {
+test("resolveHome falls back to <homedir>/.nub-ia/agent for --isolated with no override", () => {
 	const resolved = resolveHome({ args: args({ isolated: true }), env: {}, homedir: "/home/alan", config: undefined });
-	assert.deepEqual(resolved, { mode: "isolated", dir: join("/home/alan", ".gentle-shell", "agent"), source: "flag" });
+	assert.deepEqual(resolved, { mode: "isolated", dir: join("/home/alan", ".nub-ia", "agent"), source: "flag" });
 });
 
 test("resolveHome uses the --home value verbatim", () => {
@@ -338,7 +338,7 @@ test("resolveHome falls back to a persisted link config", () => {
 
 test("resolveHome falls back to a persisted isolated config", () => {
 	const resolved = resolveHome({ args: args(), env: {}, homedir: "/home/alan", config: { mode: "isolated" } });
-	assert.deepEqual(resolved, { mode: "isolated", dir: join("/home/alan", ".gentle-shell", "agent"), source: "config" });
+	assert.deepEqual(resolved, { mode: "isolated", dir: join("/home/alan", ".nub-ia", "agent"), source: "config" });
 });
 
 test("resolveHome falls back to a persisted path config", () => {
@@ -348,7 +348,7 @@ test("resolveHome falls back to a persisted path config", () => {
 
 test("resolveHome defaults to isolated when neither a flag nor a config is present", () => {
 	const resolved = resolveHome({ args: args(), env: {}, homedir: "/home/alan", config: undefined });
-	assert.deepEqual(resolved, { mode: "isolated", dir: join("/home/alan", ".gentle-shell", "agent"), source: "default" });
+	assert.deepEqual(resolved, { mode: "isolated", dir: join("/home/alan", ".nub-ia", "agent"), source: "default" });
 });
 
 test("resolveHome lets a flag override a persisted config", () => {
@@ -368,13 +368,13 @@ test("homeSelectorFlags reproduces --home <dir> for a path home", () => {
 });
 
 test("homeSelectorFlags is empty for the isolated default (no flags needed)", () => {
-	assert.deepEqual(homeSelectorFlags({ mode: "isolated", dir: "/home/alan/.gentle-shell/agent", source: "default" }), []);
+	assert.deepEqual(homeSelectorFlags({ mode: "isolated", dir: "/home/alan/.nub-ia/agent", source: "default" }), []);
 });
 
 // --- launcherConfigPath / parseLauncherConfig -----------------------------
 
-test("launcherConfigPath points at <homedir>/.gentle-shell/config.json", () => {
-	assert.equal(launcherConfigPath("/home/alan"), join("/home/alan", ".gentle-shell", "config.json"));
+test("launcherConfigPath points at <homedir>/.nub-ia/config.json", () => {
+	assert.equal(launcherConfigPath("/home/alan"), join("/home/alan", ".nub-ia", "config.json"));
 });
 
 test("parseLauncherConfig accepts a link config", () => {
@@ -439,7 +439,7 @@ test("parseRawLauncherConfig preserves every key, not just home", () => {
 });
 
 test("provisionedEntry is undefined for a home with no marker", () => {
-	assert.equal(provisionedEntry({}, "/home/alan/.gentle-shell/agent"), undefined);
+	assert.equal(provisionedEntry({}, "/home/alan/.nub-ia/agent"), undefined);
 });
 
 test("provisionedEntry returns the stored record for a matching home", () => {
@@ -686,7 +686,7 @@ test("checkPiVersion accepts a custom minimum", () => {
 });
 
 // --- isSetupCapablePin -------------------------------------------------------
-// `gentle-shell setup` provisions a home through the package-local pinned
+// `nub-ia setup` provisions a home through the package-local pinned
 // gentle-ai binary by pointing PI_CODING_AGENT_DIR at that home; only
 // gentle-ai >= 3.6.0 honors that variable in its own `install --agent pi`
 // provisioning. An older pin would silently provision the caller's real
@@ -766,14 +766,14 @@ test("settingsDeclareGentlePi is false for a path package entry, even one that r
 
 // --- postInstallRemovals -----------------------------------------------
 //
-// gentle-ai's managed Pi stack (gentle-ai #4820, gentle-shell #1277) still
+// gentle-ai's managed Pi stack (gentle-ai #4820, nub-ia #1277) still
 // installs npm:@juicesharp/rpiv-ask-user-question, which conflicts with
 // gentle-pi's own first-party ask_user_question tool: Pi refuses two
 // providers for the same tool name. It also always declares npm:gentle-pi
 // itself, which must never stay in the home's settings.json: this launcher
 // always loads its own gentle-pi, so leaving that declaration in place would
 // let the home drift onto whatever gentle-pi npm installed instead. This
-// pure helper tells `gentle-shell setup` which declared packages it must
+// pure helper tells `nub-ia setup` which declared packages it must
 // remove after provisioning a home, for either reason.
 
 test("postInstallRemovals is empty when settings text is undefined", () => {
@@ -1093,7 +1093,7 @@ test("otherPackageInjections excludes a settings path entry that resolves via re
 	const result = otherPackageInjections({
 		settingsText: '{"packages":["link-other","npm:some-other"]}',
 		agentDir: "/agent",
-		// skip.dir mirrors bin/gentle-shell.mjs's --package-root case, where
+		// skip.dir mirrors bin/nub-ia.mjs's --package-root case, where
 		// it is already the realpath of the effective package root.
 		skip: { kind: "path", dir: "/real/other" },
 		realpath: (dir) => (dir === linkOtherDir ? "/real/other" : dir),
@@ -1127,7 +1127,7 @@ test("package injection relies on Pi's -e resource discovery in isolated and tak
 	for (const takeOver of [false, true]) {
 		const built = buildPiInvocation({
 			runtime: { kind: "path", command: "/usr/bin/pi", args: [] },
-			home: { mode: "isolated", dir: "/gentle-shell/agent", source: "default" },
+			home: { mode: "isolated", dir: "/nub-ia/agent", source: "default" },
 			packageRoot: "/pkg",
 			declaration: undefined,
 			takeOver,
@@ -1142,7 +1142,7 @@ test("package injection relies on Pi's -e resource discovery in isolated and tak
 });
 
 const linkHome: ResolvedHome = { mode: "link", dir: "/pi/agent", source: "flag" };
-const isolatedHomeResolved: ResolvedHome = { mode: "isolated", dir: "/gentle-shell/agent", source: "default" };
+const isolatedHomeResolved: ResolvedHome = { mode: "isolated", dir: "/nub-ia/agent", source: "default" };
 
 test("buildPiInvocation injects the launcher env into baseEnv", () => {
 	const built = buildPiInvocation({
@@ -1232,8 +1232,8 @@ test("buildPiInvocation still injects the launcher env for a pi subcommand", () 
 	});
 	assert.deepEqual(built.env, {
 		PATH: "/usr/bin",
-		PI_CODING_AGENT_DIR: "/gentle-shell/agent",
-		GENTLE_PI_AGENT_HOME: "/gentle-shell/agent",
+		PI_CODING_AGENT_DIR: "/nub-ia/agent",
+		GENTLE_PI_AGENT_HOME: "/nub-ia/agent",
 		GENTLE_SHELL_USER_PI_HOME: join("/home/u", ".pi", "agent"),
 	});
 });
@@ -1274,18 +1274,18 @@ test("buildPiInvocation carries the user's original Pi home without weakening is
 		cwd: "/work",
 	}).env;
 	const conventional = build({});
-	assert.equal(conventional.PI_CODING_AGENT_DIR, "/gentle-shell/agent");
-	assert.equal(conventional.GENTLE_PI_AGENT_HOME, "/gentle-shell/agent");
+	assert.equal(conventional.PI_CODING_AGENT_DIR, "/nub-ia/agent");
+	assert.equal(conventional.GENTLE_PI_AGENT_HOME, "/nub-ia/agent");
 	assert.equal(conventional.GENTLE_SHELL_USER_PI_HOME, join("/home/u", ".pi", "agent"));
 	// A custom Pi home is preserved; an empty value falls through like Pi itself.
 	const custom = build({ PI_CODING_AGENT_DIR: "/custom/pi" });
-	assert.equal(custom.PI_CODING_AGENT_DIR, "/gentle-shell/agent");
+	assert.equal(custom.PI_CODING_AGENT_DIR, "/nub-ia/agent");
 	assert.equal(custom.GENTLE_SHELL_USER_PI_HOME, "/custom/pi");
 	assert.equal(build({ PI_CODING_AGENT_DIR: "" }).GENTLE_SHELL_USER_PI_HOME, join("/home/u", ".pi", "agent"));
 	// A nested launch inherits the outer isolated PI_CODING_AGENT_DIR; the
 	// original home the outer launcher recorded must win over it.
-	const nested = build({ PI_CODING_AGENT_DIR: "/gentle-shell/agent", GENTLE_SHELL_USER_PI_HOME: "/custom/pi" });
-	assert.equal(nested.PI_CODING_AGENT_DIR, "/gentle-shell/agent");
+	const nested = build({ PI_CODING_AGENT_DIR: "/nub-ia/agent", GENTLE_SHELL_USER_PI_HOME: "/custom/pi" });
+	assert.equal(nested.PI_CODING_AGENT_DIR, "/nub-ia/agent");
 	assert.equal(nested.GENTLE_SHELL_USER_PI_HOME, "/custom/pi");
 	// --link: the active and original homes are the same directory.
 	const linked = build({ PI_CODING_AGENT_DIR: "/pi/agent" }, linkHome);
@@ -1713,7 +1713,7 @@ test("discoverLooseExtensionEntries returns an empty list when readdir throws (m
 
 // --- planSpawn / quoteForCmdExe ----------------------------------------------
 //
-// R3-001: on win32, `findOnPath` in bin/gentle-shell.mjs can resolve a PATHEXT
+// R3-001: on win32, `findOnPath` in bin/nub-ia.mjs can resolve a PATHEXT
 // candidate such as a .CMD or .BAT shim (exactly how an npm-installed `pi`
 // lands on PATH). Node refuses to spawn a batch file directly without
 // `shell: true` (EINVAL), so both the version probe and the real launch must
@@ -1771,12 +1771,12 @@ test("quoteForCmdExe quotes an empty token", () => {
 
 // --- restoreJsonField ---------------------------------------------------------
 //
-// Pure JSON merge used by bin/gentle-shell.mjs's setup flow to restore a
+// Pure JSON merge used by bin/nub-ia.mjs's setup flow to restore a
 // single field of `~/.gentle-ai/state.json` (managed_asset_digest) after the
 // pinned gentle-ai spawn rewrites it, the same way the whole-file
 // snapshot/restore already protects `~/.pi/gentle-ai/persona.json` — but
 // scoped to one field, since state.json also carries fields the pinned
-// gentle-ai is supposed to update (gentle-shell #<managed-asset-digest>).
+// gentle-ai is supposed to update (nub-ia #<managed-asset-digest>).
 
 test("restoreJsonField restores a changed field and keeps every other field untouched", () => {
 	const original = `${JSON.stringify({ managed_asset_digest: "abc123", installed_agents: ["pi"] }, null, 2)}\n`;
@@ -1830,8 +1830,8 @@ test("restoreJsonField matches compact formatting (no indent, no trailing newlin
 
 // --- forceJsonFieldIfAbsentInOriginal ------------------------------------------
 //
-// Pure JSON merge used by bin/gentle-shell.mjs's setup flow to make sure a
-// home gentle-shell provisions ends up with the default Gentle Shell theme
+// Pure JSON merge used by bin/nub-ia.mjs's setup flow to make sure a
+// home nub-ia provisions ends up with the default Nub-IA theme
 // unless the home (or the user) already had an opinion about it — even when
 // gentle-ai's own managed install wrote a *different* default theme into
 // settings.json. Unlike restoreJsonField above (which restores a field back
@@ -1887,14 +1887,14 @@ test("forceJsonFieldIfAbsentInOriginal matches the current text's own indentatio
 
 // --- shellQuote ---------------------------------------------------------------
 //
-// Used by bin/gentle-shell.mjs to build the copy-pasteable
-// `gentle-shell <home selector> remove <source>` remediation command it
+// Used by bin/nub-ia.mjs to build the copy-pasteable
+// `nub-ia <home selector> remove <source>` remediation command it
 // prints after a failed conflicting-package removal: an unquoted --home
 // <dir> containing a space would silently split into two shell words if
-// copy-pasted (gentle-shell #1277 follow-up).
+// copy-pasted (nub-ia #1277 follow-up).
 
 test("shellQuote leaves a plain token unchanged", () => {
-	assert.equal(shellQuote("/Users/alan/.gentle-shell/agent"), "/Users/alan/.gentle-shell/agent");
+	assert.equal(shellQuote("/Users/alan/.nub-ia/agent"), "/Users/alan/.nub-ia/agent");
 });
 
 test("shellQuote single-quotes a token containing a space", () => {
@@ -1909,12 +1909,12 @@ test("shellQuote escapes an embedded single quote as '\\''", () => {
 
 test("describeVersion formats the three-line report with a found pi version", () => {
 	const text = describeVersion({ gentlePiVersion: "3.3.0", piVersion: "0.85.1", home: linkHome });
-	assert.equal(text, "gentle-shell 3.3.0\npi 0.85.1\nhome link /pi/agent");
+	assert.equal(text, "nub-ia 3.3.0\npi 0.85.1\nhome link /pi/agent");
 });
 
 test("describeVersion reports pi as not found when no pi version is available", () => {
 	const text = describeVersion({ gentlePiVersion: "3.3.0", piVersion: undefined, home: isolatedHomeResolved });
-	assert.equal(text, "gentle-shell 3.3.0\npi not found\nhome isolated /gentle-shell/agent");
+	assert.equal(text, "nub-ia 3.3.0\npi not found\nhome isolated /nub-ia/agent");
 });
 
 test("helpText documents the launcher flags, the home subcommand, the env vars, and passthrough forwarding", () => {

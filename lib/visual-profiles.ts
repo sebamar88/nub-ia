@@ -62,7 +62,7 @@ function valid(v: unknown): v is VisualProfile {
 		exact(b, ["showRose", "showTextLogo", "color"]) &&
 		typeof b.showRose === "boolean" &&
 		typeof b.showTextLogo === "boolean" &&
-		["pink", "cyan", "yellow", "green"].includes(b.color as string) &&
+		["lime", "pink", "cyan", "yellow", "green"].includes(b.color as string) &&
 		isVisualSettings(v.visual)
 	);
 }

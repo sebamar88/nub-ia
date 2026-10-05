@@ -1,18 +1,18 @@
 {
-	"name": "gentle-pi",
-	"version": "4.0.0",
-	"description": "Turn Pi into el Gentleman: an ODD development harness with focused subagents, configured TDD evidence, native review, and skill discovery.",
+	"name": "nub-ia",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Nub-IA: the Nubiral team coding-agent shell for Pi (based on gentle-shell): ODD harness with focused subagents, TDD evidence, and native review.",
 	"license": "MIT",
 	"type": "module",
 	"bin": {
-		"gentle-shell": "bin/gentle-shell.mjs"
+		"nub-ia": "bin/nub-ia.mjs"
 	},
 	"keywords": [
 		"pi-package",
 		"pi",
 		"pi-coding-agent",
-		"gentle-pi",
-		"gentle-ai",
+		"nub-ia",
 		"odd",
 		"subagents",
 		"tdd",
@@ -22,7 +22,7 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Gentleman-Programming/gentle-shell.git"
+		"url": "git+https://github.com/CHANGE-ME/nub-ia.git"
 	},
 	"files": [
 		"assets/",
@@ -57,7 +57,7 @@
 		"typecheck": "node scripts/check-types.mjs"
 	},
 	"pi": {
-		"image": "https://cdn.jsdelivr.net/npm/gentle-pi/assets/gentle-logo-only.png",
+		"image": "https://raw.githubusercontent.com/CHANGE-ME/nub-ia/main/assets/nub-ia-logo.png",
 		"extensions": [
 			"./extensions"
 		],

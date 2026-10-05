@@ -1,20 +1,20 @@
-// Pure logic behind the gentle-shell resume hint. On interactive quit pi
+// Pure logic behind the nub-ia resume hint. On interactive quit pi
 // prints "To resume this session: pi --session <id>" (interactive-mode
-// formatResumeCommand). Under gentle-shell that command cannot find the
+// formatResumeCommand). Under nub-ia that command cannot find the
 // session: pi resolves sessions from PI_CODING_AGENT_DIR, which the launcher
-// points at the gentle-shell home, but the hint names the bare `pi` binary
+// points at the nub-ia home, but the hint names the bare `pi` binary
 // and never mentions that directory, so running it looks in ~/.pi/agent.
 //
 // The clean fix belongs in pi (earendil-works/pi#8048, #9750). Until then,
-// gentle-shell appends its own line below pi's, leaving pi's output as is:
+// nub-ia appends its own line below pi's, leaving pi's output as is:
 // extensions/resume-hint.ts writes a ResumeHandoff on session_shutdown, and
-// bin/gentle-shell.mjs prints the planResumeHint line after pi exits.
+// bin/nub-ia.mjs prints the planResumeHint line after pi exits.
 import { basename, dirname, isAbsolute, join, resolve as resolvePath } from "node:path";
 import { shellQuote } from "./gentle-shell-launcher.ts";
 
 export const RESUME_HANDOFF_ENV = "GENTLE_SHELL_RESUME_HANDOFF";
 
-const HINT_LABEL = "To resume in gentle-shell:";
+const HINT_LABEL = "To resume in nub-ia:";
 
 // pi's assertValidSessionId charset. The handoff ends up on the terminal, so
 // anything outside it (or any C0/C1 control in a session dir) is refused
@@ -23,7 +23,7 @@ const SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/;
 
 // The launcher creates <tmpdir>/<RESUME_HANDOFF_DIR_PREFIX>XXXXXX/<RESUME_HANDOFF_FILE>.
-export const RESUME_HANDOFF_DIR_PREFIX = "gentle-shell-resume-";
+export const RESUME_HANDOFF_DIR_PREFIX = "nub-ia-resume-";
 export const RESUME_HANDOFF_FILE = "handoff.json";
 
 // The extension only writes to a path shaped like the launcher's private
@@ -43,7 +43,7 @@ export interface ResumeHandoff {
 	// live in pi's default per-cwd directory under the agent dir.
 	sessionDir?: string;
 	// Present only when the session belongs to another project than the one
-	// gentle-shell was launched from (e.g. after /resume). A bare id would
+	// nub-ia was launched from (e.g. after /resume). A bare id would
 	// then make pi offer a fork into the launch directory, while an absolute
 	// session file path reopens the original session.
 	sessionFile?: string;
@@ -62,7 +62,7 @@ export interface SessionSnapshot {
 	sessionDir: string;
 	sessionFile: string | undefined;
 	cwd: string;
-	// The directory gentle-shell was launched from; pi never changes it.
+	// The directory nub-ia was launched from; pi never changes it.
 	launchCwd: string;
 	agentDir: string;
 	fileExists: (path: string) => boolean;
@@ -110,7 +110,7 @@ const PLAIN_ARG = /^[A-Za-z0-9_\-.:/\\=]+$/;
 // !VAR! under delayed expansion), PowerShell expands $var and `escapes, and
 // an inner " ends the quoted argument in both. A trailing backslash would
 // escape the closing quote under the Windows argv rules. cmd.exe operators
-// are refused too: gentle-shell is installed as a .cmd shim, and PowerShell
+// are refused too: nub-ia is installed as a .cmd shim, and PowerShell
 // drops the quotes of a space-free argument when it calls one, so cmd.exe
 // would read & | < > ^ ( ) as operators.
 const WINDOWS_UNQUOTABLE = /["%!$`&|<>^()]|\\$/;
@@ -126,7 +126,7 @@ function quoteArg(value: string, platform: NodeJS.Platform): string | undefined 
 	return `"${value}"`;
 }
 
-// Returns the gentle-shell command that resumes the handed-off session, or
+// Returns the nub-ia command that resumes the handed-off session, or
 // undefined when some argument cannot be quoted safely for the platform's
 // shell (the caller then prints no hint and leaves pi's own line alone).
 export function gentleShellResumeCommand(
@@ -143,7 +143,7 @@ export function gentleShellResumeCommand(
 		if (handoff.sessionDir !== undefined) values.push("--session-dir", handoff.sessionDir);
 		values.push("--session", handoff.sessionId);
 	}
-	const args = ["gentle-shell"];
+	const args = ["nub-ia"];
 	for (const value of values) {
 		const quoted = quoteArg(value, platform);
 		if (quoted === undefined) return undefined;

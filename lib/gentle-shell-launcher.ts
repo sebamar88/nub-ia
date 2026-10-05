@@ -1,8 +1,8 @@
 import { isAbsolute, join, resolve as resolvePath } from "node:path";
 import { CHILD_PACKAGE_INJECTION_ENV, encodeChildPackageInjection, type ChildPackageInjection } from "./child-package-injection.ts";
 
-// The gentle-shell launcher: pure, side-effect-free functions over injected
-// env/fs/exec. `bin/gentle-shell.mjs` (T2) wires these into the real process,
+// The nub-ia launcher: pure, side-effect-free functions over injected
+// env/fs/exec. `bin/nub-ia.mjs` (T2) wires these into the real process,
 // filesystem and child process so this module stays fully unit-testable.
 
 export type LauncherCommand = "home" | "setup";
@@ -29,7 +29,7 @@ export interface ParsedLauncherArgs {
 	commandArgs: string[];
 	passthrough: string[];
 	// Set when the first passthrough token is one of PI_SUBCOMMANDS (e.g.
-	// `gentle-shell install npm:x`). It stays part of `passthrough` — this
+	// `nub-ia install npm:x`). It stays part of `passthrough` — this
 	// field only tells buildPiInvocation to skip its extension injection, so
 	// pi sees the bare subcommand it expects as argv[0].
 	piSubcommand?: PiSubcommand;
@@ -190,15 +190,15 @@ export interface ResolveHomeInput {
 }
 
 // Pi Subagents resolves `PI_CODING_AGENT_DIR || ~/.pi/agent`; `--link` reuses
-// that exact home so gentle-shell never diverges from the user's own pi.
+// that exact home so nub-ia never diverges from the user's own pi.
 function linkDir(env: Record<string, string | undefined>, homedir: string): string {
 	return env.PI_CODING_AGENT_DIR || join(homedir, ".pi", "agent");
 }
 
 // The isolated home replaces PI_CODING_AGENT_DIR for the whole session, so the
 // user's own Pi home travels in this variable for read-only features such as
-// /gentle:stats. An inherited value wins: a gentle-shell launched from inside
-// a Gentle Shell session sees the outer isolated home as PI_CODING_AGENT_DIR.
+// /gentle:stats. An inherited value wins: a nub-ia launched from inside
+// a Nub-IA session sees the outer isolated home as PI_CODING_AGENT_DIR.
 export const USER_PI_HOME_ENV = "GENTLE_SHELL_USER_PI_HOME";
 
 export function userPiHome(env: Record<string, string | undefined>, homedir: string): string {
@@ -206,7 +206,7 @@ export function userPiHome(env: Record<string, string | undefined>, homedir: str
 }
 
 function isolatedDir(env: Record<string, string | undefined>, homedir: string): string {
-	return env.GENTLE_SHELL_HOME || join(homedir, ".gentle-shell", "agent");
+	return env.GENTLE_SHELL_HOME || join(homedir, ".nub-ia", "agent");
 }
 
 export function resolveHome(input: ResolveHomeInput): ResolvedHome {
@@ -225,14 +225,14 @@ export function resolveHome(input: ResolveHomeInput): ResolvedHome {
 	return { mode: "isolated", dir: isolatedDir(env, homedir), source: "default" };
 }
 
-// The flags that reproduce `home`'s resolved mode on a later `gentle-shell
+// The flags that reproduce `home`'s resolved mode on a later `nub-ia
 // <flags> ...` invocation — used by remediation messages (e.g. "run
-// `gentle-shell <flags> remove <source>`") so they point at the exact home
+// `nub-ia <flags> remove <source>`") so they point at the exact home
 // setup provisioned instead of silently defaulting to the isolated home.
 // Mirrors the three ResolvedHome modes one-to-one: "link" needs --link
 // (PI_CODING_AGENT_DIR-derived dirs aren't reproducible as a literal path),
 // "path" needs its --home <dir>, and "isolated" needs nothing since it's
-// gentle-shell's own default when no selector is given.
+// nub-ia's own default when no selector is given.
 export function homeSelectorFlags(home: ResolvedHome): string[] {
 	if (home.mode === "link") return ["--link"];
 	if (home.mode === "path") return ["--home", home.dir];
@@ -240,7 +240,7 @@ export function homeSelectorFlags(home: ResolvedHome): string[] {
 }
 
 export function launcherConfigPath(homedir: string): string {
-	return join(homedir, ".gentle-shell", "config.json");
+	return join(homedir, ".nub-ia", "config.json");
 }
 
 // Tolerant on purpose: a malformed or foreign config.json must never crash
@@ -274,7 +274,7 @@ export function parseLauncherConfig(text: string): LauncherConfig | undefined {
 // a future feature adds. Unlike parseLauncherConfig's discriminated
 // LauncherConfig, these helpers operate on (and return) the whole object so
 // a write never drops a field it does not itself understand — notably
-// another home's provisioned marker when `gentle-shell home ...` persists a
+// another home's provisioned marker when `nub-ia home ...` persists a
 // mode change.
 export type RawLauncherConfig = Record<string, unknown>;
 
@@ -332,7 +332,7 @@ export function provisionedEntry(config: RawLauncherConfig, homeDir: string): Pr
 // True when `homeDir` has never been provisioned, was provisioned with a
 // gentle-ai pin other than `pin`, or was provisioned against a gentle-pi
 // other than `gentlePiVersion` (the running launcher's own version, from its
-// package.json) — the signal bin/gentle-shell.mjs uses to decide whether a
+// package.json) — the signal bin/nub-ia.mjs uses to decide whether a
 // plain launch should run the setup flow automatically before starting pi.
 // A marker written before gentle-pi version tracking existed has no
 // `gentlePi` field, which never strictly-equals a real version string, so it
@@ -422,7 +422,7 @@ export function checkPiVersion(output: string, minimum: string = MIN_PI_VERSION)
 // --- setup subcommand's gentle-ai pin gate -----------------------------------
 
 // The first gentle-ai release that honors PI_CODING_AGENT_DIR in its own
-// `install --agent pi` provisioning. `gentle-shell setup` spawns the
+// `install --agent pi` provisioning. `nub-ia setup` spawns the
 // package-local pinned gentle-ai with PI_CODING_AGENT_DIR set to the
 // resolved home; an older pin ignores that variable and silently provisions
 // the caller's real ~/.pi/agent instead, so setup must refuse to run it.
@@ -545,8 +545,8 @@ export function settingsDeclareGentlePi(settingsText: string | undefined): boole
 // first-party ask_user_question tool: Pi tool names are exclusive, so a
 // second provider for the same name fails the whole load (see
 // extensions/ask-user-question.ts). Tracked upstream as gentle-ai #4820 and
-// gentle-shell #1277; the gentle-ai fix lands separately, so `gentle-shell
-// setup` (bin/gentle-shell.mjs) must remove it from the provisioned home
+// nub-ia #1277; the gentle-ai fix lands separately, so `nub-ia
+// setup` (bin/nub-ia.mjs) must remove it from the provisioned home
 // itself.
 //
 // gentle-ai's managed Pi stack also always declares npm:gentle-pi itself.
@@ -570,7 +570,7 @@ const POST_INSTALL_REMOVAL_PACKAGES: readonly { readonly name: string; readonly 
 // settings.json itself: a dry run writes nothing, so settings.json
 // afterwards would only reflect whatever pre-existed the run, not what the
 // (skipped) install would have declared. See runPostInstallCleanup in
-// bin/gentle-shell.mjs.
+// bin/nub-ia.mjs.
 export const POST_INSTALL_REMOVAL_SOURCES: readonly string[] = POST_INSTALL_REMOVAL_PACKAGES.map((entry) => entry.source);
 
 // Scans a settings.json `packages` list (same string/object-source parsing
@@ -670,7 +670,7 @@ export interface OtherPackageInjectionsInput {
 	// a filesystem stub.
 	isDirectory?: (dir: string) => boolean;
 	// Realpath resolver applied to a settings path entry's resolved
-	// directory before comparing it against `skip`. bin/gentle-shell.mjs's
+	// directory before comparing it against `skip`. bin/nub-ia.mjs's
 	// --package-root take-over passes `skip.dir` as an already-realpath'd
 	// directory; without also realpath'ing the settings entry here, a
 	// settings path entry reaching that same physical directory through a
@@ -727,7 +727,7 @@ export function otherPackageInjections(input: OtherPackageInjectionsInput): Othe
 			const dir = resolvePath(input.agentDir, source);
 			// Compared through realpath on BOTH sides (not the raw resolved
 			// strings): skip.dir may already be a realpath itself
-			// (bin/gentle-shell.mjs's --package-root take-over) or may not be
+			// (bin/nub-ia.mjs's --package-root take-over) or may not be
 			// (a plain settings.json declaration), so only comparing one side
 			// through realpath would break whichever case does not match that
 			// assumption. Realpath'ing both keeps the exact-match case
@@ -739,7 +739,7 @@ export function otherPackageInjections(input: OtherPackageInjectionsInput): Othe
 
 		if (kind === "git") {
 			warnings.push(
-				`gentle-shell: skipping git-sourced package "${source}" during takeover (its install directory is not derivable without pi's own package manager).`,
+				`nub-ia: skipping git-sourced package "${source}" during takeover (its install directory is not derivable without pi's own package manager).`,
 			);
 			continue;
 		}
@@ -747,13 +747,13 @@ export function otherPackageInjections(input: OtherPackageInjectionsInput): Othe
 		const filters = entryFilterKeys(entry);
 		if (filters.length > 0) {
 			warnings.push(
-				`gentle-shell: package "${source}" has ${filters.join("/")} filters that this takeover cannot honour for extensions; its skills, prompts, and themes still load through settings discovery.`,
+				`nub-ia: package "${source}" has ${filters.join("/")} filters that this takeover cannot honour for extensions; its skills, prompts, and themes still load through settings discovery.`,
 			);
 		}
 
 		const dir = kind === "npm" ? join(input.agentDir, "npm", "node_modules", npmPackageName(source)) : resolvePath(input.agentDir, source);
 		if (!isDirectory(dir)) {
-			warnings.push(`gentle-shell: skipping declared package "${source}": ${dir} is not a directory`);
+			warnings.push(`nub-ia: skipping declared package "${source}": ${dir} is not a directory`);
 			continue;
 		}
 		paths.push(dir);
@@ -880,7 +880,7 @@ export interface BuildPiInvocationInput {
 	// The OS home behind userPiHome's conventional ~/.pi/agent fallback.
 	homedir: string;
 	// The directory pi is spawned in, which pi resolves a relative -e path
-	// against. bin/gentle-shell.mjs spawns pi without a cwd, so this is the
+	// against. bin/nub-ia.mjs spawns pi without a cwd, so this is the
 	// launcher's own process.cwd().
 	cwd: string;
 }
@@ -897,7 +897,7 @@ export interface PiInvocation {
 //     config/auth on argv[0] before it even parses flags, so any injected
 //     -e flag ahead of it stops pi from
 //     recognising its subcommand at all — this is exactly the observed
-//     2026-09-22 bug where `gentle-shell install npm:x` opened an
+//     2026-09-22 bug where `nub-ia install npm:x` opened an
 //     interactive pi session instead of running the package manager. No
 //     injection of any kind (including a take-over's --no-extensions and
 //     other-package/loose-extension -e flags) may precede it.
@@ -905,7 +905,7 @@ export interface PiInvocation {
 //     --package-root forced a takeover regardless of any declaration. This
 //     must win over the next two cases even when there is no declaration to
 //     report, or the plain branch would silently drop --no-extensions and
-//     the other-package injections while bin/gentle-shell.mjs still prints
+//     the other-package injections while bin/nub-ia.mjs still prints
 //     the "taking over" message. `--no-extensions` drops normal
 //     settings-driven extension discovery, so it is replaced by an explicit
 //     `-e <dir>` for every OTHER settings package (skills/prompts/themes
@@ -1012,7 +1012,7 @@ export function quoteForCmdExe(token: string): string {
 const POSIX_SHELL_SPECIAL_CHARS = /[\s"'`\\$&|;<>(){}*?[\]!#~]/;
 
 // POSIX/bash single-quote shell quoting for a copy-pasteable command
-// bin/gentle-shell.mjs prints to stderr (e.g. the setup remediation
+// bin/nub-ia.mjs prints to stderr (e.g. the setup remediation
 // command): wraps a token in single quotes when it is empty or contains
 // whitespace or a shell metacharacter, escaping an embedded single quote as
 // `'\''` (close quote, escaped literal quote, reopen quote) — inside single
@@ -1062,11 +1062,11 @@ function jsonValuesEqual(a: unknown, b: unknown): boolean {
 // Pure JSON merge: restores `field` in `currentText` back to whatever it was
 // in `originalText`, keeping every other field exactly as `currentText` left
 // it, and formatting the result to match `originalText`'s indentation and
-// trailing newline. Used by bin/gentle-shell.mjs's setup flow to restore
+// trailing newline. Used by bin/nub-ia.mjs's setup flow to restore
 // `managed_asset_digest` in the user's shared `~/.gentle-ai/state.json` after
 // the pinned gentle-ai spawn rewrites it (the same shared-file problem
 // persona.json has — see sharedPersonaPath/snapshotFile/restoreFile in
-// bin/gentle-shell.mjs — but state.json also carries fields the pinned
+// bin/nub-ia.mjs — but state.json also carries fields the pinned
 // gentle-ai is supposed to update, like installed_agents, so this restores
 // only the one field instead of the whole file).
 //
@@ -1122,7 +1122,7 @@ export function restoreJsonField(originalText: string, currentText: string, fiel
 // and trailing newline (unlike restoreJsonField above, which matches the
 // *original*'s formatting — here `currentText` is what the other writer just
 // produced, so its own convention is respected instead of imposed on).
-// Used by bin/gentle-shell.mjs's setup flow so a home gentle-shell provisions
+// Used by bin/nub-ia.mjs's setup flow so a home nub-ia provisions
 // ends up with the maintainer's default theme unless the home (or the user)
 // already had an opinion about it, even when gentle-ai's own managed install
 // writes a *different* default theme into settings.json.
@@ -1162,7 +1162,7 @@ export interface DescribeVersionInput {
 
 export function describeVersion(input: DescribeVersionInput): string {
 	return [
-		`gentle-shell ${input.gentlePiVersion}`,
+		`nub-ia ${input.gentlePiVersion}`,
 		`pi ${input.piVersion ?? "not found"}`,
 		`home ${input.home.mode} ${input.home.dir}`,
 	].join("\n");
@@ -1170,21 +1170,21 @@ export function describeVersion(input: DescribeVersionInput): string {
 
 export function helpText(): string {
 	return [
-		"Usage: gentle-shell [options] [-- pi-args...]",
-		"       gentle-shell home [link|isolated|<path>]",
-		"       gentle-shell [home selectors] setup [--dry-run]",
+		"Usage: nub-ia [options] [-- pi-args...]",
+		"       nub-ia home [link|isolated|<path>]",
+		"       nub-ia [home selectors] setup [--dry-run]",
 		"",
-		"Opens pi with the Gentle Shell package loaded, without touching your",
+		"Opens pi with the Nub-IA package loaded, without touching your",
 		"vanilla pi installation.",
 		"",
 		"Options:",
 		"  --link           Use your existing pi agent home (never edits its settings.json).",
-		"  --isolated       Use the dedicated ~/.gentle-shell/agent home (default).",
+		"  --isolated       Use the dedicated ~/.nub-ia/agent home (default).",
 		"  --home <path>    Use a custom agent home directory.",
 		"  --package-root <dir>  Force this directory as the gentle-pi package to load, taking over",
 		"                        from any conflicting package the target settings.json already declares.",
 		"  --help, -h       Show this help text.",
-		"  --version        Show gentle-shell, pi, and home version information.",
+		"  --version        Show nub-ia, pi, and home version information.",
 		"",
 		"Commands:",
 		"  home             Print or persist the effective home mode (link, isolated, or a path).",
@@ -1194,20 +1194,20 @@ export function helpText(): string {
 		"                   (--link, --isolated, --home <dir>) before it.",
 		"",
 		"Managing packages:",
-		"  gentle-shell install npm:<pkg>   Run pi's own 'install' against the resolved home.",
-		"  gentle-shell remove <source>     Run pi's own 'remove' against the resolved home.",
-		"  gentle-shell list                Run pi's own 'list' against the resolved home.",
-		"  gentle-shell update [target]     Run pi's own 'update' against the resolved home.",
-		"  gentle-shell config              Run pi's own 'config' against the resolved home.",
-		"  gentle-shell auth <command>      Run pi's own 'auth' against the resolved home.",
+		"  nub-ia install npm:<pkg>   Run pi's own 'install' against the resolved home.",
+		"  nub-ia remove <source>     Run pi's own 'remove' against the resolved home.",
+		"  nub-ia list                Run pi's own 'list' against the resolved home.",
+		"  nub-ia update [target]     Run pi's own 'update' against the resolved home.",
+		"  nub-ia config              Run pi's own 'config' against the resolved home.",
+		"  nub-ia auth <command>      Run pi's own 'auth' against the resolved home.",
 		"  These run pi's own commands, forwarded verbatim, against the --isolated home",
-		"  (or your own pi home with --link). Running 'gentle-shell install npm:gentle-pi'",
-		"  inside the isolated home is unnecessary: gentle-shell already loads the",
+		"  (or your own pi home with --link). Running 'nub-ia install npm:gentle-pi'",
+		"  inside the isolated home is unnecessary: nub-ia already loads the",
 		"  package itself.",
 		"",
 		"Environment variables:",
 		"  GENTLE_SHELL_PI       Path to the pi executable to run.",
-		"  GENTLE_SHELL_HOME     Directory for the isolated home (default: ~/.gentle-shell/agent).",
+		"  GENTLE_SHELL_HOME     Directory for the isolated home (default: ~/.nub-ia/agent).",
 		"  PI_CODING_AGENT_DIR   Directory for the --link home, shared with pi itself.",
 		"",
 		"Every other argument is forwarded to pi unchanged.",

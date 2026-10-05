@@ -17,11 +17,11 @@ const PI_MANAGED_SEGMENT_SEQUENCES = [
 	["git", "github.com", "Gentleman-Programming"],
 ];
 
-// Gentle Shell's default theme (themes/Gentleman-Cute.json, "name":
-// "Gentleman-Cute"): applied by withIsolatedHomeDefaults below whenever a
+// Nub-IA's default theme (themes/Nub-IA.json, "name":
+// "Nub-IA"): applied by withIsolatedHomeDefaults below whenever a
 // home's settings do not already declare one, never overriding a user's own
 // choice.
-export const DEFAULT_THEME_NAME = "Gentleman-Cute";
+export const DEFAULT_THEME_NAME = "Nub-IA";
 
 // Pure merge: returns `value` with fullscreen tuiMode always applied, and —
 // only when `value` does not already declare a "theme" key — the default

@@ -909,7 +909,7 @@ async function run() {
 		let bannerConfig = JSON.parse(await readFile(join(globalConfigHome, "banner.json"), "utf8"));
 		assert.equal(bannerConfig.showRose, false);
 		assert.equal(bannerConfig.showTextLogo, true);
-		assert.equal(bannerConfig.color, "pink");
+		assert.equal(bannerConfig.color, "lime");
 		await commands.get("gentle:toggle-text-logo").handler("", ctx);
 		bannerConfig = JSON.parse(await readFile(join(globalConfigHome, "banner.json"), "utf8"));
 		assert.equal(bannerConfig.showTextLogo, false);

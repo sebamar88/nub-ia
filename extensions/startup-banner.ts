@@ -9,7 +9,7 @@ import { resolveAnimationPolicy } from "../lib/animation-policy.ts";
 import { PI_SUBCOMMANDS } from "../lib/gentle-shell-launcher.ts";
 
 
-export type BannerColor = "pink" | "cyan" | "yellow" | "green";
+export type BannerColor = "lime" | "pink" | "cyan" | "yellow" | "green";
 export interface BannerConfig {
   showRose: boolean;
   showTextLogo: boolean;
@@ -18,10 +18,12 @@ export interface BannerConfig {
 export const DEFAULT_BANNER_CONFIG: BannerConfig = {
   showRose: true,
   showTextLogo: true,
-  color: "pink",
+  color: "lime",
 };
-export const BANNER_COLORS: BannerColor[] = ["pink", "cyan", "yellow", "green"];
+export const BANNER_COLORS: BannerColor[] = ["lime", "pink", "cyan", "yellow", "green"];
 const BANNER_PALETTES: Record<BannerColor, { rose: [number, number, number]; label: [number, number, number]; value: [number, number, number]; logoFresh: [number, number, number]; logoDim: [number, number, number] }> = {
+  // Nubiral brand: lime mark, light wordmark.
+  lime: { rose: [214, 255, 0], label: [170, 200, 40], value: [230, 255, 120], logoFresh: [240, 240, 240], logoDim: [90, 100, 40] },
   pink: { rose: [255, 118, 195], label: [200, 100, 160], value: [255, 140, 210], logoFresh: [255, 138, 206], logoDim: [95, 30, 60] },
   cyan: { rose: [95, 210, 255], label: [85, 170, 205], value: [130, 225, 255], logoFresh: [105, 220, 255], logoDim: [25, 80, 100] },
   yellow: { rose: [255, 210, 95], label: [210, 165, 65], value: [255, 225, 135], logoFresh: [255, 215, 105], logoDim: [105, 75, 25] },
@@ -29,37 +31,22 @@ const BANNER_PALETTES: Record<BannerColor, { rose: [number, number, number]; lab
 };
 
 const TEXT_LOGO = [
-  "                  ▄▄▄▀▀▀▀▀██                                ▄▄▀▄▄          ▄▄█▀▀▀██   ▄▄▀██               ▄▄▀▄▄   ▄▄▀▄▄",
-  "              ▄▄█▀▀▒▒▒▒▒▄▄█▀▒                   ▄██     ▄▄█▀█▄█▀▒▒       ▄█▀▀▒▒▒▄█▀▒ ▄██▄█▀▒           ▄▄█▀█▄█▀▄▄█▀█▄█▀▒",
-  "          ▄▄██▀▒▒▒▒▒▄▄▄▀▀▒▒▒▒        ▄▄▄  ▀▀▀▀██▀▀▀▀▀███▀█▄▀▀▒▒▒▒      ██▄▄▒▒▒▒▒▒▒ ▄██▀▀▒▒▒          ▄██▀█▄▀▀▄██▀█▄▀▀▒▒▒",
-  "        ▄██▀▒▒▒▒     ▒▒▄▄█ ▄▄▄▀██ ▄▄▄▀▀▀▄  ▄██▀▒▒▒▒▄██▀▀▀▒▄▄███         ▀▀▀██▄▄  ▄██▀▒▄▄▀██   ▄▄▀▀██ ██▀▀▀▒▒▒██▀▀▀▒▒▒",
-  "       ██▀▒▒▒     ▄▄▄███▀▄██▀▀▀▄▄██▀▀▄█▀▄▄██▀▒▒▒▄▄██▀▒▒▄██▀▀▀▄▄      ▄▄     ▀██▄▄██▀▄██▀██▒  ▄██▄▄▀▒ █▀▒▒▒   █▀▒▒▒",
-  "       ▀█▄▄▄▄▄▀▀▀█▄▄███▄▒▀▀▀▀▀▀▒▀▀▒▒▀▀▀▀▒██▄▄▀▀▀ ▀█▄▀▀▀ ▀▀▀▀▀▒▒      ▀█▄▄▄▄█▀▀▒▒▀▀▒▒▀▀▒ ██▄▄▀▀█▄▄▄▄▀▀█▄▄▀▀▀▄▄▀█▄▄▀▀▀",
-  "        ▒▄▄▄█▀▀▀█▄█▀▀▒▒▒▒ ▒▒▒▒▒▒ ▒▒  ▒▒▒▒ ▒▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒        ▒▀▀▀▀▒▒▒▒  ▒▒▒▒▒▒ ▒▒▒▒▒ ▒▒▒▒▒▒  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒",
-  "     ▄▄▀▀ ▒▒▒▒▄██▀▒▒▒▒",
-  "   ▄█ ▒▒▒▄▄██▀▀▒▒▒▒",
-  "    ▀▀▀▀▀▀▒▒▒▒▒▒",
-  "     ▒▒▒▒▒▒",
+  "                 ██                      ██",
+  "                 ██          ██          ██",
+  "███▀▀██▄  ██   ██ ██▄███▄        ██▄██▀ ▄████▄▄  ██",
+  "██    ██  ██   ██ ██    ██   ██  ██▀       ▄▄██  ██",
+  "██    ██  ██   ██ ██    ██   ██  ██     ██▀  ██  ██",
+  "██    ██  ▀██▄███ ██▄███▀    ██  ██     ▀██▄███  ██",
 ];
 
+// Nubiral's infinity mark, rendered where the rose used to sit.
 const ROSE_LARGE_RAW = [
-  "             ⣠⣾⣷⣶⣦⣤⣤⣄⣠⣄⣀  ⢀⣀⣀",
-  "          ⢀⣴⣿⣿⠿⣋⣭⣭⣯⣭⣍⣭⣿⣟⠛⠛⠿⣿⣷⣄",
-  "      ⢀⣴⣾⡟⢻⣿⡟⠁⣼⣿⠏⣵⢻⣿⣻⣿⣿⢿⡻⣿⣿⣶⡌⢿⣿⣷⣦⣤⡄",
-  "   ⣤⣶⣾⣿⣿⠏ ⠈⢿⣄ ⢹⣏⠠⠟⣾⣿⣿⣿⣿⣿⠷⣏⣼⠟⢡⣿⡟⠋⢻⣿⣿⡄",
-  "   ⠈⣿⣿⣿⣿⡆   ⣽⢧⡘⠈⠳⣦⣍⠛⠛⢦⣉⣴⣛⣫⣭⣴⡟⠋  ⣾⣿⣿⡿",
-  "   ⢀⠹⣿⣿⣿⣷⣤⡄ ⠋ ⠙⢆ ⣠⠴⠟⠛⣛⣛⣛⠟⠋⠁⠺⡇ ⣀⣴⣿⣿⡟⠁",
-  "   ⠈⣀⠈⠛⠷⠿⣿⣿⣷⣤⣀ ⢠⠋   ⠈⠉⠉    ⣠⣴⣥⠾⠛⠉⣰⣿⣷",
-  "          ⠹⣯⣝⠛⠛⠷⢶⣤⣤⣀   ⢀⡠⠖⠋⠉⢉⣀⣀⣴⣾⣿⠿⠟⠃",
-  "             ⠘⠻⢿⣦⣄⡀  ⠉⠛⢦⠠⢊⠤⠴⢒⣛⣛⣩⣽⡿⠟⠁",
-  "        ⠶⢶⣤⣄⡀⠨⠭⠽⠟⣓⢦⣀⠈⢇⡥⠖⠛⠋⠉⠉",
-  "           ⠈⢷ ⠐⠂⢤⣽⣄ ⠰⡎⠙⠳⣄⡀ ⠈⢣⠘⢦⠋",
-  "            ⠈⢳⣀⡒⠉⠉⣉⠙⡲⣽⣄ ⣏⠳⡄ ⠘⡇ ⡾⠁",
-  "              ⠛⠻⢦⣄⣉⡁⣀⣀⣈⣙⣺⣌⡇⢠⢀⡇⡾",
-  "                   ⠈⠉    ⠈⠳⡄⣸⢱⠇",
-  "                           ⡷⠡⡯⢖⠉",
-  "                        ⢀⡴⢪⠔⣉⠔⠋",
-  "                           ⠐⠈",
+  "            ⢀⣠⣴⣶⣶⣶⣶⣶⣤⣀  ",
+  "           ⣰⣿⡿⠋⠉  ⠈⠉⠻⣿⣷⡀",
+  "   ⣠⣶⣿⡇  ⢠⣤⣿⡏        ⠈⣿⡇",
+  "  ⢸⣿⠏⠁   ⠈⢿⣿⣿⣦      ⣠⣾⣿⠃",
+  "  ⠸⣿⣧⣄⡀ ⣀⣤⣿⡿⠉⠉    ⠸⠿⠿⠛⠁ ",
+  "   ⠈⠛⠿⠿⠿⠿⠟⠋             ",
 ];
 
 function rgb(r: number, g: number, b: number, text: string): string {
@@ -205,7 +192,7 @@ function buildLetterSpans(bounds: Span, weights: number[]): Span[] {
 
 const LOGO_BOUNDS = computeLogoBounds(TEXT_LOGO);
 // Variable-width script regions, including the gap before Shell and shadows.
-const LETTER_WEIGHTS = [22, 9, 8, 9, 8, 9, 10, 13, 8, 8, 13]; // G E N T L E S H E L L
+const LETTER_WEIGHTS = [10, 8, 9, 4, 7, 9, 4]; // n u b i r a l
 const LETTER_SPANS = buildLetterSpans(LOGO_BOUNDS, LETTER_WEIGHTS);
 
 function letterIndexAtX(x: number): number {
@@ -589,7 +576,7 @@ export default function (pi: ExtensionAPI) {
 
   const registerBannerCommand = (name: string) => {
     pi.registerCommand(name, {
-      description: "Configure the Gentle Pi startup banner.",
+      description: "Configure the Nub-IA startup banner.",
       handler: async (_args, ctx) => {
         const config = await readBannerConfig();
         const selected = await ctx.ui.select("Startup banner", [
@@ -612,7 +599,7 @@ export default function (pi: ExtensionAPI) {
   };
   const registerToggleCommand = (name: string, key: "showRose" | "showTextLogo") => {
     pi.registerCommand(name, {
-      description: `Toggle startup banner ${key === "showRose" ? "rose" : "text logo"}.`,
+      description: `Toggle startup banner ${key === "showRose" ? "mark" : "text logo"}.`,
       handler: async (_args, ctx) => {
         const config = await readBannerConfig();
         config[key] = !config[key];

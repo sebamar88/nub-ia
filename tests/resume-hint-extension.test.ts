@@ -8,8 +8,8 @@ import { RESUME_HANDOFF_ENV, parseResumeHandoff } from "../lib/gentle-shell-resu
 
 const ID = "01a0e0a0-6d7b-7314-89c1-537d47bbf4f3";
 
-// A private dir shaped like the launcher's (<tmpdir>/gentle-shell-resume-XXXXXX).
-const handoffDir = () => mkdtempSync(join(tmpdir(), "gentle-shell-resume-"));
+// A private dir shaped like the launcher's (<tmpdir>/nub-ia-resume-XXXXXX).
+const handoffDir = () => mkdtempSync(join(tmpdir(), "nub-ia-resume-"));
 
 type Handler = (event: { reason: string }, ctx: unknown) => void;
 
@@ -40,7 +40,7 @@ test("extension is inert without the launcher handoff env", () => {
 });
 
 test("extension claims the env var so child processes cannot inherit it", () => {
-	const env: NodeJS.ProcessEnv = { [RESUME_HANDOFF_ENV]: join(tmpdir(), "gentle-shell-resume-unused", "handoff.json") };
+	const env: NodeJS.ProcessEnv = { [RESUME_HANDOFF_ENV]: join(tmpdir(), "nub-ia-resume-unused", "handoff.json") };
 	loadExtension(env);
 	resetResumeHintState();
 	assert.equal(env[RESUME_HANDOFF_ENV], undefined);

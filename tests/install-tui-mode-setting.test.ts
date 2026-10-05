@@ -275,13 +275,13 @@ for (const fault of ["write", "rename", "concurrent-change"]) {
 // ownership check to satisfy, because gentle-shell just created `dir` itself
 // moments ago; a plain agent-home-shaped temp directory is enough.
 
-test("installIsolatedTuiModeSetting writes fullscreen and the default Gentleman-Cute theme into a freshly created directory", async (t) => {
+test("installIsolatedTuiModeSetting writes fullscreen and the default Nub-IA theme into a freshly created directory", async (t) => {
 	const root = mkdtempSync(join(tmpdir(), "gentle-shell-isolated-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	const dir = join(root, "gentle-shell", "agent");
 	mkdirSync(dir, { recursive: true });
 	assert.deepEqual(await installIsolatedTuiModeSetting(dir), { changed: true, recognized: true });
-	assert.deepEqual(JSON.parse(readFileSync(join(dir, "settings.json"), "utf8")), { tuiMode: "fullscreen", theme: "Gentleman-Cute" });
+	assert.deepEqual(JSON.parse(readFileSync(join(dir, "settings.json"), "utf8")), { tuiMode: "fullscreen", theme: "Nub-IA" });
 });
 
 test("installIsolatedTuiModeSetting preserves other settings fields already present, including an existing theme", async (t) => {
@@ -294,12 +294,12 @@ test("installIsolatedTuiModeSetting preserves other settings fields already pres
 
 // --- DEFAULT_THEME_NAME / withIsolatedHomeDefaults (pure, no filesystem) -----
 
-test("DEFAULT_THEME_NAME is Gentleman-Cute", () => {
-	assert.equal(DEFAULT_THEME_NAME, "Gentleman-Cute");
+test("DEFAULT_THEME_NAME is Nub-IA", () => {
+	assert.equal(DEFAULT_THEME_NAME, "Nub-IA");
 });
 
 test("withIsolatedHomeDefaults sets fullscreen and the default theme on an empty settings object", () => {
-	assert.deepEqual(withIsolatedHomeDefaults({}), { tuiMode: "fullscreen", theme: "Gentleman-Cute" });
+	assert.deepEqual(withIsolatedHomeDefaults({}), { tuiMode: "fullscreen", theme: "Nub-IA" });
 });
 
 test("withIsolatedHomeDefaults never overwrites an already-declared theme", () => {
@@ -307,7 +307,7 @@ test("withIsolatedHomeDefaults never overwrites an already-declared theme", () =
 });
 
 test("withIsolatedHomeDefaults preserves unrelated fields", () => {
-	assert.deepEqual(withIsolatedHomeDefaults({ packages: ["npm:example"] }), { tuiMode: "fullscreen", theme: "Gentleman-Cute", packages: ["npm:example"] });
+	assert.deepEqual(withIsolatedHomeDefaults({ packages: ["npm:example"] }), { tuiMode: "fullscreen", theme: "Nub-IA", packages: ["npm:example"] });
 });
 
 test("installIsolatedTuiModeSetting is a no-op when already fullscreen", async (t) => {

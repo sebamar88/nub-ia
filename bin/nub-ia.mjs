@@ -238,7 +238,7 @@ const looseExtensionFs = {
 			// example EACCES) is a real read failure, not a missing directory.
 			// Warn instead of silently dropping every loose extension it would
 			// have contributed (R4-loose-extension-enumeration-fails-silently).
-			process.stderr.write(`gentle-shell: could not read loose extension directory ${dir}: ${error.message} (skipping)\n`);
+			process.stderr.write(`nub-ia: could not read loose extension directory ${dir}: ${error.message} (skipping)\n`);
 			return [];
 		}
 		return names.map((name) => {
@@ -293,7 +293,7 @@ function resolveLooseExtensionEntries(dir) {
 // packed-artifact E2E script, which also needs `--link` probes against the
 // real pi home and so cannot just redirect HOME wholesale — read and write
 // the `home` subcommand's and the auto-provisioning marker's config file
-// without ever touching the real ~/.gentle-shell/config.json. Never
+// without ever touching the real ~/.nub-ia/config.json. Never
 // consulted outside these two call sites; see docs/readme-reference.md.
 function resolveConfigPath() {
 	const override = process.env.GENTLE_SHELL_CONFIG;
@@ -367,9 +367,9 @@ function handleHomeCommand(commandArgs) {
 		process.stdout.write(`${resolved.mode} ${resolved.dir}\n`);
 		process.exit(0);
 	}
-	if (commandArgs.length > 1) fail("gentle-shell home accepts at most one argument. Run 'gentle-shell --help'.", 2);
+	if (commandArgs.length > 1) fail("nub-ia home accepts at most one argument. Run 'nub-ia --help'.", 2);
 	const [value] = commandArgs;
-	if (value.length === 0) fail("gentle-shell home requires a non-empty argument. Run 'gentle-shell --help'.", 2);
+	if (value.length === 0) fail("nub-ia home requires a non-empty argument. Run 'nub-ia --help'.", 2);
 
 	const configPath = resolveConfigPath();
 	const existing = readRawConfig(configPath);
@@ -534,7 +534,7 @@ function ensurePackageLocalGentleAi(binaryPath, pinnedVersion, stdio) {
 		};
 	}
 	process.stderr.write(
-		`gentle-shell: the package-local gentle-ai v${pinnedVersion} is missing (npm lifecycle scripts may be disabled); installing it now\n`,
+		`nub-ia: the package-local gentle-ai v${pinnedVersion} is missing (npm lifecycle scripts may be disabled); installing it now\n`,
 	);
 	const installerPath = resolveSetupGentleAiInstaller();
 	const result = spawnSync(process.execPath, [installerPath], { stdio });
@@ -657,7 +657,7 @@ function readParsableJsonText(path) {
 // Deliberately does NOT delete or otherwise touch a state.json the child
 // created where none existed before (unlike restoreFile's whole-file
 // persona.json handling): state.json is the user's own gentle-ai global
-// state file, not something gentle-shell owns end-to-end, so removing one
+// state file, not something nub-ia owns end-to-end, so removing one
 // the tool just created would destroy state fields unrelated to this fix —
 // `originalText` is undefined for that case (see readParsableJsonText
 // above), and this returns early without reading or writing anything.
@@ -676,7 +676,7 @@ function restoreManagedAssetDigestField(path, originalText) {
 // Restores the home's own settings.json "theme" field to whatever it was
 // right before the gentle-ai spawn (`originalSettingsText`) — gentle-ai's
 // managed install may write its own theme into settings.json, which would
-// otherwise silently replace the theme Gentle Shell had going in. This is a
+// otherwise silently replace the theme Nub-IA had going in. This is a
 // field-level snapshot/restore around the spawn, not a "only act if there
 // was no theme before" check: on a brand-new home, the isolated-home
 // bootstrap (installIsolatedTuiModeSetting, withIsolatedHomeDefaults in
@@ -717,7 +717,7 @@ function enforceDefaultThemeField(settingsPath, originalSettingsText) {
 // Never let a snapshot/restore step itself abort setup: a persona.json or
 // state.json this launcher cannot read or write for an unexpected reason
 // (EACCES, ENOSPC, a path that turned into a directory, ...) must not crash
-// `gentle-shell setup` or block the automatic first-run flow from still
+// `nub-ia setup` or block the automatic first-run flow from still
 // launching pi — it only means that one file's shared-state protection did
 // not apply this run. `label` and `path` identify what failed to the user;
 // the caller decides what "safe" default to fall back to.
@@ -725,7 +725,7 @@ function safely(label, path, fallback, fn) {
 	try {
 		return fn();
 	} catch (error) {
-		process.stderr.write(`gentle-shell: could not ${label} at ${path} (${error.message}); continuing\n`);
+		process.stderr.write(`nub-ia: could not ${label} at ${path} (${error.message}); continuing\n`);
 		return fallback;
 	}
 }
@@ -736,7 +736,7 @@ function safely(label, path, fallback, fn) {
 // builtin loses its tool to another extension. Pi's only per-builtin opt-out
 // is a `-builtin:<name>` entry in the settings `extensions` array, so every
 // normal launch ensures that entry in the settings.json of a home
-// gentle-shell owns (see main, below).
+// nub-ia owns (see main, below).
 const BUILTIN_CODEMODE_EXTENSION = "builtin:codemode";
 
 // Pure: returns `settingsText` with `-<builtin>` appended to its `extensions`
@@ -808,7 +808,7 @@ async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
 		return {
 			ok: false,
 			exitCode: 1,
-			message: `gentle-shell: setup needs the package-local gentle-ai v${MIN_SETUP_GENTLE_AI_VERSION} or newer (pinned: ${pinnedVersion}); this build cannot provision a home without touching ~/.pi/agent`,
+			message: `nub-ia: setup needs the package-local gentle-ai v${MIN_SETUP_GENTLE_AI_VERSION} or newer (pinned: ${pinnedVersion}); this build cannot provision a home without touching ~/.pi/agent`,
 		};
 	}
 
@@ -816,7 +816,7 @@ async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
 	const ensured = ensurePackageLocalGentleAi(binaryPath, pinnedVersion, stdio);
 	if (!ensured.ok) return ensured;
 
-	process.stderr.write(`gentle-shell: provisioning ${home.dir} with the gentle-ai companion packages\n`);
+	process.stderr.write(`nub-ia: provisioning ${home.dir} with the gentle-ai companion packages\n`);
 
 	const setupArgs = ["install", "--agent", "pi", "--scope", "global", ...(dryRun ? ["--dry-run"] : [])];
 	const env = buildSetupEnv(home, runtime);
@@ -839,22 +839,22 @@ async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
 		installResult = await spawnAndWait(binaryPath, setupArgs, env, stdio, timeoutMs);
 	} finally {
 		if (personaSnapshot !== undefined && safely("restore your Pi persona file", personaPath, false, () => restoreFile(personaSnapshot))) {
-			process.stderr.write(`gentle-shell: kept your Pi persona unchanged (gentle-ai rewrote ${personaPath}; tracked upstream)\n`);
+			process.stderr.write(`nub-ia: kept your Pi persona unchanged (gentle-ai rewrote ${personaPath}; tracked upstream)\n`);
 		}
 		if (safely("restore your Gentle AI managed-asset record", statePath, false, () => restoreManagedAssetDigestField(statePath, originalStateText))) {
 			process.stderr.write(
-				`gentle-shell: kept your Gentle AI managed-asset record unchanged (the pinned gentle-ai rewrote ${statePath}; tracked upstream)\n`,
+				`nub-ia: kept your Gentle AI managed-asset record unchanged (the pinned gentle-ai rewrote ${statePath}; tracked upstream)\n`,
 			);
 		}
-		const themeOutcome = trackTheme ? safely("apply the default Gentle Shell theme", settingsPath, false, () => enforceDefaultThemeField(settingsPath, originalSettingsText)) : false;
+		const themeOutcome = trackTheme ? safely("apply the default Nub-IA theme", settingsPath, false, () => enforceDefaultThemeField(settingsPath, originalSettingsText)) : false;
 		if (themeOutcome === "forced") {
-			process.stderr.write(`gentle-shell: set the default ${DEFAULT_THEME_NAME} theme for ${home.dir} (no theme was set before this run)\n`);
+			process.stderr.write(`nub-ia: set the default ${DEFAULT_THEME_NAME} theme for ${home.dir} (no theme was set before this run)\n`);
 		} else if (themeOutcome === "restored") {
-			process.stderr.write(`gentle-shell: kept your Pi theme unchanged (gentle-ai rewrote ${settingsPath}; tracked upstream)\n`);
+			process.stderr.write(`nub-ia: kept your Pi theme unchanged (gentle-ai rewrote ${settingsPath}; tracked upstream)\n`);
 		}
 	}
 	if (installResult.timedOut) {
-		return { ok: false, exitCode: 1, message: `gentle-shell: gentle-ai install timed out after ${formatTimeoutCeiling(timeoutMs)}` };
+		return { ok: false, exitCode: 1, message: `nub-ia: gentle-ai install timed out after ${formatTimeoutCeiling(timeoutMs)}` };
 	}
 	if (installResult.error) {
 		return { ok: false, exitCode: 1, message: `Could not start the gentle-ai binary: ${installResult.error.message}` };
@@ -870,9 +870,9 @@ async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
 // original gentle-ai #4820 wording unchanged.
 function postInstallRemovingMessage(source, home) {
 	if (source === "npm:gentle-pi") {
-		return `gentle-shell: removing ${source} from ${home.dir}: this launcher loads its own gentle-pi ${ownPackageVersion()}, so the home always matches it`;
+		return `nub-ia: removing ${source} from ${home.dir}: this launcher loads its own gentle-pi ${ownPackageVersion()}, so the home always matches it`;
 	}
-	return `gentle-shell: removing ${source} from ${home.dir}: gentle-pi ships ask_user_question and Pi refuses two providers (gentle-ai #4820)`;
+	return `nub-ia: removing ${source} from ${home.dir}: gentle-pi ships ask_user_question and Pi refuses two providers (gentle-ai #4820)`;
 }
 
 // The --dry-run stderr line for `source`, printed unconditionally (see
@@ -880,9 +880,9 @@ function postInstallRemovingMessage(source, home) {
 // rpiv wording; npm:gentle-pi gets its own analogous "would remove" line.
 function postInstallWouldRemoveMessage(source) {
 	if (source === "npm:gentle-pi") {
-		return `gentle-shell: setup would then remove ${source} if the install declares it: this launcher loads its own gentle-pi ${ownPackageVersion()}, so the home always matches it`;
+		return `nub-ia: setup would then remove ${source} if the install declares it: this launcher loads its own gentle-pi ${ownPackageVersion()}, so the home always matches it`;
 	}
-	return `gentle-shell: setup would then remove ${source} if the install declares it (gentle-ai #4820)`;
+	return `nub-ia: setup would then remove ${source} if the install declares it (gentle-ai #4820)`;
 }
 
 // Runs once the gentle-ai install spawned by runSetupFlow above has exited
@@ -890,7 +890,7 @@ function postInstallWouldRemoveMessage(source) {
 // must remove from the just-provisioned home itself, unless this is a
 // --dry-run: npm:@juicesharp/rpiv-ask-user-question, which conflicts with
 // gentle-pi's own first-party ask_user_question tool (Pi refuses two
-// providers for the same tool name; gentle-ai #4820, gentle-shell #1277,
+// providers for the same tool name; gentle-ai #4820, nub-ia #1277,
 // fix pending upstream), and npm:gentle-pi itself, which must never survive
 // setup — this launcher always loads its own gentle-pi, never the one
 // gentle-ai's stack installs. A --dry-run gentle-ai install writes nothing,
@@ -921,7 +921,7 @@ async function removePostInstallSources(sources, index, home, runtime, stdio, ti
 	const env = buildSetupEnv(home, runtime);
 	const result = await spawnAndWait(runtime.command, [...runtime.args, "remove", source], env, stdio, timeoutMs);
 	if (result.timedOut) {
-		return { ok: false, exitCode: 1, message: `gentle-shell: pi remove ${source} timed out after ${formatTimeoutCeiling(timeoutMs)}` };
+		return { ok: false, exitCode: 1, message: `nub-ia: pi remove ${source} timed out after ${formatTimeoutCeiling(timeoutMs)}` };
 	}
 	if (result.error) {
 		return { ok: false, exitCode: 1, message: `Could not run the pi runtime to remove ${source}: ${result.error.message}` };
@@ -932,12 +932,12 @@ async function removePostInstallSources(sources, index, home, runtime, stdio, ti
 		// ordinary failure and gets the same remediation message as any other.
 		if (result.interrupted) return result;
 		const remediation = [...homeSelectorFlags(home).map(shellQuote), "remove", source].join(" ");
-		return { ok: false, exitCode: result.exitCode, message: `gentle-shell: could not remove ${source}; run \`gentle-shell ${remediation}\` before starting` };
+		return { ok: false, exitCode: result.exitCode, message: `nub-ia: could not remove ${source}; run \`nub-ia ${remediation}\` before starting` };
 	}
 	return removePostInstallSources(sources, index + 1, home, runtime, stdio, timeoutMs);
 }
 
-// CLI entry for `gentle-shell [home selectors] setup [--dry-run]`: parses
+// CLI entry for `nub-ia [home selectors] setup [--dry-run]`: parses
 // --dry-run, runs the shared flow with the child's stdio inherited (today's
 // behavior, unchanged), then exits with its result — this is the one place
 // that keeps the pre-S7 exit semantics `handleSetupCommand` always had.
@@ -948,7 +948,7 @@ async function handleSetupCommand(commandArgs, home, runtime) {
 			dryRun = true;
 			continue;
 		}
-		fail(`Unrecognized argument for 'gentle-shell setup': ${arg}\nRun 'gentle-shell --help' for usage.`, 2);
+		fail(`Unrecognized argument for 'nub-ia setup': ${arg}\nRun 'nub-ia --help' for usage.`, 2);
 	}
 
 	const result = await runSetupFlow(home, runtime, { dryRun, stdio: "inherit" });
@@ -959,7 +959,7 @@ async function handleSetupCommand(commandArgs, home, runtime) {
 const AUTO_SETUP_OPT_OUT_ENV = "GENTLE_SHELL_NO_AUTO_SETUP";
 const SETUP_LOCK_STALE_MS = 15 * 60 * 1000;
 
-// gentle-shell never auto-provisions a home it does not itself own: the
+// nub-ia never auto-provisions a home it does not itself own: the
 // dedicated isolated home is always owned outright, but a `--home <path>` (or
 // a persisted `home <path>` config) can just as easily name the user's real
 // pi agent directory, or any other pre-existing, unrelated directory. Only a
@@ -972,13 +972,13 @@ function defaultPiAgentDir() {
 
 function printForeignHomeHint(home, reason) {
 	const remediation = [...homeSelectorFlags(home).map(shellQuote), "setup"].join(" ");
-	process.stderr.write(`gentle-shell: ${home.dir} ${reason}; run \`gentle-shell ${remediation}\` to provision it\n`);
+	process.stderr.write(`nub-ia: ${home.dir} ${reason}; run \`nub-ia ${remediation}\` to provision it\n`);
 }
 
 // Ownership marker (R3-001): written into a home's own directory by the
-// isolated/--home bootstrap (main, below) the moment gentle-shell creates
+// isolated/--home bootstrap (main, below) the moment nub-ia creates
 // that home — the same place it seeds settings.json with tuiMode. Lets
-// homeIsForeign recognize a home gentle-shell itself created even when the
+// homeIsForeign recognize a home nub-ia itself created even when the
 // config.json provisioning marker was never written because the *first*
 // auto-provision attempt against it failed (a --home directory whose
 // bootstrap already seeded settings.json otherwise looks identical to an
@@ -986,14 +986,14 @@ function printForeignHomeHint(home, reason) {
 // foreign and never retried). Content is a one-line JSON object naming the
 // launcher version that created it, purely informational — homeIsForeign
 // only checks the file's existence.
-const HOME_OWNERSHIP_MARKER_FILENAME = ".gentle-shell-home";
+const HOME_OWNERSHIP_MARKER_FILENAME = ".nub-ia-home";
 
 function homeOwnershipMarkerPath(home) {
 	return join(home.dir, HOME_OWNERSHIP_MARKER_FILENAME);
 }
 
 function writeHomeOwnershipMarker(home) {
-	const content = JSON.stringify({ createdBy: "gentle-shell", version: ownPackageVersion() });
+	const content = JSON.stringify({ createdBy: "nub-ia", version: ownPackageVersion() });
 	writeFileSync(homeOwnershipMarkerPath(home), `${content}\n`, "utf8");
 }
 
@@ -1005,15 +1005,15 @@ function writeHomeOwnershipMarker(home) {
 // fresh home "foreign".
 function homeIsForeign(home, previousEntry, homeHadContentBeforeBootstrap) {
 	if (home.mode !== "path") return false; // the isolated home is always owned
-	if (previousEntry !== undefined) return false; // already provisioned by gentle-shell before; trust the marker
+	if (previousEntry !== undefined) return false; // already provisioned by nub-ia before; trust the marker
 	if (safeRealpath(home.dir) === safeRealpath(defaultPiAgentDir())) return true; // never touch pi's own default home, even if empty
-	if (existsSync(homeOwnershipMarkerPath(home))) return false; // gentle-shell's own bootstrap created this home (R3-001); retry it even after a failed first attempt
+	if (existsSync(homeOwnershipMarkerPath(home))) return false; // nub-ia's own bootstrap created this home (R3-001); retry it even after a failed first attempt
 	return homeHadContentBeforeBootstrap;
 }
 
 // Guards concurrent first-run auto-provisioning of the same home: an
 // exclusive create (`wx`) fails when the lock already exists. A lock file
-// younger than SETUP_LOCK_STALE_MS means another gentle-shell process is (or
+// younger than SETUP_LOCK_STALE_MS means another nub-ia process is (or
 // very recently was) provisioning this home, so this run skips
 // auto-provisioning entirely rather than racing gentle-ai's own installer;
 // the existing lock is left untouched since this run never owned it. An
@@ -1046,7 +1046,7 @@ function acquireSetupLock(lockPath) {
 		}
 		if (age < SETUP_LOCK_STALE_MS) {
 			process.stderr.write(
-				`gentle-shell: another gentle-shell process is already provisioning ${dirname(lockPath)}; skipping automatic setup for this run\n`,
+				`nub-ia: another nub-ia process is already provisioning ${dirname(lockPath)}; skipping automatic setup for this run\n`,
 			);
 			return false;
 		}
@@ -1081,7 +1081,7 @@ function releaseSetupLock(lockPath) {
 }
 
 // Ceiling for every child this flow spawns (S9): a hung pinned gentle-ai or
-// pi invocation must never hang a plain `gentle-shell` launch forever.
+// pi invocation must never hang a plain `nub-ia` launch forever.
 // Test/development only: GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS overrides the
 // 15-minute ceiling so a test can exercise it without actually waiting;
 // documented as test/development-only in docs/readme-reference.md. Manual
@@ -1094,7 +1094,7 @@ function resolveAutoSetupTimeoutMs() {
 	return parsed !== undefined && Number.isFinite(parsed) ? parsed : AUTO_SETUP_CHILD_TIMEOUT_MS;
 }
 
-// Runs the same flow as `gentle-shell setup` automatically before a plain
+// Runs the same flow as `nub-ia setup` automatically before a plain
 // launch, for an isolated or `--home <path>` home that was never provisioned
 // or was provisioned with a different gentle-ai pin (S7). Never runs for
 // `--link` (the caller only calls this for home.mode "isolated"/"path") or a
@@ -1125,19 +1125,19 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 	if (homeIsForeign(home, previous, homeHadContentBeforeBootstrap)) {
 		const reason =
 			safeRealpath(home.dir) === safeRealpath(defaultPiAgentDir())
-				? "is pi's own default agent home; gentle-shell never auto-provisions it"
-				: "already has content and was not set up by gentle-shell";
+				? "is pi's own default agent home; nub-ia never auto-provisions it"
+				: "already has content and was not set up by nub-ia";
 		printForeignHomeHint(home, reason);
 		return undefined;
 	}
 
-	const lockPath = join(home.dir, ".gentle-shell-setup.lock");
+	const lockPath = join(home.dir, ".nub-ia-setup.lock");
 	if (!acquireSetupLock(lockPath)) return undefined;
 
 	try {
 		if (previous === undefined) {
 			process.stderr.write(
-				`gentle-shell: first run in ${home.dir}: installing the Gentle AI companion packages (one time; set ${AUTO_SETUP_OPT_OUT_ENV}=1 to skip)\n`,
+				`nub-ia: first run in ${home.dir}: installing the Gentle AI companion packages (one time; set ${AUTO_SETUP_OPT_OUT_ENV}=1 to skip)\n`,
 			);
 		} else {
 			// A marker written before gentle-pi version tracking existed (S8)
@@ -1148,12 +1148,12 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 			const gentlePiChanged = previous.gentlePi !== gentlePiVersion;
 			if (gentleAiChanged && gentlePiChanged) {
 				process.stderr.write(
-					`gentle-shell: gentle-ai pin changed (${previous.gentleAi} -> ${pin}) and gentle-pi changed (${previous.gentlePi ?? "unknown"} -> ${gentlePiVersion}): updating ${home.dir}\n`,
+					`nub-ia: gentle-ai pin changed (${previous.gentleAi} -> ${pin}) and gentle-pi changed (${previous.gentlePi ?? "unknown"} -> ${gentlePiVersion}): updating ${home.dir}\n`,
 				);
 			} else if (gentlePiChanged) {
-				process.stderr.write(`gentle-shell: gentle-pi changed (${previous.gentlePi ?? "unknown"} -> ${gentlePiVersion}): updating ${home.dir}\n`);
+				process.stderr.write(`nub-ia: gentle-pi changed (${previous.gentlePi ?? "unknown"} -> ${gentlePiVersion}): updating ${home.dir}\n`);
 			} else {
-				process.stderr.write(`gentle-shell: gentle-ai pin changed (${previous.gentleAi} -> ${pin}): updating ${home.dir}\n`);
+				process.stderr.write(`nub-ia: gentle-ai pin changed (${previous.gentleAi} -> ${pin}): updating ${home.dir}\n`);
 			}
 		}
 
@@ -1166,7 +1166,7 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 		if (!result.ok) {
 			const remediation = [...homeSelectorFlags(home).map(shellQuote), "setup"].join(" ");
 			process.stderr.write(
-				`gentle-shell: automatic setup failed (exit ${result.exitCode}); starting anyway and retrying next run. Run \`gentle-shell ${remediation}\` to see the full output.\n`,
+				`nub-ia: automatic setup failed (exit ${result.exitCode}); starting anyway and retrying next run. Run \`nub-ia ${remediation}\` to see the full output.\n`,
 			);
 			if (result.message !== undefined) process.stderr.write(`${result.message}\n`);
 			return undefined;
@@ -1181,7 +1181,7 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 
 async function main() {
 	const args = parseLauncherArgs(process.argv.slice(2));
-	if (args.error !== undefined) fail(`${args.error}\nRun 'gentle-shell --help' for usage.`, 2);
+	if (args.error !== undefined) fail(`${args.error}\nRun 'nub-ia --help' for usage.`, 2);
 	if (args.help) {
 		process.stdout.write(`${helpText()}\n`);
 		process.exit(0);
@@ -1233,13 +1233,13 @@ async function main() {
 		}
 	}
 
-	// Isolated-home bootstrap: only on a home gentle-shell has not seen before
+	// Isolated-home bootstrap: only on a home nub-ia has not seen before
 	// (link never bootstraps — it reuses the user's own pi agent home as-is).
 	if ((home.mode === "isolated" || home.mode === "path") && !existsSync(home.dir)) {
 		mkdirSync(home.dir, { recursive: true });
 		await installIsolatedTuiModeSetting(home.dir);
 		writeHomeOwnershipMarker(home); // R3-001: lets a failed first auto-provision attempt still be retried later
-		process.stderr.write(`gentle-shell: using a separate home at ${home.dir}. Run 'gentle-shell --link' to reuse your pi sign-ins and chats.\n`);
+		process.stderr.write(`nub-ia: using a separate home at ${home.dir}. Run 'nub-ia --link' to reuse your pi sign-ins and chats.\n`);
 	}
 
 	if (args.command === "setup") {
@@ -1248,10 +1248,10 @@ async function main() {
 	}
 
 	// Auto-provision (S7): a plain launch against an isolated or --home home
-	// (never --link) runs the same flow as `gentle-shell setup` automatically
+	// (never --link) runs the same flow as `nub-ia setup` automatically
 	// before pi starts, so the maintainer's own packages install without ever
 	// needing to know `setup` exists. Skipped for a pi subcommand
-	// (`gentle-shell install/remove/list/...`) — argv[0] must stay the bare
+	// (`nub-ia install/remove/list/...`) — argv[0] must stay the bare
 	// subcommand for pi to dispatch it, same reason the declaration/take-over
 	// block below skips it. Must run before that block reads settings.json,
 	// so that block sees settings.json exactly as this same auto-provision run
@@ -1267,7 +1267,7 @@ async function main() {
 		try {
 			autoProvisionResult = await maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBootstrap });
 		} catch (error) {
-			process.stderr.write(`gentle-shell: automatic setup failed unexpectedly (${error.message}); starting anyway and retrying next run.\n`);
+			process.stderr.write(`nub-ia: automatic setup failed unexpectedly (${error.message}); starting anyway and retrying next run.\n`);
 			autoProvisionResult = undefined;
 		}
 		// Only an interrupt reaching the spawned child (SIGINT/SIGTERM/SIGHUP)
@@ -1277,18 +1277,18 @@ async function main() {
 		if (autoProvisionResult !== undefined) process.exit(autoProvisionResult.exitCode);
 
 		// Runs after auto-provision, so it sees settings.json exactly as that
-		// run left it. Only a home gentle-shell owns, by the same rule
+		// run left it. Only a home nub-ia owns, by the same rule
 		// auto-provisioning uses (homeIsForeign): never --link (excluded above),
 		// a foreign --home, or pi's own default agent home, since plain pi may
 		// share those and would lose its builtin codemode. `setup` (including
 		// --dry-run) returned before this point.
 		const settingsPath = join(home.dir, "settings.json");
-		const excluded = safely("exclude Pi's builtin codemode in your Gentle Shell settings", settingsPath, false, () => {
+		const excluded = safely("exclude Pi's builtin codemode in your Nub-IA settings", settingsPath, false, () => {
 			const previous = provisionedEntry(readRawConfig(resolveConfigPath()), safeRealpath(home.dir));
 			return !homeIsForeign(home, previous, homeHadContentBeforeBootstrap) && ensureBuiltinCodemodeExcluded(settingsPath);
 		});
 		if (excluded) {
-			process.stderr.write(`gentle-shell: disabled Pi's builtin codemode in ${settingsPath} (Gentle Shell ships its own codemode tool)\n`);
+			process.stderr.write(`nub-ia: disabled Pi's builtin codemode in ${settingsPath} (Nub-IA ships its own codemode tool)\n`);
 		}
 	}
 
@@ -1309,7 +1309,7 @@ async function main() {
 	let looseExtensionEntries = [];
 
 	// Every mode consults the home's own settings.json for a gentle-pi
-	// declaration, not just --link: `gentle-shell setup` installs
+	// declaration, not just --link: `nub-ia setup` installs
 	// npm:gentle-pi into an isolated or --home home's settings.json, and once
 	// that declaration exists the launcher must stop injecting its own copy
 	// on top of it (buildPiInvocation skips injection whenever a declaration
@@ -1325,7 +1325,7 @@ async function main() {
 	// takeOver/declaration once piSubcommand is set, and running the
 	// take-over/loose-dir discovery anyway would still print a misleading
 	// "taking over gentle-pi..." message (and otherPackageInjections
-	// warnings) for a plain `gentle-shell install npm:x` that never actually
+	// warnings) for a plain `nub-ia install npm:x` that never actually
 	// takes anything over.
 	if (args.piSubcommand === undefined) {
 		const settingsText = readJsonIfExists(join(home.dir, "settings.json"));
@@ -1336,7 +1336,7 @@ async function main() {
 		// once so an operator does not assume --package-root took effect.
 		if (packageRootExplicit && home.mode !== "link" && declaration !== undefined) {
 			process.stderr.write(
-				`gentle-shell: --package-root only forces a take-over in --link mode; ${home.dir} declares gentle-pi, so the installed package is used and ${args.packageRoot} is ignored\n`,
+				`nub-ia: --package-root only forces a take-over in --link mode; ${home.dir} declares gentle-pi, so the installed package is used and ${args.packageRoot} is ignored\n`,
 			);
 		}
 		const realEffectivePackageRoot = safeRealpath(effectivePackageRoot);
@@ -1366,7 +1366,7 @@ async function main() {
 			looseExtensionEntries = [join(home.dir, "extensions"), join(process.cwd(), ".pi", "extensions")].flatMap(resolveLooseExtensionEntries);
 			const declaredFrom = declaration === undefined ? "the requested package root" : declaration.kind === "npm" ? "npm:gentle-pi" : declaration.dir;
 			process.stderr.write(
-				`gentle-shell: taking over gentle-pi from ${declaredFrom} for this run (settings unchanged; its skills, prompts, and themes still load alongside this launcher's).\n`,
+				`nub-ia: taking over gentle-pi from ${declaredFrom} for this run (settings unchanged; its skills, prompts, and themes still load alongside this launcher's).\n`,
 			);
 		}
 	}
@@ -1388,7 +1388,7 @@ async function main() {
 	});
 
 	// Only an interactive session ends with pi's exit resume hint, which
-	// gentle-shell completes with its own line; a pi subcommand gets no handoff.
+	// nub-ia completes with its own line; a pi subcommand gets no handoff.
 	const resumeHandoff = args.piSubcommand === undefined ? createResumeHandoff() : undefined;
 	const childEnv = resumeHandoff ? { ...invocation.env, [RESUME_HANDOFF_ENV]: resumeHandoff.path } : invocation.env;
 

@@ -20,13 +20,13 @@ import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-// Integration tests for the thin bin/gentle-shell.mjs entry: they run the real
+// Integration tests for the thin bin/nub-ia.mjs entry: they run the real
 // file via spawnSync with an isolated HOME and a fake pi script standing in for
 // the real @earendil-works/pi-coding-agent runtime, so the launcher's own logic
 // (already covered at the unit level in tests/gentle-shell-launcher.test.ts)
 // gets exercised end-to-end through real argv, env, and child-process wiring.
 
-const binUrl = new URL("../bin/gentle-shell.mjs", import.meta.url);
+const binUrl = new URL("../bin/nub-ia.mjs", import.meta.url);
 const binPath = fileURLToPath(binUrl);
 const packageRoot = dirname(dirname(binPath));
 
@@ -58,7 +58,7 @@ test("real adjacent Pi resolves through its public entry without PATH or a runti
 	// not the manifest specifier.
 	const installed: string = JSON.parse(readFileSync(join(packageRoot, "node_modules", "@earendil-works", "pi-coding-agent", "package.json"), "utf8")).version;
 	assert.match(result.stdout, new RegExp(`pi ${installed.replace(/\./g, "\\.")}\\b`));
-	assert.equal(existsSync(join(f.home, ".gentle-shell", "agent")), false);
+	assert.equal(existsSync(join(f.home, ".nub-ia", "agent")), false);
 });
 
 // A private copy places the launcher's resolution root outside this checkout,
@@ -67,11 +67,11 @@ function standaloneLauncher(t: test.TestContext) {
 	const f = fixture(t);
 	const root = join(f.root, "standalone");
 	mkdirSync(join(root, "bin"), { recursive: true });
-	writeFileSync(join(root, "bin", "gentle-shell.mjs"), readFileSync(binPath));
+	writeFileSync(join(root, "bin", "nub-ia.mjs"), readFileSync(binPath));
 	writeFileSync(join(root, "package.json"), readFileSync(join(packageRoot, "package.json")));
 	for (const dir of ["runtime", "scripts"]) symlinkSync(join(packageRoot, dir), join(root, dir), "junction");
 	const env = { HOME: f.home, USERPROFILE: f.home, PATH: `${root}${delimiter}${dirname(process.execPath)}`, GENTLE_SHELL_NO_AUTO_SETUP: "1" };
-	return { ...f, root, env, launcher: join(root, "bin", "gentle-shell.mjs") };
+	return { ...f, root, env, launcher: join(root, "bin", "nub-ia.mjs") };
 }
 
 test("a genuinely absent adjacent peer falls back to PATH", (t) => {
@@ -104,7 +104,7 @@ test("malformed adjacent metadata never silently falls back to PATH; env overrid
 });
 
 // The launcher's own gentle-pi version, exactly as `ownPackageVersion()` in
-// bin/gentle-shell.mjs reads it (package.json at packageRoot) — used to
+// bin/nub-ia.mjs reads it (package.json at packageRoot) — used to
 // assert the post-install gentle-pi removal message and the provisioning
 // marker's `gentlePi` field without hardcoding this package's own version.
 function ownGentlePiVersion(): string {
@@ -310,7 +310,7 @@ test("Pi real resource loader deduplicates the bridge across discovery, explicit
 });
 
 // Test/development-only stub for the setup subcommand's gentle-ai binary:
-// records its argv and the environment gentle-shell sets around it, instead
+// records its argv and the environment nub-ia sets around it, instead
 // of running the real package-local gentle-ai (whose supply-chain integrity
 // checks a test cannot cheaply satisfy). Pointed to via GENTLE_SHELL_GENTLE_AI_BIN,
 // documented as test/development-only in docs/readme-reference.md.
@@ -336,7 +336,7 @@ function writeGentleAiScript(path: string, exitCode = 0) {
 // Test/development-only stub for the setup subcommand's gentle-ai binary
 // that also records each invocation's args to `counterPath` (one JSON line
 // per run), so an auto-provision test can prove the flow ran exactly once
-// (or not at all) across several gentle-shell invocations, independent of
+// (or not at all) across several nub-ia invocations, independent of
 // what lands on stdout/stderr.
 function writeGentleAiScriptCountingRuns(path: string, counterPath: string, exitCode = 0) {
 	writeFileSync(
@@ -397,7 +397,7 @@ function writeInstallerScriptThatFails(path: string) {
 // Test/development-only stub for the setup subcommand's gentle-ai binary,
 // simulating the real gentle-ai's managed Pi stack declaring the conflicting
 // npm:@juicesharp/rpiv-ask-user-question package (gentle-ai #4820,
-// gentle-shell #1277) into the provisioned home's settings.json, the same
+// nub-ia #1277) into the provisioned home's settings.json, the same
 // file the isolated-home bootstrap already created before `setup` spawns
 // this stub. Its own stdout line ends with "\n" so a test can tell it apart
 // from a later `pi remove` line on the same inherited stdout.
@@ -424,8 +424,8 @@ function writeGentleAiScriptDeclaringConflict(path: string, exitCode = 0) {
 // Test/development-only stub for the setup subcommand's gentle-ai binary
 // that also rewrites the provisioned home's own settings.json `theme` field,
 // simulating gentle-ai's managed Pi install writing its own theme into
-// settings.json — the case gentle-shell's own theme-restore logic
-// (bin/gentle-shell.mjs's runSetupFlow, enforceDefaultThemeField) must undo.
+// settings.json — the case nub-ia's own theme-restore logic
+// (bin/nub-ia.mjs's runSetupFlow, enforceDefaultThemeField) must undo.
 function writeGentleAiScriptSettingTheme(path: string, theme: string, exitCode = 0) {
 	writeFileSync(
 		path,
@@ -576,7 +576,7 @@ test("--help exits 0 and prints usage", (t) => {
 	const f = fixture(t);
 	const result = run(f.env, ["--help"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stdout, /Usage: gentle-shell/);
+	assert.match(result.stdout, /Usage: nub-ia/);
 });
 
 test("home with no args prints the default isolated home", (t) => {
@@ -590,7 +590,7 @@ test("home link persists and a later home reflects it", (t) => {
 	const f = fixture(t);
 	const save = run(f.env, ["home", "link"]);
 	assert.equal(save.status, 0, save.stderr);
-	const configPath = join(f.home, ".gentle-shell", "config.json");
+	const configPath = join(f.home, ".nub-ia", "config.json");
 	assert.deepEqual(JSON.parse(readFileSync(configPath, "utf8")), { home: "link" });
 	const check = run(f.env, ["home"]);
 	assert.equal(check.status, 0, check.stderr);
@@ -602,17 +602,17 @@ test("home <path> persists a custom directory", (t) => {
 	const target = join(f.root, "custom-home");
 	const save = run(f.env, ["home", target]);
 	assert.equal(save.status, 0, save.stderr);
-	const configPath = join(f.home, ".gentle-shell", "config.json");
+	const configPath = join(f.home, ".nub-ia", "config.json");
 	assert.deepEqual(JSON.parse(readFileSync(configPath, "utf8")), { home: target });
 	const check = run(f.env, ["home"]);
 	assert.equal(check.stdout.trim(), `path ${target}`);
 });
 
 // Test/development-only: GENTLE_SHELL_CONFIG overrides the launcher
-// config.json path (normally <homedir>/.gentle-shell/config.json), so a test
+// config.json path (normally <homedir>/.nub-ia/config.json), so a test
 // or a field run against the real HOME (for example the packed-artifact E2E
 // script, which needs `--link` probes against the real pi home) never
-// touches the real ~/.gentle-shell/config.json. Documented as
+// touches the real ~/.nub-ia/config.json. Documented as
 // test/development-only in docs/readme-reference.md.
 test("GENTLE_SHELL_CONFIG redirects the config.json path used by 'home' and auto-provisioning", (t) => {
 	const f = fixture(t);
@@ -622,7 +622,7 @@ test("GENTLE_SHELL_CONFIG redirects the config.json path used by 'home' and auto
 	const save = run(env, ["home", "link"]);
 	assert.equal(save.status, 0, save.stderr);
 	assert.deepEqual(JSON.parse(readFileSync(overridePath, "utf8")), { home: "link" });
-	assert.equal(existsSync(join(f.home, ".gentle-shell", "config.json")), false);
+	assert.equal(existsSync(join(f.home, ".nub-ia", "config.json")), false);
 
 	const check = run(env, ["home"]);
 	assert.match(check.stdout, /^link /);
@@ -635,7 +635,7 @@ test("first isolated run bootstraps the home, writes fullscreen, and prints the 
 	const first = run(f.env, []);
 	assert.equal(first.status, 0, first.stderr);
 	assert.match(first.stderr, /using a separate home at/);
-	assert.match(first.stderr, /gentle-shell --link/);
+	assert.match(first.stderr, /nub-ia --link/);
 	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
 	assert.equal(settings.tuiMode, "fullscreen");
 
@@ -692,7 +692,7 @@ test("an isolated launch keeps its own agent home and carries the user's origina
 	assert.equal(custom.PI_CODING_AGENT_DIR, f.gentleShellHome);
 	assert.equal(custom.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
 	assert.equal(custom.GENTLE_SHELL_USER_PI_HOME, customHome);
-	// A gentle-shell started from inside a Gentle Shell session inherits both variables.
+	// A nub-ia started from inside a Nub-IA session inherits both variables.
 	const nested = launch({ PI_CODING_AGENT_DIR: custom.PI_CODING_AGENT_DIR, GENTLE_SHELL_USER_PI_HOME: custom.GENTLE_SHELL_USER_PI_HOME });
 	assert.equal(nested.PI_CODING_AGENT_DIR, f.gentleShellHome);
 	assert.equal(nested.GENTLE_SHELL_USER_PI_HOME, customHome);
@@ -717,12 +717,12 @@ test("--link skips injection and leaves settings.json byte-identical when it alr
 	assert.deepEqual(payload.args, ["--mode", "rpc"]);
 	assert.equal(readFileSync(settingsPath, "utf8"), settingsText);
 	assert.equal(payload.PI_CODING_AGENT_DIR, piAgentDir);
-	assert.equal(existsSync(join(piAgentDir, ".gentle-shell")), false);
+	assert.equal(existsSync(join(piAgentDir, ".nub-ia")), false);
 });
 
 // --- injection skip for isolated/--home homes once they declare gentle-pi (S3) ---
 //
-// `gentle-shell setup` installs npm:gentle-pi into the home's settings.json;
+// `nub-ia setup` installs npm:gentle-pi into the home's settings.json;
 // once that declaration exists, isolated and --home homes must stop
 // injecting the launcher's own copy on top of it, the same way --link
 // already does. Homes without a declaration keep the plain injection.
@@ -776,7 +776,7 @@ test("an isolated home whose settings.json declares a path-based gentle-pi takes
 	]);
 });
 
-test("gentle-shell list forwards to pi as a bare subcommand, with no injected extension flags", (t) => {
+test("nub-ia list forwards to pi as a bare subcommand, with no injected extension flags", (t) => {
 	const f = fixture(t);
 	const result = run(f.env, ["list"]);
 	assert.equal(result.status, 0, result.stderr);
@@ -785,7 +785,7 @@ test("gentle-shell list forwards to pi as a bare subcommand, with no injected ex
 	assert.equal(payload.PI_CODING_AGENT_DIR, f.gentleShellHome);
 });
 
-test("gentle-shell install npm:<pkg> forwards the subcommand and its argument verbatim", (t) => {
+test("nub-ia install npm:<pkg> forwards the subcommand and its argument verbatim", (t) => {
 	const f = fixture(t);
 	const result = run(f.env, ["install", "npm:pi-btw"]);
 	assert.equal(result.status, 0, result.stderr);
@@ -809,14 +809,14 @@ test("--version prints three lines", (t) => {
 	assert.equal(result.status, 0, result.stderr);
 	const lines = result.stdout.trim().split("\n");
 	assert.equal(lines.length, 3);
-	assert.match(lines[0], /^gentle-shell /);
+	assert.match(lines[0], /^nub-ia /);
 	assert.match(lines[1], /^pi 0\.99\.1$/);
 	assert.match(lines[2], /^home isolated /);
 });
 
 // --- setup subcommand ------------------------------------------------------
 
-test("gentle-shell setup provisions the resolved home through the pinned gentle-ai binary", (t) => {
+test("nub-ia setup provisions the resolved home through the pinned gentle-ai binary", (t) => {
 	const f = fixture(t);
 	assert.equal(existsSync(f.gentleShellHome), false);
 
@@ -836,12 +836,12 @@ test("gentle-shell setup provisions the resolved home through the pinned gentle-
 	assert.ok(payload.PATH.startsWith(`${dirname(f.piScript)}${delimiter}`), payload.PATH);
 
 	// Home resolution runs exactly as a normal run: the isolated home gets
-	// created with its bootstrap TUI setting, same as a plain `gentle-shell`.
+	// created with its bootstrap TUI setting, same as a plain `nub-ia`.
 	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
 	assert.equal(settings.tuiMode, "fullscreen");
 });
 
-test("gentle-shell setup forwards --dry-run to gentle-ai", (t) => {
+test("nub-ia setup forwards --dry-run to gentle-ai", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScript(gentleAiScript);
@@ -853,7 +853,7 @@ test("gentle-shell setup forwards --dry-run to gentle-ai", (t) => {
 	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global", "--dry-run"]);
 });
 
-test("gentle-shell setup accepts a home selector before it and provisions that home", (t) => {
+test("nub-ia setup accepts a home selector before it and provisions that home", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "custom-home");
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
@@ -869,7 +869,7 @@ test("gentle-shell setup accepts a home selector before it and provisions that h
 	assert.equal(existsSync(join(target, "settings.json")), true);
 });
 
-test("gentle-shell setup passes through the gentle-ai exit code", (t) => {
+test("nub-ia setup passes through the gentle-ai exit code", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScript(gentleAiScript, 3);
@@ -884,13 +884,13 @@ test("gentle-shell setup passes through the gentle-ai exit code", (t) => {
 // `npm install -g <tarball>` on a machine whose npm config disables lifecycle
 // scripts (`ignore-scripts=true`) never runs the package's own postinstall,
 // so .gentle-ai/v<pin>/gentle-ai is missing even though the package itself
-// installed fine. `gentle-shell setup` self-heals by running the installer
+// installed fine. `nub-ia setup` self-heals by running the installer
 // in place before giving up. GENTLE_SHELL_GENTLE_AI_INSTALLER is a
 // test/development-only override for the installer script path, next to
 // GENTLE_SHELL_GENTLE_AI_BIN; documented as test/development-only in
 // docs/readme-reference.md.
 
-test("gentle-shell setup installs the missing package-local gentle-ai via the installer seam and then continues", (t) => {
+test("nub-ia setup installs the missing package-local gentle-ai via the installer seam and then continues", (t) => {
 	const f = fixture(t);
 	const missingBinary = join(f.root, "does-not-exist", "gentle-ai");
 	const installerScript = join(f.root, "fake-installer-creates-binary.mjs");
@@ -906,7 +906,7 @@ test("gentle-shell setup installs the missing package-local gentle-ai via the in
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(
 		result.stderr,
-		/gentle-shell: the package-local gentle-ai v3\.6\.0 is missing \(npm lifecycle scripts may be disabled\); installing it now/,
+		/nub-ia: the package-local gentle-ai v3\.6\.0 is missing \(npm lifecycle scripts may be disabled\); installing it now/,
 	);
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global"]);
@@ -914,7 +914,7 @@ test("gentle-shell setup installs the missing package-local gentle-ai via the in
 	assert.equal(payload.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
 });
 
-test("gentle-shell setup exits 1 with an actionable message when the pinned gentle-ai binary is still missing after the installer runs", (t) => {
+test("nub-ia setup exits 1 with an actionable message when the pinned gentle-ai binary is still missing after the installer runs", (t) => {
 	const f = fixture(t);
 	const missingBinary = join(f.root, "does-not-exist", "gentle-ai");
 	const installerScript = join(f.root, "fake-installer-fails.mjs");
@@ -923,12 +923,12 @@ test("gentle-shell setup exits 1 with an actionable message when the pinned gent
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 1);
-	assert.match(result.stderr, /gentle-shell: the package-local gentle-ai v.+ is missing \(npm lifecycle scripts may be disabled\); installing it now/);
+	assert.match(result.stderr, /nub-ia: the package-local gentle-ai v.+ is missing \(npm lifecycle scripts may be disabled\); installing it now/);
 	assert.match(result.stderr, /package-local-binary-missing/);
 	assert.match(result.stderr, new RegExp(missingBinary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
-test("gentle-shell setup skips the self-heal install and exits 1 when GENTLE_PI_SKIP_GENTLE_AI_INSTALL is set", (t) => {
+test("nub-ia setup skips the self-heal install and exits 1 when GENTLE_PI_SKIP_GENTLE_AI_INSTALL is set", (t) => {
 	const f = fixture(t);
 	const missingBinary = join(f.root, "does-not-exist", "gentle-ai");
 	// This installer would prove itself by creating the binary if it ever ran;
@@ -952,7 +952,7 @@ test("gentle-shell setup skips the self-heal install and exits 1 when GENTLE_PI_
 
 // --- setup subcommand's gentle-ai pin gate (R3/R4 advisory findings) -------
 //
-// `gentle-shell setup` points PI_CODING_AGENT_DIR at the resolved home
+// `nub-ia setup` points PI_CODING_AGENT_DIR at the resolved home
 // before spawning the package-local pinned gentle-ai; only gentle-ai >=
 // 3.6.0 honors that variable in its own provisioning. An older pin would
 // silently provision the caller's real ~/.pi/agent instead, so setup must
@@ -960,7 +960,7 @@ test("gentle-shell setup skips the self-heal install and exits 1 when GENTLE_PI_
 // override for the reported pin, next to GENTLE_SHELL_GENTLE_AI_BIN;
 // documented as test/development-only in docs/readme-reference.md.
 
-test("gentle-shell setup refuses to run an older-than-3.6.0 pin and spawns nothing", (t) => {
+test("nub-ia setup refuses to run an older-than-3.6.0 pin and spawns nothing", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScript(gentleAiScript);
@@ -968,14 +968,14 @@ test("gentle-shell setup refuses to run an older-than-3.6.0 pin and spawns nothi
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 1);
-	assert.match(result.stderr, /gentle-shell: setup needs the package-local gentle-ai v3\.6\.0 or newer \(pinned: 3\.5\.0\); this build cannot provision a home without touching ~\/\.pi\/agent/);
+	assert.match(result.stderr, /nub-ia: setup needs the package-local gentle-ai v3\.6\.0 or newer \(pinned: 3\.5\.0\); this build cannot provision a home without touching ~\/\.pi\/agent/);
 	// The isolated-home bootstrap runs before command dispatch on every run
 	// (same as a successful setup); the pin gate only refuses to spawn
 	// gentle-ai, so no gentle-ai invocation is recorded on stdout.
 	assert.equal(result.stdout, "");
 });
 
-test("gentle-shell setup proceeds when the reported pin is exactly 3.6.0", (t) => {
+test("nub-ia setup proceeds when the reported pin is exactly 3.6.0", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScript(gentleAiScript);
@@ -987,15 +987,15 @@ test("gentle-shell setup proceeds when the reported pin is exactly 3.6.0", (t) =
 	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global"]);
 });
 
-// --- setup subcommand conflict cleanup (gentle-ai #4820 / gentle-shell #1277) ---
+// --- setup subcommand conflict cleanup (gentle-ai #4820 / nub-ia #1277) ---
 //
 // gentle-ai's managed Pi stack still installs npm:@juicesharp/rpiv-ask-user-question,
 // which conflicts with gentle-pi's own first-party ask_user_question tool
 // (Pi refuses two providers for the same tool name). Until the gentle-ai fix
-// lands, `gentle-shell setup` removes the conflicting package itself once it
+// lands, `nub-ia setup` removes the conflicting package itself once it
 // finds gentle-ai declared it in the provisioned home's settings.json.
 
-test("gentle-shell setup removes the conflicting ask-user-question package gentle-ai declared", (t) => {
+test("nub-ia setup removes the conflicting ask-user-question package gentle-ai declared", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptDeclaringConflict(gentleAiScript);
@@ -1005,7 +1005,7 @@ test("gentle-shell setup removes the conflicting ask-user-question package gentl
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(
 		result.stderr,
-		/gentle-shell: removing npm:@juicesharp\/rpiv-ask-user-question from .+: gentle-pi ships ask_user_question and Pi refuses two providers \(gentle-ai #4820\)/,
+		/nub-ia: removing npm:@juicesharp\/rpiv-ask-user-question from .+: gentle-pi ships ask_user_question and Pi refuses two providers \(gentle-ai #4820\)/,
 	);
 
 	const lines = result.stdout.trim().split("\n").filter((line) => line.length > 0);
@@ -1018,7 +1018,7 @@ test("gentle-shell setup removes the conflicting ask-user-question package gentl
 	assert.ok(removePayload.PATH.startsWith(`${dirname(f.piScript)}${delimiter}`), removePayload.PATH);
 });
 
-test("gentle-shell setup runs no pi remove when gentle-ai did not declare the conflicting package", (t) => {
+test("nub-ia setup runs no pi remove when gentle-ai did not declare the conflicting package", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScript(gentleAiScript);
@@ -1040,7 +1040,7 @@ test("gentle-shell setup runs no pi remove when gentle-ai did not declare the co
 // (or, worse, onto the published npm package instead of a developer's source
 // checkout) instead of the running launcher's own copy.
 
-test("gentle-shell setup removes npm:gentle-pi that gentle-ai declared, naming this launcher's own version", (t) => {
+test("nub-ia setup removes npm:gentle-pi that gentle-ai declared, naming this launcher's own version", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptDeclaringGentlePi(gentleAiScript);
@@ -1051,7 +1051,7 @@ test("gentle-shell setup removes npm:gentle-pi that gentle-ai declared, naming t
 	assert.match(
 		result.stderr,
 		new RegExp(
-			`gentle-shell: removing npm:gentle-pi from .+: this launcher loads its own gentle-pi ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}, so the home always matches it`,
+			`nub-ia: removing npm:gentle-pi from .+: this launcher loads its own gentle-pi ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}, so the home always matches it`,
 		),
 	);
 
@@ -1065,7 +1065,7 @@ test("gentle-shell setup removes npm:gentle-pi that gentle-ai declared, naming t
 	assert.ok(removePayload.PATH.startsWith(`${dirname(f.piScript)}${delimiter}`), removePayload.PATH);
 });
 
-test("gentle-shell setup removes both the conflicting rpiv package and npm:gentle-pi, in declaration order", (t) => {
+test("nub-ia setup removes both the conflicting rpiv package and npm:gentle-pi, in declaration order", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptDeclaringGentlePi(gentleAiScript, ["npm:@juicesharp/rpiv-ask-user-question@1.2.3"]);
@@ -1088,7 +1088,7 @@ test("gentle-shell setup removes both the conflicting rpiv package and npm:gentl
 // therefore print the pending-removal message unconditionally, without
 // reading settings.json — proven here with a fresh home that never declares
 // the conflicting package at all.
-test("gentle-shell setup --dry-run prints the pending removal unconditionally, without reading settings.json", (t) => {
+test("nub-ia setup --dry-run prints the pending removal unconditionally, without reading settings.json", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScript(gentleAiScript);
@@ -1098,15 +1098,15 @@ test("gentle-shell setup --dry-run prints the pending removal unconditionally, w
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(
 		result.stderr,
-		/gentle-shell: setup would then remove npm:@juicesharp\/rpiv-ask-user-question if the install declares it \(gentle-ai #4820\)/,
+		/nub-ia: setup would then remove npm:@juicesharp\/rpiv-ask-user-question if the install declares it \(gentle-ai #4820\)/,
 	);
 	assert.match(
 		result.stderr,
 		new RegExp(
-			`gentle-shell: setup would then remove npm:gentle-pi if the install declares it: this launcher loads its own gentle-pi ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}, so the home always matches it`,
+			`nub-ia: setup would then remove npm:gentle-pi if the install declares it: this launcher loads its own gentle-pi ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}, so the home always matches it`,
 		),
 	);
-	assert.doesNotMatch(result.stderr, /gentle-shell: removing/);
+	assert.doesNotMatch(result.stderr, /nub-ia: removing/);
 
 	const lines = result.stdout.trim().split("\n").filter((line) => line.length > 0);
 	assert.equal(lines.length, 1, result.stdout);
@@ -1136,7 +1136,7 @@ test("a later normal launch injects the launcher's own package root once gentle-
 	]);
 });
 
-test("gentle-shell setup propagates a non-zero pi remove exit code with an actionable message", (t) => {
+test("nub-ia setup propagates a non-zero pi remove exit code with an actionable message", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptDeclaringConflict(gentleAiScript);
@@ -1148,15 +1148,15 @@ test("gentle-shell setup propagates a non-zero pi remove exit code with an actio
 	assert.equal(result.status, 7);
 	assert.match(
 		result.stderr,
-		/gentle-shell: could not remove npm:@juicesharp\/rpiv-ask-user-question; run `gentle-shell remove npm:@juicesharp\/rpiv-ask-user-question` before starting/,
+		/nub-ia: could not remove npm:@juicesharp\/rpiv-ask-user-question; run `nub-ia remove npm:@juicesharp\/rpiv-ask-user-question` before starting/,
 	);
 });
 
 // The remediation message must include whatever home selector setup was run
-// with, so a copy-pasted `gentle-shell remove <source>` doesn't silently
+// with, so a copy-pasted `nub-ia remove <source>` doesn't silently
 // fall back to the isolated default and miss the package in the home the
-// user actually set up (gentle-shell #1277 follow-up).
-test("gentle-shell setup --home <dir> includes --home <dir> in the failing-removal remediation command", (t) => {
+// user actually set up (nub-ia #1277 follow-up).
+test("nub-ia setup --home <dir> includes --home <dir> in the failing-removal remediation command", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "custom-home");
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
@@ -1170,17 +1170,17 @@ test("gentle-shell setup --home <dir> includes --home <dir> in the failing-remov
 	assert.match(
 		result.stderr,
 		new RegExp(
-			`gentle-shell: could not remove npm:@juicesharp/rpiv-ask-user-question; run \`gentle-shell --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} remove npm:@juicesharp/rpiv-ask-user-question\` before starting`,
+			`nub-ia: could not remove npm:@juicesharp/rpiv-ask-user-question; run \`nub-ia --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} remove npm:@juicesharp/rpiv-ask-user-question\` before starting`,
 		),
 	);
 });
 
 // A --home path containing a space (or another shell metacharacter) must be
 // single-quoted in the remediation command, or a copy-pasted
-// `gentle-shell --home <dir> remove <source>` silently splits into extra
+// `nub-ia --home <dir> remove <source>` silently splits into extra
 // shell words instead of naming the actual home setup provisioned
-// (gentle-shell #1277 follow-up).
-test("gentle-shell setup shell-quotes a --home path containing a space in the failing-removal remediation command", (t) => {
+// (nub-ia #1277 follow-up).
+test("nub-ia setup shell-quotes a --home path containing a space in the failing-removal remediation command", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "custom home");
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
@@ -1194,7 +1194,7 @@ test("gentle-shell setup shell-quotes a --home path containing a space in the fa
 	assert.match(
 		result.stderr,
 		new RegExp(
-			`gentle-shell: could not remove npm:@juicesharp/rpiv-ask-user-question; run \`gentle-shell --home '${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}' remove npm:@juicesharp/rpiv-ask-user-question\` before starting`,
+			`nub-ia: could not remove npm:@juicesharp/rpiv-ask-user-question; run \`nub-ia --home '${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}' remove npm:@juicesharp/rpiv-ask-user-question\` before starting`,
 		),
 	);
 });
@@ -1211,7 +1211,7 @@ function personaPathFor(f: { home: string }) {
 	return join(f.home, ".pi", "gentle-ai", "persona.json");
 }
 
-test("gentle-shell setup restores the user's Pi persona file when gentle-ai rewrites it", (t) => {
+test("nub-ia setup restores the user's Pi persona file when gentle-ai rewrites it", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptRewritingPersona(gentleAiScript);
@@ -1230,12 +1230,12 @@ test("gentle-shell setup restores the user's Pi persona file when gentle-ai rewr
 	assert.match(
 		result.stderr,
 		new RegExp(
-			`gentle-shell: kept your Pi persona unchanged \\(gentle-ai rewrote ${personaPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; tracked upstream\\)`,
+			`nub-ia: kept your Pi persona unchanged \\(gentle-ai rewrote ${personaPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; tracked upstream\\)`,
 		),
 	);
 });
 
-test("gentle-shell setup removes a Pi persona file gentle-ai created where none existed", (t) => {
+test("nub-ia setup removes a Pi persona file gentle-ai created where none existed", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptRewritingPersona(gentleAiScript);
@@ -1247,10 +1247,10 @@ test("gentle-shell setup removes a Pi persona file gentle-ai created where none 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.equal(existsSync(personaPath), false);
-	assert.match(result.stderr, /gentle-shell: kept your Pi persona unchanged/);
+	assert.match(result.stderr, /nub-ia: kept your Pi persona unchanged/);
 });
 
-test("gentle-shell setup prints no persona notice when gentle-ai leaves the persona file alone", (t) => {
+test("nub-ia setup prints no persona notice when gentle-ai leaves the persona file alone", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScript(gentleAiScript);
@@ -1265,7 +1265,7 @@ test("gentle-shell setup prints no persona notice when gentle-ai leaves the pers
 	assert.doesNotMatch(result.stderr, /kept your Pi persona unchanged/);
 });
 
-test("gentle-shell setup restores the persona file even when gentle-ai exits non-zero after rewriting it", (t) => {
+test("nub-ia setup restores the persona file even when gentle-ai exits non-zero after rewriting it", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptRewritingPersona(gentleAiScript, 3);
@@ -1279,10 +1279,10 @@ test("gentle-shell setup restores the persona file even when gentle-ai exits non
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 3);
 	assert.equal(readFileSync(personaPath, "utf8"), originalBytes);
-	assert.match(result.stderr, /gentle-shell: kept your Pi persona unchanged/);
+	assert.match(result.stderr, /nub-ia: kept your Pi persona unchanged/);
 });
 
-test("gentle-shell setup --dry-run also restores the persona file gentle-ai rewrites", (t) => {
+test("nub-ia setup --dry-run also restores the persona file gentle-ai rewrites", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptRewritingPersona(gentleAiScript);
@@ -1296,7 +1296,7 @@ test("gentle-shell setup --dry-run also restores the persona file gentle-ai rewr
 	const result = run(env, ["setup", "--dry-run"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.equal(readFileSync(personaPath, "utf8"), originalBytes);
-	assert.match(result.stderr, /gentle-shell: kept your Pi persona unchanged/);
+	assert.match(result.stderr, /nub-ia: kept your Pi persona unchanged/);
 });
 
 test("automatic first-run provisioning also restores the persona file gentle-ai rewrites", (t) => {
@@ -1313,7 +1313,7 @@ test("automatic first-run provisioning also restores the persona file gentle-ai 
 	const result = run(env, []);
 	assert.equal(result.status, 0, result.stderr);
 	assert.equal(readFileSync(personaPath, "utf8"), originalBytes);
-	assert.match(result.stderr, /gentle-shell: kept your Pi persona unchanged/);
+	assert.match(result.stderr, /nub-ia: kept your Pi persona unchanged/);
 });
 
 // --- managed-asset digest snapshot/restore ----------------------------------
@@ -1333,7 +1333,7 @@ function stateJsonPathFor(f: { home: string }) {
 	return join(f.home, ".gentle-ai", "state.json");
 }
 
-test("gentle-shell setup restores managed_asset_digest while keeping other state.json fields as the child left them", (t) => {
+test("nub-ia setup restores managed_asset_digest while keeping other state.json fields as the child left them", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "digest-from-pinned-gentle-ai" });
@@ -1351,12 +1351,12 @@ test("gentle-shell setup restores managed_asset_digest while keeping other state
 	assert.match(
 		result.stderr,
 		new RegExp(
-			`gentle-shell: kept your Gentle AI managed-asset record unchanged \\(the pinned gentle-ai rewrote ${statePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; tracked upstream\\)`,
+			`nub-ia: kept your Gentle AI managed-asset record unchanged \\(the pinned gentle-ai rewrote ${statePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; tracked upstream\\)`,
 		),
 	);
 });
 
-test("gentle-shell setup prints no managed-asset notice when the digest is unchanged", (t) => {
+test("nub-ia setup prints no managed-asset notice when the digest is unchanged", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "same-digest" });
@@ -1371,7 +1371,7 @@ test("gentle-shell setup prints no managed-asset notice when the digest is uncha
 	assert.doesNotMatch(result.stderr, /kept your Gentle AI managed-asset record unchanged/);
 });
 
-test("gentle-shell setup leaves a state.json the pinned gentle-ai created where none existed before", (t) => {
+test("nub-ia setup leaves a state.json the pinned gentle-ai created where none existed before", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "digest-from-pinned-gentle-ai", create: true });
@@ -1387,7 +1387,7 @@ test("gentle-shell setup leaves a state.json the pinned gentle-ai created where 
 	assert.doesNotMatch(result.stderr, /kept your Gentle AI managed-asset record unchanged/);
 });
 
-test("gentle-shell setup --dry-run also restores managed_asset_digest gentle-ai rewrites", (t) => {
+test("nub-ia setup --dry-run also restores managed_asset_digest gentle-ai rewrites", (t) => {
 	const f = fixture(t);
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "digest-from-pinned-gentle-ai" });
@@ -1423,8 +1423,8 @@ test("automatic first-run provisioning also restores managed_asset_digest gentle
 
 // --- automatic first-run provisioning (S7) ---------------------------------
 //
-// A plain `gentle-shell` in an isolated or `--home` home now runs the same
-// flow as `gentle-shell setup` automatically, before launching pi, when the
+// A plain `nub-ia` in an isolated or `--home` home now runs the same
+// flow as `nub-ia setup` automatically, before launching pi, when the
 // home has never been provisioned or was provisioned with a different
 // gentle-ai pin. GENTLE_SHELL_GENTLE_AI_PIN pins the reported pin to a fixed
 // value so these tests are independent of the real installed pin.
@@ -1451,15 +1451,15 @@ test("first launch auto-provisions the isolated home, writes the marker, then la
 	const payload = JSON.parse(stdoutLines[0]);
 	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 
-	assert.match(result.stderr, /gentle-shell: first run in .+: installing the Gentle AI companion packages \(one time; set GENTLE_SHELL_NO_AUTO_SETUP=1 to skip\)/);
+	assert.match(result.stderr, /nub-ia: first run in .+: installing the Gentle AI companion packages \(one time; set GENTLE_SHELL_NO_AUTO_SETUP=1 to skip\)/);
 	assert.match(result.stderr, new RegExp(JSON.stringify({ args: ["install", "--agent", "pi", "--scope", "global"], PI_CODING_AGENT_DIR: f.gentleShellHome }).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 
-	const config = JSON.parse(readFileSync(join(f.home, ".gentle-shell", "config.json"), "utf8"));
+	const config = JSON.parse(readFileSync(join(f.home, ".nub-ia", "config.json"), "utf8"));
 	const homeKey = realpathSync(f.gentleShellHome);
 	assert.equal(config.provisioned[homeKey].gentleAi, "3.6.0");
 	assert.equal(config.provisioned[homeKey].gentlePi, ownGentlePiVersion());
 	assert.equal(typeof config.provisioned[homeKey].at, "string");
-	assert.equal(existsSync(join(f.gentleShellHome, ".gentle-shell-setup.lock")), false);
+	assert.equal(existsSync(join(f.gentleShellHome, ".nub-ia-setup.lock")), false);
 });
 
 test("a second launch against an already-provisioned home skips the flow entirely", (t) => {
@@ -1475,7 +1475,7 @@ test("a second launch against an already-provisioned home skips the flow entirel
 
 	const second = run(env, []);
 	assert.equal(second.status, 0, second.stderr);
-	assert.doesNotMatch(second.stderr, /gentle-shell: first run in/);
+	assert.doesNotMatch(second.stderr, /nub-ia: first run in/);
 	assert.doesNotMatch(second.stderr, /gentle-ai pin changed/);
 	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1, "gentle-ai must not run a second time");
 });
@@ -1492,10 +1492,10 @@ test("a changed gentle-ai pin re-runs the flow and updates the marker", (t) => {
 
 	const second = run({ ...baseEnv, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.1" }, []);
 	assert.equal(second.status, 0, second.stderr);
-	assert.match(second.stderr, /gentle-shell: gentle-ai pin changed \(3\.6\.0 -> 3\.6\.1\): updating/);
+	assert.match(second.stderr, /nub-ia: gentle-ai pin changed \(3\.6\.0 -> 3\.6\.1\): updating/);
 
 	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 2);
-	const config = JSON.parse(readFileSync(join(f.home, ".gentle-shell", "config.json"), "utf8"));
+	const config = JSON.parse(readFileSync(join(f.home, ".nub-ia", "config.json"), "utf8"));
 	const homeKey = realpathSync(f.gentleShellHome);
 	assert.equal(config.provisioned[homeKey].gentleAi, "3.6.1");
 	assert.equal(config.provisioned[homeKey].gentlePi, ownGentlePiVersion());
@@ -1515,7 +1515,7 @@ test("a marker without a gentlePi field re-runs the flow and backfills it", (t) 
 	assert.equal(first.status, 0, first.stderr);
 	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1);
 
-	const configPath = join(f.home, ".gentle-shell", "config.json");
+	const configPath = join(f.home, ".nub-ia", "config.json");
 	const homeKey = realpathSync(f.gentleShellHome);
 	const staleConfig = JSON.parse(readFileSync(configPath, "utf8"));
 	delete staleConfig.provisioned[homeKey].gentlePi;
@@ -1540,7 +1540,7 @@ test("a changed gentle-pi version re-runs the flow and prints the gentle-pi-chan
 	const first = run(env, []);
 	assert.equal(first.status, 0, first.stderr);
 
-	const configPath = join(f.home, ".gentle-shell", "config.json");
+	const configPath = join(f.home, ".nub-ia", "config.json");
 	const homeKey = realpathSync(f.gentleShellHome);
 	const staleConfig = JSON.parse(readFileSync(configPath, "utf8"));
 	staleConfig.provisioned[homeKey].gentlePi = "0.0.0-previous-launcher";
@@ -1548,7 +1548,7 @@ test("a changed gentle-pi version re-runs the flow and prints the gentle-pi-chan
 
 	const second = run(env, []);
 	assert.equal(second.status, 0, second.stderr);
-	assert.match(second.stderr, new RegExp(`gentle-shell: gentle-pi changed \\(0\\.0\\.0-previous-launcher -> ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\): updating`));
+	assert.match(second.stderr, new RegExp(`nub-ia: gentle-pi changed \\(0\\.0\\.0-previous-launcher -> ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\): updating`));
 	assert.doesNotMatch(second.stderr, /gentle-ai pin changed/);
 
 	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 2);
@@ -1566,14 +1566,14 @@ test("a failing auto-provision flow warns, still launches pi, and writes no mark
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(
 		result.stderr,
-		/gentle-shell: automatic setup failed \(exit 5\); starting anyway and retrying next run\. Run `gentle-shell setup` to see the full output\./,
+		/nub-ia: automatic setup failed \(exit 5\); starting anyway and retrying next run\. Run `nub-ia setup` to see the full output\./,
 	);
 	// pi still launches, with today's plain injection (the home never got a
 	// gentle-pi declaration since the flow failed).
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args.slice(-2), ["--mode", "rpc"]);
 
-	const configPath = join(f.home, ".gentle-shell", "config.json");
+	const configPath = join(f.home, ".nub-ia", "config.json");
 	if (existsSync(configPath)) {
 		const config = JSON.parse(readFileSync(configPath, "utf8"));
 		assert.equal(config.provisioned, undefined);
@@ -1591,7 +1591,7 @@ test("a failing auto-provision flow names the --home selector in its retry remed
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(
 		result.stderr,
-		new RegExp(`Run \`gentle-shell --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} setup\` to see the full output\\.`),
+		new RegExp(`Run \`nub-ia --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} setup\` to see the full output\\.`),
 	);
 });
 
@@ -1605,7 +1605,7 @@ test("GENTLE_SHELL_NO_AUTO_SETUP=1 skips auto-provisioning entirely", (t) => {
 	const result = run(env, []);
 	assert.equal(result.status, 0, result.stderr);
 	assert.equal(existsSync(counterPath), false);
-	const configPath = join(f.home, ".gentle-shell", "config.json");
+	const configPath = join(f.home, ".nub-ia", "config.json");
 	assert.equal(existsSync(configPath), false);
 });
 
@@ -1621,7 +1621,7 @@ test("--link never auto-provisions", (t) => {
 	const result = run(env, ["--link", "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.equal(existsSync(counterPath), false);
-	assert.equal(existsSync(join(piAgentDir, ".gentle-shell-setup.lock")), false);
+	assert.equal(existsSync(join(piAgentDir, ".nub-ia-setup.lock")), false);
 });
 
 test("a pi subcommand (list) never auto-provisions", (t) => {
@@ -1641,7 +1641,7 @@ test("a pi subcommand (list) never auto-provisions", (t) => {
 test("a fresh concurrent lock skips auto-provisioning for this run, without removing the lock", (t) => {
 	const f = fixture(t);
 	mkdirSync(f.gentleShellHome, { recursive: true });
-	const lockPath = join(f.gentleShellHome, ".gentle-shell-setup.lock");
+	const lockPath = join(f.gentleShellHome, ".nub-ia-setup.lock");
 	writeFileSync(lockPath, "");
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	const counterPath = join(f.root, "gentle-ai-runs.log");
@@ -1658,7 +1658,7 @@ test("a fresh concurrent lock skips auto-provisioning for this run, without remo
 test("a stale lock (older than 15 minutes) is removed and auto-provisioning proceeds", (t) => {
 	const f = fixture(t);
 	mkdirSync(f.gentleShellHome, { recursive: true });
-	const lockPath = join(f.gentleShellHome, ".gentle-shell-setup.lock");
+	const lockPath = join(f.gentleShellHome, ".nub-ia-setup.lock");
 	writeFileSync(lockPath, "");
 	const staleTime = new Date(Date.now() - 16 * 60 * 1000);
 	utimesSync(lockPath, staleTime, staleTime);
@@ -1673,7 +1673,7 @@ test("a stale lock (older than 15 minutes) is removed and auto-provisioning proc
 	assert.equal(existsSync(lockPath), false, "the lock must be released once the flow completes");
 });
 
-// --- auto-provisioning only touches homes gentle-shell owns (R1-001) -------
+// --- auto-provisioning only touches homes nub-ia owns (R1-001) -------
 
 test("a --home pointing at an existing non-empty, unmarked directory is never auto-provisioned", (t) => {
 	const f = fixture(t);
@@ -1690,9 +1690,9 @@ test("a --home pointing at an existing non-empty, unmarked directory is never au
 	assert.equal(existsSync(counterPath), false, "gentle-ai must never run against a foreign, unmarked home");
 	assert.match(
 		result.stderr,
-		new RegExp(`gentle-shell: ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} already has content and was not set up by gentle-shell`),
+		new RegExp(`nub-ia: ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} already has content and was not set up by nub-ia`),
 	);
-	assert.match(result.stderr, new RegExp(`run \`gentle-shell --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} setup\` to provision it`));
+	assert.match(result.stderr, new RegExp(`run \`nub-ia --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} setup\` to provision it`));
 });
 
 test("an empty or nonexistent --home is still auto-provisioned", (t) => {
@@ -1725,17 +1725,17 @@ test("a --home equal to pi's own default agent home is never auto-provisioned, e
 
 // --- --home ownership marker and retry after a failed first attempt (R3-001) -----
 
-test("a freshly bootstrapped isolated or --home directory gets a gentle-shell ownership marker file", (t) => {
+test("a freshly bootstrapped isolated or --home directory gets a nub-ia ownership marker file", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "marked-home");
 	const result = run(f.env, ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	const marker = JSON.parse(readFileSync(join(target, ".gentle-shell-home"), "utf8"));
-	assert.equal(marker.createdBy, "gentle-shell");
+	const marker = JSON.parse(readFileSync(join(target, ".nub-ia-home"), "utf8"));
+	assert.equal(marker.createdBy, "nub-ia");
 	assert.equal(marker.version, ownGentlePiVersion());
 });
 
-test("a --home directory gentle-shell itself bootstrapped is retried after its first auto-provision attempt fails", (t) => {
+test("a --home directory nub-ia itself bootstrapped is retried after its first auto-provision attempt fails", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "retry-home");
 	const failingGentleAiScript = join(f.root, "fake-gentle-ai-fails.mjs");
@@ -1744,9 +1744,9 @@ test("a --home directory gentle-shell itself bootstrapped is retried after its f
 
 	const first = run(firstEnv, ["--home", target, "--mode", "rpc"]);
 	assert.equal(first.status, 0, first.stderr);
-	assert.match(first.stderr, /gentle-shell: automatic setup failed/);
+	assert.match(first.stderr, /nub-ia: automatic setup failed/);
 	assert.ok(existsSync(join(target, "settings.json")), "bootstrap must have seeded settings.json before the failed attempt");
-	assert.ok(existsSync(join(target, ".gentle-shell-home")), "bootstrap must mark the home as gentle-shell-owned");
+	assert.ok(existsSync(join(target, ".nub-ia-home")), "bootstrap must mark the home as gentle-shell-owned");
 
 	const counterPath = join(f.root, "gentle-ai-runs.log");
 	const succeedingGentleAiScript = join(f.root, "fake-gentle-ai-succeeds.mjs");
@@ -1755,7 +1755,7 @@ test("a --home directory gentle-shell itself bootstrapped is retried after its f
 
 	const second = run(secondEnv, ["--home", target, "--mode", "rpc"]);
 	assert.equal(second.status, 0, second.stderr);
-	assert.doesNotMatch(second.stderr, /already has content and was not set up by gentle-shell/);
+	assert.doesNotMatch(second.stderr, /already has content and was not set up by nub-ia/);
 	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1, "the retry must actually run gentle-ai against the previously-failed home");
 });
 
@@ -1840,7 +1840,7 @@ test("a child that dies by a signal on its own during automatic provisioning is 
 
 	const result = run(env, ["--mode", "rpc", "-p", "hi"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /gentle-shell: automatic setup failed/);
+	assert.match(result.stderr, /nub-ia: automatic setup failed/);
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 });
@@ -1860,10 +1860,10 @@ test(
 		// maybeAutoProvisionHome, the one this fix wraps in try/catch.
 		const restrictedRoot = join(f.root, "locked-config-root");
 		mkdirSync(restrictedRoot, { recursive: true });
-		const configPath = join(restrictedRoot, ".gentle-shell", "config.json");
+		const configPath = join(restrictedRoot, ".nub-ia", "config.json");
 		chmodSync(restrictedRoot, 0o500);
 		// No permission restore needed: restrictedRoot stays empty (its own
-		// .gentle-shell subdirectory never gets created), and removing an
+		// .nub-ia subdirectory never gets created), and removing an
 		// empty directory only requires write permission on its *parent*
 		// (f.root, unaffected), not on the directory's own mode.
 
@@ -1878,7 +1878,7 @@ test(
 
 		const result = run(env, ["--mode", "rpc", "-p", "hi"]);
 		assert.equal(result.status, 0, result.stderr);
-		assert.match(result.stderr, /gentle-shell: automatic setup failed unexpectedly/);
+		assert.match(result.stderr, /nub-ia: automatic setup failed unexpectedly/);
 		const payload = JSON.parse(result.stdout);
 		assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 	},
@@ -1895,14 +1895,14 @@ test("a persona snapshot read failure is a non-fatal warning in both manual and 
 
 	const manual = run({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript }, ["setup"]);
 	assert.equal(manual.status, 0, manual.stderr);
-	assert.match(manual.stderr, /gentle-shell: could not snapshot your Pi persona file/);
+	assert.match(manual.stderr, /nub-ia: could not snapshot your Pi persona file/);
 
 	const auto = run(
 		enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.1" }),
 		["--mode", "rpc", "-p", "hi"],
 	);
 	assert.equal(auto.status, 0, auto.stderr);
-	assert.match(auto.stderr, /gentle-shell: could not snapshot your Pi persona file/);
+	assert.match(auto.stderr, /nub-ia: could not snapshot your Pi persona file/);
 	const payload = JSON.parse(auto.stdout);
 	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 });
@@ -1918,9 +1918,9 @@ test("automatic setup failure includes the underlying message on the line after 
 	const result = run(env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
 	const lines = result.stderr.trim().split("\n");
-	const failureIndex = lines.findIndex((line) => /gentle-shell: automatic setup failed/.test(line));
+	const failureIndex = lines.findIndex((line) => /nub-ia: automatic setup failed/.test(line));
 	assert.notEqual(failureIndex, -1, result.stderr);
-	assert.match(lines[failureIndex + 1], /gentle-shell: setup needs the package-local gentle-ai v3\.6\.0 or newer \(pinned: 3\.5\.0\)/);
+	assert.match(lines[failureIndex + 1], /nub-ia: setup needs the package-local gentle-ai v3\.6\.0 or newer \(pinned: 3\.5\.0\)/);
 });
 
 test("a hung child during automatic provisioning is killed after the timeout ceiling, treated as a failure, and pi still launches", (t) => {
@@ -1940,7 +1940,7 @@ test("a hung child during automatic provisioning is killed after the timeout cei
 	const elapsed = Date.now() - started;
 	assert.equal(result.status, 0, result.stderr);
 	assert.ok(elapsed < 15000, `expected the hung child to be killed quickly, took ${elapsed}ms`);
-	assert.match(result.stderr, /gentle-shell: automatic setup failed/);
+	assert.match(result.stderr, /nub-ia: automatic setup failed/);
 	// The message reports the *effective* ceiling (GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS=300
 	// above), not the hardcoded production default: 300ms is not a whole number
 	// of minutes, so it renders in seconds.
@@ -1980,7 +1980,7 @@ test("a hung 'pi remove' during post-install cleanup is killed after the timeout
 	const elapsed = Date.now() - started;
 	assert.equal(result.status, 0, result.stderr);
 	assert.ok(elapsed < 15000, `expected the hung 'pi remove' to be killed quickly, took ${elapsed}ms`);
-	assert.match(result.stderr, /gentle-shell: pi remove npm:@juicesharp\/rpiv-ask-user-question timed out after 2 seconds/);
+	assert.match(result.stderr, /nub-ia: pi remove npm:@juicesharp\/rpiv-ask-user-question timed out after 2 seconds/);
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 });
@@ -2005,18 +2005,18 @@ test("the provisioning marker write leaves no stray temp file behind", (t) => {
 
 	const result = run(env, []);
 	assert.equal(result.status, 0, result.stderr);
-	const configDir = join(f.home, ".gentle-shell");
+	const configDir = join(f.home, ".nub-ia");
 	assert.deepEqual(readdirSync(configDir), ["config.json"]);
 });
 
-// --- default Gentleman-Cute theme -------------------------------------------
+// --- default Nub-IA theme -------------------------------------------
 
-test("a freshly bootstrapped home defaults to the Gentleman-Cute theme", (t) => {
+test("a freshly bootstrapped home defaults to the Nub-IA theme", (t) => {
 	const f = fixture(t);
 	const result = run(f.env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
 	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
-	assert.equal(settings.theme, "Gentleman-Cute");
+	assert.equal(settings.theme, "Nub-IA");
 });
 
 test("automatic setup never overwrites a theme the home already declared", (t) => {
@@ -2024,7 +2024,7 @@ test("automatic setup never overwrites a theme the home already declared", (t) =
 	const target = join(f.root, "themed-home");
 	mkdirSync(target, { recursive: true });
 	writeFileSync(join(target, "settings.json"), JSON.stringify({ tuiMode: "fullscreen", theme: "rose" }));
-	writeFileSync(join(target, ".gentle-shell-home"), JSON.stringify({ createdBy: "gentle-shell", version: ownGentlePiVersion() }));
+	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
 
 	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
 	writeGentleAiScript(gentleAiScript);
@@ -2036,7 +2036,7 @@ test("automatic setup never overwrites a theme the home already declared", (t) =
 	assert.equal(settings.theme, "rose");
 });
 
-test("gentle-shell --link setup never touches the home's theme", (t) => {
+test("nub-ia --link setup never touches the home's theme", (t) => {
 	const f = fixture(t);
 	const piAgentDir = join(f.root, "pi-agent-link");
 	mkdirSync(piAgentDir, { recursive: true });
@@ -2048,15 +2048,15 @@ test("gentle-shell --link setup never touches the home's theme", (t) => {
 	const result = run(env, ["--link", "setup"]);
 	assert.equal(result.status, 0, result.stderr);
 	const settings = JSON.parse(readFileSync(join(piAgentDir, "settings.json"), "utf8"));
-	assert.equal(settings.theme, undefined, "link mode must never gain a theme from gentle-shell's own default-theme logic");
+	assert.equal(settings.theme, undefined, "link mode must never gain a theme from nub-ia's own default-theme logic");
 });
 
-test("automatic setup replaces a theme gentle-ai wrote into a home that had none with the default Gentle Shell theme", (t) => {
+test("automatic setup replaces a theme gentle-ai wrote into a home that had none with the default Nub-IA theme", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "theme-home");
 	mkdirSync(target, { recursive: true });
 	writeFileSync(join(target, "settings.json"), JSON.stringify({ tuiMode: "fullscreen" }));
-	writeFileSync(join(target, ".gentle-shell-home"), JSON.stringify({ createdBy: "gentle-shell", version: ownGentlePiVersion() }));
+	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
 
 	const gentleAiScript = join(f.root, "fake-gentle-ai-sets-theme.mjs");
 	writeGentleAiScriptSettingTheme(gentleAiScript, "kanagawa");
@@ -2065,12 +2065,12 @@ test("automatic setup replaces a theme gentle-ai wrote into a home that had none
 	const result = run(env, ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
 	const settings = JSON.parse(readFileSync(join(target, "settings.json"), "utf8"));
-	assert.equal(settings.theme, "Gentleman-Cute");
+	assert.equal(settings.theme, "Nub-IA");
 });
 
 // R3-theme-enforcement-dead-on-fresh-home: on a brand-new home, the isolated
 // bootstrap (installIsolatedTuiModeSetting) already writes "theme":
-// "Gentleman-Cute" into settings.json *before* auto-provisioning's gentle-ai
+// "Nub-IA" into settings.json *before* auto-provisioning's gentle-ai
 // spawn ever runs — so the snapshot runSetupFlow takes right before that
 // spawn already has a theme, and a naive "only act when the home had no
 // theme before the spawn" check would never fire, letting gentle-ai's own
@@ -2084,7 +2084,7 @@ test("automatic setup restores the bootstrapped default theme when gentle-ai ove
 	const result = run(env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
 	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
-	assert.equal(settings.theme, "Gentleman-Cute");
+	assert.equal(settings.theme, "Nub-IA");
 });
 
 test("automatic setup restores the home's own theme when gentle-ai overwrites it", (t) => {
@@ -2092,7 +2092,7 @@ test("automatic setup restores the home's own theme when gentle-ai overwrites it
 	const target = join(f.root, "themed-home-to-restore");
 	mkdirSync(target, { recursive: true });
 	writeFileSync(join(target, "settings.json"), JSON.stringify({ tuiMode: "fullscreen", theme: "dracula" }));
-	writeFileSync(join(target, ".gentle-shell-home"), JSON.stringify({ createdBy: "gentle-shell", version: ownGentlePiVersion() }));
+	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
 
 	const gentleAiScript = join(f.root, "fake-gentle-ai-sets-theme.mjs");
 	writeGentleAiScriptSettingTheme(gentleAiScript, "kanagawa");
@@ -2110,7 +2110,7 @@ test("automatic setup restores the home's own theme when gentle-ai overwrites it
 // builtin codemode always loses to it and Pi prints a startup warning. The
 // only per-builtin opt-out Pi supports is a `-builtin:codemode` entry in the
 // settings `extensions` array, which every normal launch ensures in a home
-// gentle-shell owns — never in --link, a foreign --home, pi's own default
+// nub-ia owns — never in --link, a foreign --home, pi's own default
 // agent home, a pi subcommand, or `setup --dry-run`.
 
 const CODEMODE_EXCLUSION = "-builtin:codemode";
@@ -2126,7 +2126,7 @@ test("a fresh isolated home excludes Pi's builtin codemode, and a second launch 
 	const settings = JSON.parse(settingsText(f.gentleShellHome));
 	assert.deepEqual(settings.extensions, [CODEMODE_EXCLUSION]);
 	assert.equal(settings.tuiMode, "fullscreen");
-	assert.equal(settings.theme, "Gentleman-Cute");
+	assert.equal(settings.theme, "Nub-IA");
 
 	const before = settingsText(f.gentleShellHome);
 	const second = run(f.env, ["--mode", "rpc"]);
@@ -2313,7 +2313,7 @@ test("the automatic setup theme restore writes through a symlinked settings.json
 	const linkPath = join(target, "settings.json");
 	const targetPath = join(f.root, "dotfiles", "themed-settings.json");
 	symlinkedFile(linkPath, targetPath, JSON.stringify({ tuiMode: "fullscreen", theme: "dracula" }), 0o600);
-	writeFileSync(join(target, ".gentle-shell-home"), JSON.stringify({ createdBy: "gentle-shell", version: ownGentlePiVersion() }));
+	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
 
 	const gentleAiScript = join(f.root, "fake-gentle-ai-sets-theme.mjs");
 	writeGentleAiScriptSettingTheme(gentleAiScript, "kanagawa");
@@ -2995,9 +2995,9 @@ test("interactive launch hands pi a private resume handoff and cleans it up", (t
 	const lines = result.stdout.trim().split("\n");
 	const { handoff } = JSON.parse(lines[0]);
 	assert.equal(typeof handoff, "string");
-	assert.match(handoff, /gentle-shell-resume-/);
+	assert.match(handoff, /nub-ia-resume-/);
 	assert.equal(existsSync(dirname(handoff)), false, "handoff dir must be removed after pi exits");
-	// Not a TTY: like pi's own hint, the gentle-shell line is not printed.
+	// Not a TTY: like pi's own hint, the nub-ia line is not printed.
 	assert.deepEqual(lines.slice(1), ["To resume this session: pi --session abc"]);
 });
 
@@ -3048,9 +3048,9 @@ function runInPty(env: NodeJS.ProcessEnv, args: string[], expectedStatus = 0): s
 }
 
 const PI_HINT = "To resume this session: pi --session abc\r\n";
-const GENTLE_HINT = "\u001b[2mTo resume in gentle-shell:\u001b[22m gentle-shell --link --session abc\r\n";
+const GENTLE_HINT = "\u001b[2mTo resume in nub-ia:\u001b[22m nub-ia --link --session abc\r\n";
 
-test("on a TTY the launcher appends a gentle-shell resume line below pi's hint", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
+test("on a TTY the launcher appends a nub-ia resume line below pi's hint", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeHandoffPiScript(piScript);
@@ -3058,7 +3058,7 @@ test("on a TTY the launcher appends a gentle-shell resume line below pi's hint",
 	assert.ok(out.endsWith(PI_HINT + GENTLE_HINT), JSON.stringify(out));
 });
 
-test("on a TTY the gentle-shell line still follows a non-zero pi exit, keeping the code", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
+test("on a TTY the nub-ia line still follows a non-zero pi exit, keeping the code", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeHandoffPiScript(piScript, 3);
@@ -3094,12 +3094,12 @@ test("on a TTY the launcher prints nothing extra after the terminal hangs up", {
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeWaitingPiScript(piScript);
 	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript, PTY_SIGNAL_AFTER: "ready", PTY_SIGNAL: "1" }, ["--link"]);
-	// pi quit cleanly with its own hint; only the gentle-shell line is withheld.
+	// pi quit cleanly with its own hint; only the nub-ia line is withheld.
 	assert.ok(out.endsWith(PI_HINT), JSON.stringify(out));
-	assert.equal(out.includes("gentle-shell --"), false, JSON.stringify(out));
+	assert.equal(out.includes("nub-ia --"), false, JSON.stringify(out));
 });
 
-test("on a TTY a forwarded SIGINT that pi survives does not silence the gentle-shell line", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
+test("on a TTY a forwarded SIGINT that pi survives does not silence the nub-ia line", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeWaitingPiScript(piScript);
@@ -3126,15 +3126,15 @@ test("on a TTY a cross-project session resumes by its session file", { skip: !ha
 	chmodSync(piScript, 0o755);
 	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript }, ["--link"]);
 	assert.ok(
-		out.endsWith(`${PI_HINT}\u001b[2mTo resume in gentle-shell:\u001b[22m gentle-shell --link --session '${sessionFile}'\r\n`),
+		out.endsWith(`${PI_HINT}\u001b[2mTo resume in nub-ia:\u001b[22m nub-ia --link --session '${sessionFile}'\r\n`),
 		JSON.stringify(out),
 	);
 });
 
-test("on a TTY without colors the gentle-shell line has no ANSI styling", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
+test("on a TTY without colors the nub-ia line has no ANSI styling", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeHandoffPiScript(piScript);
 	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript, PTY_NO_COLOR: "1" }, ["--link"]);
-	assert.ok(out.endsWith(`${PI_HINT}To resume in gentle-shell: gentle-shell --link --session abc\r\n`), JSON.stringify(out));
+	assert.ok(out.endsWith(`${PI_HINT}To resume in nub-ia: nub-ia --link --session abc\r\n`), JSON.stringify(out));
 });

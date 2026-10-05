@@ -85,6 +85,8 @@ interface PackageJsonPeerMetadata {
 }
 
 interface PackageJson {
+	name?: string;
+	private?: boolean;
 	description?: string;
 	keywords?: string[];
 	version?: string;
@@ -251,56 +253,6 @@ test("package verification names the native review runtime boundary and packaged
 		/createNativeReviewCli\(\)/,
 		"the production extension must construct its native client from the packaged runtime module",
 	);
-});
-
-test("npm publication is bound to the exact package tag and triggering commit", () => {
-	const workflow = readFileSync(join(PACKAGE_ROOT, ".github", "workflows", "publish.yml"), "utf8");
-	const packageJson = readPackageJson();
-	const dispatchBlock = workflow.match(
-		/^ {2}workflow_dispatch:\n([\s\S]*?)^\npermissions:/m,
-	)?.[1];
-	assert.ok(dispatchBlock);
-	const inputNames = [
-		...dispatchBlock.matchAll(/^ {6}([A-Za-z0-9_-]+):$/gm),
-	].map((match) => match[1]);
-
-	assert.match(workflow, /on:\n\s+workflow_dispatch:\s*\n/);
-	assert.deepEqual(inputNames, ["tag"], "the trusted workflow must expose exactly one caller input");
-	assert.match(workflow, /inputs:\n\s+tag:/, "the trusted main workflow must accept only the release tag");
-	assert.match(workflow, /RELEASE_TAG: \$\{\{ inputs\.tag \}\}/);
-	assert.doesNotMatch(workflow, /checkout-ref|dist-tag.*inputs|inputs\.(?!tag)/, "the release workflow must not accept checkout or dist-tag inputs");
-	assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/, "checkout must use the immutable event SHA");
-	assert.match(workflow, /persist-credentials: false/, "the release checkout must not retain GitHub credentials");
-	assert.match(workflow, /DEFAULT_BRANCH: \$\{\{ github\.event\.repository\.default_branch \}\}/);
-	assert.match(workflow, /\$\{DEFAULT_BRANCH\}" != "main"/);
-	assert.match(workflow, /\$\{GITHUB_REF\}" != "refs\/heads\/main"/);
-	assert.match(workflow, /\$\{GITHUB_REF_TYPE\}" != "branch"/);
-	assert.match(workflow, /Release tag is not exact vSemVer/);
-	assert.match(workflow, /git ls-remote origin[\s\S]*"refs\/heads\/main"[\s\S]*"refs\/tags\/\$\{tag\}"/);
-	assert.match(workflow, /git fetch --atomic --no-tags origin/);
-	assert.match(workflow, /refs\/heads\/main:refs\/remotes\/origin\/release-main/);
-	assert.match(workflow, /refs\/tags\/\$\{tag\}:refs\/release-verification\/tag/);
-	assert.match(workflow, /git cat-file -t refs\/release-verification\/tag/);
-	assert.match(workflow, /git checkout --detach "\$\{tag_commit\}"/);
-	assert.match(workflow, /git rev-parse "\$\{GITHUB_SHA\}\^\{commit\}"/);
-	assert.match(workflow, /git rev-parse ['"]HEAD\^\{commit\}['"]/);
-	assert.match(workflow, /Reverify protected release authority and publish/);
-	assert.match(workflow, /Release authority changed after verification/);
-	assert.match(workflow, /id-token: write/, "trusted publishing requires OIDC");
-	assert.match(workflow, /node-version: "24"/, "trusted publishing must use a supported Node.js version");
-	assert.match(workflow, /const minimum = \[11, 5, 1\]/, "trusted publishing must reject npm versions below 11.5.1");
-	assert.match(workflow, /packageJson\.repository\?\.type !== expectedRepository\.type/);
-	assert.match(workflow, /packageJson\.repository\?\.url !== expectedRepository\.url/);
-	assert.deepEqual(
-		packageJson.repository,
-		{
-			type: "git",
-			url: "git+https://github.com/Gentleman-Programming/gentle-shell.git",
-		},
-		"trusted publishing requires the exact case-sensitive npm repository identity",
-	);
-	assert.match(workflow, /npm publish --provenance --access public/);
-	assert.doesNotMatch(workflow, /pnpm publish|--no-git-checks|NODE_AUTH_TOKEN/);
 });
 
 test("Pi delivery relay is absent from the packaged extension", () => {
@@ -1720,9 +1672,11 @@ test("pi-pretty wrapper uses cached ESM loading for compiled and pnpm symlink in
 	assert.match(wrapper, /quietToolsEnabled/);
 });
 
-test("Gentle Shell v4.0.0 package manifest declares the release version", () => {
+test("Nub-IA package manifest declares the fork identity and release version", () => {
 	const packageJson = readPackageJson();
-	assert.equal(packageJson.version, "4.0.0", "the release manifest must be explicitly pinned to v4.0.0");
+	assert.equal(packageJson.name, "nub-ia");
+	assert.equal(packageJson.private, true, "the fork is installed from Git, never published to npm");
+	assert.equal(packageJson.version, "0.1.0", "the release manifest must be explicitly pinned to v0.1.0");
 	assert.equal(packageJson.scripts?.test, "node scripts/run-test-suite.mjs");
 	assert.ok(packageJson.files?.includes("assets/"));
 	assert.ok(packageJson.files?.includes("contracts/"));

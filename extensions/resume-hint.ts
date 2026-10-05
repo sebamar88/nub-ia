@@ -7,8 +7,8 @@ import {
 	serializeResumeHandoff,
 } from "../lib/gentle-shell-resume-hint.ts";
 
-// Hands the quitting session to bin/gentle-shell.mjs, which prints a
-// gentle-shell resume command below pi's "pi --session <id>" exit hint (see
+// Hands the quitting session to bin/nub-ia.mjs, which prints a
+// nub-ia resume command below pi's "pi --session <id>" exit hint (see
 // lib/gentle-shell-resume-hint.ts). Inert unless the launcher set the env var.
 
 // Process-wide, not per extension instance: /reload re-runs this factory after

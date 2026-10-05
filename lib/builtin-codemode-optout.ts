@@ -8,7 +8,7 @@ import { gentlePiConfigHome } from "./agent-home.ts";
 // renderer (lib/codemode-renderer.ts), and Pi warns at every startup when a
 // builtin loses its tool to another extension. Pi's only per-builtin opt-out
 // is a `-builtin:<name>` entry in the settings `extensions` array. The
-// gentle-shell launcher adds it silently to homes it owns (bin/gentle-shell.mjs,
+// gentle-shell launcher adds it silently to homes it owns (bin/nub-ia.mjs,
 // #1612); a user-owned Pi home only gets it after the user accepts a
 // one-time prompt, and a declined prompt is remembered per settings file.
 export const BUILTIN_CODEMODE_EXTENSION = "builtin:codemode";
@@ -47,7 +47,7 @@ export function hasExplicitBuiltinEntry(extensions: unknown, builtin = BUILTIN_C
 	return Array.isArray(extensions) && extensions.some((entry) => typeof entry === "string" && entry.replace(/^[+!-]/, "") === builtin);
 }
 
-// Pure: mirrors withBuiltinExtensionExcluded in bin/gentle-shell.mjs. Returns
+// Pure: mirrors withBuiltinExtensionExcluded in bin/nub-ia.mjs. Returns
 // `settingsText` with `-<builtin>` appended to its `extensions` array (created
 // when absent), or undefined when nothing should change — the text does not
 // parse as a JSON object, `extensions` exists but is not an array, or the

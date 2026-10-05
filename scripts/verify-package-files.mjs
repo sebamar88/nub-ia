@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = join(fileURLToPath(new URL("..", import.meta.url)));
 
 const requiredPaths = [
-  "bin/gentle-shell.mjs",
+  "bin/nub-ia.mjs",
   "assets/orchestrator.md",
   "assets/orchestrator-delegation.md",
   "assets/orchestrator-tracking.md",
