@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import registerRtkRewrite, { RTK_INSTALL_HINT, parseSemver, rewriteWithRtk, rtkVersionSupported } from "../extensions/rtk-rewrite.ts";
+import registerRtkRewrite, { RTK_INSTALL_HINT, parseSemver, resolveRtkBinary, rewriteWithRtk, rtkVersionSupported } from "../extensions/rtk-rewrite.ts";
 
 type Exec = Parameters<typeof rewriteWithRtk>[0];
 
@@ -29,6 +29,10 @@ test("rewriteWithRtk follows the rtk rewrite exit-code contract and never rewrit
 	const throwing: Exec = async () => { throw new Error("spawn failed"); };
 	assert.equal(await rewriteWithRtk(throwing, "git status"), undefined, "exec errors fail open");
 });
+
+// Extension-level tests pin the binary to a bare `rtk` so they do not depend
+// on whether this checkout's postinstall already placed the package-local copy.
+process.env.GENTLE_SHELL_RTK_BIN = "rtk";
 
 function fakePi(execImpl: (cmd: string, args: string[]) => Promise<{ code: number; stdout: string }>) {
 	const handlers = new Map<string, Function>();
@@ -82,4 +86,48 @@ test("RTK_DISABLED=1 turns rewriting off for the session", async (t) => {
 	const bash = { toolName: "bash", input: { command: "git status" } };
 	await handlers.get("tool_call")!(bash, { signal: undefined, hasUI: false });
 	assert.equal(bash.input.command, "git status");
+});
+
+test("resolveRtkBinary prefers an explicit override, then the package-local pinned copy, then PATH", async (t) => {
+	const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+	const { join } = await import("node:path");
+	const { tmpdir } = await import("node:os");
+	const { RTK_VERSION } = await import("../scripts/rtk-installer.mjs");
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-rtk-bin-"));
+	t.after(() => rmSync(root, { recursive: true, force: true }));
+	assert.equal(resolveRtkBinary({}, root, "linux"), "rtk", "nothing local → PATH lookup");
+	mkdirSync(join(root, ".rtk", RTK_VERSION), { recursive: true });
+	writeFileSync(join(root, ".rtk", RTK_VERSION, "rtk"), "");
+	assert.equal(resolveRtkBinary({}, root, "linux"), join(root, ".rtk", RTK_VERSION, "rtk"));
+	assert.equal(resolveRtkBinary({}, root, "win32"), "rtk", "the Windows copy is rtk.exe, so a POSIX file does not count");
+	assert.equal(resolveRtkBinary({ GENTLE_SHELL_RTK_BIN: "/opt/rtk" }, root, "linux"), "/opt/rtk");
+});
+
+test("a rewrite produced by a package-local binary names that binary so it runs without rtk on PATH", async () => {
+	const exec: Exec = async (cmd) => ({ code: 0, stdout: "rtk git status", killed: false });
+	assert.equal(await rewriteWithRtk(exec, "git status", undefined, "/pkg/.rtk/0.51.0/rtk"), "/pkg/.rtk/0.51.0/rtk git status");
+	assert.equal(await rewriteWithRtk(exec, "git status", undefined, "/path with space/rtk"), "'/path with space/rtk' git status");
+	assert.equal(await rewriteWithRtk(exec, "git status", undefined, "rtk"), "rtk git status", "a PATH rtk stays bare");
+});
+
+test("installer: pinned assets cover the supported platforms with real-looking digests", async () => {
+	const { RTK_ASSETS, RTK_VERSION, platformKey, packageLocalRtkPath, installRtk, RtkInstallerError } = await import("../scripts/rtk-installer.mjs");
+	for (const key of ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64", "win32-x64"]) {
+		assert.match(RTK_ASSETS[key as keyof typeof RTK_ASSETS].sha256, /^[0-9a-f]{64}$/, key);
+	}
+	assert.equal(platformKey("linux", "x64"), "linux-x64");
+	assert.match(packageLocalRtkPath("/pkg", "win32"), new RegExp(`\\.rtk[\\\\/]${RTK_VERSION.replace(/\\./g, "\\\\.")}[\\\\/]rtk\\.exe$`));
+	await assert.rejects(installRtk({ root: "/nonexistent", platform: "sunos", arch: "mips" }), (error: unknown) => error instanceof RtkInstallerError && (error as { code: string }).code === "RTK_UNSUPPORTED_PLATFORM");
+});
+
+test("installer: a digest mismatch rejects the download and leaves nothing behind", async (t) => {
+	const { mkdtempSync, existsSync, rmSync, writeFileSync } = await import("node:fs");
+	const { join } = await import("node:path");
+	const { tmpdir } = await import("node:os");
+	const { installRtk, RtkInstallerError, packageLocalRtkPath } = await import("../scripts/rtk-installer.mjs");
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-rtk-root-"));
+	t.after(() => rmSync(root, { recursive: true, force: true }));
+	const fetch = async (_url: string, destination: string) => { writeFileSync(destination, "not the real archive"); };
+	await assert.rejects(installRtk({ root, platform: "linux", arch: "x64", fetch }), (error: unknown) => error instanceof RtkInstallerError && (error as { code: string }).code === "RTK_DIGEST_MISMATCH");
+	assert.equal(existsSync(packageLocalRtkPath(root, "linux")), false);
 });

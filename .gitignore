@@ -37,3 +37,4 @@ tmp/
 
 # CodeGraph index (recreated by pi on session start)
 .codegraph/
+.rtk/

@@ -49,6 +49,9 @@ Se conservan los nombres del upstream para no romper la compatibilidad interna:
 | `GENTLE_SHELL_PI` | Ruta al ejecutable `pi` a usar. |
 | `GENTLE_SHELL_NO_AUTO_SETUP=1` | No provisionar el home automáticamente en el primer arranque. |
 | `GENTLE_PI_SKIP_GENTLE_AI_INSTALL=1` | Saltar la descarga de `gentle-ai` en el postinstall (el review nativo deja de funcionar). |
+| `GENTLE_PI_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` en el postinstall. |
+| `GENTLE_SHELL_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |
+| `RTK_DISABLED=1` | Apagar la reescritura de comandos con rtk en la sesión. |
 
 ### Guardrails de comandos
 
@@ -95,9 +98,14 @@ instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail`.
 
 `extensions/rtk-rewrite.ts` reescribe cada comando de la herramienta `bash` con [`rtk rewrite`](https://github.com/rtk-ai/rtk)
 antes de ejecutarlo (`git status` → `rtk git status`, `pnpm test` → `rtk pnpm test`, …), que filtra y resume la salida
-antes de que llegue al modelo. Las reglas viven en rtk; la extensión solo delega. Requiere el binario `rtk` (>= 0.23) en el
-PATH: sin él todo pasa sin cambios y la barra de estado indica cómo instalarlo. `RTK_DISABLED=1` lo apaga en una sesión.
-No hace falta `rtk init`: viene en el paquete para todos los homes, aislados o `--link`.
+antes de que llegue al modelo. Las reglas viven en rtk; la extensión solo delega.
+
+El binario viene incluido: el `postinstall` (`scripts/install-rtk.mjs`) descarga la release pinneada de rtk para tu
+plataforma (Linux x64/arm64, macOS x64/arm64, Windows x64), verifica su SHA-256 contra el digest fijado en
+`scripts/rtk-installer.mjs` y lo deja en `<paquete>/.rtk/<versión>/`. La extensión usa esa copia antes que cualquier `rtk`
+del PATH (`GENTLE_SHELL_RTK_BIN` lo fuerza a otra ruta). Si la descarga falla, la instalación no se rompe: los comandos
+pasan sin filtrar y la barra de estado indica cómo reintentar (`pnpm run install:rtk`). `GENTLE_PI_SKIP_RTK_INSTALL=1` salta
+la descarga; `RTK_DISABLED=1` apaga la reescritura en una sesión. No hace falta `rtk init`.
 
 ## Qué cambia respecto a gentle-shell
 
@@ -105,7 +113,7 @@ No hace falta `rtk init`: viene en el paquete para todos los homes, aislados o `
 - Banner de inicio: isologo de Nubiral y wordmark `nubiral` (trazados en braille / bloques desde `assets/brand/nubiral-isologo.png` con `scripts/trace-brand.mjs`) en lugar de la rosa, wordmark `nubiral` en lugar de `Gentle Shell`, paleta `lime` por defecto.
 - Tema por defecto `Nub-IA` (los temas `Gentle*` siguen disponibles).
 - Home aislado en `~/.nub-ia/` (config en `~/.nub-ia/config.json`).
-- Reescritura de comandos con RTK (`extensions/rtk-rewrite.ts`).
+- Reescritura de comandos con RTK (`extensions/rtk-rewrite.ts`) con binario pinneado incluido (`scripts/rtk-installer.mjs`).
 - Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).
 - Workflow de publicación a npm eliminado.
 

@@ -11,13 +11,32 @@
 // it. RTK_DISABLED=1 turns the rewriting off for a session.
 //
 // Based on the extension `rtk init --agent pi` generates (rtk 0.51.0), adapted
-// to the package: no home-level file, Nub-IA install hint, shared helpers
-// exported for tests.
+// to the package: uses the package-local pinned binary (scripts/rtk-installer.mjs)
+// before PATH, Nub-IA install hint, shared helpers exported for tests.
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext, ToolCallEvent } from "@earendil-works/pi-coding-agent";
+import { RTK_VERSION } from "../scripts/rtk-installer.mjs";
 
 export const RTK_REWRITE_TIMEOUT_MS = 2_000;
 export const RTK_MIN_VERSION: readonly [number, number] = [0, 23];
-export const RTK_INSTALL_HINT = "RTK off: `rtk` not in PATH — install it (https://github.com/rtk-ai/rtk#installation) to cut tool-output tokens";
+export const RTK_INSTALL_HINT = "RTK off: no rtk binary — run `pnpm run install:rtk` in the nub-ia package (or put `rtk` on PATH) to cut tool-output tokens";
+
+const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+
+/**
+ * The rtk executable to use: an explicit GENTLE_SHELL_RTK_BIN, else the copy
+ * the postinstall pinned under `<package>/.rtk/<version>/` (every Nub-IA
+ * install ships it, so teammates need no separate rtk install), else a PATH
+ * `rtk`.
+ */
+export function resolveRtkBinary(env: NodeJS.ProcessEnv = process.env, root: string = PACKAGE_ROOT, platform: NodeJS.Platform = process.platform): string {
+	const explicit = env.GENTLE_SHELL_RTK_BIN;
+	if (explicit && explicit.length > 0) return explicit;
+	const local = join(root, ".rtk", RTK_VERSION, platform === "win32" ? "rtk.exe" : "rtk");
+	return existsSync(local) ? local : "rtk";
+}
 
 export interface ExecLike {
 	(command: string, args: string[], options: { timeout?: number; signal?: AbortSignal }): Promise<{ code: number; stdout: string; killed?: boolean }>;
@@ -41,17 +60,24 @@ export function rtkVersionSupported(versionOutput: string): boolean {
  * codes: 0 or 3 with stdout → rewrite; 1 → no equivalent; anything else or a
  * kill → pass through.
  */
-export async function rewriteWithRtk(exec: ExecLike, command: string, signal?: AbortSignal): Promise<string | undefined> {
+export async function rewriteWithRtk(exec: ExecLike, command: string, signal?: AbortSignal, binary = "rtk"): Promise<string | undefined> {
 	if (command.startsWith("rtk ")) return undefined;
 	let result: Awaited<ReturnType<ExecLike>>;
 	try {
-		result = await exec("rtk", ["rewrite", command], { timeout: RTK_REWRITE_TIMEOUT_MS, signal });
+		result = await exec(binary, ["rewrite", command], { timeout: RTK_REWRITE_TIMEOUT_MS, signal });
 	} catch {
 		return undefined;
 	}
 	if (result.killed || (result.code !== 0 && result.code !== 3)) return undefined;
 	const rewritten = result.stdout.trim();
-	return rewritten.length > 0 && rewritten !== command ? rewritten : undefined;
+	if (rewritten.length === 0 || rewritten === command) return undefined;
+	// `rtk rewrite` emits a bare `rtk …`; when rtk is not on PATH the command
+	// must name the binary that answered, so the rewrite stays runnable.
+	return binary === "rtk" || !rewritten.startsWith("rtk ") ? rewritten : `${quoteForShell(binary)}${rewritten.slice(3)}`;
+}
+
+function quoteForShell(path: string): string {
+	return /^[A-Za-z0-9_./:\\-]+$/.test(path) ? path : `'${path.replace(/'/g, "'\\''")}'`;
 }
 
 function isBashCall(event: ToolCallEvent): event is ToolCallEvent & { input: { command?: unknown } } {
@@ -63,6 +89,7 @@ export default function registerRtkRewrite(pi: ExtensionAPI): void {
 	// rewriting is off, or null when rtk is usable.
 	let disabledReason: string | null | undefined;
 	let sessionContext: ExtensionContext | undefined;
+	const binary = resolveRtkBinary();
 
 	const showStatus = () => {
 		if (!disabledReason || !sessionContext?.hasUI) return;
@@ -75,7 +102,7 @@ export default function registerRtkRewrite(pi: ExtensionAPI): void {
 
 	const probe = (async () => {
 		try {
-			const version = await pi.exec("rtk", ["--version"], { timeout: RTK_REWRITE_TIMEOUT_MS });
+			const version = await pi.exec(binary, ["--version"], { timeout: RTK_REWRITE_TIMEOUT_MS });
 			if (version.code !== 0) disabledReason = RTK_INSTALL_HINT;
 			else if (!rtkVersionSupported(version.stdout)) disabledReason = `RTK off: ${version.stdout.trim()} is too old (need >= ${RTK_MIN_VERSION.join(".")}.0)`;
 			else disabledReason = null;
@@ -98,7 +125,7 @@ export default function registerRtkRewrite(pi: ExtensionAPI): void {
 			if (disabledReason !== null) return;
 			const command = event.input.command;
 			if (typeof command !== "string" || command.trim() === "") return;
-			const rewritten = await rewriteWithRtk((cmd, args, options) => pi.exec(cmd, args, options), command, ctx.signal);
+			const rewritten = await rewriteWithRtk((cmd, args, options) => pi.exec(cmd, args, options), command, ctx.signal, binary);
 			if (rewritten !== undefined) event.input.command = rewritten;
 		} catch (error) {
 			// Fail open: a rewriting problem must never block the command itself.

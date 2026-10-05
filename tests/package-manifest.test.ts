@@ -305,7 +305,7 @@ test("package manifest ships and runs the checked-in package-local Gentle AI ins
 	const verifier = readFileSync(join(PACKAGE_ROOT, "scripts", "verify-package-files.mjs"), "utf8");
 	const reference = readFileSync(join(PACKAGE_ROOT, "docs", "readme-reference.md"), "utf8");
 
-	assert.equal(packageJson.scripts?.postinstall, "node scripts/install-gentle-ai.mjs");
+	assert.equal(packageJson.scripts?.postinstall, "node scripts/install-gentle-ai.mjs && node scripts/install-rtk.mjs", "postinstall runs the Gentle AI installer first, then the package-local rtk installer");
 	assert.match(reference, /run `node scripts\/install-gentle-ai\.mjs`/, "missing-binary recovery documentation must use the package postinstall entrypoint");
 	assert.match(reference, /installed `gentle-pi` package directory/, "recovery documentation must name the package working directory");
 	assert.match(reference, /if `GENTLE_PI_SKIP_GENTLE_AI_INSTALL` is set, remove or unset it before/i, "recovery documentation must prevent the installer skip from repeating");
