@@ -85,7 +85,7 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 ## Qué cambia respecto a gentle-shell
 
 - Nombre del paquete y comando: `nub-ia` (`bin/nub-ia.mjs`). `private: true`, se instala desde Git, no desde npm.
-- Banner de inicio: símbolo infinito de Nubiral en lugar de la rosa, wordmark `nubiral` en lugar de `Gentle Shell`, paleta `lime` por defecto.
+- Banner de inicio: isologo de Nubiral (trazado en braille desde `assets/brand/nubiral-isologo.png` con `scripts/trace-isologo.mjs`) en lugar de la rosa, wordmark `nubiral` en lugar de `Gentle Shell`, paleta `lime` por defecto.
 - Tema por defecto `Nub-IA` (los temas `Gentle*` siguen disponibles).
 - Home aislado en `~/.nub-ia/` (config en `~/.nub-ia/config.json`).
 - Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).

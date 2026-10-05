@@ -31,8 +31,8 @@ const BANNER_PALETTES: Record<BannerColor, { rose: [number, number, number]; lab
 };
 
 const TEXT_LOGO = [
-  "                 ██                      ██",
-  "                 ██          ██          ██",
+  "                  ██                             ██",
+  "                  ██         ██                  ██",
   "███▀▀██▄  ██   ██ ██▄███▄        ██▄██▀ ▄████▄▄  ██",
   "██    ██  ██   ██ ██    ██   ██  ██▀       ▄▄██  ██",
   "██    ██  ██   ██ ██    ██   ██  ██     ██▀  ██  ██",
@@ -40,13 +40,15 @@ const TEXT_LOGO = [
 ];
 
 // Nubiral's infinity mark, rendered where the rose used to sit.
+// Nubiral isologo, traced from the brand PNG into braille (regenerate with scripts/trace-isologo.mjs).
 const ROSE_LARGE_RAW = [
-  "            ⢀⣠⣴⣶⣶⣶⣶⣶⣤⣀  ",
-  "           ⣰⣿⡿⠋⠉  ⠈⠉⠻⣿⣷⡀",
-  "   ⣠⣶⣿⡇  ⢠⣤⣿⡏        ⠈⣿⡇",
-  "  ⢸⣿⠏⠁   ⠈⢿⣿⣿⣦      ⣠⣾⣿⠃",
-  "  ⠸⣿⣧⣄⡀ ⣀⣤⣿⡿⠉⠉    ⠸⠿⠿⠛⠁ ",
-  "   ⠈⠛⠿⠿⠿⠿⠟⠋             ",
+  "          ⢀⣤⣶⣿⣿⣿⣿⣶⣦⡀  ",
+  "         ⣴⣿⣿⡿⠛⠛⠛⠛⢿⣿⣿⣦⡀",
+  "   ⣀⣤⣤⣤⣀ ⠈⠻⠏      ⠘⣿⣿⣧",
+  " ⢠⣾⣿⣿⣿⣿⣿⣷⣄         ⣿⣿⣿",
+  " ⣿⣿⣿⠁ ⠈⠻⣿⣿⣷⣄      ⢠⣿⣿⡟",
+  " ⢻⣿⣿⣦⣤⣄ ⠈⠻⣿⡿⢁⣤⣤⣤⣤⣾⣿⣿⠟⠁",
+  "  ⠙⠿⣿⣿⣿⠷  ⠈⠐⠿⣿⣿⣿⣿⠿⠟⠁  ",
 ];
 
 function rgb(r: number, g: number, b: number, text: string): string {

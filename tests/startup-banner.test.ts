@@ -28,7 +28,7 @@ test("startup artwork spells nubiral with aligned animation spans", () => {
 	assert.equal(logo[1].trim().split(/\s+/).length, 3, "b ascender, i dot, and l ascender share row 1");
 	assert.equal(logo[0].trim().split(/\s+/).length, 2, "only b and l reach row 0 (the i dot sits lower)");
 	assert.equal(Math.max(...logo.map((line) => line.length)), 51, "wordmark width stays terminal friendly");
-	assert.equal(mark.length, logo.length, "the infinity mark matches the wordmark height so they align side by side");
+	assert.equal(mark.length, 7, "the isologo is traced at seven rows, one taller than the wordmark, and centred beside it");
 	assert.ok(mark.every((line) => /^[ \u2800-\u28ff]*$/.test(line)), "mark is drawn in braille so it reads as a fine line, distinct from the block wordmark");
 });
 
