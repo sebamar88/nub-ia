@@ -82,6 +82,15 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 - Para fijar un modelo concreto a un agente: `/gentle:models` o `/gentle:profiles` (gana sobre el tier).
 - Cada integrante hace `/login` una vez por provider que tenga (Copilot, OpenAI, o variables `AWS_*` para Bedrock).
 
+### Paquetes del equipo
+
+`nub-ia setup` (y el primer arranque automático) instala en el home, además del stack de `gentle-ai`, los paquetes Pi de
+`TEAM_PACKAGE_SOURCES` en `lib/gentle-shell-launcher.ts`. Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail)
+(`npm:@dietrichgebert/ponytail`, modo "lazy senior dev": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`,
+`/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. Para agregar otro, sumá su source a la tabla;
+`GENTLE_SHELL_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
+instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail`.
+
 ## Qué cambia respecto a gentle-shell
 
 - Nombre del paquete y comando: `nub-ia` (`bin/nub-ia.mjs`). `private: true`, se instala desde Git, no desde npm.

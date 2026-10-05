@@ -133,6 +133,9 @@ function fixture(t: test.TestContext) {
 		GENTLE_SHELL_HOME: gentleShellHome,
 		GENTLE_SHELL_PI: piScript,
 		GENTLE_SHELL_NO_AUTO_SETUP: "1",
+		// Team companion packages are exercised by their own tests below; every
+		// other setup test keeps the exact gentle-ai + cleanup spawn sequence.
+		GENTLE_SHELL_TEAM_PACKAGES: "",
 	};
 	return { root, home, gentleShellHome, piScript, env };
 }
@@ -1016,6 +1019,64 @@ test("nub-ia setup removes the conflicting ask-user-question package gentle-ai d
 	assert.equal(removePayload.PI_CODING_AGENT_DIR, f.gentleShellHome);
 	assert.equal(removePayload.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
 	assert.ok(removePayload.PATH.startsWith(`${dirname(f.piScript)}${delimiter}`), removePayload.PATH);
+});
+
+// The fake gentle-ai writes its JSON record without a trailing newline while
+// the fake pi uses console.log, so a setup transcript is split on object
+// boundaries rather than lines.
+function jsonRecords(stdout: string): Array<{ args: string[]; PI_CODING_AGENT_DIR?: string }> {
+	return stdout.split(/(?<=\})\s*(?=\{)/).map((chunk) => chunk.trim()).filter((chunk) => chunk.length > 0).map((chunk) => JSON.parse(chunk));
+}
+
+// --- setup subcommand installs the team companion packages ------------------
+
+test("nub-ia setup installs the packaged team packages after provisioning, via pi's own install", (t) => {
+	const f = fixture(t);
+	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
+	writeGentleAiScript(gentleAiScript);
+	const env: NodeJS.ProcessEnv = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
+	delete env.GENTLE_SHELL_TEAM_PACKAGES;
+
+	const result = run(env, ["setup"]);
+	assert.equal(result.status, 0, result.stderr);
+	assert.match(result.stderr, /nub-ia: installing team package npm:@dietrichgebert\/ponytail into /);
+	const records = jsonRecords(result.stdout);
+	assert.equal(records.length, 2, result.stdout);
+	assert.deepEqual(records[0].args, ["install", "--agent", "pi", "--scope", "global"]);
+	assert.deepEqual(records[1].args, ["install", "npm:@dietrichgebert/ponytail"]);
+	assert.equal(records[1].PI_CODING_AGENT_DIR, f.gentleShellHome);
+});
+
+test("nub-ia setup skips team packages the home already declares, at any version", (t) => {
+	const f = fixture(t);
+	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
+	writeGentleAiScript(gentleAiScript);
+	mkdirSync(f.gentleShellHome, { recursive: true });
+	writeFileSync(join(f.gentleShellHome, "settings.json"), JSON.stringify({ packages: ["npm:@dietrichgebert/ponytail@4.12.0"] }));
+	const env: NodeJS.ProcessEnv = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
+	delete env.GENTLE_SHELL_TEAM_PACKAGES;
+
+	const result = run(env, ["setup"]);
+	assert.equal(result.status, 0, result.stderr);
+	assert.doesNotMatch(result.stderr, /installing team package/);
+	assert.equal(jsonRecords(result.stdout).length, 1, "only the gentle-ai install ran");
+});
+
+test("GENTLE_SHELL_TEAM_PACKAGES overrides the packaged team list and --dry-run reports it without installing", (t) => {
+	const f = fixture(t);
+	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
+	writeGentleAiScript(gentleAiScript);
+	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_TEAM_PACKAGES: "npm:example-a, git:github.com/x/y" };
+
+	const dry = run(env, ["setup", "--dry-run"]);
+	assert.equal(dry.status, 0, dry.stderr);
+	assert.match(dry.stderr, /setup would then install team package npm:example-a unless/);
+	assert.match(dry.stderr, /setup would then install team package git:github.com\/x\/y unless/);
+	assert.equal(jsonRecords(dry.stdout).length, 1, "dry run spawns only the gentle-ai dry run");
+
+	const result = run(env, ["setup"]);
+	assert.equal(result.status, 0, result.stderr);
+	assert.deepEqual(jsonRecords(result.stdout).slice(1).map((record) => record.args), [["install", "npm:example-a"], ["install", "git:github.com/x/y"]]);
 });
 
 test("nub-ia setup runs no pi remove when gentle-ai did not declare the conflicting package", (t) => {

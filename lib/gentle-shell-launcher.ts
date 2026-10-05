@@ -595,6 +595,38 @@ export function postInstallRemovals(settingsText: string | undefined): string[] 
 	return found;
 }
 
+// Team companion packages: Pi packages every Nub-IA home gets on top of the
+// gentle-ai stack, installed by `setup` (and the first-run auto-provision)
+// through pi's own `install`, so `nub-ia update` keeps them current. Edit this
+// table to change what the team ships with. GENTLE_SHELL_TEAM_PACKAGES
+// overrides it (comma-separated sources; the empty string installs nothing),
+// which the tests use to keep the setup flow deterministic.
+export const TEAM_PACKAGE_SOURCES: readonly string[] = [
+	// ponytail: "lazy senior dev" mode — YAGNI, stdlib first, shortest working
+	// solution. Extension (per-turn ruleset) + /ponytail* skills.
+	"npm:@dietrichgebert/ponytail",
+];
+
+export function resolveTeamPackageSources(env: NodeJS.ProcessEnv): string[] {
+	const override = env.GENTLE_SHELL_TEAM_PACKAGES;
+	if (override === undefined) return [...TEAM_PACKAGE_SOURCES];
+	return override.split(",").map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+}
+
+// The team sources `settingsText` does not already declare (any version
+// spec, string or object entry), in table order. Already-declared sources
+// are skipped so a re-run of setup never reinstalls or reorders them.
+export function teamPackagesToInstall(settingsText: string | undefined, sources: readonly string[]): string[] {
+	const packages = parseSettingsPackages(settingsText) ?? [];
+	const declared = new Set<string>();
+	for (const entry of packages) {
+		const source = entrySource(entry);
+		if (source === undefined) continue;
+		declared.add(packageSourceKind(source) === "npm" ? `npm:${npmPackageName(source)}` : source);
+	}
+	return sources.filter((source) => !declared.has(packageSourceKind(source) === "npm" ? `npm:${npmPackageName(source)}` : source));
+}
+
 export type GentlePiDeclaration = { kind: "npm" } | { kind: "path"; dir: string };
 
 export interface FindGentlePiDeclarationOptions {
@@ -1189,7 +1221,8 @@ export function helpText(): string {
 		"Commands:",
 		"  home             Print or persist the effective home mode (link, isolated, or a path).",
 		"  setup            Provision the resolved home with the gentle-ai companion packages",
-		"                   (runs the package-local gentle-ai 'install --agent pi --scope global').",
+		"                   (runs the package-local gentle-ai 'install --agent pi --scope global'),",
+		"                   then installs the team packages (ponytail) the home does not declare yet.",
 		"                   Accepts --dry-run, forwarded to gentle-ai. Accepts a home selector",
 		"                   (--link, --isolated, --home <dir>) before it.",
 		"",
@@ -1208,6 +1241,8 @@ export function helpText(): string {
 		"Environment variables:",
 		"  GENTLE_SHELL_PI       Path to the pi executable to run.",
 		"  GENTLE_SHELL_HOME     Directory for the isolated home (default: ~/.nub-ia/agent).",
+		"  GENTLE_SHELL_TEAM_PACKAGES  Comma-separated Pi package sources setup installs (default: the",
+		"                        packaged team list; empty string installs none).",
 		"  PI_CODING_AGENT_DIR   Directory for the --link home, shared with pi itself.",
 		"",
 		"Every other argument is forwarded to pi unchanged.",

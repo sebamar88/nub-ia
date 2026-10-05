@@ -47,6 +47,8 @@ import {
 	planSpawn,
 	POST_INSTALL_REMOVAL_SOURCES,
 	postInstallRemovals,
+	resolveTeamPackageSources,
+	teamPackagesToInstall,
 	provisionedEntry,
 	recordProvisioned,
 	resolveHome,
@@ -903,12 +905,50 @@ async function runPostInstallCleanup(home, runtime, dryRun, stdio, timeoutMs) {
 		for (const source of POST_INSTALL_REMOVAL_SOURCES) {
 			process.stderr.write(`${postInstallWouldRemoveMessage(source)}\n`);
 		}
+		for (const source of resolveTeamPackageSources(process.env)) {
+			process.stderr.write(`nub-ia: setup would then install team package ${source} unless the home already declares it\n`);
+		}
 		return { ok: true, exitCode: 0 };
 	}
 	const settingsText = readJsonIfExists(join(home.dir, "settings.json"));
 	const removals = postInstallRemovals(settingsText);
-	if (removals.length === 0) return { ok: true, exitCode: 0 };
-	return removePostInstallSources(removals, 0, home, runtime, stdio, timeoutMs);
+	if (removals.length > 0) {
+		const removed = await removePostInstallSources(removals, 0, home, runtime, stdio, timeoutMs);
+		if (!removed.ok) return removed;
+	}
+	return installTeamPackages(home, runtime, stdio, timeoutMs);
+}
+
+// Installs the team companion packages (lib/gentle-shell-launcher.ts
+// TEAM_PACKAGE_SOURCES) the home does not declare yet, via the resolved pi
+// runtime's own `install`, after the conflict cleanup so settings.json is
+// read in its final post-cleanup state. A failure here is reported like a
+// failed removal (actionable `nub-ia ... install <source>` remediation) but
+// the preceding gentle-ai provisioning already succeeded and is kept.
+async function installTeamPackages(home, runtime, stdio, timeoutMs) {
+	const settingsText = readJsonIfExists(join(home.dir, "settings.json"));
+	const pending = teamPackagesToInstall(settingsText, resolveTeamPackageSources(process.env));
+	return installTeamPackageSources(pending, 0, home, runtime, stdio, timeoutMs);
+}
+
+async function installTeamPackageSources(sources, index, home, runtime, stdio, timeoutMs) {
+	if (index >= sources.length) return { ok: true, exitCode: 0 };
+	const source = sources[index];
+	process.stderr.write(`nub-ia: installing team package ${source} into ${home.dir}\n`);
+	const env = buildSetupEnv(home, runtime);
+	const result = await spawnAndWait(runtime.command, [...runtime.args, "install", source], env, stdio, timeoutMs);
+	if (result.timedOut) {
+		return { ok: false, exitCode: 1, message: `nub-ia: pi install ${source} timed out after ${formatTimeoutCeiling(timeoutMs)}` };
+	}
+	if (result.error) {
+		return { ok: false, exitCode: 1, message: `Could not run the pi runtime to install ${source}: ${result.error.message}` };
+	}
+	if (!result.ok) {
+		if (result.interrupted) return result;
+		const remediation = [...homeSelectorFlags(home).map(shellQuote), "install", source].join(" ");
+		return { ok: false, exitCode: result.exitCode, message: `nub-ia: could not install ${source}; run \`nub-ia ${remediation}\` to retry` };
+	}
+	return installTeamPackageSources(sources, index + 1, home, runtime, stdio, timeoutMs);
 }
 
 // Removes each declared post-install source in turn via the resolved pi
