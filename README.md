@@ -66,14 +66,16 @@ Nub-IA registra cuatro modelos virtuales de Pi: `nub-ia/strong`, `nub-ia/strong-
 Cada request hecho con uno de ellos se despacha a un modelo físico de **los providers con credenciales en esa máquina**,
 según `assets/model-tiers.json`:
 
-| Tier | Copilot | Bedrock | OpenAI (suscripción) | Agentes |
-| --- | --- | --- | --- | --- |
-| `strong` | claude-opus-5.5 | us.anthropic.claude-opus-5-5 | gpt-6-astra | review-risk, jd-judge-b |
-| `strong-alt` | gpt-6-astra | us.anthropic.claude-fable-5-1 | gpt-6-astra | jd-judge-a |
-| `balanced` | claude-sonnet-5.5 | us.anthropic.claude-sonnet-5-5 | gpt-6.1-sol | worker, verify, explore, reliability, resilience, readability, jd-fix-agent |
-| `fast` | claude-haiku-4.5 | us.anthropic.claude-haiku-4-5 | gpt-6-luna | — |
+| Tier | Copilot / OpenCode Zen | Bedrock | OpenAI (suscripción) | OpenCode Go | NVIDIA | llama.cpp | Agentes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `strong` | claude-opus-5.5 | us.anthropic.claude-opus-5-5 | gpt-6-astra | kimi-k3 | nemotron-3-ultra | el modelo cargado | review-risk, jd-judge-b |
+| `strong-alt` | claude-fable / gpt-6-astra | us.anthropic.claude-fable-5-1 | gpt-6-astra | deepseek-v4-pro | glm-5.3 | el modelo cargado | jd-judge-a |
+| `balanced` | claude-sonnet-5.5 | us.anthropic.claude-sonnet-5-5 | gpt-6.1-sol | glm-5.3 | nemotron-3-super | el modelo cargado | worker, verify, explore, reliability, resilience, readability, jd-fix-agent |
+| `fast` | claude-haiku-4.5 | us.anthropic.claude-haiku-4-5 | gpt-6-luna | glm-5.3-flash | nemotron-3.5-lightning | el modelo cargado | — |
 
-Reglas: prioridad de providers Copilot → Bedrock → OpenAI (`openai`; `openai-codex` es el id legacy); dentro de un provider
+Reglas: prioridad de providers Copilot → Bedrock → OpenAI (`openai`; `openai-codex` es el id legacy) → OpenCode Zen →
+Anthropic → NVIDIA → OpenCode Go → llama.cpp (local, último porque prioriza calidad; quien solo tenga llama.cpp lo usa
+igual, y una sesión que ya corre local se queda local); dentro de un provider
 se prefiere Claude sobre GPT y de OpenAI solo la generación más nueva; entre varios matches gana la versión más alta y luego el
 más barato. Un turno nuevo mantiene el provider ya en uso (prompt cache); las continuaciones no cambian de modelo; si un
 provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo excluye por el resto de la rama de sesión.

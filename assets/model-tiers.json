@@ -1,6 +1,16 @@
 {
-  "$comment": "Nub-IA model tiers. Patterns are case-insensitive regexes matched against `provider/id`, tried in order within each provider; providers are tried in providerPriority order (the provider already serving the session goes first). Among the models one pattern matches, the newest version wins (so gpt-6.1-sol beats gpt-6-sol, claude-sonnet-5.5 beats claude-sonnet-5), then the cheapest output price. Claude is preferred where a provider offers both families; for OpenAI (`openai` = the ChatGPT/Codex subscription login in Pi 1.x, `openai-codex` = the id Pi marks as legacy; both treated alike) only the newest generation (gpt-6.x) is used, with gpt-5.5/5.6 as a last resort when a provider lacks gpt-6. Edit here to change the team's routing; no code change needed. A repository can override this file at .pi/nub-ia/model-tiers.json.",
-  "providerPriority": ["github-copilot", "amazon-bedrock", "openai", "openai-codex", "anthropic"],
+  "$comment": "Nub-IA model tiers. Patterns are case-insensitive regexes matched against `provider/id`, tried in order within each provider; providers are tried in providerPriority order (the provider already serving the session goes first). Among the models one pattern matches, the newest version wins (so gpt-6.1-sol beats gpt-6-sol, claude-sonnet-5.5 beats claude-sonnet-5), then the cheapest output price. Claude is preferred where a provider offers both families; for OpenAI (`openai` = the ChatGPT/Codex subscription login in Pi 1.x, `openai-codex` = the id Pi marks as legacy; both treated alike) only the newest generation (gpt-6.x) is used, with gpt-5.5/5.6 as a last resort when a provider lacks gpt-6. Open-weight providers (opencode-go, nvidia) rank by capability/cost within their own catalogs; llama.cpp (local GGUF files, arbitrary ids) matches whatever is loaded, newest/largest-numbered first. Edit here to change the team's routing; no code change needed. A repository can override this file at .pi/nub-ia/model-tiers.json.",
+  "providerPriority": [
+    "github-copilot",
+    "amazon-bedrock",
+    "openai",
+    "openai-codex",
+    "opencode",
+    "anthropic",
+    "nvidia",
+    "opencode-go",
+    "llama.cpp"
+  ],
   "tiers": {
     "strong": [
       "^github-copilot/claude-opus-\\d",
@@ -8,8 +18,14 @@
       "^amazon-bedrock/anthropic\\.claude-opus-\\d",
       "^amazon-bedrock/global\\.anthropic\\.claude-opus-\\d",
       "^anthropic/claude-opus-\\d",
-      "^(github-copilot|openai-codex|openai)/gpt-6(\\.\\d+)?-astra$",
-      "^(github-copilot|openai-codex|openai)/gpt-5\\.5$"
+      "^opencode/claude-opus-\\d",
+      "^(github-copilot|openai-codex|openai|opencode)/gpt-6(\\.\\d+)?-astra$",
+      "^(github-copilot|openai-codex|openai|opencode)/gpt-5\\.5$",
+      "^nvidia/nvidia/nemotron-3-ultra-\\d",
+      "^nvidia/moonshotai/kimi-k\\d",
+      "^opencode-go/kimi-k\\d$",
+      "^opencode-go/deepseek-v\\d(\\.\\d+)?-pro$",
+      "^llama\\.cpp/"
     ],
     "strong-alt": [
       "^github-copilot/claude-fable-\\d",
@@ -17,10 +33,17 @@
       "^amazon-bedrock/anthropic\\.claude-fable-\\d",
       "^amazon-bedrock/global\\.anthropic\\.claude-fable-\\d",
       "^anthropic/claude-fable-\\d",
-      "^(github-copilot|openai-codex|openai)/gpt-6(\\.\\d+)?-astra$",
+      "^opencode/claude-fable-\\d",
+      "^(github-copilot|openai-codex|openai|opencode)/gpt-6(\\.\\d+)?-astra$",
       "^github-copilot/claude-opus-\\d",
       "^amazon-bedrock/us\\.anthropic\\.claude-opus-\\d",
-      "^(github-copilot|openai-codex|openai)/gpt-5\\.5$"
+      "^opencode/claude-opus-\\d",
+      "^(github-copilot|openai-codex|openai|opencode)/gpt-5\\.5$",
+      "^nvidia/z-ai/glm-\\d",
+      "^nvidia/nvidia/nemotron-3-ultra-\\d",
+      "^opencode-go/deepseek-v\\d(\\.\\d+)?-pro$",
+      "^opencode-go/kimi-k\\d$",
+      "^llama\\.cpp/"
     ],
     "balanced": [
       "^github-copilot/claude-sonnet-\\d",
@@ -28,8 +51,16 @@
       "^amazon-bedrock/anthropic\\.claude-sonnet-\\d",
       "^amazon-bedrock/global\\.anthropic\\.claude-sonnet-\\d",
       "^anthropic/claude-sonnet-\\d",
-      "^(github-copilot|openai-codex|openai)/gpt-6(\\.\\d+)?-sol$",
-      "^(github-copilot|openai-codex|openai)/gpt-5\\.6-terra$"
+      "^opencode/claude-sonnet-\\d",
+      "^(github-copilot|openai-codex|openai|opencode)/gpt-6(\\.\\d+)?-sol$",
+      "^(github-copilot|openai-codex|openai|opencode)/gpt-5\\.6-terra$",
+      "^nvidia/nvidia/nemotron-3-super-\\d",
+      "^nvidia/z-ai/glm-\\d+(\\.\\d+)?$",
+      "^nvidia/moonshotai/kimi-k\\d",
+      "^opencode-go/glm-\\d+(\\.\\d+)?$",
+      "^opencode-go/deepseek-v\\d(\\.\\d+)?-pro$",
+      "^opencode-go/kimi-k\\d(\\.\\d+)?-code$",
+      "^llama\\.cpp/"
     ],
     "fast": [
       "^github-copilot/claude-haiku-\\d",
@@ -37,8 +68,16 @@
       "^amazon-bedrock/anthropic\\.claude-haiku-\\d",
       "^amazon-bedrock/global\\.anthropic\\.claude-haiku-\\d",
       "^anthropic/claude-haiku-\\d",
-      "^(github-copilot|openai-codex|openai)/gpt-6(\\.\\d+)?-luna$",
-      "^(github-copilot|openai-codex|openai)/gpt-5\\.6-luna$"
+      "^opencode/claude-haiku-\\d",
+      "^(github-copilot|openai-codex|openai|opencode)/gpt-6(\\.\\d+)?-luna$",
+      "^(github-copilot|openai-codex|openai|opencode)/gpt-5\\.6-luna$",
+      "^nvidia/nvidia/nemotron-3\\.5-lightning-\\d",
+      "^nvidia/nvidia/nemotron-3-nano-",
+      "^nvidia/z-ai/glm-\\d+(\\.\\d+)?-flash$",
+      "^opencode-go/glm-\\d+(\\.\\d+)?-flash$",
+      "^opencode-go/deepseek-v\\d(\\.\\d+)?-flash$",
+      "^opencode-go/minimax-m\\d",
+      "^llama\\.cpp/"
     ]
   }
 }

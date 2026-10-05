@@ -44,7 +44,7 @@ const pick = (tier: (typeof MODEL_TIERS)[number], available: CatalogModel[], opt
 
 test("packaged catalog parses with every tier populated", () => {
 	for (const tier of MODEL_TIERS) assert.ok(catalog.tiers[tier].length > 0, tier);
-	assert.deepEqual(catalog.providerPriority.slice(0, 4), ["github-copilot", "amazon-bedrock", "openai", "openai-codex"]);
+	assert.deepEqual(catalog.providerPriority, ["github-copilot", "amazon-bedrock", "openai", "openai-codex", "opencode", "anthropic", "nvidia", "opencode-go", "llama.cpp"]);
 	assert.equal(parseTierCatalog({ tiers: { strong: [] } }), undefined, "a catalog missing a tier is rejected");
 	assert.equal(parseTierCatalog("nope"), undefined);
 });
@@ -150,4 +150,37 @@ test("packaged agents declare nub-ia tiers, two distinct strong models for the j
 	for (const name of ["gentle-ai-explore", "gentle-ai-worker", "gentle-ai-verify", "jd-fix-agent", "review-readability", "review-reliability", "review-resilience"]) {
 		assert.equal(read(name), "nub-ia/balanced", name);
 	}
+});
+
+const opencodeZen = [m("opencode", "claude-opus-5-5", 20), m("opencode", "claude-fable-5-1", 50), m("opencode", "claude-sonnet-5-5", 10), m("opencode", "claude-haiku-4-5", 5), m("opencode", "gpt-6-astra", 50), m("opencode", "gpt-6.1-sol", 10), m("opencode", "gpt-6-luna", 0.5), m("opencode", "glm-5.3", 4.4)];
+const opencodeGo = [m("opencode-go", "kimi-k3", 15), m("opencode-go", "kimi-k2.7-code", 4), m("opencode-go", "deepseek-v4-pro", 1.98), m("opencode-go", "deepseek-v4.1-flash", 0.6), m("opencode-go", "glm-5.3", 4.4), m("opencode-go", "glm-5.3-flash", 0.5), m("opencode-go", "minimax-m3", 1.2), m("opencode-go", "mimo-v2.6-flash", 0.28)];
+const nvidia = [m("nvidia", "nvidia/nemotron-3-ultra-550b-a55b", 2.5), m("nvidia", "nvidia/nemotron-3-super-120b-a12b", 0.8), m("nvidia", "nvidia/nemotron-3.5-lightning-30b-a3b", 0), m("nvidia", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", 0), m("nvidia", "moonshotai/kimi-k3", 0), m("nvidia", "z-ai/glm-5.3", 0), m("nvidia", "z-ai/glm-5.3-flash", 0), m("nvidia", "meta/llama-3.2-90b-vision-instruct", 0)];
+const llamaCpp = [m("llama.cpp", "Qwen3-Coder-30B-A3B-Q4_K_M", 0), m("llama.cpp", "gemma-3-12b-it-Q8_0", 0)];
+
+test("OpenCode Zen resolves like Copilot: Claude first, GPT only as the alternate strong", () => {
+	assert.equal(pick("strong", opencodeZen), "opencode/claude-opus-5-5");
+	assert.equal(pick("strong-alt", opencodeZen), "opencode/claude-fable-5-1");
+	assert.equal(pick("balanced", opencodeZen), "opencode/claude-sonnet-5-5");
+	assert.equal(pick("fast", opencodeZen), "opencode/claude-haiku-4-5");
+	assert.equal(pick("strong-alt", opencodeZen.filter((model) => !model.id.includes("fable"))), "opencode/gpt-6-astra");
+});
+
+test("open-weight providers rank their own catalogs by capability then cost", () => {
+	assert.equal(pick("strong", opencodeGo), "opencode-go/kimi-k3");
+	assert.equal(pick("strong-alt", opencodeGo), "opencode-go/deepseek-v4-pro", "the two judges never share a model");
+	assert.equal(pick("balanced", opencodeGo), "opencode-go/glm-5.3");
+	assert.equal(pick("fast", opencodeGo), "opencode-go/glm-5.3-flash");
+	assert.equal(pick("strong", nvidia), "nvidia/nvidia/nemotron-3-ultra-550b-a55b");
+	assert.equal(pick("strong-alt", nvidia), "nvidia/z-ai/glm-5.3");
+	assert.equal(pick("balanced", nvidia), "nvidia/nvidia/nemotron-3-super-120b-a12b");
+	assert.equal(pick("fast", nvidia), "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b");
+	assert.equal(pick("fast", nvidia.filter((model) => !model.id.includes("lightning"))), "nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning");
+});
+
+test("llama.cpp matches whatever local model is loaded, and paid/cloud providers outrank it when present", () => {
+	for (const tier of MODEL_TIERS) assert.equal(pick(tier, llamaCpp), "llama.cpp/Qwen3-Coder-30B-A3B-Q4_K_M", tier);
+	assert.equal(pick("balanced", [...llamaCpp, ...opencodeGo]), "opencode-go/glm-5.3");
+	assert.equal(pick("balanced", [...llamaCpp, ...bedrock]), "amazon-bedrock/us.anthropic.claude-sonnet-5-5");
+	assert.equal(pick("balanced", llamaCpp, { preferredProvider: "llama.cpp" }), "llama.cpp/Qwen3-Coder-30B-A3B-Q4_K_M");
+	assert.equal(pick("balanced", [...llamaCpp, ...opencodeGo], { preferredProvider: "llama.cpp" }), "llama.cpp/Qwen3-Coder-30B-A3B-Q4_K_M", "a session already on the local model stays local");
 });
