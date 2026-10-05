@@ -1209,7 +1209,7 @@ async function run() {
 		process.env.USERPROFILE = staleAssetsCwd;
 		const ctx = createCtx(staleAssetsCwd, true);
 		await commands.get("gentle:doctor").handler("", ctx);
-		assert.match(ctx.ui.notifications.at(-1).message, /el Gentleman doctor/);
+		assert.match(ctx.ui.notifications.at(-1).message, /Nub-IA doctor/);
 		assert.match(ctx.ui.notifications.at(-1).message, /Sensitive-path guard active/);
 		for (const diagnostic of ["gentle:status", "gentle:doctor"]) {
 			await commands.get(diagnostic).handler("", ctx);

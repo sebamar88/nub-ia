@@ -3390,7 +3390,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 	);
 	if (savedConfig.status === "invalid") {
 		ctx.ui.notify(
-			`el Gentleman cannot open model config because ${savedConfig.path} is invalid JSON or not an object. Fix or remove the file, then run /gentle:models again.`,
+			`Nub-IA cannot open model config because ${savedConfig.path} is invalid JSON or not an object. Fix or remove the file, then run /gentle:models again.`,
 			"warning",
 		);
 		return;
@@ -3403,7 +3403,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 		if (result.type === "export") {
 			try {
 				const count = await exportSavedModelConfig(ctx);
-				ctx.ui.notify(`el Gentleman exported ${count} saved model routing entr${count === 1 ? "y" : "ies"} to ${modelExportPath(ctx.cwd)}.`, "info");
+				ctx.ui.notify(`Nub-IA exported ${count} saved model routing entr${count === 1 ? "y" : "ies"} to ${modelExportPath(ctx.cwd)}.`, "info");
 			} catch (error) {
 				ctx.ui.notify(`Model routing export failed: ${error instanceof Error ? error.message : String(error)}`, "warning");
 			}
@@ -3430,14 +3430,14 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 				try {
 					const applyResult = await applyModelConfigAsync(ctx.cwd, restored);
 					ctx.ui.notify([
-						"el Gentleman restored global model config.",
+						"Nub-IA restored global model config.",
 						`Import: ${modelExportPath(ctx.cwd)}`,
 						`Global config: ${modelConfigPath(ctx.cwd)}`,
 						`Agents updated: ${applyResult.updated}`,
 					].join("\n"), "info");
 				} catch (error) {
 					ctx.ui.notify([
-						"el Gentleman restored global model config, but applying it to agents failed.",
+						"Nub-IA restored global model config, but applying it to agents failed.",
 						`Global config: ${modelConfigPath(ctx.cwd)}`,
 						`Apply error: ${error instanceof Error ? error.message : String(error)}`,
 					].join("\n"), "warning");
@@ -3492,7 +3492,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 	const applyResult = await applyModelConfigAsync(ctx.cwd, result.config);
 	ctx.ui.notify(
 		[
-			"el Gentleman global model config saved.",
+			"Nub-IA global model config saved.",
 			`Global config: ${modelConfigPath(ctx.cwd)}`,
 			`Agents updated: ${applyResult.updated}`,
 			...describeModelConfig(ctx.cwd, result.config),
@@ -3540,7 +3540,7 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 	const read = readProfilesFileResult(path);
 	if (read.status === "invalid") {
 		ctx.ui.notify(
-			`el Gentleman saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run /gentle:profiles again.`,
+			`Nub-IA saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run /gentle:profiles again.`,
 			"warning",
 		);
 		return;
@@ -3562,19 +3562,19 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 			writeProfilesFileSync(path, bootstrapProfilesFile(snapshot));
 		} catch (error) {
 			ctx.ui.notify(
-				`el Gentleman saved the global routing, but could not create ${sanitizeTerminalText(path)}: ${profilesErrorMessage(error)}`,
+				`Nub-IA saved the global routing, but could not create ${sanitizeTerminalText(path)}: ${profilesErrorMessage(error)}`,
 				"warning",
 			);
 			return;
 		}
-		ctx.ui.notify(`el Gentleman seeded the "current" profile in ${sanitizeTerminalText(path)} from the routing just saved.`, "info");
+		ctx.ui.notify(`Nub-IA seeded the "current" profile in ${sanitizeTerminalText(path)} from the routing just saved.`, "info");
 		return;
 	}
 	reportProfilesDrops(ctx, path, read.drops);
 	const target = resolveCurrentProfileTarget(ctx.cwd, read);
 	if (!target) {
 		ctx.ui.notify(
-			"el Gentleman saved the global routing, but no profile is current: none is active and this repository pins none. Apply or create one with /gentle:profiles, then press u here or s there.",
+			"Nub-IA saved the global routing, but no profile is current: none is active and this repository pins none. Apply or create one with /gentle:profiles, then press u here or s there.",
 			"warning",
 		);
 		return;
@@ -3583,14 +3583,14 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 		writeProfilesFileSync(path, updateProfile(read.file, target.name, snapshot));
 	} catch (error) {
 		ctx.ui.notify(
-			`el Gentleman saved the global routing, but profile "${target.name}" was not updated: ${profilesErrorMessage(error)}`,
+			`Nub-IA saved the global routing, but profile "${target.name}" was not updated: ${profilesErrorMessage(error)}`,
 			"warning",
 		);
 		return;
 	}
 	ctx.ui.notify(
 		[
-			`el Gentleman: Profile "${target.name}" updated from the routing just saved (${target.source === "pinned" ? "this repository's pinned profile" : "the active profile"}).`,
+			`Nub-IA: Profile "${target.name}" updated from the routing just saved (${target.source === "pinned" ? "this repository's pinned profile" : "the active profile"}).`,
 			`Profiles store: ${sanitizeTerminalText(path)}`,
 		].join("\n"),
 		"info",
@@ -4172,7 +4172,7 @@ function reportProfilesDrops(ctx: ExtensionContext, path: string, drops: Profile
 	}
 	if (parts.length > 0) {
 		ctx.ui.notify(
-			`el Gentleman dropped invalid entries while loading ${sanitizeTerminalText(path)} — ${parts.join("; ")}.`,
+			`Nub-IA dropped invalid entries while loading ${sanitizeTerminalText(path)} — ${parts.join("; ")}.`,
 			"warning",
 		);
 	}
@@ -4251,14 +4251,14 @@ async function runProfilesPanelAction(
 			const sessionId = ctx.sessionManager?.getSessionId?.();
 			if (typeof sessionId !== "string" || sessionId.length === 0) {
 				ctx.ui.notify(
-					`el Gentleman cannot bind profile "${result.name}" to this session: no parent session id is available here. Set it as the global default with a instead.`,
+					`Nub-IA cannot bind profile "${result.name}" to this session: no parent session id is available here. Set it as the global default with a instead.`,
 					"warning",
 				);
 				return file;
 			}
 			bindSessionProfile(sessionId, result.name, normalizeModelConfig(file.profiles[result.name]) ?? {});
 			ctx.ui.notify(
-				`el Gentleman bound profile "${result.name}" to this session — shown as "${result.name} (session)". The binding is stored for this session; launch routing is unchanged. Nothing was written: the global routing, pins, and materialized stores are untouched. Set as global default with a.`,
+				`Nub-IA bound profile "${result.name}" to this session — shown as "${result.name} (session)". The binding is stored for this session; launch routing is unchanged. Nothing was written: the global routing, pins, and materialized stores are untouched. Set as global default with a.`,
 				"info",
 			);
 			return file;
@@ -4276,10 +4276,10 @@ async function runProfilesPanelAction(
 				let pinNote: string;
 				try {
 					writeProfilePinSync(localPath, result.name);
-					pinNote = `el Gentleman applied profile "${result.name}" repo-scoped: this clone now pins it in ${sanitizeTerminalText(localPath)}.\nSubagent launches here keep resolving the pin; no global routing or orchestrator was written.`;
+					pinNote = `Nub-IA applied profile "${result.name}" repo-scoped: this clone now pins it in ${sanitizeTerminalText(localPath)}.\nSubagent launches here keep resolving the pin; no global routing or orchestrator was written.`;
 				} catch (error) {
 					ctx.ui.notify(
-						`el Gentleman could not pin profile "${result.name}" in ${sanitizeTerminalText(localPath)}: ${profilesErrorMessage(error)}`,
+						`Nub-IA could not pin profile "${result.name}" in ${sanitizeTerminalText(localPath)}: ${profilesErrorMessage(error)}`,
 						"warning",
 					);
 					return file;
@@ -4426,7 +4426,7 @@ async function runProfilesPanelAction(
 				writeProfilesFileSync(path, claimed);
 			} catch (error) {
 				ctx.ui.notify(
-					`el Gentleman could not update ${sanitizeTerminalText(path)}: ${profilesErrorMessage(error)}`,
+					`Nub-IA could not update ${sanitizeTerminalText(path)}: ${profilesErrorMessage(error)}`,
 					"warning",
 				);
 				return file;
@@ -4475,7 +4475,7 @@ async function runProfilesPanelAction(
 						? ` ${sanitizeTerminalText(modelConfigPath(ctx.cwd))} still holds this profile's routing because no previously active profile was recorded to restore.`
 						: "";
 				ctx.ui.notify(
-					`el Gentleman could not apply profile "${result.name}". Restored: ${restored}.${unresolved}`,
+					`Nub-IA could not apply profile "${result.name}". Restored: ${restored}.${unresolved}`,
 					"warning",
 				);
 				return file;
@@ -4484,7 +4484,7 @@ async function runProfilesPanelAction(
 				await writeModelConfigAsync(ctx.cwd, normalized);
 			} catch (error) {
 				ctx.ui.notify(
-					`el Gentleman could not write ${sanitizeTerminalText(modelConfigPath(ctx.cwd))}: ${profilesErrorMessage(error)}`,
+					`Nub-IA could not write ${sanitizeTerminalText(modelConfigPath(ctx.cwd))}: ${profilesErrorMessage(error)}`,
 					"warning",
 				);
 				return revertClaim(false);
@@ -4500,7 +4500,7 @@ async function runProfilesPanelAction(
 				);
 			} catch (error) {
 				ctx.ui.notify(
-					`el Gentleman could not materialize profile "${result.name}": ${profilesErrorMessage(error)}`,
+					`Nub-IA could not materialize profile "${result.name}": ${profilesErrorMessage(error)}`,
 					"warning",
 				);
 				return revertClaim(true);
@@ -4511,7 +4511,7 @@ async function runProfilesPanelAction(
 				const written = applyOrchestratorSettings(settingsPath, orchestratorEntry);
 				if (written.status === "invalid") {
 					ctx.ui.notify(
-						`el Gentleman could not set the orchestrator from profile "${result.name}": ${sanitizeTerminalText(written.reason)}. ${sanitizeTerminalText(settingsPath)} was left unchanged.`,
+						`Nub-IA could not set the orchestrator from profile "${result.name}": ${sanitizeTerminalText(written.reason)}. ${sanitizeTerminalText(settingsPath)} was left unchanged.`,
 						"warning",
 					);
 					return revertClaim(true);
@@ -4536,7 +4536,7 @@ async function runProfilesPanelAction(
 			}
 			ctx.ui.notify(
 				[
-					`el Gentleman applied profile "${result.name}" — ${applyResult.updated} agent${applyResult.updated === 1 ? "" : "s"} updated.`,
+					`Nub-IA applied profile "${result.name}" — ${applyResult.updated} agent${applyResult.updated === 1 ? "" : "s"} updated.`,
 					"New routing takes effect on the next subagent launch.",
 				].join("\n") + orchestratorNote + pinNote,
 				"info",
@@ -4579,7 +4579,7 @@ async function runProfilesPanelAction(
 				const next = updateProfile(file, result.name, snapshot);
 				writeProfilesFileSync(path, next);
 				ctx.ui.notify(
-					`el Gentleman updated profile "${result.name}" from the current routing in ${modelConfigPath(ctx.cwd)}.`,
+					`Nub-IA updated profile "${result.name}" from the current routing in ${modelConfigPath(ctx.cwd)}.`,
 					"info",
 				);
 				return next;
@@ -4629,7 +4629,7 @@ async function runProfilesPanelAction(
 				// returns those repositories to the global routing.
 				const follow = followRenamedPin(ctx.cwd, result.name, name);
 				ctx.ui.notify(
-					`el Gentleman renamed profile "${result.name}" to "${name}".` +
+					`Nub-IA renamed profile "${result.name}" to "${name}".` +
 						(follow.followed.length > 0 ? `\nUpdated the clone pin: ${follow.followed.map((entry) => sanitizeTerminalText(entry)).join(", ")}.` : "") +
 						(follow.stillDeclared.length > 0 ? `\nThe committed repository declaration ${follow.stillDeclared.map((entry) => sanitizeTerminalText(entry)).join(", ")} still names "${result.name}"; press P on "${name}" to republish it.` : ""),
 					"info",
@@ -4693,7 +4693,7 @@ async function runProfilesPanelAction(
 			const status = readProfilePinStatus(ctx.cwd);
 			if (!status) {
 				ctx.ui.notify(
-					"el Gentleman cannot pin a profile because this session is not inside a Git worktree. Pinning is per repository; apply the profile globally instead.",
+					"Nub-IA cannot pin a profile because this session is not inside a Git worktree. Pinning is per repository; apply the profile globally instead.",
 					"warning",
 				);
 				return file;
@@ -4707,7 +4707,7 @@ async function runProfilesPanelAction(
 				else writeProfilePinSync(pinPath, result.name);
 			} catch (error) {
 				ctx.ui.notify(
-					`el Gentleman could not update profile pin ${sanitizeTerminalText(pinPath)}: ${profilesErrorMessage(error)}`,
+					`Nub-IA could not update profile pin ${sanitizeTerminalText(pinPath)}: ${profilesErrorMessage(error)}`,
 					"warning",
 				);
 				return file;
@@ -4715,7 +4715,7 @@ async function runProfilesPanelAction(
 			if (currentlyPinned) {
 				ctx.ui.notify(
 					[
-						`el Gentleman removed the ${result.source} pin for this ${scope} from ${sanitizeTerminalText(pinPath)}.`,
+						`Nub-IA removed the ${result.source} pin for this ${scope} from ${sanitizeTerminalText(pinPath)}.`,
 						result.source === "local"
 							? "This clone falls back to the repository declaration, then to the global routing."
 							: "This worktree falls back to the global routing; a local pin in the clone still outranks it.",
@@ -4730,11 +4730,11 @@ async function runProfilesPanelAction(
 			ctx.ui.notify(
 				result.source === "local"
 					? [
-						`el Gentleman pinned profile "${result.name}" for this clone in ${sanitizeTerminalText(pinPath)}.`,
+						`Nub-IA pinned profile "${result.name}" for this clone in ${sanitizeTerminalText(pinPath)}.`,
 						"Subagent launches in this repository resolve that profile at launch; the orchestrator and every other repository keep their global routing. Press p again to unpin.",
 					].join("\n")
 					: [
-						`el Gentleman declared profile "${result.name}" for this worktree in ${sanitizeTerminalText(pinPath)}.`,
+						`Nub-IA declared profile "${result.name}" for this worktree in ${sanitizeTerminalText(pinPath)}.`,
 						"Subagent launches resolve it at launch. Commit the file to share the routing; a local pin takes precedence over it. Press P again to remove the declaration.",
 					].join("\n") + sharingNote,
 				"info",
@@ -4748,7 +4748,7 @@ async function runProfilesPanelAction(
 				const text = serializeProfileExport(result.name, file.profiles[result.name]);
 				await mkdir(dirname(exportPath), { recursive: true });
 				await writeFile(exportPath, text);
-				ctx.ui.notify(`el Gentleman exported profile "${result.name}" to ${exportPath}.`, "info");
+				ctx.ui.notify(`Nub-IA exported profile "${result.name}" to ${exportPath}.`, "info");
 			} catch (error) {
 				ctx.ui.notify(`Profile export failed: ${profilesErrorMessage(error)}`, "warning");
 			}
@@ -4773,7 +4773,7 @@ async function runProfilesPanelAction(
 			}
 			if (parsed.droppedAgents.length > 0) {
 				ctx.ui.notify(
-					`el Gentleman dropped invalid routing entries while importing profile "${parsed.name}": ${parsed.droppedAgents.join(", ")}.`,
+					`Nub-IA dropped invalid routing entries while importing profile "${parsed.name}": ${parsed.droppedAgents.join(", ")}.`,
 					"warning",
 				);
 			}
@@ -4791,7 +4791,7 @@ async function runProfilesPanelAction(
 				writeProfilesFileSync(path, next);
 				const entries = Object.keys(parsed.config).length;
 				ctx.ui.notify(
-					`el Gentleman imported profile "${parsed.name}" (${entries} routing ${entries === 1 ? "entry" : "entries"}) from ${importPath}.`,
+					`Nub-IA imported profile "${parsed.name}" (${entries} routing ${entries === 1 ? "entry" : "entries"}) from ${importPath}.`,
 					"info",
 				);
 				return next;
@@ -4809,7 +4809,7 @@ async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): 
 	const read = readProfilesFileResult(path);
 	if (read.status === "invalid") {
 		ctx.ui.notify(
-			`el Gentleman cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run /gentle:profiles again.`,
+			`Nub-IA cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run /gentle:profiles again.`,
 			"warning",
 		);
 		return;
@@ -4821,12 +4821,12 @@ async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): 
 			writeProfilesFileSync(path, file);
 		} catch (error) {
 			ctx.ui.notify(
-				`el Gentleman could not create ${path}: ${profilesErrorMessage(error)}`,
+				`Nub-IA could not create ${path}: ${profilesErrorMessage(error)}`,
 				"warning",
 			);
 			return;
 		}
-		ctx.ui.notify(`el Gentleman seeded the "current" profile in ${path} from the routing currently in effect.`, "info");
+		ctx.ui.notify(`Nub-IA seeded the "current" profile in ${path} from the routing currently in effect.`, "info");
 	} else {
 		file = read.file;
 		reportProfilesDrops(ctx, path, read.drops);
@@ -4884,14 +4884,14 @@ async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): 
 async function handlePersonaCommand(ctx: ExtensionContext): Promise<void> {
 	const current = readPersonaMode(ctx.cwd);
 	const selected = await ctx.ui.select(
-		`el Gentleman persona (current: ${current})`,
+		`Nub-IA persona (current: ${current})`,
 		[...PERSONA_OPTIONS],
 	);
 	if (selected !== "gentleman" && selected !== "neutral") return;
 	const writtenPaths = writePersonaMode(ctx.cwd, selected);
 	ctx.ui.notify(
 		[
-			`el Gentleman persona set to: ${selected}`,
+			`Nub-IA persona set to: ${selected}`,
 			`Global config: ${personaConfigPath(ctx.cwd)}`,
 			...(writtenPaths.length > 1
 				? [`Project override updated: ${projectPersonaConfigPath(ctx.cwd)}`]
@@ -9874,23 +9874,22 @@ function createGentleAiExtensionForTesting(
 			const modelResult = await applySavedModelConfig(ctx);
 			if (ctx.hasUI && modelResult.invalidPath) {
 				ctx.ui.notify(
-					`el Gentleman skipped model config because ${modelResult.invalidPath} is invalid JSON or not an object. Fix or remove the file, then run /gentle:models again.`,
+					`Nub-IA skipped model config because ${modelResult.invalidPath} is invalid JSON or not an object. Fix or remove the file, then run /gentle:models again.`,
 					"warning",
 				);
 				return;
 			}
-			if (ctx.hasUI && modelResult.updated > 0) {
-				ctx.ui.notify(
-					`el Gentleman applied saved model config to ${modelResult.updated} agent(s). Global delegation/review assets ready: ${installResult.agents} new agent(s), ${installResult.chains} new chain(s), ${installResult.support} new support file(s).`,
-					"info",
-				);
-			}
+			// Routine startup housekeeping (model routing applied, managed assets
+			// refreshed) is silent: the counts are visible in /gentle:models and
+			// /gentle:doctor, and a notification every launch is noise. Only a
+			// failure (above and below) is surfaced.
+			void installResult;
 		} catch (error) {
 			if (ctx.hasUI) {
 				const message =
 					error instanceof Error ? error.message : String(error);
 				ctx.ui.notify(
-					`el Gentleman model config sweep failed: ${message}`,
+					`Nub-IA model config sweep failed: ${message}`,
 					"warning",
 				);
 			}
@@ -10078,21 +10077,21 @@ function createGentleAiExtensionForTesting(
 	}
 
 	pi.registerCommand("gentle:models", {
-		description: "Configure global per-agent models for el Gentleman.",
+		description: "Configure global per-agent models for Nub-IA agents.",
 		handler: async (_args, ctx) => {
 			await handleModelsCommand(ctx, pi);
 		},
 	});
 
 	pi.registerCommand("gentle:profiles", {
-		description: "Create, switch, and manage global agent-model profiles for el Gentleman.",
+		description: "Create, switch, and manage global agent-model profiles for Nub-IA agents.",
 		handler: async (_args, ctx) => {
 			await handleProfilesCommand(ctx, pi);
 		},
 	});
 
 	pi.registerCommand("gentle:persona", {
-		description: "Switch el Gentleman persona between gentleman and neutral.",
+		description: "Switch Nub-IA persona between gentleman and neutral.",
 		handler: async (_args, ctx) => {
 			await handlePersonaCommand(ctx);
 		},
@@ -10169,7 +10168,7 @@ function createGentleAiExtensionForTesting(
 			const engramActive = hasWritableEngramTool(pi);
 			const devBinary = await describeDevBinaryOverride();
 			const lines = [
-				"el Gentleman doctor",
+				"Nub-IA doctor",
 				...assetLines,
 				"pass: Organic Driven Development (ODD): active",
 				`${skillRegistryPresent ? "pass" : "warn"}: Skill registry ${skillRegistryPresent ? "present" : "missing"}`,
@@ -10351,7 +10350,7 @@ function createGentleAiExtensionForTesting(
 			const devBinary = await describeDevBinaryOverride();
 			ctx.ui.notify(
 				[
-					"el Gentleman package is active.",
+					"Nub-IA package is active.",
 					...(devBinary.state === "inactive" ? [] : [devBinary.line]),
 					`Persona: ${readPersonaMode(ctx.cwd)}`,
 					...assetLines,

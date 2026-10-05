@@ -30,17 +30,19 @@ const BANNER_PALETTES: Record<BannerColor, { rose: [number, number, number]; lab
   green: { rose: [110, 220, 145], label: [85, 175, 115], value: [145, 240, 170], logoFresh: [120, 230, 150], logoDim: [30, 95, 50] },
 };
 
+// Nubiral wordmark, traced from the brand PNG into quadrant blocks
+// (regenerate with `node scripts/trace-brand.mjs wordmark`).
 const TEXT_LOGO = [
-  "                  ██                             ██",
-  "                  ██         ██                  ██",
-  "███▀▀██▄  ██   ██ ██▄███▄        ██▄██▀ ▄████▄▄  ██",
-  "██    ██  ██   ██ ██    ██   ██  ██▀       ▄▄██  ██",
-  "██    ██  ██   ██ ██    ██   ██  ██     ██▀  ██  ██",
-  "██    ██  ▀██▄███ ██▄███▀    ██  ██     ▀██▄███  ██",
+  "                     ▄▄▖        ▗██▖                  ▐██",
+  "                     ██▌        ▝▀▀                   ▐██",
+  "██▙▟███▄  ▐██    ██▖ ██▙▟███▙▖  ▗██  ██▄▟█  ▄▟███▙▟██ ▐██",
+  "██▛▀ ▀██▙ ▐██    ██▌ ███▀▘▝▀██▙ ▐██  ███▀▀ ▟█▛▀▘▝▀███ ▐██",
+  "██▌   ▐██ ▐██    ██▌ ██▌    ▐██ ▐██  ██▌   ██▌    ▐██ ▐██",
+  "██▌   ▐██ ▐██▄ ▗▟██▌ ███▄  ▄██▛ ▐██  ██▌   ▜█▙▄ ▗▄███ ▐██",
+  "██▌   ▐█▛  ▀████▀██▘ ██▛▜███▛▀  ▝██  ██▘    ▀▜███▛▜██ ▐██",
 ];
 
-// Nubiral's infinity mark, rendered where the rose used to sit.
-// Nubiral isologo, traced from the brand PNG into braille (regenerate with scripts/trace-isologo.mjs).
+// Nubiral isologo, traced from the brand PNG into braille (regenerate with `node scripts/trace-brand.mjs isologo`).
 const ROSE_LARGE_RAW = [
   "          ⢀⣤⣶⣿⣿⣿⣿⣶⣦⡀  ",
   "         ⣴⣿⣿⡿⠛⠛⠛⠛⢿⣿⣿⣦⡀",
@@ -194,7 +196,7 @@ function buildLetterSpans(bounds: Span, weights: number[]): Span[] {
 
 const LOGO_BOUNDS = computeLogoBounds(TEXT_LOGO);
 // Variable-width script regions, including the gap before Shell and shadows.
-const LETTER_WEIGHTS = [10, 8, 9, 4, 7, 9, 4]; // n u b i r a l
+const LETTER_WEIGHTS = [9, 11, 11, 4, 6, 10, 3]; // n u b i r a l (column spans of the traced wordmark)
 const LETTER_SPANS = buildLetterSpans(LOGO_BOUNDS, LETTER_WEIGHTS);
 
 function letterIndexAtX(x: number): number {

@@ -14,22 +14,22 @@ import { stripAnsi } from "../lib/terminal-theme.ts";
 // child must still exercise the parent paths (gentle-shell#1690).
 delete process.env.GENTLE_PI_AGENTS_CHILD;
 
-test("startup artwork spells nubiral with aligned animation spans", () => {
+test("startup artwork is the traced Nubiral wordmark and isologo with aligned animation spans", () => {
 	const source = readFileSync(new URL("../extensions/startup-banner.ts", import.meta.url), "utf8");
 	const logo = JSON.parse(source.match(/const TEXT_LOGO = (\[[\s\S]*?\]);/)![1].replace(/,\s*]/, "]")) as string[];
 	const weights = JSON.parse(source.match(/const LETTER_WEIGHTS = (\[[^;]+\]);/)![1]) as number[];
 	const mark = JSON.parse(source.match(/const ROSE_LARGE_RAW = (\[[\s\S]*?\]);/)![1].replace(/,\s*]/, "]")) as string[];
-	assert.equal(logo.length, 6, "wordmark keeps its six-row block silhouette");
+	assert.equal(logo.length, 7, "wordmark is traced at seven rows");
+	assert.equal(mark.length, 7, "isologo is traced at seven rows, so both sit side by side");
 	assert.equal(weights.length, 7, "one variable-width span per n-u-b-i-r-a-l letter");
 	assert.ok(new Set(weights).size > 2, "spans follow letter widths, not a fixed block-font width");
-	assert.ok(logo.every((line) => /^[ ▄▀█]*$/.test(line)), "wordmark uses only block glyphs");
-	assert.ok(logo.slice(2).every((line) => line.startsWith("██") || line.startsWith("███")), "n stem anchors the baseline rows");
-	assert.ok(logo.slice(0, 2).every((line) => line.trimEnd().endsWith("██")), "l ascender spans the top rows");
-	assert.equal(logo[1].trim().split(/\s+/).length, 3, "b ascender, i dot, and l ascender share row 1");
-	assert.equal(logo[0].trim().split(/\s+/).length, 2, "only b and l reach row 0 (the i dot sits lower)");
-	assert.equal(Math.max(...logo.map((line) => line.length)), 51, "wordmark width stays terminal friendly");
-	assert.equal(mark.length, 7, "the isologo is traced at seven rows, one taller than the wordmark, and centred beside it");
-	assert.ok(mark.every((line) => /^[ \u2800-\u28ff]*$/.test(line)), "mark is drawn in braille so it reads as a fine line, distinct from the block wordmark");
+	assert.ok(logo.every((line) => /^[ ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█]*$/.test(line)), "wordmark uses only quadrant block glyphs, so it reads bold like the brand font");
+	assert.ok(mark.every((line) => /^[ \u2800-\u28ff]*$/.test(line)), "isologo is drawn in braille so its open cuts stay thin");
+	assert.ok(logo.slice(2).every((line) => line.startsWith("██")), "n stem anchors the x-height rows");
+	assert.ok(logo.every((line) => line.trimEnd().endsWith("██")), "l ascender spans every row");
+	assert.equal(logo[0].trim().split(/\s+/).length, 3, "b ascender, i dot, and l reach the top row");
+	assert.equal(logo[1].trim().split(/\s+/).length, 3, "the i dot's underside shows on row 1 above the gap");
+	assert.ok(Math.max(...logo.map((line) => line.length)) <= 60, "wordmark width stays terminal friendly");
 });
 
 test("startup branch lookup uses direct git argv and hides its Windows child", async () => {
