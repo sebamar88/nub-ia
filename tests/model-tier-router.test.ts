@@ -176,6 +176,10 @@ test("open-weight providers rank their own catalogs by capability then cost", ()
 	assert.equal(pick("balanced", nvidia), "nvidia/nvidia/nemotron-3-super-120b-a12b");
 	assert.equal(pick("fast", nvidia), "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b");
 	assert.equal(pick("fast", nvidia.filter((model) => !model.id.includes("lightning"))), "nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning");
+	// build.nvidia.com serves deepseek-v4.1-flash although Pi's static catalog does not list it yet; a user-added entry is picked up.
+	const withDeepseek = [...nvidia.filter((model) => !/nemotron|glm/.test(model.id)), m("nvidia", "deepseek-ai/deepseek-v4.1-flash", 0)];
+	assert.equal(pick("fast", withDeepseek), "nvidia/deepseek-ai/deepseek-v4.1-flash");
+	assert.equal(pick("balanced", withDeepseek), "nvidia/moonshotai/kimi-k3", "kimi still outranks deepseek flash for balanced");
 });
 
 test("llama.cpp matches whatever local model is loaded, and paid/cloud providers outrank it when present", () => {
