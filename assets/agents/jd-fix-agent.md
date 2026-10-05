@@ -1,6 +1,8 @@
 ---
 name: jd-fix-agent
 description: Judgment Day surgical fix agent for confirmed findings. Can edit code and run focused tests.
+model: amazon-bedrock/us.anthropic.claude-sonnet-5-5
+thinking: medium
 tools:
   - read
   - grep

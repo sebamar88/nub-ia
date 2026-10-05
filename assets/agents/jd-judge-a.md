@@ -1,6 +1,8 @@
 ---
 name: jd-judge-a
 description: Judgment Day blind adversarial reviewer A. Read-only; reports findings and does not fix code.
+model: amazon-bedrock/us.anthropic.claude-fable-5-1
+thinking: high
 tools:
   - "*": false
   - read

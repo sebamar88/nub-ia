@@ -1,6 +1,8 @@
 ---
 name: gentle-ai-explore
 description: Read-only exploration and mapping for generic ODD work.
+model: amazon-bedrock/us.anthropic.claude-sonnet-5-5
+thinking: low
 tools:
   - read
   - grep

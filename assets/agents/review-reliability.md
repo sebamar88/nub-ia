@@ -1,6 +1,8 @@
 ---
 name: review-reliability
 description: R3 Reliability reviewer — behavior-first tests, coverage value, edge cases, determinism, contracts, and regressions.
+model: amazon-bedrock/us.anthropic.claude-sonnet-5-5
+thinking: high
 tools:
   - "*": false
   - read

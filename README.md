@@ -53,8 +53,17 @@ Se conservan los nombres del upstream para no romper la compatibilidad interna:
 ### Guardrails de comandos
 
 `.pi/gentle-ai/runtime-guardrails.json` (versionado) define qué comandos del agente piden confirmación o se bloquean:
-`npm publish` está bloqueado (el paquete nunca se publica), y `git push`, `git rebase`, `git branch -D` y `pi remove` piden confirmación.
+`npm publish` está bloqueado (el paquete nunca se publica). `git push`, `git rebase`, `git branch -D` y `pi remove` piden
+confirmación por defecto sin necesidad de declararlos (declararlos como `confirm` impide que el modo YOLO los exima).
 Se puede sobreescribir por usuario en `~/.pi/gentle-ai/runtime-guardrails.json`.
+
+### Modelos por defecto de los agentes
+
+Cada agente del paquete (`assets/agents/*.md`) trae `model:` y `thinking:` en su frontmatter como default del equipo
+(Claude vía Amazon Bedrock: Sonnet para explore/worker/verify/fix/reliability/resilience/readability, Opus para review-risk y
+jd-judge-b, Fable para jd-judge-a). Quien use otro provider (Codex, Copilot, Anthropic directo) lo cambia con `/gentle:models`
+o con un perfil en `/gentle:profiles`; esa elección se guarda en `~/.pi/gentle-ai/models.json` y sobrevive a las actualizaciones
+del paquete.
 
 ## Qué cambia respecto a gentle-shell
 

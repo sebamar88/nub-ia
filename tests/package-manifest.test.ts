@@ -965,7 +965,7 @@ test("first forced sync migrates untouched v0.13 assets, preserves routing, and 
 		assert.match(migrated, /^thinking: xhigh$/m);
 		assert.equal(
 			migrated.replace(/^model: .*\n|^thinking: .*\n/gm, ""),
-			currentPackageSource,
+			currentPackageSource.replace(/^model: .*\n|^thinking: .*\n/gm, ""), // the package ships team default routing; user routing still wins
 			"migration must update the package body without losing user routing",
 		);
 		assert.equal(
@@ -1038,7 +1038,7 @@ test("first forced sync migrates untouched v0.14 review contracts and preserves 
 		);
 		assert.equal(
 			migrated.replace(/^model: .*\n|^thinking: .*\n/gm, ""),
-			currentPackageSource,
+			currentPackageSource.replace(/^model: .*\n|^thinking: .*\n/gm, ""),
 		);
 	} finally {
 		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
