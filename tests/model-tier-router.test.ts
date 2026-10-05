@@ -170,8 +170,9 @@ test("open-weight providers rank their own catalogs by capability then cost", ()
 	assert.equal(pick("strong-alt", opencodeGo), "opencode-go/deepseek-v4-pro", "the two judges never share a model");
 	assert.equal(pick("balanced", opencodeGo), "opencode-go/glm-5.3");
 	assert.equal(pick("fast", opencodeGo), "opencode-go/glm-5.3-flash");
-	assert.equal(pick("strong", nvidia), "nvidia/nvidia/nemotron-3-ultra-550b-a55b");
-	assert.equal(pick("strong-alt", nvidia), "nvidia/z-ai/glm-5.3");
+	assert.equal(pick("strong", nvidia), "nvidia/moonshotai/kimi-k3", "Kimi K3 is the strong pick on every provider that offers it");
+	assert.equal(pick("strong-alt", nvidia), "nvidia/nvidia/nemotron-3-ultra-550b-a55b");
+	assert.equal(pick("strong-alt", nvidia.filter((model) => !model.id.includes("ultra"))), "nvidia/z-ai/glm-5.3");
 	assert.equal(pick("balanced", nvidia), "nvidia/nvidia/nemotron-3-super-120b-a12b");
 	assert.equal(pick("fast", nvidia), "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b");
 	assert.equal(pick("fast", nvidia.filter((model) => !model.id.includes("lightning"))), "nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning");

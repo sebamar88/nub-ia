@@ -68,8 +68,8 @@ según `assets/model-tiers.json`:
 
 | Tier | Copilot / OpenCode Zen | Bedrock | OpenAI (suscripción) | OpenCode Go | NVIDIA | llama.cpp | Agentes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `strong` | claude-opus-5.5 | us.anthropic.claude-opus-5-5 | gpt-6-astra | kimi-k3 | nemotron-3-ultra | el modelo cargado | review-risk, jd-judge-b |
-| `strong-alt` | claude-fable / gpt-6-astra | us.anthropic.claude-fable-5-1 | gpt-6-astra | deepseek-v4-pro | glm-5.3 | el modelo cargado | jd-judge-a |
+| `strong` | claude-opus-5.5 | us.anthropic.claude-opus-5-5 | gpt-6-astra | kimi-k3 | kimi-k3 | el modelo cargado | review-risk, jd-judge-b |
+| `strong-alt` | claude-fable / gpt-6-astra | us.anthropic.claude-fable-5-1 | gpt-6-astra | deepseek-v4-pro | nemotron-3-ultra | el modelo cargado | jd-judge-a |
 | `balanced` | claude-sonnet-5.5 | us.anthropic.claude-sonnet-5-5 | gpt-6.1-sol | glm-5.3 | nemotron-3-super | el modelo cargado | worker, verify, explore, reliability, resilience, readability, jd-fix-agent |
 | `fast` | claude-haiku-4.5 | us.anthropic.claude-haiku-4-5 | gpt-6-luna | glm-5.3-flash | nemotron-3.5-lightning | el modelo cargado | — |
 
