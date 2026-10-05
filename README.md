@@ -50,6 +50,12 @@ Se conservan los nombres del upstream para no romper la compatibilidad interna:
 | `GENTLE_SHELL_NO_AUTO_SETUP=1` | No provisionar el home automáticamente en el primer arranque. |
 | `GENTLE_PI_SKIP_GENTLE_AI_INSTALL=1` | Saltar la descarga de `gentle-ai` en el postinstall (el review nativo deja de funcionar). |
 
+### Guardrails de comandos
+
+`.pi/gentle-ai/runtime-guardrails.json` (versionado) define qué comandos del agente piden confirmación o se bloquean:
+`npm publish` está bloqueado (el paquete nunca se publica), y `git push`, `git rebase`, `git branch -D` y `pi remove` piden confirmación.
+Se puede sobreescribir por usuario en `~/.pi/gentle-ai/runtime-guardrails.json`.
+
 ## Qué cambia respecto a gentle-shell
 
 - Nombre del paquete y comando: `nub-ia` (`bin/nub-ia.mjs`). `private: true`, se instala desde Git, no desde npm.
