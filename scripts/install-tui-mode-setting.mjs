@@ -23,6 +23,11 @@ const PI_MANAGED_SEGMENT_SEQUENCES = [
 // choice.
 export const DEFAULT_THEME_NAME = "Nub-IA";
 
+// Startup model of a freshly bootstrapped home: the balanced tier of the
+// Nub-IA router (extensions/nub-ia-router.ts), resolved per machine.
+export const DEFAULT_MODEL_PROVIDER = "nub-ia";
+export const DEFAULT_MODEL_ID = "balanced";
+
 // Pure merge: returns `value` with fullscreen tuiMode always applied, and —
 // only when `value` does not already declare a "theme" key — the default
 // theme above added too. No filesystem access, so it is unit-testable
@@ -31,6 +36,12 @@ export const DEFAULT_THEME_NAME = "Nub-IA";
 export function withIsolatedHomeDefaults(value) {
 	const next = { ...value, tuiMode: "fullscreen" };
 	if (!("theme" in value)) next.theme = DEFAULT_THEME_NAME;
+	// Nub-IA routes the main session through its tier router too, unless the
+	// home already chose a startup model.
+	if (!("defaultProvider" in value) && !("defaultModel" in value)) {
+		next.defaultProvider = DEFAULT_MODEL_PROVIDER;
+		next.defaultModel = DEFAULT_MODEL_ID;
+	}
 	return next;
 }
 

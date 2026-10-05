@@ -1,7 +1,7 @@
 ---
 name: gentle-ai-verify
 description: Read-only technical verification for generic ODD work.
-model: amazon-bedrock/us.anthropic.claude-sonnet-5-5
+model: nub-ia/balanced
 thinking: high
 tools:
   - read

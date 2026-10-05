@@ -1,7 +1,7 @@
 ---
 name: review-risk
 description: R1 Risk reviewer — security, privilege boundaries, data exposure, dependency risks, and merge-blocking vulnerabilities.
-model: amazon-bedrock/us.anthropic.claude-opus-5-5
+model: nub-ia/strong
 thinking: xhigh
 tools:
   - "*": false

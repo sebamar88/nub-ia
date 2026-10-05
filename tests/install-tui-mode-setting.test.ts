@@ -281,7 +281,7 @@ test("installIsolatedTuiModeSetting writes fullscreen and the default Nub-IA the
 	const dir = join(root, "gentle-shell", "agent");
 	mkdirSync(dir, { recursive: true });
 	assert.deepEqual(await installIsolatedTuiModeSetting(dir), { changed: true, recognized: true });
-	assert.deepEqual(JSON.parse(readFileSync(join(dir, "settings.json"), "utf8")), { tuiMode: "fullscreen", theme: "Nub-IA" });
+	assert.deepEqual(JSON.parse(readFileSync(join(dir, "settings.json"), "utf8")), { tuiMode: "fullscreen", theme: "Nub-IA", defaultProvider: "nub-ia", defaultModel: "balanced" });
 });
 
 test("installIsolatedTuiModeSetting preserves other settings fields already present, including an existing theme", async (t) => {
@@ -289,7 +289,7 @@ test("installIsolatedTuiModeSetting preserves other settings fields already pres
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	writeFileSync(join(root, "settings.json"), JSON.stringify({ tuiMode: "regular", theme: "rose" }));
 	assert.deepEqual(await installIsolatedTuiModeSetting(root), { changed: true, recognized: true });
-	assert.deepEqual(JSON.parse(readFileSync(join(root, "settings.json"), "utf8")), { tuiMode: "fullscreen", theme: "rose" });
+	assert.deepEqual(JSON.parse(readFileSync(join(root, "settings.json"), "utf8")), { tuiMode: "fullscreen", theme: "rose", defaultProvider: "nub-ia", defaultModel: "balanced" });
 });
 
 // --- DEFAULT_THEME_NAME / withIsolatedHomeDefaults (pure, no filesystem) -----
@@ -299,15 +299,15 @@ test("DEFAULT_THEME_NAME is Nub-IA", () => {
 });
 
 test("withIsolatedHomeDefaults sets fullscreen and the default theme on an empty settings object", () => {
-	assert.deepEqual(withIsolatedHomeDefaults({}), { tuiMode: "fullscreen", theme: "Nub-IA" });
+	assert.deepEqual(withIsolatedHomeDefaults({}), { tuiMode: "fullscreen", theme: "Nub-IA", defaultProvider: "nub-ia", defaultModel: "balanced" });
 });
 
 test("withIsolatedHomeDefaults never overwrites an already-declared theme", () => {
-	assert.deepEqual(withIsolatedHomeDefaults({ theme: "kanagawa" }), { tuiMode: "fullscreen", theme: "kanagawa" });
+	assert.deepEqual(withIsolatedHomeDefaults({ theme: "kanagawa" }), { tuiMode: "fullscreen", theme: "kanagawa", defaultProvider: "nub-ia", defaultModel: "balanced" });
 });
 
 test("withIsolatedHomeDefaults preserves unrelated fields", () => {
-	assert.deepEqual(withIsolatedHomeDefaults({ packages: ["npm:example"] }), { tuiMode: "fullscreen", theme: "Nub-IA", packages: ["npm:example"] });
+	assert.deepEqual(withIsolatedHomeDefaults({ packages: ["npm:example"] }), { tuiMode: "fullscreen", theme: "Nub-IA", defaultProvider: "nub-ia", defaultModel: "balanced", packages: ["npm:example"] });
 });
 
 test("installIsolatedTuiModeSetting is a no-op when already fullscreen", async (t) => {
@@ -378,3 +378,8 @@ for (const [name, packagePath] of [
 		});
 	}
 }
+
+test("withIsolatedHomeDefaults never overrides an already-declared startup model", () => {
+	assert.deepEqual(withIsolatedHomeDefaults({ defaultModel: "gpt-6.1-sol" }), { tuiMode: "fullscreen", theme: "Nub-IA", defaultModel: "gpt-6.1-sol" });
+	assert.deepEqual(withIsolatedHomeDefaults({ defaultProvider: "amazon-bedrock" }), { tuiMode: "fullscreen", theme: "Nub-IA", defaultProvider: "amazon-bedrock" });
+});

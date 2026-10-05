@@ -1,7 +1,7 @@
 ---
 name: jd-judge-b
 description: Judgment Day blind adversarial reviewer B. Read-only; independently reports findings and does not fix code.
-model: amazon-bedrock/us.anthropic.claude-opus-5-5
+model: nub-ia/strong
 thinking: xhigh
 tools:
   - "*": false

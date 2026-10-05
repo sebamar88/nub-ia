@@ -57,13 +57,30 @@ Se conservan los nombres del upstream para no romper la compatibilidad interna:
 confirmación por defecto sin necesidad de declararlos (declararlos como `confirm` impide que el modo YOLO los exima).
 Se puede sobreescribir por usuario en `~/.pi/gentle-ai/runtime-guardrails.json`.
 
-### Modelos por defecto de los agentes
+### Router de modelos por tier (`nub-ia/*`)
 
-Cada agente del paquete (`assets/agents/*.md`) trae `model:` y `thinking:` en su frontmatter como default del equipo
-(Claude vía Amazon Bedrock: Sonnet para explore/worker/verify/fix/reliability/resilience/readability, Opus para review-risk y
-jd-judge-b, Fable para jd-judge-a). Quien use otro provider (Codex, Copilot, Anthropic directo) lo cambia con `/gentle:models`
-o con un perfil en `/gentle:profiles`; esa elección se guarda en `~/.pi/gentle-ai/models.json` y sobrevive a las actualizaciones
-del paquete.
+Nub-IA registra cuatro modelos virtuales de Pi: `nub-ia/strong`, `nub-ia/strong-alt`, `nub-ia/balanced` y `nub-ia/fast`.
+Cada request hecho con uno de ellos se despacha a un modelo físico de **los providers con credenciales en esa máquina**,
+según `assets/model-tiers.json`:
+
+| Tier | Copilot | Bedrock | OpenAI (suscripción) | Agentes |
+| --- | --- | --- | --- | --- |
+| `strong` | claude-opus-5.5 | us.anthropic.claude-opus-5-5 | gpt-6-astra | review-risk, jd-judge-b |
+| `strong-alt` | gpt-6-astra | us.anthropic.claude-fable-5-1 | gpt-6-astra | jd-judge-a |
+| `balanced` | claude-sonnet-5.5 | us.anthropic.claude-sonnet-5-5 | gpt-6.1-sol | worker, verify, explore, reliability, resilience, readability, jd-fix-agent |
+| `fast` | claude-haiku-4.5 | us.anthropic.claude-haiku-4-5 | gpt-6-luna | — |
+
+Reglas: prioridad de providers Copilot → Bedrock → OpenAI (`openai`; `openai-codex` es el id legacy); dentro de un provider
+se prefiere Claude sobre GPT y de OpenAI solo la generación más nueva; entre varios matches gana la versión más alta y luego el
+más barato. Un turno nuevo mantiene el provider ya en uso (prompt cache); las continuaciones no cambian de modelo; si un
+provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo excluye por el resto de la rama de sesión.
+
+- Los agentes del paquete declaran `model: nub-ia/<tier>` en su frontmatter; funcionan igual para cualquier integrante sin configurar nada.
+- Un home nuevo arranca con `defaultProvider: nub-ia`, `defaultModel: balanced`; se cambia con `/model`.
+- El footer muestra `balanced • medium → claude-sonnet-5.5 • medium`; `/session` desglosa costos por modelo físico.
+- Para cambiar la política: editar `assets/model-tiers.json`, o sobreescribirlo por repo en `.pi/nub-ia/model-tiers.json`.
+- Para fijar un modelo concreto a un agente: `/gentle:models` o `/gentle:profiles` (gana sobre el tier).
+- Cada integrante hace `/login` una vez por provider que tenga (Copilot, OpenAI, o variables `AWS_*` para Bedrock).
 
 ## Qué cambia respecto a gentle-shell
 
@@ -71,6 +88,7 @@ del paquete.
 - Banner de inicio: símbolo infinito de Nubiral en lugar de la rosa, wordmark `nubiral` en lugar de `Gentle Shell`, paleta `lime` por defecto.
 - Tema por defecto `Nub-IA` (los temas `Gentle*` siguen disponibles).
 - Home aislado en `~/.nub-ia/` (config en `~/.nub-ia/config.json`).
+- Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).
 - Workflow de publicación a npm eliminado.
 
 Los identificadores internos (`gentle_review`, `GENTLE_PI_*`, nombres de archivos en `lib/`, comandos `/gentle:*`) se mantienen

@@ -1,7 +1,7 @@
 ---
 name: review-readability
 description: R2 Readability reviewer — naming, complexity, intention, maintainability, review size, and context clarity.
-model: amazon-bedrock/us.anthropic.claude-sonnet-5-5
+model: nub-ia/balanced
 thinking: medium
 tools:
   - "*": false

@@ -1,7 +1,7 @@
 ---
 name: review-resilience
 description: R4 Resilience reviewer — fallbacks, retry/backoff, graceful degradation, observability, load, rollback, and SLO risks.
-model: amazon-bedrock/us.anthropic.claude-sonnet-5-5
+model: nub-ia/balanced
 thinking: high
 tools:
   - "*": false
