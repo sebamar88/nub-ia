@@ -91,12 +91,21 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 `GENTLE_SHELL_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
 instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail`.
 
+### RTK: menos tokens por comando
+
+`extensions/rtk-rewrite.ts` reescribe cada comando de la herramienta `bash` con [`rtk rewrite`](https://github.com/rtk-ai/rtk)
+antes de ejecutarlo (`git status` → `rtk git status`, `pnpm test` → `rtk pnpm test`, …), que filtra y resume la salida
+antes de que llegue al modelo. Las reglas viven en rtk; la extensión solo delega. Requiere el binario `rtk` (>= 0.23) en el
+PATH: sin él todo pasa sin cambios y la barra de estado indica cómo instalarlo. `RTK_DISABLED=1` lo apaga en una sesión.
+No hace falta `rtk init`: viene en el paquete para todos los homes, aislados o `--link`.
+
 ## Qué cambia respecto a gentle-shell
 
 - Nombre del paquete y comando: `nub-ia` (`bin/nub-ia.mjs`). `private: true`, se instala desde Git, no desde npm.
 - Banner de inicio: isologo de Nubiral y wordmark `nubiral` (trazados en braille / bloques desde `assets/brand/nubiral-isologo.png` con `scripts/trace-brand.mjs`) en lugar de la rosa, wordmark `nubiral` en lugar de `Gentle Shell`, paleta `lime` por defecto.
 - Tema por defecto `Nub-IA` (los temas `Gentle*` siguen disponibles).
 - Home aislado en `~/.nub-ia/` (config en `~/.nub-ia/config.json`).
+- Reescritura de comandos con RTK (`extensions/rtk-rewrite.ts`).
 - Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).
 - Workflow de publicación a npm eliminado.
 

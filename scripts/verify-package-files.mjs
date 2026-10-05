@@ -40,6 +40,7 @@ const requiredPaths = [
   "assets/model-tiers.json",
   "extensions/gentle-ai.ts",
   "extensions/nub-ia-router.ts",
+  "extensions/rtk-rewrite.ts",
   "lib/model-tier-router.ts",
   "extensions/resume-hint.ts",
   "extensions/skill-registry.ts",
