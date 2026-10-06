@@ -56,11 +56,24 @@ export function describeScope(scope: DiffScope): string {
 	return scope.kind === "base" ? `changes since ${scope.ref}` : scope.kind === "staged" ? "staged changes" : "working tree changes";
 }
 
+/**
+ * A base ref the model may supply: branch/tag/remote names and commit ids
+ * only. Anything starting with `-` (a git option in disguise, e.g.
+ * `--output=/path`), containing `..`, whitespace, or shell-ish characters is
+ * refused before it reaches git. `--end-of-options` is passed as well, so even
+ * a ref that slips through can never be parsed as an option.
+ */
+export function isSafeGitRef(ref: string): boolean {
+	return /^[A-Za-z0-9][A-Za-z0-9._\/@{}~^-]{0,200}$/.test(ref) && !ref.includes("..") && !ref.includes("@{") && !ref.endsWith(".lock") && !ref.endsWith("/");
+}
+
 function diffArgs(scope: DiffScope): string[] {
-	const common = ["--no-color", "--no-ext-diff", "-U8", "--find-renames"];
-	if (scope.kind === "staged") return ["diff", "--cached", ...common];
-	if (scope.kind === "working") return ["diff", "HEAD", ...common];
-	return ["diff", `${scope.ref}...HEAD`, ...common];
+	// Options first, then --end-of-options, then revisions: git refuses any
+	// option-looking token after the marker (CWE-88).
+	const common = ["diff", "--no-color", "--no-ext-diff", "-U8", "--find-renames"];
+	if (scope.kind === "staged") return [...common, "--cached", "--end-of-options"];
+	if (scope.kind === "working") return [...common, "--end-of-options", "HEAD"];
+	return [...common, "--end-of-options", `${scope.ref}...HEAD`];
 }
 
 export const DIFF_MAX_BYTES = 400 * 1024;
@@ -77,6 +90,7 @@ export async function collectDiff(git: GitRunner, scope: DiffScope | { kind: "au
 	} else {
 		resolved = scope;
 	}
+	if (resolved.kind === "base" && !isSafeGitRef(resolved.ref)) return { error: `invalid baseRef ${JSON.stringify(resolved.ref)}: use a branch, tag, or commit id` };
 	const result = await git(diffArgs(resolved));
 	if (result.code !== 0) return { error: `git diff failed: ${result.stderr.trim() || `exit ${result.code}`}` };
 	const diff = result.stdout;

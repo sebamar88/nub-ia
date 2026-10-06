@@ -628,10 +628,10 @@ test("nub-ia setup installs the packaged team packages via pi's own install, in 
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /nub-ia: installing team package npm:@dietrichgebert\/ponytail into /);
+	assert.match(result.stderr, /nub-ia: installing team package npm:@dietrichgebert\/ponytail@4\.13\.0 into /);
 	const records = jsonRecords(result.stdout);
 	assert.equal(records.length, 1, result.stdout);
-	assert.deepEqual(records[0].args, ["install", "npm:@dietrichgebert/ponytail"]);
+	assert.deepEqual(records[0].args, ["install", "npm:@dietrichgebert/ponytail@4.13.0"]);
 	assert.equal(records[0].PI_CODING_AGENT_DIR, f.gentleShellHome);
 });
 

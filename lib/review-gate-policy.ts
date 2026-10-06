@@ -8,10 +8,13 @@
 //   strict             they are refused; run nub_review until APPROVE/WARN, then push
 //   off                the push is never gated
 //
-// Resolution, first hit wins: project file `.pi/nub-ia/review-gate.json`,
-// global file `<configHome>/review-gate.json`, env NUB_IA_REVIEW_GATE
-// (legacy alias none), default. A malformed file fails closed to `confirm`
-// and stays attributed to that file, mirroring background-subagents-policy.
+// Resolution: the user's choice is the global file, then NUB_IA_REVIEW_GATE,
+// then the default. A project file `.pi/nub-ia/review-gate.json` is
+// repository content (it may come from a clone, or be written by the model
+// through the write tool), so it may only TIGHTEN the user's choice: a
+// project `strict` wins over a user `confirm`, a project `off` never turns a
+// user's gate off. A malformed file fails closed to `confirm` and stays
+// attributed to that file.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
@@ -57,26 +60,38 @@ export interface ResolveReviewGateOptions {
 	env?: Record<string, string | undefined>;
 }
 
+const STRICTNESS: Record<ReviewGateMode, number> = { off: 0, confirm: 1, strict: 2 };
+
+function readModeFile(path: string): { present: boolean; mode?: ReviewGateMode; malformed: boolean } {
+	if (!existsSync(path)) return { present: false, malformed: false };
+	try {
+		const mode = parseReviewGateFile(readFileSync(path, "utf8"));
+		return { present: true, mode, malformed: mode === undefined };
+	} catch {
+		return { present: true, malformed: true };
+	}
+}
+
 export function resolveReviewGate(cwd: string, options: ResolveReviewGateOptions = {}): ReviewGateResolution {
 	const env = options.env ?? process.env;
 	const configHome = options.configHome ?? gentlePiConfigHome();
 	const projectFile = projectConfigReadPath(cwd, REVIEW_GATE_FILE);
 	const globalFile = configReadPath(configHome, REVIEW_GATE_FILE, env);
-	for (const [source, path] of [["project_file", projectFile], ["global_file", globalFile]] as const) {
-		if (!existsSync(path)) continue;
-		let decoded: ReviewGateMode | undefined;
-		try {
-			decoded = parseReviewGateFile(readFileSync(path, "utf8"));
-		} catch {
-			decoded = undefined;
-		}
-		return decoded === undefined
-			? { mode: DEFAULT_REVIEW_GATE_MODE, source, malformed: true, projectFile, globalFile }
-			: { mode: decoded, source, malformed: false, projectFile, globalFile };
+
+	// The user's own decision.
+	const global = readModeFile(globalFile);
+	let user: { mode: ReviewGateMode; source: ReviewGateSource; malformed: boolean };
+	if (global.present) user = { mode: global.mode ?? DEFAULT_REVIEW_GATE_MODE, source: "global_file", malformed: global.malformed };
+	else if (isReviewGateMode(env[REVIEW_GATE_ENV])) user = { mode: env[REVIEW_GATE_ENV] as ReviewGateMode, source: "environment", malformed: false };
+	else user = { mode: DEFAULT_REVIEW_GATE_MODE, source: "default", malformed: false };
+
+	// Repository content can only raise the bar.
+	const project = readModeFile(projectFile);
+	if (project.present) {
+		if (project.malformed) return { mode: STRICTNESS[user.mode] >= STRICTNESS.confirm ? user.mode : "confirm", source: "project_file", malformed: true, projectFile, globalFile };
+		if (STRICTNESS[project.mode!] > STRICTNESS[user.mode]) return { mode: project.mode!, source: "project_file", malformed: false, projectFile, globalFile };
 	}
-	const envValue = env[REVIEW_GATE_ENV];
-	if (isReviewGateMode(envValue)) return { mode: envValue, source: "environment", malformed: false, projectFile, globalFile };
-	return { mode: DEFAULT_REVIEW_GATE_MODE, source: "default", malformed: false, projectFile, globalFile };
+	return { ...user, projectFile, globalFile };
 }
 
 /** Writes the global policy file (always the nub-ia config home), returning its path. */
@@ -94,7 +109,8 @@ export function describeReviewGate(resolution: ReviewGateResolution): string {
 		: resolution.source === "environment" ? `${REVIEW_GATE_ENV} environment variable`
 		: "default";
 	const broken = resolution.malformed ? " (file malformed: failed closed to confirm)" : "";
-	return `Review gate: ${resolution.mode} — decided by ${where}${broken}.`;
+	const note = resolution.source === "project_file" ? " A repository file can only tighten your setting, never relax it." : "";
+	return `Review gate: ${resolution.mode} — decided by ${where}${broken}.${note}`;
 }
 
 /** The `/nubia:review-mode` sub-actions mapped to modes; `enable` restores the default confirm mode. */

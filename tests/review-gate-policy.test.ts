@@ -33,12 +33,23 @@ test("resolveReviewGate: project file, then global file, then env, then default 
 	const globalPath = writeGlobalReviewGate("strict", configHome);
 	assert.equal(globalPath, join(configHome, "review-gate.json"));
 	assert.deepEqual([resolveReviewGate(cwd, { configHome, env }).mode, resolveReviewGate(cwd, { configHome, env }).source], ["strict", "global_file"]);
+	// Repository content can only tighten the user's choice (CWE-807): a
+	// project "confirm" or "off" never relaxes the user's "strict"…
 	mkdirSync(join(cwd, ".pi", "nub-ia"), { recursive: true });
-	writeFileSync(join(cwd, ".pi", "nub-ia", "review-gate.json"), JSON.stringify({ schema: REVIEW_GATE_SCHEMA, mode: "confirm" }));
-	assert.deepEqual([resolveReviewGate(cwd, { configHome, env }).mode, resolveReviewGate(cwd, { configHome, env }).source], ["confirm", "project_file"]);
+	for (const weaker of ["confirm", "off"]) {
+		writeFileSync(join(cwd, ".pi", "nub-ia", "review-gate.json"), JSON.stringify({ schema: REVIEW_GATE_SCHEMA, mode: weaker }));
+		assert.deepEqual([resolveReviewGate(cwd, { configHome, env }).mode, resolveReviewGate(cwd, { configHome, env }).source], ["strict", "global_file"], weaker);
+	}
+	// …while a project "strict" does override a user "confirm".
+	writeGlobalReviewGate("confirm", configHome);
+	writeFileSync(join(cwd, ".pi", "nub-ia", "review-gate.json"), JSON.stringify({ schema: REVIEW_GATE_SCHEMA, mode: "strict" }));
+	assert.deepEqual([resolveReviewGate(cwd, { configHome, env }).mode, resolveReviewGate(cwd, { configHome, env }).source], ["strict", "project_file"]);
+	writeGlobalReviewGate("off", configHome);
+	writeFileSync(join(cwd, ".pi", "nub-ia", "review-gate.json"), JSON.stringify({ schema: REVIEW_GATE_SCHEMA, mode: "off" }));
+	assert.equal(resolveReviewGate(cwd, { configHome, env }).mode, "off", "the user may still turn it off themselves");
 	writeFileSync(join(cwd, ".pi", "nub-ia", "review-gate.json"), "{broken");
 	const broken = resolveReviewGate(cwd, { configHome, env });
-	assert.deepEqual([broken.mode, broken.source, broken.malformed], ["confirm", "project_file", true]);
+	assert.deepEqual([broken.mode, broken.source, broken.malformed], ["confirm", "project_file", true], "a malformed project file fails closed to at least confirm");
 	assert.match(describeReviewGate(broken), /Review gate: confirm — decided by project file .*malformed/);
 });
 

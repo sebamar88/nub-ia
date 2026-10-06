@@ -32,3 +32,8 @@ allowBuilds:
   esbuild: false
   koffi: true
   protobufjs: true
+
+# brace-expansion <5.0.12 (transitive via pi-coding-agent > minimatch) has three
+# ReDoS/recursion advisories; the patched line is the same major, so force it.
+overrides:
+  brace-expansion: ">=5.0.12"

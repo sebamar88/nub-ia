@@ -71,9 +71,45 @@ export async function rewriteWithRtk(exec: ExecLike, command: string, signal?: A
 	if (result.killed || (result.code !== 0 && result.code !== 3)) return undefined;
 	const rewritten = result.stdout.trim();
 	if (rewritten.length === 0 || rewritten === command) return undefined;
+	// The rewrite runs after every other tool_call guard evaluated the
+	// original command (extensions load alphabetically; this one is last). A
+	// rewrite may therefore only wrap the original with rtk: new control
+	// characters, separators, redirections, substitutions, or a longer tail
+	// than "rtk " + original would mean executing something nobody evaluated.
+	if (!isSafeRewrite(command, rewritten)) return undefined;
 	// `rtk rewrite` emits a bare `rtk …`; when rtk is not on PATH the command
 	// must name the binary that answered, so the rewrite stays runnable.
 	return binary === "rtk" || !rewritten.startsWith("rtk ") ? rewritten : `${quoteForShell(binary)}${rewritten.slice(3)}`;
+}
+
+/**
+ * Accept a rewrite only when it is the original command with `rtk ` (or the
+ * resolved rtk binary) prefixed at the start of the same shell segments, and
+ * nothing else changed. rtk's rules may also drop/insert its own flags
+ * right after the `rtk <sub>` head, so the check is: strip every
+ * occurrence of a leading rtk prefix per segment and compare the remainder
+ * after collapsing whitespace; and the rewrite may not introduce control
+ * characters or shell metacharacters the original did not have.
+ */
+export function isSafeRewrite(original: string, rewritten: string): boolean {
+	if (/[\0\r\n]/.test(rewritten)) return false;
+	const meta = (text: string) => new Set(text.match(/[;&|<>`$(){}\\]/g) ?? []);
+	for (const char of meta(rewritten)) if (!meta(original).has(char)) return false;
+	const stripRtk = (text: string) => text.replace(/(^|[;&|]\s*)(?:'[^']*rtk(?:\.exe)?'|"[^"]*rtk(?:\.exe)?"|\S*rtk(?:\.exe)?)\s+/g, "$1");
+	const normalize = (text: string) => stripRtk(text).replace(/\s+/g, " ").trim();
+	const base = normalize(original);
+	const next = normalize(rewritten);
+	if (next === base) return true;
+	// rtk may add its own flags immediately after the subcommand head
+	// (e.g. `rtk git log --oneline` → `rtk git log --oneline -n 20` is NOT
+	// accepted: only removals/insertions of tokens starting with "-" and no
+	// new words are tolerated).
+	// rtk may add plain flags (`-n 20`, `--stat`) but never new words, paths,
+	// or flag values with paths (no slashes or colons in an added value).
+	const isFlagLike = (token: string) => /^-[A-Za-z0-9-]+(=[A-Za-z0-9._-]*)?$/.test(token) || /^[0-9]+$/.test(token);
+	const words = (text: string) => text.split(" ").filter((token) => token.length > 0 && !isFlagLike(token));
+	const added = next.split(" ").filter((token) => token.length > 0 && !base.split(" ").includes(token));
+	return words(next).join(" ") === words(base).join(" ") && added.every(isFlagLike);
 }
 
 /**

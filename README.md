@@ -148,6 +148,15 @@ en JSON; se consolidan en un reporte markdown en `.pi/nub-ia/reviews/<fecha>-<ha
 - **Gate de push**: antes de un `git push`, si los cambios a entregar no tienen review, el review fue de otro diff, o el veredicto fue BLOCK/INCOMPLETE, actúa según `/nubia:review-mode`: `confirm` (default) pide confirmación, `strict` rechaza el push hasta que haya un review APPROVE/WARN del diff, `disable` lo apaga. Se guarda en `~/.pi/nub-ia/review-gate.json`; un `.pi/nub-ia/review-gate.json` en el repo lo fija para el equipo y `NUB_IA_REVIEW_GATE` lo fuerza por sesión.
 - **Status**: el panel muestra el bloque "Review" con el último veredicto, su antigüedad y si el diff cambió desde entonces; se oculta desde `/nubia:customize` (sección review).
 
+### Seguridad
+
+- Los archivos de política dentro de un repo (`.pi/nub-ia/review-gate.json`) solo pueden **endurecer** la configuración del usuario, nunca relajarla: un clon o el propio modelo no pueden apagar el gate de push.
+- `nub_review` valida `baseRef` (solo ramas/tags/commits) y pasa `--end-of-options` a git, así una referencia no puede convertirse en una opción (`--output=…`).
+- La reescritura con rtk se acepta solo si el comando resultante es el original con `rtk` adelante (sin separadores, redirecciones ni sustituciones nuevas); si no, se ejecuta el original ya evaluado por los guardrails.
+- Los reportes de review (contienen el diff) se escriben con permisos 0600 en un directorio 0700 y se excluyen del repo del usuario vía `.git/info/exclude`.
+- Dependencias: rtk con SHA-256 pinneado por plataforma; ponytail pinneado a una versión exacta; `pnpm audit` limpio (override de `brace-expansion` en `pnpm-workspace.yaml`); `minimumReleaseAge` de 3 días para todo lo nuevo.
+- Límites conocidos: los guardrails de bash y el gate son redes de seguridad basadas en patrones, no un sandbox; `nub-ia update` confía en el remoto `origin` (no verifica firmas).
+
 ### RTK: menos tokens por comando
 
 `extensions/rtk-rewrite.ts` reescribe cada comando de la herramienta `bash` con [`rtk rewrite`](https://github.com/rtk-ai/rtk)

@@ -13,7 +13,7 @@
 //
 // Pure logic (diff collection, parsing, consolidation, gate decision) lives in
 // lib/nub-review.ts; this file wires it to Pi.
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -64,6 +64,26 @@ export function packagedLensTier(lens: ReviewLens, root = PACKAGE_ROOT): string 
 const LENS_TIMEOUT_MS = 6 * 60_000;
 const DIFF_PROMPT_HEAD = "Review the following unified diff. Only the lines this diff adds, removes, or changes are in scope; surrounding context is for understanding only.\n\n```diff\n";
 
+/** Adds `pattern` to the repository's private .git/info/exclude once (no-op outside a Git worktree or when already present). */
+export function excludeFromRepository(cwd: string, pattern: string): void {
+	try {
+		const gitDir = execFileSyncQuiet("git", ["-C", cwd, "rev-parse", "--git-common-dir"]);
+		if (!gitDir) return;
+		const excludePath = join(gitDir.startsWith("/") || /^[A-Za-z]:/.test(gitDir) ? gitDir : join(cwd, gitDir), "info", "exclude");
+		mkdirSync(join(excludePath, ".."), { recursive: true });
+		const current = (() => { try { return readFileSync(excludePath, "utf8"); } catch { return ""; } })();
+		if (current.split(/\r?\n/).some((line) => line.trim() === pattern)) return;
+		writeFileSync(excludePath, `${current.endsWith("\n") || current === "" ? current : `${current}\n`}# Nub-IA review reports (contain diffs)\n${pattern}\n`, "utf8");
+	} catch {
+		// Best effort: an unwritable exclude file must not fail the review.
+	}
+}
+
+function execFileSyncQuiet(command: string, args: string[]): string | undefined {
+	const result = spawnSync(command, args, { encoding: "utf8", windowsHide: true, stdio: ["ignore", "pipe", "ignore"] });
+	return result.status === 0 ? result.stdout.trim() : undefined;
+}
+
 export function reviewStateDir(cwd: string): string {
 	return join(cwd, ".pi", "nub-ia", "reviews");
 }
@@ -103,7 +123,7 @@ export async function pushDiffHash(cwd: string): Promise<string | undefined> {
 		base = remoteHead.code === 0 ? remoteHead.stdout.trim() : undefined;
 	}
 	if (!base) return undefined;
-	const diff = await git(["diff", `${base}...HEAD`, "--no-color", "--no-ext-diff", "-U8", "--find-renames"]);
+	const diff = await git(["diff", "--no-color", "--no-ext-diff", "-U8", "--find-renames", "--end-of-options", `${base}...HEAD`]);
 	if (diff.code !== 0 || diff.stdout.trim() === "") return undefined;
 	return hashDiff(diff.stdout);
 }
@@ -210,12 +230,16 @@ export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind
 	for (const lens of missing) lenses.push({ lens, model: "(none)", findings: [], error: "agent definition not installed" });
 
 	const report = buildReport({ scope: collected.scope, diff: collected.diff, lenses });
+	// Reports embed the diff (which may be exactly the secret a lens flagged):
+	// owner-only permissions, and the directory is excluded from the user's
+	// repository through .git/info/exclude (never by editing their .gitignore).
 	const dir = reviewStateDir(ctx.cwd);
-	mkdirSync(dir, { recursive: true });
+	mkdirSync(dir, { recursive: true, mode: 0o700 });
+	excludeFromRepository(ctx.cwd, ".pi/nub-ia/reviews/");
 	const reportPath = join(dir, `${new Date().toISOString().replace(/[:.]/g, "-")}-${report.diffHash}.md`);
-	writeFileSync(reportPath, `${report.markdown}\n`, "utf8");
+	writeFileSync(reportPath, `${report.markdown}\n`, { encoding: "utf8", mode: 0o600 });
 	const last: LastReview = { diffHash: report.diffHash, verdict: report.verdict, reportPath, when: new Date().toISOString() };
-	writeFileSync(lastReviewPath(ctx.cwd), `${JSON.stringify(last, null, 2)}\n`, "utf8");
+	writeFileSync(lastReviewPath(ctx.cwd), `${JSON.stringify(last, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
 	return { ok: true, summary: summarizeReport(report, reportPath), reportPath, findings: report.findings };
 }
 
@@ -289,7 +313,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 			try {
 				const path = writeGlobalReviewGate(mode);
 				const after = resolveReviewGate(ctx.cwd);
-				const shadowed = after.source === "project_file" ? ` A project file (${after.projectFile}) still decides here: ${after.mode}.` : "";
+				const shadowed = after.source === "project_file" ? ` A project file (${after.projectFile}) tightens it here to ${after.mode}.` : "";
 				ctx.ui.notify(`Review gate set to ${mode} in ${path}.${shadowed}`, "info");
 			} catch (error) {
 				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");

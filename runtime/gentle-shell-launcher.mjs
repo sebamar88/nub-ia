@@ -533,7 +533,10 @@ export function settingsDeclareGentlePi(settingsText                    )       
 export const TEAM_PACKAGE_SOURCES                    = [
 	// ponytail: "lazy senior dev" mode — YAGNI, stdlib first, shortest working
 	// solution. Extension (per-turn ruleset) + /ponytail* skills.
-	"npm:@dietrichgebert/ponytail",
+	// Pinned on purpose: this runs as an extension in every teammate's agent
+	// with their privileges, so a new version is adopted by bumping here after
+	// reading its diff, never implicitly on install.
+	"npm:@dietrichgebert/ponytail@4.13.0",
 ];
 
 export function resolveTeamPackageSources(env                   )           {
