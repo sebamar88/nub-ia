@@ -13,16 +13,16 @@ Requisitos: Node >= 22.19, pnpm 11, y `pi` (`@earendil-works/pi-coding-agent` >=
 Camino principal (Pi gestiona y actualiza el paquete; su `postinstall` descarga el binario rtk pinneado):
 
 ```bash
-pi install git:github.com/NUBIRAL_ORG/nub-ia
-node ~/.pi/agent/git/github.com/NUBIRAL_ORG/nub-ia/bin/nub-ia.mjs   # primera ejecución: provisiona ~/.nub-ia/agent
+pi install git:github.com/sebamar88/nub-ia
+node ~/.pi/agent/git/github.com/sebamar88/nub-ia/bin/nub-ia.mjs   # primera ejecución: provisiona ~/.nub-ia/agent
 # o, para tener el comando `nub-ia` en PATH:
-cd ~/.pi/agent/git/github.com/NUBIRAL_ORG/nub-ia && pnpm link --global
+cd ~/.pi/agent/git/github.com/sebamar88/nub-ia && pnpm link --global
 ```
 
 Alternativa para desarrollo (clon propio):
 
 ```bash
-git clone https://github.com/NUBIRAL_ORG/nub-ia.git
+git clone https://github.com/sebamar88/nub-ia.git
 cd nub-ia
 pnpm install          # el postinstall descarga el binario rtk pinneado
 pnpm link --global    # expone el comando `nub-ia`
@@ -180,7 +180,7 @@ El código se distribuye bajo la [licencia MIT](LICENSE) del proyecto original.
 `gentle-shell`, `gentle-pi` y sus logos son marcas de Alan Buscaglia (ver [`docs/UPSTREAM-TRADEMARKS.md`](docs/UPSTREAM-TRADEMARKS.md));
 este fork usa nombre y branding propios conforme a esa política. `Nubiral` y su logo pertenecen a Nubiral.
 
-## Antes de publicar
+## Mover el repo a la organización
 
-`NUBIRAL_ORG` es un placeholder: cuando exista el repo del equipo, reemplazalo con
-`sed -i 's/NUBIRAL_ORG/<org>/g' package.json README.md`.
+Hoy vive en `github.com/sebamar88/nub-ia`. Cuando pase a la organización, basta con
+`sed -i 's#github.com/sebamar88/nub-ia#github.com/<org>/nub-ia#g' package.json README.md install.sh install.ps1` y actualizar el remote.

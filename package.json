@@ -22,7 +22,7 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/NUBIRAL_ORG/nub-ia.git"
+		"url": "git+https://github.com/sebamar88/nub-ia.git"
 	},
 	"files": [
 		"assets/",
@@ -52,7 +52,7 @@
 		"install:rtk": "node scripts/install-rtk.mjs"
 	},
 	"pi": {
-		"image": "https://raw.githubusercontent.com/NUBIRAL_ORG/nub-ia/main/assets/nub-ia-logo.png",
+		"image": "https://raw.githubusercontent.com/sebamar88/nub-ia/main/assets/nub-ia-logo.png",
 		"extensions": [
 			"./extensions"
 		],
