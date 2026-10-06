@@ -3,18 +3,29 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/sebamar88/nub-ia/main/install.sh | sh
 #
-# Clones (or updates) the private repository over SSH into $NUB_IA_DIR
+# Clones (or updates) the repository into $NUB_IA_DIR
 # (default ~/.nub-ia/app), installs its dependencies (the postinstall downloads
 # the pinned rtk binary, SHA-256 verified), and puts a `nub-ia` command on
 # your PATH via a small wrapper in $NUB_IA_BIN (default ~/.local/bin).
 # Idempotent: run it again to update. Never uses sudo.
 #
-# Requirements: git with an SSH key authorised on github.com for the repo,
-# Node.js >= 22.19, and pi (@earendil-works/pi-coding-agent). pnpm is used
-# through corepack/npx when not installed.
+# Requirements: git, Node.js >= 22.19, and pi (@earendil-works/pi-coding-agent).
+# pnpm is used through corepack/npx when not installed.
+#
+# The clone uses HTTPS by default (works for a public repository with no
+# setup). For a private repository, or to use your SSH key, set
+#   NUB_IA_REPO=git@github.com:sebamar88/nub-ia.git   (or an ~/.ssh/config alias)
+# or NUB_IA_PROTOCOL=ssh.
 set -eu
 
-REPO="${NUB_IA_REPO:-git@github.com:sebamar88/nub-ia.git}"
+GITHUB_PATH="sebamar88/nub-ia"
+if [ -n "${NUB_IA_REPO:-}" ]; then
+	REPO="$NUB_IA_REPO"
+elif [ "${NUB_IA_PROTOCOL:-https}" = "ssh" ]; then
+	REPO="git@github.com:$GITHUB_PATH.git"
+else
+	REPO="https://github.com/$GITHUB_PATH.git"
+fi
 BRANCH="${NUB_IA_BRANCH:-main}"
 APP="${NUB_IA_DIR:-$HOME/.nub-ia/app}"
 BIN="${NUB_IA_BIN:-$HOME/.local/bin}"
@@ -38,9 +49,14 @@ if [ -d "$APP/.git" ]; then
 	git -C "$APP" checkout -q "$BRANCH"
 	git -C "$APP" pull -q --ff-only origin "$BRANCH"
 else
-	say "cloning $REPO into $APP (SSH; your GitHub key must have access)"
+	say "cloning $REPO into $APP"
 	mkdir -p "$(dirname "$APP")"
-	git clone -q --branch "$BRANCH" "$REPO" "$APP"
+	if ! GIT_TERMINAL_PROMPT=0 git clone -q --branch "$BRANCH" "$REPO" "$APP"; then
+		case "$REPO" in
+			https://*) die "clone failed. If the repository is private, use your SSH key: NUB_IA_PROTOCOL=ssh sh install.sh  (or NUB_IA_REPO=git@github.com:$GITHUB_PATH.git)";;
+			*) die "clone failed over SSH: check that your GitHub key has access to $GITHUB_PATH (ssh -T git@github.com)";;
+		esac
+	fi
 fi
 
 say "installing dependencies (this downloads the pinned rtk binary)"

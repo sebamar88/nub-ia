@@ -2,19 +2,26 @@
 #
 #   irm https://raw.githubusercontent.com/sebamar88/nub-ia/main/install.ps1 | iex
 #
-# Clones (or updates) the private repository over SSH into $env:NUB_IA_DIR
+# Clones (or updates) the repository into $env:NUB_IA_DIR
 # (default %LOCALAPPDATA%\nub-ia\app), installs its dependencies (the
 # postinstall downloads the pinned rtk binary, SHA-256 verified), and puts a
 # `nub-ia` command on the user PATH via %LOCALAPPDATA%\nub-ia\bin\nub-ia.cmd.
 # Idempotent: run it again to update. Never asks for elevation.
 #
-# Requirements: Git for Windows (Git Bash is what pi uses for its bash tool)
-# with an SSH key authorised on github.com for the repo, Node.js >= 22.19, and
-# pi (@earendil-works/pi-coding-agent). pnpm is used through corepack/npx when
-# not installed.
+# Requirements: Git for Windows (Git Bash is what pi uses for its bash tool),
+# Node.js >= 22.19, and pi (@earendil-works/pi-coding-agent). pnpm is used
+# through corepack/npx when not installed.
+#
+# The clone uses HTTPS by default (works for a public repository with no
+# setup). For a private repository, or to use your SSH key, set
+#   $env:NUB_IA_REPO = "git@github.com:sebamar88/nub-ia.git"
+# or $env:NUB_IA_PROTOCOL = "ssh".
 $ErrorActionPreference = "Stop"
 
-$Repo = if ($env:NUB_IA_REPO) { $env:NUB_IA_REPO } else { "git@github.com:sebamar88/nub-ia.git" }
+$GithubPath = "sebamar88/nub-ia"
+$Repo = if ($env:NUB_IA_REPO) { $env:NUB_IA_REPO }
+	elseif ($env:NUB_IA_PROTOCOL -eq "ssh") { "git@github.com:$GithubPath.git" }
+	else { "https://github.com/$GithubPath.git" }
 $Branch = if ($env:NUB_IA_BRANCH) { $env:NUB_IA_BRANCH } else { "main" }
 $App = if ($env:NUB_IA_DIR) { $env:NUB_IA_DIR } else { Join-Path $env:LOCALAPPDATA "nub-ia\app" }
 $Bin = if ($env:NUB_IA_BIN) { $env:NUB_IA_BIN } else { Join-Path $env:LOCALAPPDATA "nub-ia\bin" }
@@ -38,9 +45,14 @@ if (Test-Path (Join-Path $App ".git")) {
 	git -C $App checkout -q $Branch
 	git -C $App pull -q --ff-only origin $Branch
 } else {
-	Say "cloning $Repo into $App (SSH; your GitHub key must have access)"
+	Say "cloning $Repo into $App"
 	New-Item -ItemType Directory -Force -Path (Split-Path $App) | Out-Null
+	$env:GIT_TERMINAL_PROMPT = "0"
 	git clone -q --branch $Branch $Repo $App
+	if ($LASTEXITCODE -ne 0) {
+		if ($Repo -like "https://*") { throw "clone failed. If the repository is private, use your SSH key: `$env:NUB_IA_PROTOCOL='ssh'; irm .../install.ps1 | iex  (or `$env:NUB_IA_REPO='git@github.com:$GithubPath.git')" }
+		throw "clone failed over SSH: check that your GitHub key has access to $GithubPath (ssh -T git@github.com)"
+	}
 }
 if ($LASTEXITCODE -ne 0) { throw "git failed" }
 

@@ -8,8 +8,8 @@ y la configuración del equipo. No es una distribución oficial de gentle-shell 
 
 ## Instalación
 
-Requisitos: git con una clave SSH autorizada en GitHub para este repo (es privado), Node >= 22.19 y `pi`
-(`@earendil-works/pi-coding-agent`; el instalador lo instala con npm si falta). pnpm se usa vía corepack/npx si no está.
+Requisitos: git, Node >= 22.19 y `pi` (`@earendil-works/pi-coding-agent`; el instalador lo instala con npm si falta).
+pnpm se usa vía corepack/npx si no está.
 
 **Linux / macOS**
 
@@ -23,13 +23,20 @@ curl -fsSL https://raw.githubusercontent.com/sebamar88/nub-ia/main/install.sh | 
 irm https://raw.githubusercontent.com/sebamar88/nub-ia/main/install.ps1 | iex
 ```
 
-El instalador clona el repo por SSH en `~/.nub-ia/app` (Windows: `%LOCALAPPDATA%\nub-ia\app`), instala las dependencias
-(el `postinstall` descarga el binario `rtk` pinneado y verificado), y deja el comando `nub-ia` en `~/.local/bin`
-(Windows: `%LOCALAPPDATA%\nub-ia\bin`, agregado al PATH del usuario). Es idempotente y nunca pide sudo/elevación.
-Variables: `NUB_IA_DIR`, `NUB_IA_BIN`, `NUB_IA_REPO` (p. ej. un alias SSH), `NUB_IA_BRANCH`.
+El instalador clona el repo en `~/.nub-ia/app` (Windows: `%LOCALAPPDATA%\nub-ia\app`), instala las dependencias (el
+`postinstall` descarga el binario `rtk` pinneado y verificado), y deja el comando `nub-ia` en `~/.local/bin` (Windows:
+`%LOCALAPPDATA%\nub-ia\bin`, agregado al PATH del usuario). Es idempotente y nunca pide sudo/elevación.
 
-Como el repo es privado, `raw.githubusercontent.com` también pide autenticación: si el `curl`/`irm` devuelve 404, cloná
-el repo y ejecutá `sh install.sh` / `.\install.ps1` desde el clon (hace lo mismo).
+| Repo | Cómo clona | Qué hace falta |
+| --- | --- | --- |
+| Público | HTTPS (default) | Nada. |
+| Privado | SSH: `NUB_IA_PROTOCOL=ssh` o `NUB_IA_REPO=git@github.com:sebamar88/nub-ia.git` (acepta alias de `~/.ssh/config`) | Clave SSH con acceso al repo. `raw.githubusercontent.com` también pide auth: cloná y corré `sh install.sh` / `.\install.ps1` desde el clon. |
+
+Otras variables: `NUB_IA_DIR`, `NUB_IA_BIN`, `NUB_IA_BRANCH`.
+
+Con el repo público también sirve Pi directamente: `pi install git:github.com/sebamar88/nub-ia` (Pi clona, corre el
+`postinstall` y actualiza con `pi update`; no crea el comando `nub-ia`: lanzá `node ~/.pi/agent/git/github.com/sebamar88/nub-ia/bin/nub-ia.mjs`
+o usá `pi` a secas con el paquete cargado).
 
 Después:
 
