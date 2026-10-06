@@ -2,8 +2,15 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { EFFORTS, ORCHESTRATOR_AGENT_CLASS, RuntimeMetrics, UNKNOWN_AGENT_CLASS, type FinalResponse, type TokenMeasurement } from "../lib/runtime-metrics.ts";
 import { CHILD_METRICS_EVENT, CHILD_METRICS_REVOKED, snapshotChildEvent, type ChildLaunchBucket } from "../lib/runtime-metrics-children.ts";
 import { RuntimeMetricsAttempt } from "../lib/runtime-metrics-delivery.ts";
-import { sendNativeRuntimeEvent, type NativeRuntimeTransportDeps } from "../lib/runtime-metrics-native.ts";
 import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
+
+/** Delivery seam. The in-process collector has no built-in sink (the external
+ * gentle-ai binary transport was removed), so without an injected `send` the
+ * aggregated rows are simply dropped.
+ */
+export type RuntimeMetricsSend = (rows: ReturnType<RuntimeMetrics["snapshot"]>, cwd: string, deps: {
+	launches?: readonly ChildLaunchBucket[]; env?: NodeJS.ProcessEnv; signal?: AbortSignal; current?: () => boolean;
+}) => Promise<unknown>;
 
 /** Available final usage -> one deferred attempt -> discard. No history reads,
  * cumulative session accounting, policy leases, delivery queue or retry. Print
@@ -11,8 +18,8 @@ import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
  * Pi hooks lack request correlation: latency and SDK-zero presence are unknown.
  */
 export default function runtimeMetrics(pi: ExtensionAPI, env = process.env,
-	{ native, send = sendNativeRuntimeEvent, now = () => performance.now(), shutdownWaitMs = 1500 }:
-	{ native?: NativeRuntimeTransportDeps; send?: typeof sendNativeRuntimeEvent; now?: () => number; shutdownWaitMs?: number } = {}): void {
+	{ send, now = () => performance.now(), shutdownWaitMs = 1500 }:
+	{ send?: RuntimeMetricsSend; now?: () => number; shutdownWaitMs?: number } = {}): void {
 	const allows = () => env.GENTLE_PI_AGENTS_CHILD !== "1" && runtimeMetricsEnvAllows(env);
 	if (!allows()) return;
 	type Selection = Pick<FinalResponse, "selectedModelId" | "selectedProvider" | "effort">;
@@ -37,9 +44,10 @@ export default function runtimeMetrics(pi: ExtensionAPI, env = process.env,
 		const rows = metrics.snapshot();
 		if (!rows.length) return;
 		const cwd = owner.ctx.cwd;
+		if (!send) return;
 		owner.attempt.offer(async signal => {
 			if (live !== owner || !current(owner.ctx) || signal.aborted) return;
-			await send(rows, cwd, { ...native, launches, env, signal,
+			await send(rows, cwd, { launches, env, signal,
 				current: () => live === owner && current(owner.ctx) === owner });
 		});
 	}

@@ -60,10 +60,7 @@ function harness(): BeforeAgentStartHandler {
 		registerTool() {},
 	} as unknown as ExtensionAPI;
 	createGentleAiExtension({
-		nativeReviewCli: null,
 		processEnv: { ...fixtureEnvironment, GENTLE_PI_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0" },
-		resolveTelemetryTriggerBinary: () => join(fixtureCwd, "never-executed"),
-		telemetryTriggerSpawn: () => assert.fail("Model routing fixtures must not spawn telemetry"),
 	})(pi);
 	const beforeAgentStart = handlers.get("before_agent_start");
 	assert.equal(typeof beforeAgentStart, "function");
@@ -96,9 +93,8 @@ function primaryEvent(overrides: Partial<MutableEvent> = {}): MutableEvent {
 }
 
 test("buildGentlePrompt renders no model routing fact", () => {
-	const rddLine = __testing.renderRddStatusLine(undefined);
-	assert.doesNotMatch(__testing.buildGentlePrompt("neutral", fixtureCwd, undefined, rddLine), /Model routing:|price ratio/);
-	assert.doesNotMatch(__testing.getOrchestratorPrompt(fixtureCwd, undefined, rddLine), /Model routing:/);
+	assert.doesNotMatch(__testing.buildGentlePrompt("neutral", fixtureCwd, undefined), /Model routing:|price ratio/);
+	assert.doesNotMatch(__testing.getOrchestratorPrompt(fixtureCwd, undefined), /Model routing:/);
 });
 
 test("before_agent_start never injects the price ratio for the primary session, even at 3x", async () => {

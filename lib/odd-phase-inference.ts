@@ -19,10 +19,7 @@ const TOOL_PHASES: Readonly<Record<string, OddPhase>> = {
 	ask_user_choice: "deciding",
 	ask_user_question: "deciding",
 	todo: "planning",
-	gentle_review: "checking",
-	gentle_review_scope: "checking",
-	gentle_review_capture: "checking",
-	gentle_review_capture_group: "checking",
+	nub_review: "checking",
 };
 
 const DELEGATED_PHASES: Readonly<Record<string, OddPhase>> = {

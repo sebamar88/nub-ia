@@ -89,7 +89,7 @@ function registerQuestionTool(slot?: ExtensionSlot, withHerdr = false): { tool: 
 			},
 		},
 	};
-	if (withHerdr) createGentleAiExtension({ nativeReviewCli: null })(pi as never);
+	if (withHerdr) createGentleAiExtension({ })(pi as never);
 	askUserQuestion(pi as never);
 	const tool = target.tools.get("ask_user_question");
 	if (!tool) throw new Error("ask_user_question must register");

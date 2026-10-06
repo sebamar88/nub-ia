@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-const runtimeSchema = JSON.parse(readFileSync(new URL("../contracts/telemetry/runtime-aggregate-v1.schema.json", import.meta.url), "utf8"));
+const runtimeSchema = JSON.parse(readFileSync(new URL("./runtime-metrics-schema.json", import.meta.url), "utf8"));
 
 // Pure local accounting, not a telemetry transport or Pi event adapter.
 // Callers supply finalized assistant responses and authoritative classifications.

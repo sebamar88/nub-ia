@@ -1,32 +1,25 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { gzipSync } from "node:zlib";
 import { initTheme } from "@earendil-works/pi-coding-agent";
-import { validateToolArguments } from "@earendil-works/pi-ai";
 import type {
 	ExtensionAPI,
 	ExtensionContext,
 	Theme,
 	ToolCallEventResult,
 } from "@earendil-works/pi-coding-agent";
-import { __testing, applyModelConfig, applyModelConfigAsync, createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { __testing, applyModelConfig, createGentleAiExtension } from "../extensions/gentle-ai.ts";
 import { PROFILES_KIND, PROFILES_VERSION, readProfilesFileResult } from "../lib/agent-profiles.ts";
 import { bindSessionProfile, readSessionProfileBinding, resetSessionProfileBindingsForTesting } from "../lib/session-profile-binding.ts";
 import type { AgentRoutingEntry, ThinkingLevel } from "../lib/model-routing-authority.ts";
 type LiveSession = Pick<ExtensionAPI, "setModel" | "setThinkingLevel" | "getThinkingLevel">;
 import { PROFILE_PIN_KIND, PROFILE_PIN_VERSION, setProfilePinWorktreeResolverForTesting, writeProfilePinSync } from "../lib/agent-profile-pin.ts";
-import { NATIVE_REVIEW_ERROR_CODE, NativeReviewCliError, type NativeReviewCli } from "../lib/native-review-cli.ts";
-import { CandidateViewError, type CandidateViewRegistry } from "../lib/review-candidate-view.ts";
 import { installPackageAssets } from "../lib/agent-assets.ts";
-import type { ReviewCollectInputV3, ReviewStatusV3 } from "../lib/review-integration-v2.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
-import { cardBody, cardTitle, cardTone } from "./gentle-card-text.ts";
-import { readDelegationDetail } from "./support/orchestrator-modules.ts";
+import { cardBody } from "./gentle-card-text.ts";
 
 initTheme("dark");
 
@@ -35,309 +28,9 @@ function writeMarkdown(path: string, content: string): void {
 	writeFileSync(path, content);
 }
 
-const lifecycleTheme = {
-	bold(value: string): string {
-		return value;
-	},
-	fg(color: string, value: string): string {
-		return `<${color}>${value}</${color}>`;
-	},
-};
-
 function renderComponent(component: { render(width: number): string[] }): string {
 	return component.render(120).map((line) => line.replace(/[ \t]+$/g, "")).join("\n");
 }
-
-function registeredGentleTools(): Map<string, any> {
-	const tools = new Map<string, any>();
-	const pi = {
-		on() {},
-		registerCommand() {},
-		registerTool(tool: { name: string }) {
-			tools.set(tool.name, tool);
-		},
-	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null })(pi);
-	return tools;
-}
-
-function lifecycleContext(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-	return {
-		executionStarted: false,
-		isPartial: true,
-		isError: false,
-		lastComponent: undefined,
-		...overrides,
-	};
-}
-
-// gentle-pi#874: the provider's fresh_target_ready offer. The argument order
-// mirrors the live selectorless STATUS a clean, fully committed worktree
-// receives: it names the merge-base it wants so a plain START can adopt it.
-function offeredCommittedRangeStatus(baseRef: string, baseTree: string, candidateTree: string, paths: readonly string[] = ["app.ts"]): ReviewStatusV3 {
-	const targetIdentity = `sha256:${"a".repeat(64)}`;
-	return {
-		contract: "gentle-ai.review-integration/v2",
-		applicability: "unrelated",
-		action: "start",
-		replayability: "not_replayable",
-		targetIdentity,
-		projection: {
-			schema: "gentle-ai.review-candidate-projection/v1",
-			kind: "base-diff",
-			projection: "workspace",
-			baseTree,
-			initialReviewTree: candidateTree,
-			currentCandidateTree: candidateTree,
-			pathsDigest: `sha256:${"b".repeat(64)}`,
-			paths: [...paths],
-			intendedUntracked: [],
-			intendedUntrackedProof: `sha256:${"c".repeat(64)}`,
-			initialSnapshotIdentity: `sha256:${"d".repeat(64)}`,
-			currentSnapshotIdentity: `sha256:${"d".repeat(64)}`,
-		},
-		candidates: [],
-		nextTransition: {
-			kind: "execute",
-			reasonCode: "fresh_target_ready",
-			execute: {
-				operation: "review.start",
-				arguments: [
-					{ name: "target", value: targetIdentity, token: `--target=${targetIdentity}` },
-					{ name: "target-evidence", value: `v1:base-diff:workspace:${baseTree}:${candidateTree}:sha256:${"e".repeat(64)}`, token: `--target-evidence=v1:base-diff:workspace:${baseTree}:${candidateTree}:sha256:${"e".repeat(64)}` },
-					{ name: "projection", value: "workspace", token: "--projection=workspace" },
-					{ name: "base-ref", value: baseRef, token: `--base-ref=${baseRef}` },
-					{ name: "committed-only", value: "true", token: "--committed-only=true" },
-					{ name: "lineage", value: "review-offered", token: "--lineage=review-offered" },
-					{ name: "agent", value: "pi", token: "--agent=pi" },
-					{ name: "consent", value: "relay", token: "--consent=relay" },
-				],
-				preconditions: [],
-				binding: { targetIdentity },
-			},
-		},
-		raw: { schema: "gentle-ai.review-integration.status/v5" },
-	} as unknown as ReviewStatusV3;
-}
-
-// The clean, fully committed worktree STATUS with no committed-range offer:
-// the current-changes candidate view a plain START builds today.
-function cleanWorkspaceStatus(headTree: string, nextTransition?: ReviewStatusV3["nextTransition"]): ReviewStatusV3 {
-	const targetIdentity = `sha256:${"a".repeat(64)}`;
-	return {
-		contract: "gentle-ai.review-integration/v2",
-		applicability: "unrelated",
-		action: "start",
-		replayability: "not_replayable",
-		targetIdentity,
-		projection: {
-			schema: "gentle-ai.review-candidate-projection/v1",
-			kind: "current-changes",
-			projection: "workspace",
-			baseTree: headTree,
-			initialReviewTree: headTree,
-			currentCandidateTree: headTree,
-			pathsDigest: `sha256:${"b".repeat(64)}`,
-			paths: [],
-			intendedUntracked: [],
-			intendedUntrackedProof: `sha256:${"c".repeat(64)}`,
-			initialSnapshotIdentity: `sha256:${"d".repeat(64)}`,
-			currentSnapshotIdentity: `sha256:${"d".repeat(64)}`,
-		},
-		candidates: [],
-		...(nextTransition === undefined ? {} : { nextTransition }),
-		raw: { schema: "gentle-ai.review-integration.status/v5" },
-	} as unknown as ReviewStatusV3;
-}
-
-function startedReviewResult(): Record<string, unknown> {
-	return { lineageId: "adopted-range", state: "reviewing", riskLevel: "low", selectedLenses: [], changedFiles: 1, changedLines: 1, correctionBudget: 1, action: "created", lensesRequired: false, riskReasons: [], raw: {} };
-}
-
-interface ReviewStartRepository {
-	cwd: string;
-	baseCommit: string;
-	baseTree: string;
-	headTree: string;
-}
-
-// A hermetic two-commit repository whose candidate range is a real committed
-// change, so both the adopted and explicit base-ref paths resolve through the
-// real candidate-view guard.
-function reviewRepository(t: test.TestContext): ReviewStartRepository {
-	const cwd = realpathSync(mkdtempSync(join(tmpdir(), "gentle-pi-review-start-")));
-	t.after(() => {
-		try { execFileSync("chmod", ["-R", "u+w", cwd], { stdio: "ignore" }); } catch { /* best effort */ }
-		rmSync(cwd, { recursive: true, force: true });
-	});
-	execFileSync("git", ["init", "-b", "main"], { cwd, stdio: "ignore" });
-	writeFileSync(join(cwd, "app.ts"), "export const value = 1;\n");
-	execFileSync("git", ["add", "app.ts"], { cwd, stdio: "ignore" });
-	execFileSync("git", ["-c", "user.name=Review Test", "-c", "user.email=review@example.invalid", "commit", "-m", "base"], { cwd, stdio: "ignore" });
-	const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" }).trim();
-	writeFileSync(join(cwd, "app.ts"), "export const value = 2;\n");
-	execFileSync("git", ["add", "app.ts"], { cwd, stdio: "ignore" });
-	execFileSync("git", ["-c", "user.name=Review Test", "-c", "user.email=review@example.invalid", "commit", "-m", "candidate"], { cwd, stdio: "ignore" });
-	return {
-		cwd,
-		baseCommit,
-		baseTree: execFileSync("git", ["rev-parse", `${baseCommit}^{tree}`], { cwd, encoding: "utf8" }).trim(),
-		headTree: execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd, encoding: "utf8" }).trim(),
-	};
-}
-
-test("missing package-local binaries give a direct recovery without attributing the cause to lifecycle scripts", async () => {
-	const result = await __testing.executeReviewControllerOperation(
-		{ operation: "inspect" },
-		process.cwd(),
-		{
-			targetStatus: async () => {
-				throw new NativeReviewCliError(
-					NATIVE_REVIEW_ERROR_CODE.PACKAGE_BINARY_MISSING,
-					"review/status",
-					false,
-					false,
-					"package binary missing",
-				);
-			},
-		} as unknown as NativeReviewCli,
-	);
-
-	assert.equal(result.outcome, "native-status-package-binary-missing");
-	assert.equal(result.recovery_command, "node scripts/install-gentle-ai.mjs");
-	assert.match(String(result.next_action), /installed gentle-pi package directory/);
-	assert.match(String(result.next_action), /GENTLE_PI_SKIP_GENTLE_AI_INSTALL/);
-	assert.match(String(result.next_action), /remove or unset it before/);
-	assert.match(String(result.reason), /does not prove install lifecycle scripts were disabled/);
-});
-
-test("registered Gentle Review tools render reusable rose lifecycle call rows", () => {
-	const tools = registeredGentleTools();
-	const cases = [
-		["gentle_review", { operation: "status" }, "status"],
-		["gentle_review", { operation: "future-operation", secret: "/private" }, ""],
-		["gentle_review_scope", {}, "scope"],
-		["gentle_review_capture_group", {}, "capture group"],
-		[
-			"gentle_review_capture",
-			{
-				lineageId: "lineage-id",
-				collectBinding: "binding-id",
-				sha256: "sha256:hash-value",
-				secret: "secret-value",
-				arbitrary: "arbitrary-value",
-			},
-			"capture",
-		],
-	] as const;
-
-	// This exhaustiveness check is scoped to the gentle_review* lifecycle
-	// family this test names, not every gentle_-prefixed tool: gentle_odd_phase
-	// is a plain status-report tool with no pending/running/failed rose
-	// lifecycle card of its own (see extensions/gentle-ai.ts).
-	assert.deepEqual(
-		[...new Set(cases.map(([name]) => name))].sort(),
-		[...tools.keys()].filter((name) => name.startsWith("gentle_review")).sort(),
-	);
-
-	for (const [name, args, operation] of cases) {
-		const tool = tools.get(name);
-		const title = (status: string) => ["🌹 rdd", [status, operation].filter(Boolean).join(" · ")].filter(Boolean).join(" ");
-		assert.ok(tool, `missing ${name}`);
-		const initial = tool.renderCall(args, lifecycleTheme, lifecycleContext());
-		const initialText = renderComponent(initial);
-		const running = tool.renderCall(
-			args,
-			lifecycleTheme,
-			lifecycleContext({ executionStarted: true, lastComponent: initial }),
-		);
-		const runningText = renderComponent(running);
-		const completed = tool.renderCall(
-			args,
-			lifecycleTheme,
-			lifecycleContext({ executionStarted: true, isPartial: false, lastComponent: running }),
-		);
-		const completedText = renderComponent(completed);
-		const failed = tool.renderCall(
-			args,
-			lifecycleTheme,
-			lifecycleContext({ executionStarted: true, isPartial: false, isError: true, lastComponent: completed }),
-		);
-		const failedText = renderComponent(failed);
-
-		assert.strictEqual(initial, running);
-		assert.strictEqual(running, completed);
-		assert.strictEqual(completed, failed);
-		assert.equal(cardTitle(initialText), title("running")); assert.equal(cardTone(initialText), "warning");
-		assert.equal(cardTitle(runningText), title("running")); assert.equal(cardTone(runningText), "warning");
-		assert.equal(cardTitle(completedText), title("")); assert.equal(cardTone(completedText), "success");
-		assert.doesNotMatch(cardTitle(completedText), /completed/);
-		assert.match(completedText, /to expand/);
-		assert.equal((initialText.match(/╰/g) ?? []).length, 1, "running call owns the closing frame");
-		assert.equal((completedText.match(/╰/g) ?? []).length, 0, "final result owns the closing frame");
-		assert.equal(cardTitle(failedText), title("failed")); assert.equal(cardTone(failedText), "error");
-		assert.doesNotMatch(renderComponent(failed), /future-operation|secret|private/);
-		for (const forbiddenValue of ["lineage-id", "binding-id", "sha256:hash-value", "secret-value", "arbitrary-value"]) {
-			assert.doesNotMatch(failedText, new RegExp(forbiddenValue));
-		}
-	}
-});
-
-test("registered Gentle Review tools preserve result envelopes and preview useful collapsed results", async () => {
-	const tools = registeredGentleTools();
-	const scope = tools.get("gentle_review_scope");
-	const manifest = { version: 1, scopeByMode: { "100644": ["src/file.ts"] }, gitlinks: {} };
-	const bytes = Buffer.from(JSON.stringify(manifest), "utf8");
-	const encoded = gzipSync(bytes).toString("base64url");
-	const sha256 = createHash("sha256").update(bytes).digest("hex");
-
-	const result = await scope.execute(
-		"scope-call",
-		{ manifest: encoded, sha256, cursor: 0 },
-		undefined,
-		undefined,
-		{ cwd: process.cwd() } as ExtensionContext,
-	);
-	const visibleEnvelope = JSON.parse(result.content[0].text);
-	assert.deepEqual(visibleEnvelope, {
-		version: 1,
-		sha256,
-		cursor: 0,
-		totalPaths: 1,
-		entries: [{ path: "src/file.ts", mode: "100644" }],
-	});
-	assert.deepEqual(result.details, visibleEnvelope);
-
-	const resultText = "safe result\x1b[31m\nlineage=secret body=private\nthird useful detail\nfourth expanded detail";
-	for (const name of ["gentle_review", "gentle_review_scope", "gentle_review_capture"]) {
-		const tool = tools.get(name);
-		assert.equal(typeof tool?.renderResult, "function", `${name} must define result rendering`);
-		for (const options of [
-			{ expanded: false, isPartial: true, isError: false },
-			{ expanded: false, isPartial: false, isError: false },
-			{ expanded: false, isPartial: false, isError: true },
-		]) {
-			const collapsed = renderComponent(tool.renderResult({ content: [{ type: "text", text: resultText }] }, options, lifecycleTheme, {}));
-			const collapsedBody = cardBody(collapsed);
-			assert.match(collapsedBody, /safe result[\s\S]*lineage=secret body=private[\s\S]*third useful detail/, `${name} previews actual result content, not redaction`);
-			assert.doesNotMatch(collapsedBody, /\d+ lines?\b|fourth expanded detail|to expand|\x1b\[/);
-			assert.equal(collapsedBody.split("\n").length, 3, `${name} has three useful collapsed rows`);
-			assert.match(collapsed, new RegExp(`<${options.isError ? "error" : options.isPartial ? "warning" : "success"}>│`), "host outcome preserves the semantic frame tone");
-			assert.equal((collapsed.match(/╰/g) ?? []).length, options.isPartial ? 0 : 1, "only final results close the frame");
-		}
-		const expanded = renderComponent(tool.renderResult({ content: [{ type: "text", text: resultText }] }, { expanded: true, isPartial: false, isError: true }, lifecycleTheme, {}));
-		assert.equal(cardBody(expanded).split("\n")[0], "<error>safe result</error>");
-		assert.match(expanded, /safe result/);
-		assert.match(expanded, /lineage=secret body=private[\s\S]*third useful detail[\s\S]*fourth expanded detail/);
-		assert.equal((expanded.match(/╰/g) ?? []).length, 1, "expanded final result closes exactly one frame");
-		assert.doesNotMatch(expanded, /to expand/);
-		assert.doesNotMatch(cardBody(expanded), /\x1b\[/);
-		const nonText = renderComponent(tool.renderResult({ content: [{ type: "image", data: "opaque", mimeType: "image/png" }] }, { expanded: true, isPartial: false }, lifecycleTheme, {}));
-		assert.equal(cardBody(nonText), "");
-		const empty = renderComponent(tool.renderResult({ content: [{ type: "text", text: "" }] }, { expanded: false, isPartial: false }, lifecycleTheme, {}));
-		assert.equal(cardBody(empty), "");
-	}
-});
 
 interface RoutingConsumerPanel {
 	render(width: number): string[];
@@ -387,7 +80,7 @@ function routingConsumerFixture(t: test.TestContext, agents = ["worker"]) {
 	let setModelResult = true;
 	let thinkingRejects = false;
 	let liveThinking = "medium";
-	createGentleAiExtension({ nativeReviewCli: null })({
+	createGentleAiExtension({})({
 		on() {},
 		registerTool() {},
 		registerCommand(name, command) { commands.set(name, command); },
@@ -474,126 +167,6 @@ function routingConsumerFixture(t: test.TestContext, agents = ["worker"]) {
 		run: (name: string) => commands.get(name)!.handler("", ctx),
 	};
 }
-
-test("models saves and clears independent provider review roles without local artifacts", async (t) => {
-	const fixture = routingConsumerFixture(t, []);
-	const roles = ["review-refuter", "review-validator"];
-	assert.deepEqual(
-		__testing.listDiscoverableAgents(fixture.root).map((agent) => agent.name),
-		[],
-		"requires zero discovered agents; check package-sibling legacy agent directories",
-	);
-
-	const assertNoLocalArtifacts = () => {
-		for (const base of [join(fixture.root, ".pi"), fixture.agentHome]) {
-			assert.equal(existsSync(join(base, "subagents.json")), false);
-			for (const dir of ["agents", "subagents"]) {
-				for (const role of roles) {
-					assert.equal(existsSync(join(base, dir, `${role}.md`)), false);
-				}
-			}
-		}
-	};
-	fixture.onInput((panel) => {
-		const initial = renderComponent(panel);
-		for (const role of roles) {
-			assert.equal(initial.split(role).length - 1, 1);
-		}
-		assert.match(initial, /Pi persisted default model/);
-		assert.match(initial, /Pi persisted default effort/);
-		for (const [index, model] of ["alpha", "beta"].entries()) {
-			panel.handleInput("j");
-			panel.handleInput("\r");
-			assert.match(renderComponent(panel), /Pi persisted default model/);
-			assert.doesNotMatch(renderComponent(panel), /Inherit active\/default model/);
-			for (const character of model) panel.handleInput(character);
-			panel.handleInput("\r");
-			panel.handleInput("e");
-			assert.match(renderComponent(panel), /Pi persisted default effort/);
-			assert.doesNotMatch(renderComponent(panel), /Inherit effort/);
-			for (let step = 0; step <= index; step++) panel.handleInput("j");
-			panel.handleInput("\r");
-		}
-		panel.handleInput("\x13");
-	});
-	await fixture.run("gentle:models");
-	assert.deepEqual(JSON.parse(readFileSync(fixture.globalPath, "utf8")), {
-		"review-refuter": { model: "openai/alpha", thinking: "off" },
-		"review-validator": { model: "openai/beta", thinking: "minimal" },
-	});
-	assertNoLocalArtifacts();
-
-	fixture.onInput((panel) => {
-		panel.handleInput("j");
-		panel.handleInput("i");
-		panel.handleInput("\x13");
-	});
-	await fixture.run("gentle:models");
-	assert.deepEqual(JSON.parse(readFileSync(fixture.globalPath, "utf8")), {
-		"review-refuter": {},
-		"review-validator": { model: "openai/beta", thinking: "minimal" },
-	});
-	assertNoLocalArtifacts();
-
-	fixture.onInput((panel) => {
-		panel.handleInput("j");
-		panel.handleInput("j");
-		panel.handleInput("i");
-		panel.handleInput("\x13");
-	});
-	await fixture.run("gentle:models");
-	assert.deepEqual(JSON.parse(readFileSync(fixture.globalPath, "utf8")), {
-		"review-refuter": {},
-		"review-validator": {},
-	});
-	assertNoLocalArtifacts();
-});
-
-test("provider review roles skip migration and both projection paths even when discoverable", async (t) => {
-	const roles = ["review-refuter", "review-validator"];
-	const fixture = routingConsumerFixture(t, [...roles, "worker"]);
-	assert.deepEqual(
-		__testing.listDiscoverableAgents(fixture.root).map((agent) => agent.name).sort(),
-		[...roles, "worker"].sort(),
-		"requires only seeded agents; check package-sibling legacy agent directories",
-	);
-
-	const rolePaths = roles.map((role) => join(fixture.root, ".pi", "agents", `${role}.md`));
-	const originals = rolePaths.map((path) => readFileSync(path, "utf8"));
-	const profilePaths = [
-		join(fixture.root, ".pi", "subagents.json"),
-		join(fixture.agentHome, "subagents.json"),
-	];
-	const profile = `${JSON.stringify({ model_profiles: {
-		"review-refuter": "existing-refuter",
-		"review-validator": "existing-validator",
-	} }, null, 2)}\n`;
-	for (const path of profilePaths) writeMarkdown(path, profile);
-	const assignments = {
-		"review-refuter": { model: "openai/alpha", thinking: "off" as const },
-		"review-validator": { model: "openai/beta", thinking: "minimal" as const },
-	};
-	writeMarkdown(join(fixture.root, ".pi", "settings.json"), JSON.stringify({
-		subagents: { agentOverrides: assignments },
-	}));
-	const assertReservedUnchanged = () => {
-		rolePaths.forEach((path, index) => assert.equal(readFileSync(path, "utf8"), originals[index]));
-		for (const path of profilePaths) assert.equal(readFileSync(path, "utf8"), profile);
-	};
-	await fixture.run("gentle:models");
-	assertReservedUnchanged();
-	for (const role of roles) assert.equal(fixture.panels[0].split(role).length - 1, 1);
-	assert.match(fixture.panels[0], /worker\s+model=inherit, effort=inherit/);
-	for (const apply of [applyModelConfig, applyModelConfigAsync]) {
-		await apply(fixture.root, assignments);
-		assertReservedUnchanged();
-		await apply(fixture.root, { "review-refuter": {}, "review-validator": {} });
-		assertReservedUnchanged();
-	}
-	await applyModelConfigAsync(fixture.root, { worker: { model: "openai/alpha" } });
-	assert.match(readFileSync(join(fixture.root, ".pi", "agents", "worker.md"), "utf8"), /model: openai\/alpha/);
-	assert.ok(JSON.parse(readFileSync(profilePaths[0], "utf8")).model_profiles.worker);
-});
 
 test("models rejects invalid project routing with its selected source path", async (t) => {
 	const fixture = routingConsumerFixture(t);
@@ -729,7 +302,7 @@ test("session startup reports invalid project routing without mutating the profi
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null })(pi);
+	createGentleAiExtension({})(pi);
 	const sessionStart = handlers.get("session_start");
 	assert.equal(typeof sessionStart, "function");
 	const notifications: Array<{ message: string; severity: string }> = [];
@@ -866,264 +439,6 @@ test("a later alias keeps managed-root precedence and manifest ownership", (t) =
 	assert.equal(manifest.assets["agents/gentle-ai-worker.md"], createHash("sha256").update(routed).digest("hex"));
 });
 
-test("runtime guidance keeps review policy out of the static orchestrator and technical reference", () => {
-	const staticReferences = ["docs/readme-reference.md", "skills/gentle-ai/SKILL.md"];
-	assert.match(readFileSync("README.md", "utf8"), /\]\(docs\/readme-reference\.md(?:#[^)]+)?\)/);
-	const forbiddenGenericRoutes = [
-		/fresh-context `reviewer`/,
-		/fresh reviewer audits/,
-		/reviewer fresh audits/,
-		/run a fresh-context `reviewer`/,
-	];
-
-	for (const file of staticReferences) {
-		const content = readFileSync(file, "utf8");
-		assert.match(content, /Review Lens Selection|review lens/);
-		assert.match(content, /review-risk/);
-		assert.match(content, /review-reliability/);
-		assert.match(content, /review-resilience/);
-		assert.match(content, /review-readability/);
-		for (const forbidden of forbiddenGenericRoutes) {
-			assert.doesNotMatch(content, forbidden, `${file} must not route to generic reviewer`);
-		}
-	}
-
-	const orchestrator = readFileSync("assets/orchestrator.md", "utf8")
-		+ readDelegationDetail();
-	assert.match(orchestrator, /injects the mirrored provider-bundle review execution contract/);
-	assert.match(orchestrator, /this package invents no lifecycle instructions/);
-	for (const lifecycleMarker of ["review-risk", "review-reliability", "review-resilience", "review-readability", "Authority-First Terminal Procedure", "reconcile-terminal-mirrors"]) {
-		assert.doesNotMatch(orchestrator, new RegExp(lifecycleMarker), `static orchestrator must not mirror ${lifecycleMarker}`);
-	}
-});
-
-test("ordinary native capture exposes a registered schema and STATUS binding copied unchanged to one slot", async (t) => {
-	const tools = new Map<string, { name: string; parameters: { required?: readonly string[] } }>();
-	const pi = {
-		on() {},
-		registerCommand() {},
-		registerTool(tool: { name: string; parameters: { required?: readonly string[] } }) {
-			tools.set(tool.name, tool);
-		},
-	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null })(pi);
-
-	assert.ok(tools.has("gentle_review_capture"));
-	assert.deepEqual(tools.get("gentle_review_capture")?.parameters.required, ["lineageId", "collectBinding"]);
-
-	const sha = `sha256:${"a".repeat(64)}`;
-	const lineageId = "ordinary-capture";
-	const collectInput: ReviewCollectInputV3 = {
-		name: "reviewer_result",
-		schema: "https://gentle-ai.dev/schema/review/reviewer/v1",
-		captureOperation: "review.capture-result",
-		arguments: [
-			{ name: "lineage", value: lineageId, token: `--lineage=${lineageId}` },
-			{ name: "target", value: sha, token: `--target=${sha}` },
-			{ name: "agent", value: "pi", token: "--agent=pi" },
-			{ name: "materialize", value: "true", token: "--materialize=true" },
-		],
-		submission: {
-			operationToken: "capture-result",
-			argumentTokens: ["--lineage=ordinary-capture", `--target=${sha}`, "--agent=pi", "--materialize=true", "--input={{value}}"],
-			values: [{ slot: "reviewer_result", domain: "artifact_path_or_stdin", substitutionLocation: 4 }],
-		},
-	};
-	const currentStatus = {
-		contract: "gentle-ai.review-integration/v2",
-		applicability: "current_target",
-		authority: { version: "compact-v2", lineageId, state: "reviewing", generation: 1, revision: sha },
-		action: "stop",
-		replayability: "not_replayable",
-		targetIdentity: sha,
-		projection: {
-			schema: "gentle-ai.review-candidate-projection/v1",
-			kind: "current-changes",
-			projection: "workspace",
-			baseTree: "b".repeat(40),
-			initialReviewTree: "b".repeat(40),
-			currentCandidateTree: "b".repeat(40),
-			pathsDigest: sha,
-			paths: ["app.ts"],
-			intendedUntracked: [],
-			intendedUntrackedProof: sha,
-			initialSnapshotIdentity: sha,
-			currentSnapshotIdentity: sha,
-		},
-		candidates: [],
-		nextTransition: { kind: "collect", reasonCode: "capture_required", collect: { inputs: [collectInput] } },
-		raw: { schema: "gentle-ai.review-integration.status/v5" },
-	} as unknown as ReviewStatusV3;
-	const native = { targetStatus: async () => currentStatus } as unknown as NativeReviewCli;
-
-	const publicStatus = await __testing.executeReviewControllerOperation({ operation: "status" }, process.cwd(), native);
-	const bindings = publicStatus.collectBindings as readonly { collectBinding: unknown }[];
-	assert.equal(bindings.length, 1);
-	assert.equal(typeof bindings[0]?.collectBinding, "string");
-
-	let launches = 0;
-	t.after(() => __testing.setReviewHostRelayRunnerForTesting());
-	__testing.setReviewHostRelayRunnerForTesting(async () => {
-		launches += 1;
-		return { promptByteLength: 1, resultByteLength: 1, submission: "{}" };
-	});
-	const captured = await __testing.executeReviewCaptureOperation({
-		lineageId,
-		collectBinding: bindings[0]!.collectBinding,
-		reviewerRunAcknowledged: true,
-	}, process.cwd(), native);
-	assert.equal(captured.status, "captured");
-	assert.equal(launches, 1);
-});
-
-test("ordinary START adopts the committed-range selectors the provider just offered", async (t) => {
-	const { cwd, baseCommit, baseTree, headTree: candidateTree } = reviewRepository(t);
-	const starts: Array<Record<string, unknown>> = [];
-	const native = {
-		targetStatus: async () => offeredCommittedRangeStatus(baseCommit, baseTree, candidateTree),
-		start: async (request: Record<string, unknown>) => { starts.push(request); return startedReviewResult(); },
-	} as unknown as NativeReviewCli;
-	const parameters = validateToolArguments(registeredGentleTools().get("gentle_review"), {
-		type: "toolCall", id: "object-start", name: "gentle_review", arguments: { operation: "start", input: { mode: "ordinary" } },
-	});
-	const result = await __testing.executeReviewControllerOperation(parameters, cwd, native);
-	assert.equal(result.operation, "start");
-	assert.equal(starts.length, 1);
-	assert.equal(starts[0]?.baseRef, baseCommit);
-	assert.equal(starts[0]?.committedOnly, true);
-});
-
-test("ordinary START keeps an explicit caller baseRef and ignores the offered selector", async (t) => {
-	const { cwd, baseCommit, baseTree, headTree: candidateTree } = reviewRepository(t);
-	const starts: Array<Record<string, unknown>> = [];
-	const native = {
-		// A shape-valid but never-invoked offer: the explicit caller value must win
-		// before this is ever considered.
-		targetStatus: async () => offeredCommittedRangeStatus("f".repeat(40), baseTree, candidateTree),
-		start: async (request: Record<string, unknown>) => { starts.push(request); return startedReviewResult(); },
-	} as unknown as NativeReviewCli;
-	const result = await __testing.executeReviewControllerOperation({ operation: "start", input: JSON.stringify({ mode: "ordinary", baseRef: baseCommit, committedOnly: true }) }, cwd, native);
-	assert.equal(result.operation, "start");
-	assert.equal(starts.length, 1);
-	assert.equal(starts[0]?.baseRef, baseCommit);
-	assert.equal(starts[0]?.committedOnly, true);
-});
-
-test("ordinary START keeps today's invocation when STATUS offers no committed-range selector", async (t) => {
-	const { cwd, headTree } = reviewRepository(t);
-	const offeredWithoutBaseRef = cleanWorkspaceStatus(headTree, {
-		kind: "execute",
-		reasonCode: "fresh_target_ready",
-		execute: { operation: "review.start", arguments: [{ name: "projection", value: "workspace", token: "--projection=workspace" }], preconditions: [], binding: { targetIdentity: `sha256:${"a".repeat(64)}` } },
-	});
-	for (const [label, target] of [["no execute transition", cleanWorkspaceStatus(headTree)], ["no base-ref", offeredWithoutBaseRef]] as const) {
-		const starts: Array<Record<string, unknown>> = [];
-		const native = {
-			targetStatus: async () => target,
-			start: async (request: Record<string, unknown>) => { starts.push(request); return startedReviewResult(); },
-		} as unknown as NativeReviewCli;
-		const result = await __testing.executeReviewControllerOperation({ operation: "start", input: JSON.stringify({ mode: "ordinary" }) }, cwd, native);
-		assert.equal(result.operation, "start", label);
-		assert.equal(starts.length, 1, label);
-		assert.equal(starts[0]?.baseRef, undefined, label);
-		assert.equal("committedOnly" in starts[0]!, false, label);
-	}
-});
-
-test("ordinary START reports candidate-owner preparation failure as pre-native no mutation", async () => {
-	let nativeStarts = 0;
-	const target = {
-		contract: "gentle-ai.review-integration/v2",
-		applicability: "unrelated",
-		action: "start",
-		replayability: "not_replayable",
-		targetIdentity: "a".repeat(64),
-		projection: {
-			schema: "gentle-ai.review-candidate-projection/v1",
-			kind: "current-changes",
-			projection: "workspace",
-			baseTree: "b".repeat(40),
-			initialReviewTree: "b".repeat(40),
-			currentCandidateTree: "b".repeat(40),
-			pathsDigest: "a".repeat(64),
-			paths: [],
-			intendedUntracked: [],
-			intendedUntrackedProof: "a".repeat(64),
-			initialSnapshotIdentity: "a".repeat(64),
-			currentSnapshotIdentity: "a".repeat(64),
-		},
-		candidates: [],
-		raw: { schema: "gentle-ai.review-integration.status/v5" },
-	} as unknown as ReviewStatusV3;
-	const native = {
-		targetStatus: async () => target,
-		start: async () => { nativeStarts += 1; throw new Error("native START must not run"); },
-	} as unknown as NativeReviewCli;
-	const candidateViews = {
-		createOrReuse: () => { throw new CandidateViewError("candidate view owner preparation failed", "candidate-owner-preparation-failed"); },
-	} as unknown as CandidateViewRegistry;
-	const result = await __testing.executeReviewControllerOperation(
-		{ operation: "start", input: JSON.stringify({ mode: "ordinary" }) },
-		process.cwd(),
-		native,
-		undefined,
-		candidateViews,
-	);
-	assert.equal(nativeStarts, 0);
-	assert.equal(result.outcome, "native-operation-failed");
-	assert.equal(result.mutation_outcome, "none");
-	assert.deepEqual(result.diagnostics, {
-		code: "candidate-owner-preparation-failed",
-		message: "candidate view rejected before native START",
-	});
-
-	let materializationStatusCalls = 0;
-	const rawMaterializationFailure = await __testing.executeReviewControllerOperation(
-		{ operation: "start", input: JSON.stringify({ mode: "ordinary" }) },
-		process.cwd(),
-		{
-			targetStatus: async () => { materializationStatusCalls += 1; return target; },
-			start: async () => { nativeStarts += 1; throw new Error("native START must not run"); },
-		} as unknown as NativeReviewCli,
-		undefined,
-		{ createOrReuse: () => { throw new Error("candidate materialization failed"); } } as unknown as CandidateViewRegistry,
-	);
-	assert.equal(nativeStarts, 0);
-	assert.equal(materializationStatusCalls, 1, "a pre-START materialization failure never triggers reconciliation STATUS");
-	assert.equal(rawMaterializationFailure.outcome, "native-operation-failed");
-	assert.equal(rawMaterializationFailure.mutation_outcome, "none");
-	assert.equal(rawMaterializationFailure.next_action, "resolve-native-operation-failure");
-
-	let statusCalls = 0;
-	const afterNative = await __testing.executeReviewControllerOperation(
-		{ operation: "start", input: JSON.stringify({ mode: "ordinary" }) },
-		process.cwd(),
-		{
-			targetStatus: async () => { statusCalls += 1; return target; },
-			start: async () => {
-				nativeStarts += 1;
-				throw new CandidateViewError("post-native candidate verification failed", "candidate-view-timeout", {
-					phase: "candidate-view",
-					category: "timeout",
-					git_subcommand: "worktree",
-					timeout_ms: 10_000,
-					max_buffer_bytes: 64 * 1024 * 1024,
-					message: "candidate-view Git command worktree timed out after 10000ms; inspect the candidate state before any new START",
-				});
-			},
-		} as unknown as NativeReviewCli,
-		undefined,
-		null,
-	);
-	assert.equal(nativeStarts, 1);
-	assert.equal(statusCalls, 2, "a post-native diagnostic must reconcile STATUS");
-	assert.equal(afterNative.mutation_outcome, "unknown");
-	assert.deepEqual(afterNative.diagnostics, {
-		code: "candidate-view-timeout",
-		message: "post-native candidate verification failed",
-	});
-});
-
 test("retired SDD startup flag is not registered or imported", () => {
 	const flags: string[] = [];
 	const pi = {
@@ -1132,7 +447,7 @@ test("retired SDD startup flag is not registered or imported", () => {
 		registerTool() {},
 		registerFlag(name: string) { flags.push(name); },
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null })(pi);
+	createGentleAiExtension({})(pi);
 	assert.ok(!flags.includes("gentle-sdd-change"));
 	const source = readFileSync(new URL("../extensions/gentle-ai.ts", import.meta.url), "utf8");
 	assert.doesNotMatch(source, /from ["']\.\.\/lib\/sdd-preflight\.ts["']/);
@@ -1299,54 +614,6 @@ test("model panel render uses the Pi-provided current theme when supplied", () =
 	assert.match(stripAnsi(rendered), /Assign Models and Effort to Agents/);
 });
 
-test("delivery commands bypass RDD under every mode outcome while command safety remains independent", async () => {
-	type ToolCallHandler = (
-		event: { toolName: string; input: unknown },
-		ctx: ExtensionContext,
-	) => Promise<ToolCallEventResult | undefined>;
-	const commands = [
-		"git commit -m relay",
-		"git push origin feature/relay",
-		"gh pr create --base main --head feature/relay",
-		"gh release create v1.2.3",
-		"git status && git commit -m relay",
-		"env SAFE=1 git push origin feature/relay",
-		"sh -c 'gh pr create --base main --head feature/relay'",
-		"sh -c 'gh release create v1.2.3'",
-	] as const;
-	const modes = [
-		{ label: "no native CLI", nativeReviewCli: null },
-		{ label: "RDD off", nativeReviewCli: { reviewMode: async () => ({ status: { effective: "off" } }) } },
-		{ label: "RDD on", nativeReviewCli: { reviewMode: async () => ({ status: { effective: "on" } }) } },
-		{ label: "mode failure", nativeReviewCli: { reviewMode: async () => { throw new Error("mode unavailable"); } } },
-	] as const;
-
-	for (const mode of modes) {
-		const handlers = new Map<string, ToolCallHandler>();
-		const pi = {
-			on(name: string, handler: ToolCallHandler) {
-				handlers.set(name, handler);
-			},
-			events: { emit() {} },
-			registerCommand() {},
-			registerTool() {},
-		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ nativeReviewCli: mode.nativeReviewCli as never })(pi);
-		const toolCall = handlers.get("tool_call");
-		assert.equal(typeof toolCall, "function", mode.label);
-		const ctx = {
-			cwd: process.cwd(),
-			hasUI: true,
-			ui: { confirm: async () => true },
-		} as ExtensionContext;
-
-		for (const command of commands) {
-			const result = await toolCall!({ toolName: "bash", input: { command } }, ctx);
-			assert.equal(result, undefined, `${mode.label}: ${command}`);
-		}
-	}
-});
-
 test("guarded command confirmation emits a generic correlated permission lifecycle", async () => {
 	type ToolCallHandler = (
 		event: { toolName: string; input: unknown },
@@ -1388,7 +655,7 @@ test("guarded command confirmation emits a generic correlated permission lifecyc
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" }, nativeReviewCli: null })(pi);
+	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-permission-request-"));
@@ -1523,7 +790,7 @@ test("concurrent guarded confirmations coalesce the Herdr lifecycle per extensio
 			registerCommand() {},
 			registerTool() {},
 		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" }, nativeReviewCli: null })(pi);
+		createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
 		return { handlers, emitted, confirmations };
 	};
 	const first = createHarness();
@@ -1607,7 +874,7 @@ test(`${channel} emits only a private, balanced Herdr projection`, () => {
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null })(pi);
+	createGentleAiExtension({})(pi);
 	const privateHostDiscovery = "gentle:yolo:host-ui";
 	assert.equal(eventHandlers.has(privateHostDiscovery), true);
 	assert.deepEqual([...eventHandlers.keys()].filter(name => name !== privateHostDiscovery).sort(), [
@@ -1688,7 +955,7 @@ test("Herdr preserves the initial label and balanced edges across overlapping so
 			registerCommand() {},
 			registerTool() {},
 		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" }, nativeReviewCli: null })(pi);
+		createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
 		const context = {
 			cwd: process.cwd(),
 			hasUI: true,
@@ -1784,7 +1051,7 @@ test("closed choice blockers retain the visible choice label through guarded-con
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" }, nativeReviewCli: null })(pi);
+	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
 	assert.equal(eventHandlers.has("gentle-pi:ask-user-choice:blocked"), true);
 
 	for (const malformed of [null, [], {}, { active: "true" }]) {
@@ -1841,7 +1108,7 @@ test("permission lifecycle is inactive for unguarded and headless commands", asy
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" }, nativeReviewCli: null })(pi);
+	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-permission-headless-"));
@@ -1869,21 +1136,6 @@ test("permission lifecycle is inactive for unguarded and headless commands", asy
 		rmSync(cwd, { recursive: true, force: true });
 	}
 });
-test("registered Gentle Review capture tools name the lens they run", () => {
-	const tools = registeredGentleTools();
-	const binding = (lens: string) => JSON.stringify({ name: "reviewer_result", captureOperation: "review.capture-result", arguments: [], artifactSubject: { lens } });
-	const single = tools.get("gentle_review_capture")!.renderCall({ lineageId: "l", collectBinding: binding("review-risk") }, lifecycleTheme, lifecycleContext({ executionStarted: true }));
-	assert.equal(cardTitle(renderComponent(single)), "🌹 rdd running · capture · risk");
-	const bare = tools.get("gentle_review_capture")!.renderCall({ lineageId: "l", collectBinding: "{not json" }, lifecycleTheme, lifecycleContext({ executionStarted: true }));
-	assert.equal(cardTitle(renderComponent(bare)), "🌹 rdd running · capture");
-	const group = tools.get("gentle_review_capture_group")!.renderCall(
-		{ lineageId: "l", collectBindings: [binding("review-risk"), binding("review-resilience"), binding("review-readability"), binding("review-reliability")] },
-		lifecycleTheme,
-		lifecycleContext({ executionStarted: true }),
-	);
-	assert.equal(cardTitle(renderComponent(group)), "🌹 rdd running · capture group · risk · resilience · readability · reliability");
-});
-
 test("bash tool_call confirms a late guarded npm publish and denies on non-approval", async () => {
 	type ToolCallHandler = (
 		event: { toolName: string; input: unknown },
@@ -1900,7 +1152,7 @@ test("bash tool_call confirms a late guarded npm publish and denies on non-appro
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null })(pi);
+	createGentleAiExtension({})(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 
@@ -1953,7 +1205,7 @@ test("bash tool_call confirms every compound action and centers a long git -C pu
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null })(pi);
+	createGentleAiExtension({})(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 
@@ -2836,8 +2088,8 @@ test("s snapshots current routing in place without applying or reopening the pro
 // /gentle:models can finish with `u`: the global save `ctrl+s` performs, followed
 // by the snapshot `/gentle:profiles` performs with `s` on the current profile.
 function pickWorkerModelThenUpdateProfile(panel: RoutingConsumerPanel): void {
-	// Rows: "Set all agents", the two provider review roles, then "worker".
-	for (let step = 0; step < 3; step += 1) panel.handleInput("j");
+	// Rows: "Set all agents", then "worker".
+	panel.handleInput("j");
 	assert.match(renderComponent(panel), /▸ worker/);
 	panel.handleInput("\r");
 	for (const character of "alpha") panel.handleInput(character);

@@ -17,7 +17,7 @@ test("a second direct file is not refused based on session write history", async
 			events: { emit() {} }, registerCommand() {}, registerTool() {}, getFlag: () => undefined,
 			getActiveTools: () => ["edit", "write"],
 		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ nativeReviewCli: null, processEnv: {}, resolveTelemetryTriggerBinary: () => "/usr/bin/true", telemetryTriggerSpawn: (() => undefined) as never })(pi);
+		createGentleAiExtension({ processEnv: {} })(pi);
 		const ctx = {
 			cwd, hasUI: false, mode: "interactive", ui: { notify() {} },
 			sessionManager: { getSessionId: () => "odd-direct" },
@@ -25,7 +25,6 @@ test("a second direct file is not refused based on session write history", async
 		await handlers.get("before_agent_start")!({ systemPrompt: "primary" }, ctx);
 		const first = { path: join(cwd, "first.ts") };
 		assert.equal(await handlers.get("tool_call")!({ toolName: "edit", input: first }, ctx), undefined);
-		await handlers.get("tool_result")!({ toolName: "edit", toolCallId: "first", input: first, isError: false }, ctx);
 		assert.equal(await handlers.get("tool_call")!({ toolName: "write", input: { path: join(cwd, "second.ts"), content: "export const second = true;\n" } }, ctx), undefined);
 	} finally {
 		rmSync(cwd, { recursive: true, force: true });

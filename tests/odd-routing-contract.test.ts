@@ -55,7 +55,7 @@ test("task sizing is explicitly advisory and forwarded without cosmetic savings"
 	containsAll(delegation, [
 		"about 400 authored changed lines",
 		"additions plus deletions",
-		"not a task acceptance criterion, hard cap, counter-trigger, automatic stop, forced split, or RDD trigger",
+		"not a task acceptance criterion, hard cap, counter-trigger, automatic stop, or forced split",
 		"Forward this same advisory-only instruction",
 		"Never delete spaces, blank lines, or comments",
 		"never omit tests, minify, add gratuitous abstractions, or split artificially",
@@ -89,42 +89,30 @@ test("organic progress preserves both complete feature copies and reconciles act
 	assert.doesNotMatch(memory, /`todo` tool is an optional session\/UI projection/);
 });
 
-test("assumption challenge and task checks do not activate or duplicate native review", () => {
+test("assumption challenge and task checks do not activate or duplicate the nub_review step", () => {
 	containsAll(delegation, [
 		"at most one scoped independent read-only assumption challenge",
 		"high-consequence unproven premise",
 		"Deterministic failures need fixes",
-		"native RDD refuter",
 		"functional checks per task",
-		"native review runs at that work-unit commit or PR slice boundary",
-		"native candidate risk assessment",
-		"gentle_review` with `{\"operation\":\"assess\"}",
-		"Passive/low",
-		"no reviewer or consent ceremony",
-		"only on grant",
-		"decline continues under ordinary policy",
-		"never infer low risk from a failed assessment",
-		"When RDD is disabled, do not start or prompt for RDD",
+		"run `nub_review` (tool) over the diff",
+		"address its BLOCKER/CRITICAL findings",
+		"the push gate asks for confirmation when changes were not reviewed or were blocked",
 	]);
+	assert.doesNotMatch(delegation, /gentle_review|native RDD refuter|When RDD is/);
 });
 
-test("ODD closes each task with a work-unit commit and reviews the commit or PR slice", () => {
+test("ODD closes each task with a work-unit commit and runs nub_review before delivery", () => {
 	containsAll(wrapper, [
 		"Every tracked task closes with at least one work-unit commit on the feature branch, branch first when on the default branch",
 		"with tests and docs alongside the behavior, using a Conventional Commit message",
 		"record the commit identity in the feature document as evidence",
 		"Work-unit commits on the feature branch are part of authorized large ODD implementation; push, pull request creation, and merge remain the user's decisions",
-		"The native review candidate is a work-unit commit or a PR slice, never a TODO checkbox and never the accumulated feature branch",
+		"run \\`nub_review\\` over the diff before delivery",
+		"the push gate asks for confirmation when changes were not reviewed or were blocked",
 		"close each tracked task with a work-unit commit",
 	]);
 	containsAll(delegation, [
-		'after each work-unit commit, assess it with that same call and `{"baseRef":"<last reviewed boundary>","committedOnly":true}`',
-		"Passive/low: silent structural checks, no reviewer or consent ceremony, and the boundary advances",
-		'start native review on it right away at that base with `gentle_review` `{"operation":"start"}`',
-		"Medium: defer to the PR slice",
-		"bounded by the delivery budget of about 400 authored changed lines",
-		"The first boundary is the branch point, and every reviewed boundary becomes the next base",
-		"Record per task the assessed tier and outcome: granted, declined, passive, deferred to slice, or unavailable",
 		"Delivery follows work units",
 		"forecast authored changed lines (additions plus deletions, generated files excluded) from the task list",
 		"keep a running count from work-unit commits",
@@ -141,10 +129,8 @@ test("ODD closes each task with a work-unit commit and reviews the commit or PR 
 	containsAll(docs, [
 		"Every task closes with at least one work-unit commit on the feature branch (branch first when on the default branch)",
 		"the feature document records the commit identity as evidence",
-		"The native review candidate is a work-unit commit or a PR slice, never a TODO checkbox and never the accumulated feature branch",
 		"**Delivery:**",
 		"Close task with a work-unit commit",
-		"RDD enabled at work-unit commit boundary",
 		"Running authored lines over 400",
 		"Apply selected delivery strategy",
 		"Single PR; no chain artifacts",
@@ -178,13 +164,13 @@ test("delivery instructions and docs preserve localized ordered outcomes and ove
 	}
 });
 
-test("user documentation shows recovery and candidate-level consent without claiming model proof", () => {
+test("user documentation shows the ODD flow and the nub_review step without claiming model proof", () => {
 	const docs = read("docs/readme-reference.md");
 	containsAll(docs, [
 		"## Organic Driven Development",
 		"```mermaid",
 		"Full feature memory and actual task file",
-		"Native candidate risk",
+		"nub_review",
 		"advisory",
 		"Static prompt tests",
 		"autonomous",
@@ -390,7 +376,7 @@ test("ODD protocol is always-on in the rendered system prompt and runs by defaul
 		"7. **Close.**",
 		"call `gentle_odd_phase` only when the primary session's ODD phase actually changes",
 		"Harness principles:",
-		"# el Gentleman Orchestrator",
+		"# Nub-IA Orchestrator",
 	];
 	for (const persona of ["gentleman", "neutral"] as const) {
 		const prompt = __testing.buildGentlePrompt(persona);

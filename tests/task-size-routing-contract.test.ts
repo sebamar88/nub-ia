@@ -117,7 +117,6 @@ test("AC5: the high-risk list lives once in the core, native tier wins, unclear 
 		"(5) delivery or environment",
 		"(6) no test would catch a regression",
 		"only when a bounded look cannot tell whether (1)-(5) apply",
-		"When RDD is on and native assess returns a tier, that tier wins",
 	]) {
 		assert.ok(size.includes(clause), `high-risk definition is missing: ${clause}`);
 	}
@@ -204,10 +203,9 @@ test("T4: tracking updates edit in place and mirror without re-emitting the docu
 // moved clause must live in the module its pointer names.
 test("T6: each delegation module carries its own clauses and names the modules it depends on", () => {
 	const placement: Record<string, readonly string[]> = {
-		"orchestrator-tracking.md": ["#### Authorization and progress", "Delivery follows work units", "Raise a candidate you know is high risk"],
+		"orchestrator-tracking.md": ["#### Authorization and progress", "Delivery follows work units", "run `nub_review` (tool) over the diff"],
 		"orchestrator-verification.md": [
-			"| Native risk tier | Verification when RDD is `off`/`unknown` |",
-			"## Agent escalation (gentle-shell#1494)",
+			"Before delivery of a non-trivial change, run `nub_review`",
 			"## Parallel review protocol (gentle-shell#1731)",
 		],
 		"orchestrator-writer.md": ["#### Allowed edit surfaces (MANDATORY)", "#### Judgment Day fix dispatch"],

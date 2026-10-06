@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import runtimeMetrics from "../extensions/runtime-metrics.ts";
 import { parseAgentClass, type RuntimeMetricBucket } from "../lib/runtime-metrics.ts";
-import { encodeNativeRuntimeEvent } from "../lib/runtime-metrics-native.ts";
 import { CHILD_METRICS_EVENT, childEvent } from "../lib/runtime-metrics-children.ts";
 import { normalizeRpcEvent, TASK_EVENT } from "../lib/agents-protocol.ts";
 
@@ -46,11 +45,8 @@ test("a generic open-weight selection reaches the wire by name; no catalog probe
 	assert.equal(h.sent.length, 1);
 	assert.equal(h.sent[0][0].selectedProvider, "nan");
 	assert.equal(h.sent[0][0].selectedModelId, "deepseek-v4-flash");
-	const encoded = encodeNativeRuntimeEvent(h.sent[0]);
-	assert.ok(encoded);
-	const row = JSON.parse(encoded).rows[0];
-	assert.deepEqual(row.model, { provider: "nan", id: "deepseek-v4-flash" });
-	assert.equal(row.model_evidence, "selected");
+	assert.equal(h.sent[0][0].provider, "nan");
+	assert.equal(h.sent[0][0].observedModelId, "deepseek-v4-flash");
 	await h.finish(); h.emit("session_shutdown");
 });
 
@@ -65,11 +61,7 @@ test("an ambiguous turn with no captured selection still reports the observed mo
 	assert.equal(h.sent.length, 1);
 	assert.equal(h.sent[0][0].selectedModelId, "unknown");
 	assert.equal(h.sent[0][0].observedModelId, "glm5.3");
-	const encoded = encodeNativeRuntimeEvent(h.sent[0]);
-	assert.ok(encoded);
-	const row = JSON.parse(encoded).rows[0];
-	assert.deepEqual(row.model, { provider: "nan", id: "glm5.3" });
-	assert.equal(row.model_evidence, "selected");
+	assert.equal(h.sent[0][0].provider, "nan");
 	await h.finish(); h.emit("session_shutdown");
 });
 

@@ -19,7 +19,7 @@ async function proveLazyDiscovery(): Promise<void> {
 import { createGentleAiExtension } from ${source("gentle-ai")};
 import gentleAgents from ${source("gentle-agents")};
 export default function (pi) {
-  createGentleAiExtension({ nativeReviewCli: null, candidateViews: null, processEnv: {} })(pi);
+  createGentleAiExtension({ processEnv: {} })(pi);
   gentleAgents(pi);
 }
 `);

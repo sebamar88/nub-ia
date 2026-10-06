@@ -6,7 +6,6 @@ import { join } from "node:path";
 import test from "node:test";
 import { __testing } from "../extensions/gentle-ai.ts";
 import { allowedEditSurfaces, inheritAllowedEditSurfaces, isBoundedWriter, bindSessionRepositoryPreparation, boundSessionRepositoryAuthorityCurrent, captureBoundSessionRepositoryAuthority, isDevelopmentSurface, prepareBoundSessionRepository, sessionRepositoryAuthority } from "../lib/bounded-writer-admission.ts";
-import type { NativeReviewCli } from "../lib/native-review-cli.ts";
 
 test("development admission excludes sensitive, config and bookkeeping surfaces structurally", () => {
 	for (const path of ["README.md", "odd/tasks/feature.md", ".pi/settings.json", "docs/app.ts", ".ssh/app.ts", ".aws/app.ts", ".gnupg/app.ts", "credentials/app.ts", "tokens/app.ts", "secrets/app.ts", "vite.config.ts", ".env", "private.key"]) assert.equal(isDevelopmentSurface(path), false, path);
@@ -73,26 +72,6 @@ for (const race of ["loss", "replacement", "cancellation"] as const) {
 		unbind(); successor?.();
 	});
 }
-
-// Never invoke native code against the real HOME or filesystem root.
-test("explicit review protects canonical HOME aliases, filesystem root and sensitive directories", async t => {
-	const root = realpathSync(mkdtempSync(join(tmpdir(), "bootstrap-safety-")));
-	const home = join(root, "home");
-	const alias = join(root, "home-alias");
-	mkdirSync(home);
-	mkdirSync(join(home, ".ssh"));
-	symlinkSync(home, alias);
-	const previous = process.env.HOME;
-	process.env.HOME = home;
-	t.after(() => { if (previous === undefined) delete process.env.HOME; else process.env.HOME = previous; rmSync(root, { recursive: true, force: true }); });
-	let calls = 0;
-	const native = { reviewMode: async () => ({ operation: "status", status: { effective: "on", source: "global", global: "on", cloneLocal: "" } }), targetStatus: async () => { calls++; throw new Error("protected native invocation"); } } as unknown as NativeReviewCli;
-	for (const target of [home, alias, "/", join(home, ".ssh")]) {
-		try { await __testing.executeReviewControllerOperation({ operation: "inspect", workspaceRoot: target }, home, native, undefined, null); }
-		catch { /* The public boundary can reject before returning an envelope. */ }
-	}
-	assert.equal(calls, 0, "no native STATUS against protected directories");
-});
 
 // gentle-shell#1713: a writer continuation without its own section was
 // rejected, and every retry shortened the follow-up. A continuation resumes

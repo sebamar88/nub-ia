@@ -114,10 +114,9 @@ function ownGentlePiVersion(): string {
 // GENTLE_SHELL_NO_AUTO_SETUP=1 is in the base fixture env so every test that
 // is not itself about auto-provisioning (S7) keeps today's plain-launch
 // behavior: without it, every fixture-driven test against a fresh isolated
-// home would trigger a real `gentle-ai install --agent pi` (network, tens of
-// seconds, mutating state) unless it also happened to set
-// GENTLE_SHELL_GENTLE_AI_BIN. The auto-provision test section below opts
-// back in per test via enableAutoProvision.
+// home would run `pi install` for the team packages (network, mutating
+// state). The auto-provision test section below opts back in per test via
+// enableAutoProvision.
 function fixture(t: test.TestContext) {
 	const root = mkdtempSync(join(tmpdir(), "gentle-shell-bin-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -134,7 +133,7 @@ function fixture(t: test.TestContext) {
 		GENTLE_SHELL_PI: piScript,
 		GENTLE_SHELL_NO_AUTO_SETUP: "1",
 		// Team companion packages are exercised by their own tests below; every
-		// other setup test keeps the exact gentle-ai + cleanup spawn sequence.
+		// other setup test keeps a deterministic install sequence.
 		GENTLE_SHELL_TEAM_PACKAGES: "",
 	};
 	return { root, home, gentleShellHome, piScript, env };
@@ -311,269 +310,6 @@ test("Pi real resource loader deduplicates the bridge across discovery, explicit
 		assert.equal(factoryCalls, 1, scenario);
 	}
 });
-
-// Test/development-only stub for the setup subcommand's gentle-ai binary:
-// records its argv and the environment nub-ia sets around it, instead
-// of running the real package-local gentle-ai (whose supply-chain integrity
-// checks a test cannot cheaply satisfy). Pointed to via GENTLE_SHELL_GENTLE_AI_BIN,
-// documented as test/development-only in docs/readme-reference.md.
-function writeGentleAiScript(path: string, exitCode = 0) {
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"const args = process.argv.slice(2);",
-			"process.stdout.write(JSON.stringify({",
-			"  args,",
-			"  PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,",
-			"  GENTLE_PI_AGENT_HOME: process.env.GENTLE_PI_AGENT_HOME,",
-			"  PATH: process.env.PATH,",
-			"}));",
-			`process.exit(${exitCode});`,
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only stub for the setup subcommand's gentle-ai binary
-// that also records each invocation's args to `counterPath` (one JSON line
-// per run), so an auto-provision test can prove the flow ran exactly once
-// (or not at all) across several nub-ia invocations, independent of
-// what lands on stdout/stderr.
-function writeGentleAiScriptCountingRuns(path: string, counterPath: string, exitCode = 0) {
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"import { appendFileSync } from 'node:fs';",
-			"const args = process.argv.slice(2);",
-			`appendFileSync(${JSON.stringify(counterPath)}, JSON.stringify(args) + '\\n');`,
-			"process.stdout.write(JSON.stringify({ args, PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR }));",
-			`process.exit(${exitCode});`,
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only stub for setup's self-heal installer seam
-// (GENTLE_SHELL_GENTLE_AI_INSTALLER): writes a working gentle-ai stub at
-// process.env.GENTLE_SHELL_GENTLE_AI_BIN — the same path setup itself
-// resolved the missing binary from — so "the installer created the pinned
-// binary" is provable by setup's own retry check finding it, exactly like a
-// real `node scripts/install-gentle-ai.mjs` run would leave a real binary at
-// gentleAiBinaryPath().
-function writeInstallerScriptThatCreatesTheBinary(path: string) {
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"import { writeFileSync, chmodSync, mkdirSync } from 'node:fs';",
-			"import { dirname } from 'node:path';",
-			"const target = process.env.GENTLE_SHELL_GENTLE_AI_BIN;",
-			"mkdirSync(dirname(target), { recursive: true });",
-			"writeFileSync(target, [",
-			"  '#!/usr/bin/env node',",
-			"  'const args = process.argv.slice(2);',",
-			"  'process.stdout.write(JSON.stringify({ args, PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR, GENTLE_PI_AGENT_HOME: process.env.GENTLE_PI_AGENT_HOME, PATH: process.env.PATH }));',",
-			"  'process.exit(0);',",
-			"  '',",
-			"].join('\\n'));",
-			"chmodSync(target, 0o755);",
-			"process.exit(0);",
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only stub for setup's self-heal installer seam that
-// deliberately never creates the binary, simulating a real installer run
-// that failed (e.g. a network or verification failure) — setup's retry
-// check must still find the binary missing afterward.
-function writeInstallerScriptThatFails(path: string) {
-	writeFileSync(path, ["#!/usr/bin/env node", "process.stderr.write('simulated installer failure\\n');", "process.exit(1);", ""].join("\n"));
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only stub for the setup subcommand's gentle-ai binary,
-// simulating the real gentle-ai's managed Pi stack declaring the conflicting
-// npm:@juicesharp/rpiv-ask-user-question package (gentle-ai #4820,
-// nub-ia #1277) into the provisioned home's settings.json, the same
-// file the isolated-home bootstrap already created before `setup` spawns
-// this stub. Its own stdout line ends with "\n" so a test can tell it apart
-// from a later `pi remove` line on the same inherited stdout.
-function writeGentleAiScriptDeclaringConflict(path: string, exitCode = 0) {
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"import { readFileSync, writeFileSync } from 'node:fs';",
-			"import { join } from 'node:path';",
-			"const args = process.argv.slice(2);",
-			"const settingsPath = join(process.env.PI_CODING_AGENT_DIR, 'settings.json');",
-			"const settings = JSON.parse(readFileSync(settingsPath, 'utf8'));",
-			"settings.packages = ['npm:@juicesharp/rpiv-ask-user-question@1.2.3'];",
-			"writeFileSync(settingsPath, JSON.stringify(settings));",
-			"process.stdout.write(JSON.stringify({ args }) + '\\n');",
-			`process.exit(${exitCode});`,
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only stub for the setup subcommand's gentle-ai binary
-// that also rewrites the provisioned home's own settings.json `theme` field,
-// simulating gentle-ai's managed Pi install writing its own theme into
-// settings.json — the case nub-ia's own theme-restore logic
-// (bin/nub-ia.mjs's runSetupFlow, enforceDefaultThemeField) must undo.
-function writeGentleAiScriptSettingTheme(path: string, theme: string, exitCode = 0) {
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"import { readFileSync, writeFileSync } from 'node:fs';",
-			"import { join } from 'node:path';",
-			"const args = process.argv.slice(2);",
-			"const settingsPath = join(process.env.PI_CODING_AGENT_DIR, 'settings.json');",
-			"const settings = JSON.parse(readFileSync(settingsPath, 'utf8'));",
-			`settings.theme = ${JSON.stringify(theme)};`,
-			"writeFileSync(settingsPath, JSON.stringify(settings));",
-			"process.stdout.write(JSON.stringify({ args }) + '\\n');",
-			`process.exit(${exitCode});`,
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only stub for the setup subcommand's gentle-ai binary,
-// simulating the real gentle-ai's managed Pi stack always declaring
-// npm:gentle-pi itself into the provisioned home's settings.json (the
-// problem this fix addresses: the home must never keep running that
-// declared copy instead of the launcher's own). `extraSources` lets a test
-// also declare the conflicting rpiv package alongside it, in the given
-// order, to prove both post-install removals run together.
-function writeGentleAiScriptDeclaringGentlePi(path: string, extraSources: string[] = [], exitCode = 0) {
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"import { readFileSync, writeFileSync } from 'node:fs';",
-			"import { join } from 'node:path';",
-			"const args = process.argv.slice(2);",
-			"const settingsPath = join(process.env.PI_CODING_AGENT_DIR, 'settings.json');",
-			"const settings = JSON.parse(readFileSync(settingsPath, 'utf8'));",
-			`settings.packages = [...${JSON.stringify(extraSources)}, 'npm:gentle-pi@3.5.1'];`,
-			"writeFileSync(settingsPath, JSON.stringify(settings));",
-			"process.stdout.write(JSON.stringify({ args }) + '\\n');",
-			`process.exit(${exitCode});`,
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only fake pi runtime whose `remove <source>` branch also
-// rewrites the target home's settings.json, dropping the matching `packages`
-// entry — unlike the plain `writePiScript` stub above (which only records
-// the invocation), this models what a real `pi remove` does to settings.json
-// closely enough to prove a later plain launch sees the declaration gone and
-// resumes the launcher's own injection.
-function writePiScriptEditingSettingsOnRemove(path: string, version = "0.99.1") {
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"import { readFileSync, writeFileSync } from 'node:fs';",
-			"import { join } from 'node:path';",
-			"const args = process.argv.slice(2);",
-			`if (args.includes("--version")) { console.log(${JSON.stringify(version)}); process.exit(0); }`,
-			"if (args[0] === 'remove') {",
-			"  const settingsPath = join(process.env.PI_CODING_AGENT_DIR, 'settings.json');",
-			"  const settings = JSON.parse(readFileSync(settingsPath, 'utf8'));",
-			"  const target = args[1];",
-			"  settings.packages = (settings.packages || []).filter((entry) => {",
-			"    const source = typeof entry === 'string' ? entry : entry.source;",
-			"    return source !== target && !source.startsWith(target + '@');",
-			"  });",
-			"  writeFileSync(settingsPath, JSON.stringify(settings));",
-			"  console.log(JSON.stringify({",
-			"    args,",
-			"    PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,",
-			"    GENTLE_PI_AGENT_HOME: process.env.GENTLE_PI_AGENT_HOME,",
-			"    PATH: process.env.PATH,",
-			"  }));",
-			"  process.exit(0);",
-			"}",
-			"console.log(JSON.stringify({ args, PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR }));",
-			"process.exit(0);",
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only stub for the setup subcommand's gentle-ai binary
-// that also rewrites the shared Pi persona file at
-// `$HOME/.pi/gentle-ai/persona.json` to the default preset, exactly like the
-// real gentle-ai does regardless of `PI_CODING_AGENT_DIR` (gentle-ai's
-// `PiPersonaConfigPath` always resolves against the OS home). Reads
-// `homedir()` inside the child so it honors the fixture's isolated `HOME`,
-// never `PI_CODING_AGENT_DIR` — that mismatch is exactly the bug the
-// snapshot/restore wrap in `runSetupFlow` guards against.
-function writeGentleAiScriptRewritingPersona(path: string, exitCode = 0) {
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"import { writeFileSync, mkdirSync } from 'node:fs';",
-			"import { homedir } from 'node:os';",
-			"import { join } from 'node:path';",
-			"const personaDir = join(homedir(), '.pi', 'gentle-ai');",
-			"mkdirSync(personaDir, { recursive: true });",
-			"writeFileSync(join(personaDir, 'persona.json'), JSON.stringify({ mode: 'gentleman' }));",
-			`process.exit(${exitCode});`,
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
-
-// Test/development-only stub for the setup subcommand's gentle-ai binary
-// that also rewrites the shared `$HOME/.gentle-ai/state.json` the way the
-// real gentle-ai does on every install: it changes managed_asset_digest (the
-// field this fix restores) and one unrelated field (installed_agents), so a
-// test can prove the digest gets restored while the unrelated field is left
-// exactly as the child wrote it. `create` controls whether it merges into an
-// existing state.json or writes a brand-new one (for the "no pre-existing
-// file" case, where the stub's file must be left alone entirely).
-function writeGentleAiScriptRewritingManagedAssetDigest(path: string, opts: { digest?: string; create?: boolean } = {}, exitCode = 0) {
-	const digest = opts.digest ?? "digest-from-pinned-gentle-ai";
-	const create = opts.create ?? false;
-	writeFileSync(
-		path,
-		[
-			"#!/usr/bin/env node",
-			"import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';",
-			"import { homedir } from 'node:os';",
-			"import { join } from 'node:path';",
-			"const stateDir = join(homedir(), '.gentle-ai');",
-			"mkdirSync(stateDir, { recursive: true });",
-			"const statePath = join(stateDir, 'state.json');",
-			`const create = ${JSON.stringify(create)};`,
-			"const state = !create && existsSync(statePath) ? JSON.parse(readFileSync(statePath, 'utf8')) : {};",
-			`state.managed_asset_digest = ${JSON.stringify(digest)};`,
-			"state.installed_agents = [...(state.installed_agents || []), 'claude'];",
-			"writeFileSync(statePath, JSON.stringify(state, null, 2) + '\\n');",
-			`process.exit(${exitCode});`,
-			"",
-		].join("\n"),
-	);
-	chmodSync(path, 0o755);
-}
 
 test("--help exits 0 and prints usage", (t) => {
 	const f = fixture(t);
@@ -819,705 +555,177 @@ test("--version prints three lines", (t) => {
 
 // --- setup subcommand ------------------------------------------------------
 
-test("nub-ia setup provisions the resolved home through the pinned gentle-ai binary", (t) => {
-	const f = fixture(t);
-	assert.equal(existsSync(f.gentleShellHome), false);
-
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /provisioning/);
-	assert.match(result.stderr, new RegExp(f.gentleShellHome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global"]);
-	assert.equal(payload.PI_CODING_AGENT_DIR, f.gentleShellHome);
-	assert.equal(payload.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
-	assert.ok(payload.PATH.startsWith(`${dirname(f.piScript)}${delimiter}`), payload.PATH);
-
-	// Home resolution runs exactly as a normal run: the isolated home gets
-	// created with its bootstrap TUI setting, same as a plain `nub-ia`.
-	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
-	assert.equal(settings.tuiMode, "fullscreen");
-});
-
-test("nub-ia setup forwards --dry-run to gentle-ai", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["setup", "--dry-run"]);
-	assert.equal(result.status, 0, result.stderr);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global", "--dry-run"]);
-});
-
-test("nub-ia setup accepts a home selector before it and provisions that home", (t) => {
-	const f = fixture(t);
-	const target = join(f.root, "custom-home");
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["--home", target, "setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global"]);
-	assert.equal(payload.PI_CODING_AGENT_DIR, target);
-	assert.equal(payload.GENTLE_PI_AGENT_HOME, target);
-	assert.equal(existsSync(join(target, "settings.json")), true);
-});
-
-test("nub-ia setup passes through the gentle-ai exit code", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript, 3);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 3);
-});
-
-// --- setup subcommand's self-heal for a missing package-local binary -------
+// --- provisioning fake pi ------------------------------------------------------
 //
-// `npm install -g <tarball>` on a machine whose npm config disables lifecycle
-// scripts (`ignore-scripts=true`) never runs the package's own postinstall,
-// so .gentle-ai/v<pin>/gentle-ai is missing even though the package itself
-// installed fine. `nub-ia setup` self-heals by running the installer
-// in place before giving up. GENTLE_SHELL_GENTLE_AI_INSTALLER is a
-// test/development-only override for the installer script path, next to
-// GENTLE_SHELL_GENTLE_AI_BIN; documented as test/development-only in
-// docs/readme-reference.md.
+// `setup` and the automatic first-run flow install the team packages through
+// pi's own `install`. This fake pi answers `--version`, records every
+// `install <source>` to `log` (one JSON line per run), and can fail, hang, or
+// run extra JavaScript (for example to rewrite settings.json) on install. Any
+// other invocation prints its args as JSON, like the plain fixture pi.
 
-test("nub-ia setup installs the missing package-local gentle-ai via the installer seam and then continues", (t) => {
-	const f = fixture(t);
-	const missingBinary = join(f.root, "does-not-exist", "gentle-ai");
-	const installerScript = join(f.root, "fake-installer-creates-binary.mjs");
-	writeInstallerScriptThatCreatesTheBinary(installerScript);
-	const env = {
-		...f.env,
-		GENTLE_SHELL_GENTLE_AI_BIN: missingBinary,
-		GENTLE_SHELL_GENTLE_AI_INSTALLER: installerScript,
-		GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0",
-	};
+const CHILD_READY_TOKEN = "GENTLE_SHELL_TEST_CHILD_READY";
 
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.match(
-		result.stderr,
-		/nub-ia: the package-local gentle-ai v3\.6\.0 is missing \(npm lifecycle scripts may be disabled\); installing it now/,
+function writeProvisioningPi(
+	path: string,
+	options: { log?: string; installExit?: number; installSleepMs?: number; installJs?: string; signalSelf?: boolean } = {},
+) {
+	const { log, installExit = 0, installSleepMs = 0, installJs = "", signalSelf = false } = options;
+	writeFileSync(
+		path,
+		[
+			"#!/usr/bin/env node",
+			"import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';",
+			"import { join } from 'node:path';",
+			"const args = process.argv.slice(2);",
+			'if (args.includes("--version")) { console.log("0.99.1"); process.exit(0); }',
+			"const record = { args, PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR, GENTLE_PI_AGENT_HOME: process.env.GENTLE_PI_AGENT_HOME };",
+			"if (args[0] === 'install') {",
+			`  const log = ${JSON.stringify(log ?? null)};`,
+			"  if (log) appendFileSync(log, JSON.stringify(record) + '\\n');",
+			`  process.stderr.write(${JSON.stringify(CHILD_READY_TOKEN)} + '\\n');`,
+			`  ${signalSelf ? "process.kill(process.pid, 'SIGKILL');" : ""}`,
+			`  ${installJs}`,
+			`  if (${installSleepMs} > 0) await new Promise((resolve) => setTimeout(resolve, ${installSleepMs}));`,
+			"  console.log(JSON.stringify(record));",
+			`  process.exit(${installExit});`,
+			"}",
+			"console.log(JSON.stringify({ ...record, GENTLE_SHELL_USER_PI_HOME: process.env.GENTLE_SHELL_USER_PI_HOME }));",
+			"process.exit(0);",
+			"",
+		].join("\n"),
 	);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global"]);
-	assert.equal(payload.PI_CODING_AGENT_DIR, f.gentleShellHome);
-	assert.equal(payload.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
-});
+	chmodSync(path, 0o755);
+}
 
-test("nub-ia setup exits 1 with an actionable message when the pinned gentle-ai binary is still missing after the installer runs", (t) => {
-	const f = fixture(t);
-	const missingBinary = join(f.root, "does-not-exist", "gentle-ai");
-	const installerScript = join(f.root, "fake-installer-fails.mjs");
-	writeInstallerScriptThatFails(installerScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: missingBinary, GENTLE_SHELL_GENTLE_AI_INSTALLER: installerScript };
+const TEAM = "npm:example-a";
 
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 1);
-	assert.match(result.stderr, /nub-ia: the package-local gentle-ai v.+ is missing \(npm lifecycle scripts may be disabled\); installing it now/);
-	assert.match(result.stderr, /package-local-binary-missing/);
-	assert.match(result.stderr, new RegExp(missingBinary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-});
+// A provisioning environment: fake pi plus a single deterministic team package.
+function provisioning(f: ReturnType<typeof fixture>, options: Parameters<typeof writeProvisioningPi>[1] = {}, extra: NodeJS.ProcessEnv = {}) {
+	const script = join(f.root, "fake-pi-provisioning.mjs");
+	writeProvisioningPi(script, options);
+	return { ...f.env, GENTLE_SHELL_PI: script, GENTLE_SHELL_TEAM_PACKAGES: TEAM, ...extra };
+}
 
-test("nub-ia setup skips the self-heal install and exits 1 when GENTLE_PI_SKIP_GENTLE_AI_INSTALL is set", (t) => {
-	const f = fixture(t);
-	const missingBinary = join(f.root, "does-not-exist", "gentle-ai");
-	// This installer would prove itself by creating the binary if it ever ran;
-	// it must not run at all when the skip variable is set.
-	const installerScript = join(f.root, "installer-should-not-run.mjs");
-	writeInstallerScriptThatCreatesTheBinary(installerScript);
-	const env = {
-		...f.env,
-		GENTLE_SHELL_GENTLE_AI_BIN: missingBinary,
-		GENTLE_SHELL_GENTLE_AI_INSTALLER: installerScript,
-		GENTLE_PI_SKIP_GENTLE_AI_INSTALL: "1",
-	};
+function installRuns(log: string): string[] {
+	return existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").filter((line) => line.length > 0) : [];
+}
 
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 1);
-	assert.match(result.stderr, /package-local-binary-missing/);
-	assert.match(result.stderr, /GENTLE_PI_SKIP_GENTLE_AI_INSTALL/);
-	assert.doesNotMatch(result.stderr, /installing it now/);
-	assert.equal(existsSync(missingBinary), false);
-});
-
-// --- setup subcommand's gentle-ai pin gate (R3/R4 advisory findings) -------
-//
-// `nub-ia setup` points PI_CODING_AGENT_DIR at the resolved home
-// before spawning the package-local pinned gentle-ai; only gentle-ai >=
-// 3.6.0 honors that variable in its own provisioning. An older pin would
-// silently provision the caller's real ~/.pi/agent instead, so setup must
-// refuse to spawn it. GENTLE_SHELL_GENTLE_AI_PIN is a test/development-only
-// override for the reported pin, next to GENTLE_SHELL_GENTLE_AI_BIN;
-// documented as test/development-only in docs/readme-reference.md.
-
-test("nub-ia setup refuses to run an older-than-3.6.0 pin and spawns nothing", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.5.0" };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 1);
-	assert.match(result.stderr, /nub-ia: setup needs the package-local gentle-ai v3\.6\.0 or newer \(pinned: 3\.5\.0\); this build cannot provision a home without touching ~\/\.pi\/agent/);
-	// The isolated-home bootstrap runs before command dispatch on every run
-	// (same as a successful setup); the pin gate only refuses to spawn
-	// gentle-ai, so no gentle-ai invocation is recorded on stdout.
-	assert.equal(result.stdout, "");
-});
-
-test("nub-ia setup proceeds when the reported pin is exactly 3.6.0", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global"]);
-});
-
-// --- setup subcommand conflict cleanup (gentle-ai #4820 / nub-ia #1277) ---
-//
-// gentle-ai's managed Pi stack still installs npm:@juicesharp/rpiv-ask-user-question,
-// which conflicts with gentle-pi's own first-party ask_user_question tool
-// (Pi refuses two providers for the same tool name). Until the gentle-ai fix
-// lands, `nub-ia setup` removes the conflicting package itself once it
-// finds gentle-ai declared it in the provisioned home's settings.json.
-
-test("nub-ia setup removes the conflicting ask-user-question package gentle-ai declared", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptDeclaringConflict(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.match(
-		result.stderr,
-		/nub-ia: removing npm:@juicesharp\/rpiv-ask-user-question from .+: gentle-pi ships ask_user_question and Pi refuses two providers \(gentle-ai #4820\)/,
-	);
-
-	const lines = result.stdout.trim().split("\n").filter((line) => line.length > 0);
-	assert.equal(lines.length, 2, result.stdout);
-	assert.deepEqual(JSON.parse(lines[0]).args, ["install", "--agent", "pi", "--scope", "global"]);
-	const removePayload = JSON.parse(lines[1]);
-	assert.deepEqual(removePayload.args, ["remove", "npm:@juicesharp/rpiv-ask-user-question"]);
-	assert.equal(removePayload.PI_CODING_AGENT_DIR, f.gentleShellHome);
-	assert.equal(removePayload.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
-	assert.ok(removePayload.PATH.startsWith(`${dirname(f.piScript)}${delimiter}`), removePayload.PATH);
-});
-
-// The fake gentle-ai writes its JSON record without a trailing newline while
-// the fake pi uses console.log, so a setup transcript is split on object
-// boundaries rather than lines.
 function jsonRecords(stdout: string): Array<{ args: string[]; PI_CODING_AGENT_DIR?: string }> {
 	return stdout.split(/(?<=\})\s*(?=\{)/).map((chunk) => chunk.trim()).filter((chunk) => chunk.length > 0).map((chunk) => JSON.parse(chunk));
 }
 
+const escapeForRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // --- setup subcommand installs the team companion packages ------------------
 
-test("nub-ia setup installs the packaged team packages after provisioning, via pi's own install", (t) => {
+test("nub-ia setup installs the packaged team packages via pi's own install, in the resolved home", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env: NodeJS.ProcessEnv = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
+	const env = provisioning(f);
 	delete env.GENTLE_SHELL_TEAM_PACKAGES;
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(result.stderr, /nub-ia: installing team package npm:@dietrichgebert\/ponytail into /);
 	const records = jsonRecords(result.stdout);
-	assert.equal(records.length, 2, result.stdout);
-	assert.deepEqual(records[0].args, ["install", "--agent", "pi", "--scope", "global"]);
-	assert.deepEqual(records[1].args, ["install", "npm:@dietrichgebert/ponytail"]);
-	assert.equal(records[1].PI_CODING_AGENT_DIR, f.gentleShellHome);
+	assert.equal(records.length, 1, result.stdout);
+	assert.deepEqual(records[0].args, ["install", "npm:@dietrichgebert/ponytail"]);
+	assert.equal(records[0].PI_CODING_AGENT_DIR, f.gentleShellHome);
+});
+
+test("nub-ia setup never spawns a gentle-ai binary", (t) => {
+	const f = fixture(t);
+	const env = provisioning(f, {}, { GENTLE_SHELL_GENTLE_AI_BIN: join(f.root, "must-not-run") });
+	const result = run(env, ["setup"]);
+	assert.equal(result.status, 0, result.stderr);
+	assert.doesNotMatch(result.stderr, /gentle-ai/);
 });
 
 test("nub-ia setup skips team packages the home already declares, at any version", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
 	mkdirSync(f.gentleShellHome, { recursive: true });
 	writeFileSync(join(f.gentleShellHome, "settings.json"), JSON.stringify({ packages: ["npm:@dietrichgebert/ponytail@4.12.0"] }));
-	const env: NodeJS.ProcessEnv = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
+	const env = provisioning(f);
 	delete env.GENTLE_SHELL_TEAM_PACKAGES;
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.doesNotMatch(result.stderr, /installing team package/);
-	assert.equal(jsonRecords(result.stdout).length, 1, "only the gentle-ai install ran");
+	assert.equal(jsonRecords(result.stdout).length, 0, "nothing to install");
 });
 
 test("GENTLE_SHELL_TEAM_PACKAGES overrides the packaged team list and --dry-run reports it without installing", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_TEAM_PACKAGES: "npm:example-a, git:github.com/x/y" };
+	const env = provisioning(f, {}, { GENTLE_SHELL_TEAM_PACKAGES: "npm:example-a, git:github.com/x/y" });
 
 	const dry = run(env, ["setup", "--dry-run"]);
 	assert.equal(dry.status, 0, dry.stderr);
 	assert.match(dry.stderr, /setup would then install team package npm:example-a unless/);
 	assert.match(dry.stderr, /setup would then install team package git:github.com\/x\/y unless/);
-	assert.equal(jsonRecords(dry.stdout).length, 1, "dry run spawns only the gentle-ai dry run");
+	assert.equal(jsonRecords(dry.stdout).length, 0, "dry run spawns nothing");
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.deepEqual(jsonRecords(result.stdout).slice(1).map((record) => record.args), [["install", "npm:example-a"], ["install", "git:github.com/x/y"]]);
+	assert.deepEqual(jsonRecords(result.stdout).map((record) => record.args), [["install", "npm:example-a"], ["install", "git:github.com/x/y"]]);
 });
 
-test("nub-ia setup runs no pi remove when gentle-ai did not declare the conflicting package", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.doesNotMatch(result.stderr, /removing npm:/);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args, ["install", "--agent", "pi", "--scope", "global"]);
-});
-
-// --- setup subcommand keeps the home on the launcher's own gentle-pi -------
-//
-// gentle-ai's managed Pi stack always declares npm:gentle-pi itself into the
-// provisioned home's settings.json. That declaration must never survive
-// setup: this launcher always loads its own gentle-pi, so leaving it in
-// place would let the home drift onto whatever gentle-pi npm last installed
-// (or, worse, onto the published npm package instead of a developer's source
-// checkout) instead of the running launcher's own copy.
-
-test("nub-ia setup removes npm:gentle-pi that gentle-ai declared, naming this launcher's own version", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptDeclaringGentlePi(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.match(
-		result.stderr,
-		new RegExp(
-			`nub-ia: removing npm:gentle-pi from .+: this launcher loads its own gentle-pi ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}, so the home always matches it`,
-		),
-	);
-
-	const lines = result.stdout.trim().split("\n").filter((line) => line.length > 0);
-	assert.equal(lines.length, 2, result.stdout);
-	assert.deepEqual(JSON.parse(lines[0]).args, ["install", "--agent", "pi", "--scope", "global"]);
-	const removePayload = JSON.parse(lines[1]);
-	assert.deepEqual(removePayload.args, ["remove", "npm:gentle-pi"]);
-	assert.equal(removePayload.PI_CODING_AGENT_DIR, f.gentleShellHome);
-	assert.equal(removePayload.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
-	assert.ok(removePayload.PATH.startsWith(`${dirname(f.piScript)}${delimiter}`), removePayload.PATH);
-});
-
-test("nub-ia setup removes both the conflicting rpiv package and npm:gentle-pi, in declaration order", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptDeclaringGentlePi(gentleAiScript, ["npm:@juicesharp/rpiv-ask-user-question@1.2.3"]);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-
-	const lines = result.stdout.trim().split("\n").filter((line) => line.length > 0);
-	assert.equal(lines.length, 3, result.stdout);
-	assert.deepEqual(JSON.parse(lines[0]).args, ["install", "--agent", "pi", "--scope", "global"]);
-	assert.deepEqual(JSON.parse(lines[1]).args, ["remove", "npm:@juicesharp/rpiv-ask-user-question"]);
-	assert.deepEqual(JSON.parse(lines[2]).args, ["remove", "npm:gentle-pi"]);
-});
-
-// A --dry-run gentle-ai install writes nothing, so reading settings.json
-// afterwards would only ever report whatever pre-existed the run (e.g. the
-// isolated-home bootstrap this fixture's fake-gentle-ai script never
-// touches), never what the skipped install would have declared. Setup must
-// therefore print the pending-removal message unconditionally, without
-// reading settings.json — proven here with a fresh home that never declares
-// the conflicting package at all.
-test("nub-ia setup --dry-run prints the pending removal unconditionally, without reading settings.json", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const result = run(env, ["setup", "--dry-run"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.match(
-		result.stderr,
-		/nub-ia: setup would then remove npm:@juicesharp\/rpiv-ask-user-question if the install declares it \(gentle-ai #4820\)/,
-	);
-	assert.match(
-		result.stderr,
-		new RegExp(
-			`nub-ia: setup would then remove npm:gentle-pi if the install declares it: this launcher loads its own gentle-pi ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}, so the home always matches it`,
-		),
-	);
-	assert.doesNotMatch(result.stderr, /nub-ia: removing/);
-
-	const lines = result.stdout.trim().split("\n").filter((line) => line.length > 0);
-	assert.equal(lines.length, 1, result.stdout);
-	assert.deepEqual(JSON.parse(lines[0]).args, ["install", "--agent", "pi", "--scope", "global", "--dry-run"]);
-});
-
-test("a later normal launch injects the launcher's own package root once gentle-pi is removed from settings.json", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptDeclaringGentlePi(gentleAiScript);
-	writePiScriptEditingSettingsOnRemove(f.piScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const setupResult = run(env, ["setup"]);
-	assert.equal(setupResult.status, 0, setupResult.stderr);
-	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
-	assert.deepEqual(settings.packages, []);
-
-	const result = run(env, ["--mode", "rpc"]);
-	assert.equal(result.status, 0, result.stderr);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args, [
-		"-e",
-		packageRoot,
-		"--mode",
-		"rpc",
-	]);
-});
-
-test("nub-ia setup propagates a non-zero pi remove exit code with an actionable message", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptDeclaringConflict(gentleAiScript);
-	const failingPiScript = join(f.root, "fake-pi-remove-fails.mjs");
-	writePiScript(failingPiScript, "0.99.1", 7);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_PI: failingPiScript };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 7);
-	assert.match(
-		result.stderr,
-		/nub-ia: could not remove npm:@juicesharp\/rpiv-ask-user-question; run `nub-ia remove npm:@juicesharp\/rpiv-ask-user-question` before starting/,
-	);
-});
-
-// The remediation message must include whatever home selector setup was run
-// with, so a copy-pasted `nub-ia remove <source>` doesn't silently
-// fall back to the isolated default and miss the package in the home the
-// user actually set up (nub-ia #1277 follow-up).
-test("nub-ia setup --home <dir> includes --home <dir> in the failing-removal remediation command", (t) => {
+test("nub-ia setup accepts a home selector before it and provisions that home", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "custom-home");
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptDeclaringConflict(gentleAiScript);
-	const failingPiScript = join(f.root, "fake-pi-remove-fails.mjs");
-	writePiScript(failingPiScript, "0.99.1", 7);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_PI: failingPiScript };
-
-	const result = run(env, ["--home", target, "setup"]);
-	assert.equal(result.status, 7);
-	assert.match(
-		result.stderr,
-		new RegExp(
-			`nub-ia: could not remove npm:@juicesharp/rpiv-ask-user-question; run \`nub-ia --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} remove npm:@juicesharp/rpiv-ask-user-question\` before starting`,
-		),
-	);
+	const result = run(provisioning(f), ["--home", target, "setup"]);
+	assert.equal(result.status, 0, result.stderr);
+	const [record] = jsonRecords(result.stdout);
+	assert.equal(record.PI_CODING_AGENT_DIR, target);
 });
 
-// A --home path containing a space (or another shell metacharacter) must be
-// single-quoted in the remediation command, or a copy-pasted
-// `nub-ia --home <dir> remove <source>` silently splits into extra
-// shell words instead of naming the actual home setup provisioned
-// (nub-ia #1277 follow-up).
-test("nub-ia setup shell-quotes a --home path containing a space in the failing-removal remediation command", (t) => {
+test("nub-ia setup propagates a failing pi install's exit code with an actionable retry command", (t) => {
+	const f = fixture(t);
+	const target = join(f.root, "custom-home");
+	const result = run(provisioning(f, { installExit: 7 }), ["--home", target, "setup"]);
+	assert.equal(result.status, 7);
+	assert.match(result.stderr, new RegExp(`nub-ia: could not install ${escapeForRegExp(TEAM)}; run \`nub-ia --home ${escapeForRegExp(target)} install ${escapeForRegExp(TEAM)}\` to retry`));
+});
+
+test("nub-ia setup shell-quotes a --home path containing a space in the retry command", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "custom home");
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptDeclaringConflict(gentleAiScript);
-	const failingPiScript = join(f.root, "fake-pi-remove-fails.mjs");
-	writePiScript(failingPiScript, "0.99.1", 7);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_PI: failingPiScript };
-
-	const result = run(env, ["--home", target, "setup"]);
-	assert.equal(result.status, 7);
-	assert.match(
-		result.stderr,
-		new RegExp(
-			`nub-ia: could not remove npm:@juicesharp/rpiv-ask-user-question; run \`nub-ia --home '${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}' remove npm:@juicesharp/rpiv-ask-user-question\` before starting`,
-		),
-	);
-});
-
-// --- persona snapshot/restore -----------------------------------------------
-//
-// gentle-ai's persona file always lives at the shared `~/.pi/gentle-ai/persona.json`
-// regardless of `PI_CODING_AGENT_DIR` (see docs/readme-reference.md's setup
-// "Known limitation"), so `setup` snapshots it before spawning gentle-ai and
-// restores it afterward — in every mode gentle-ai gets spawned in: manual,
-// `--dry-run`, and automatic first-run provisioning.
-
-function personaPathFor(f: { home: string }) {
-	return join(f.home, ".pi", "gentle-ai", "persona.json");
-}
-
-test("nub-ia setup restores the user's Pi persona file when gentle-ai rewrites it", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingPersona(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const personaPath = personaPathFor(f);
-	mkdirSync(dirname(personaPath), { recursive: true });
-	const originalBytes = JSON.stringify({ mode: "neutral" });
-	writeFileSync(personaPath, originalBytes);
-	chmodSync(personaPath, 0o600);
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.equal(readFileSync(personaPath, "utf8"), originalBytes);
-	assert.equal(statSync(personaPath).mode & 0o777, 0o600);
-	assert.match(
-		result.stderr,
-		new RegExp(
-			`nub-ia: kept your Pi persona unchanged \\(gentle-ai rewrote ${personaPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; tracked upstream\\)`,
-		),
-	);
-});
-
-test("nub-ia setup removes a Pi persona file gentle-ai created where none existed", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingPersona(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const personaPath = personaPathFor(f);
-	assert.equal(existsSync(personaPath), false);
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.equal(existsSync(personaPath), false);
-	assert.match(result.stderr, /nub-ia: kept your Pi persona unchanged/);
-});
-
-test("nub-ia setup prints no persona notice when gentle-ai leaves the persona file alone", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const personaPath = personaPathFor(f);
-	mkdirSync(dirname(personaPath), { recursive: true });
-	writeFileSync(personaPath, JSON.stringify({ mode: "neutral" }));
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.doesNotMatch(result.stderr, /kept your Pi persona unchanged/);
-});
-
-test("nub-ia setup restores the persona file even when gentle-ai exits non-zero after rewriting it", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingPersona(gentleAiScript, 3);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const personaPath = personaPathFor(f);
-	mkdirSync(dirname(personaPath), { recursive: true });
-	const originalBytes = JSON.stringify({ mode: "neutral" });
-	writeFileSync(personaPath, originalBytes);
-
-	const result = run(env, ["setup"]);
+	const result = run(provisioning(f, { installExit: 3 }), ["--home", target, "setup"]);
 	assert.equal(result.status, 3);
-	assert.equal(readFileSync(personaPath, "utf8"), originalBytes);
-	assert.match(result.stderr, /nub-ia: kept your Pi persona unchanged/);
+	assert.match(result.stderr, new RegExp(`nub-ia --home '${escapeForRegExp(target)}' install`));
 });
 
-test("nub-ia setup --dry-run also restores the persona file gentle-ai rewrites", (t) => {
+test("manual setup never times out even past the auto-mode ceiling override", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingPersona(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const personaPath = personaPathFor(f);
-	mkdirSync(dirname(personaPath), { recursive: true });
-	const originalBytes = JSON.stringify({ mode: "neutral" });
-	writeFileSync(personaPath, originalBytes);
-
-	const result = run(env, ["setup", "--dry-run"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.equal(readFileSync(personaPath, "utf8"), originalBytes);
-	assert.match(result.stderr, /nub-ia: kept your Pi persona unchanged/);
-});
-
-test("automatic first-run provisioning also restores the persona file gentle-ai rewrites", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingPersona(gentleAiScript);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
-
-	const personaPath = personaPathFor(f);
-	mkdirSync(dirname(personaPath), { recursive: true });
-	const originalBytes = JSON.stringify({ mode: "neutral" });
-	writeFileSync(personaPath, originalBytes);
-
-	const result = run(env, []);
-	assert.equal(result.status, 0, result.stderr);
-	assert.equal(readFileSync(personaPath, "utf8"), originalBytes);
-	assert.match(result.stderr, /nub-ia: kept your Pi persona unchanged/);
-});
-
-// --- managed-asset digest snapshot/restore ----------------------------------
-//
-// gentle-ai tracks whether its own binary's managed-asset bundle matches the
-// shared `~/.gentle-ai/state.json`'s managed_asset_digest field, regardless
-// of which home it was installing into. The pinned package-local gentle-ai
-// this setup flow spawns writes its own digest into that same shared file,
-// so afterward the user's own (unrelated, on-PATH) gentle-ai reports its
-// managed assets as outdated and demands `gentle-ai sync`, even though
-// nothing about the user's install changed. `setup` restores just that field
-// afterward — never the whole file, unlike persona.json, since state.json
-// also carries fields (like installed_agents) the pinned gentle-ai is
-// supposed to update.
-
-function stateJsonPathFor(f: { home: string }) {
-	return join(f.home, ".gentle-ai", "state.json");
-}
-
-test("nub-ia setup restores managed_asset_digest while keeping other state.json fields as the child left them", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "digest-from-pinned-gentle-ai" });
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const statePath = stateJsonPathFor(f);
-	mkdirSync(dirname(statePath), { recursive: true });
-	writeFileSync(statePath, `${JSON.stringify({ managed_asset_digest: "users-own-digest", installed_agents: ["pi"] }, null, 2)}\n`);
-
+	const env = provisioning(f, { installSleepMs: 300 }, { GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS: "50" });
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
-	const state = JSON.parse(readFileSync(statePath, "utf8"));
-	assert.equal(state.managed_asset_digest, "users-own-digest");
-	assert.deepEqual(state.installed_agents, ["pi", "claude"]);
-	assert.match(
-		result.stderr,
-		new RegExp(
-			`nub-ia: kept your Gentle AI managed-asset record unchanged \\(the pinned gentle-ai rewrote ${statePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; tracked upstream\\)`,
-		),
-	);
+	assert.doesNotMatch(result.stderr, /timed out/);
 });
 
-test("nub-ia setup prints no managed-asset notice when the digest is unchanged", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "same-digest" });
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const statePath = stateJsonPathFor(f);
-	mkdirSync(dirname(statePath), { recursive: true });
-	writeFileSync(statePath, `${JSON.stringify({ managed_asset_digest: "same-digest", installed_agents: ["pi"] }, null, 2)}\n`);
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.doesNotMatch(result.stderr, /kept your Gentle AI managed-asset record unchanged/);
-});
-
-test("nub-ia setup leaves a state.json the pinned gentle-ai created where none existed before", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "digest-from-pinned-gentle-ai", create: true });
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const statePath = stateJsonPathFor(f);
-	assert.equal(existsSync(statePath), false);
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	const state = JSON.parse(readFileSync(statePath, "utf8"));
-	assert.equal(state.managed_asset_digest, "digest-from-pinned-gentle-ai");
-	assert.doesNotMatch(result.stderr, /kept your Gentle AI managed-asset record unchanged/);
-});
-
-test("nub-ia setup --dry-run also restores managed_asset_digest gentle-ai rewrites", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "digest-from-pinned-gentle-ai" });
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
-
-	const statePath = stateJsonPathFor(f);
-	mkdirSync(dirname(statePath), { recursive: true });
-	writeFileSync(statePath, `${JSON.stringify({ managed_asset_digest: "users-own-digest", installed_agents: ["pi"] }, null, 2)}\n`);
-
-	const result = run(env, ["setup", "--dry-run"]);
-	assert.equal(result.status, 0, result.stderr);
-	const state = JSON.parse(readFileSync(statePath, "utf8"));
-	assert.equal(state.managed_asset_digest, "users-own-digest");
-	assert.match(result.stderr, /kept your Gentle AI managed-asset record unchanged/);
-});
-
-test("automatic first-run provisioning also restores managed_asset_digest gentle-ai rewrites", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptRewritingManagedAssetDigest(gentleAiScript, { digest: "digest-from-pinned-gentle-ai" });
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
-
-	const statePath = stateJsonPathFor(f);
-	mkdirSync(dirname(statePath), { recursive: true });
-	writeFileSync(statePath, `${JSON.stringify({ managed_asset_digest: "users-own-digest", installed_agents: ["pi"] }, null, 2)}\n`);
-
-	const result = run(env, []);
-	assert.equal(result.status, 0, result.stderr);
-	const state = JSON.parse(readFileSync(statePath, "utf8"));
-	assert.equal(state.managed_asset_digest, "users-own-digest");
-	assert.match(result.stderr, /kept your Gentle AI managed-asset record unchanged/);
-});
-
-// --- automatic first-run provisioning (S7) ---------------------------------
-//
-// A plain `nub-ia` in an isolated or `--home` home now runs the same
-// flow as `nub-ia setup` automatically, before launching pi, when the
-// home has never been provisioned or was provisioned with a different
-// gentle-ai pin. GENTLE_SHELL_GENTLE_AI_PIN pins the reported pin to a fixed
-// value so these tests are independent of the real installed pin.
+// --- automatic first-run provisioning ----------------------------------------
 
 test("first launch auto-provisions the isolated home, writes the marker, then launches pi; stdout carries only pi's output", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const log = join(f.root, "install-runs.log");
+	const env = enableAutoProvision(provisioning(f, { log }));
 
 	const result = run(env, ["--mode", "rpc", "-p", "hi"]);
 	assert.equal(result.status, 0, result.stderr);
 
-	// The flow ran exactly once, before pi.
-	const runs = readFileSync(counterPath, "utf8").trim().split("\n");
-	assert.equal(runs.length, 1, counterPath);
-	assert.deepEqual(JSON.parse(runs[0]), ["install", "--agent", "pi", "--scope", "global"]);
+	const runs = installRuns(log);
+	assert.equal(runs.length, 1, log);
+	assert.deepEqual(JSON.parse(runs[0]).args, ["install", TEAM]);
 
 	// stdout carries only the final pi invocation's own output (the flow's
 	// stdout and stderr, and the launcher's own notices, all went to stderr).
 	const stdoutLines = result.stdout.trim().split("\n").filter((line) => line.length > 0);
 	assert.equal(stdoutLines.length, 1, result.stdout);
-	const payload = JSON.parse(stdoutLines[0]);
-	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
+	assert.deepEqual(JSON.parse(stdoutLines[0]).args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 
-	assert.match(result.stderr, /nub-ia: first run in .+: installing the Gentle AI companion packages \(one time; set GENTLE_SHELL_NO_AUTO_SETUP=1 to skip\)/);
-	assert.match(result.stderr, new RegExp(JSON.stringify({ args: ["install", "--agent", "pi", "--scope", "global"], PI_CODING_AGENT_DIR: f.gentleShellHome }).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+	assert.match(result.stderr, /nub-ia: first run in .+: installing the team packages \(one time; set GENTLE_SHELL_NO_AUTO_SETUP=1 to skip\)/);
 
 	const config = JSON.parse(readFileSync(join(f.home, ".nub-ia", "config.json"), "utf8"));
 	const homeKey = realpathSync(f.gentleShellHome);
-	assert.equal(config.provisioned[homeKey].gentleAi, "3.6.0");
+	assert.equal(config.provisioned[homeKey].gentleAi, undefined, "new markers never carry a gentle-ai pin");
 	assert.equal(config.provisioned[homeKey].gentlePi, ownGentlePiVersion());
 	assert.equal(typeof config.provisioned[homeKey].at, "string");
 	assert.equal(existsSync(join(f.gentleShellHome, ".nub-ia-setup.lock")), false);
@@ -1525,56 +733,24 @@ test("first launch auto-provisions the isolated home, writes the marker, then la
 
 test("a second launch against an already-provisioned home skips the flow entirely", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const log = join(f.root, "install-runs.log");
+	const env = enableAutoProvision(provisioning(f, { log }));
 
-	const first = run(env, []);
-	assert.equal(first.status, 0, first.stderr);
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1);
+	assert.equal(run(env, []).status, 0);
+	assert.equal(installRuns(log).length, 1);
 
 	const second = run(env, []);
 	assert.equal(second.status, 0, second.stderr);
 	assert.doesNotMatch(second.stderr, /nub-ia: first run in/);
-	assert.doesNotMatch(second.stderr, /gentle-ai pin changed/);
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1, "gentle-ai must not run a second time");
+	assert.doesNotMatch(second.stderr, /nub-ia changed/);
+	assert.equal(installRuns(log).length, 1, "the flow must not run a second time");
 });
 
-test("a changed gentle-ai pin re-runs the flow and updates the marker", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const baseEnv = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript });
-
-	const first = run({ ...baseEnv, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" }, []);
-	assert.equal(first.status, 0, first.stderr);
-
-	const second = run({ ...baseEnv, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.1" }, []);
-	assert.equal(second.status, 0, second.stderr);
-	assert.match(second.stderr, /nub-ia: gentle-ai pin changed \(3\.6\.0 -> 3\.6\.1\): updating/);
-
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 2);
-	const config = JSON.parse(readFileSync(join(f.home, ".nub-ia", "config.json"), "utf8"));
-	const homeKey = realpathSync(f.gentleShellHome);
-	assert.equal(config.provisioned[homeKey].gentleAi, "3.6.1");
-	assert.equal(config.provisioned[homeKey].gentlePi, ownGentlePiVersion());
-});
-
-// A marker written before gentle-pi version tracking existed (S8) has no
-// `gentlePi` field: needsProvisioning must never trust that omission as a
-// match, so the next launch re-provisions and backfills the field.
 test("a marker without a gentlePi field re-runs the flow and backfills it", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
-
-	const first = run(env, []);
-	assert.equal(first.status, 0, first.stderr);
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1);
+	const log = join(f.root, "install-runs.log");
+	const env = enableAutoProvision(provisioning(f, { log }));
+	assert.equal(run(env, []).status, 0);
 
 	const configPath = join(f.home, ".nub-ia", "config.json");
 	const homeKey = realpathSync(f.gentleShellHome);
@@ -1584,22 +760,37 @@ test("a marker without a gentlePi field re-runs the flow and backfills it", (t) 
 
 	const second = run(env, []);
 	assert.equal(second.status, 0, second.stderr);
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 2, "gentle-ai must re-run once the marker predates gentlePi tracking");
-
-	const config = JSON.parse(readFileSync(configPath, "utf8"));
-	assert.equal(config.provisioned[homeKey].gentleAi, "3.6.0");
-	assert.equal(config.provisioned[homeKey].gentlePi, ownGentlePiVersion());
+	assert.equal(installRuns(log).length, 2, "the flow must re-run once the marker predates version tracking");
+	assert.equal(JSON.parse(readFileSync(configPath, "utf8")).provisioned[homeKey].gentlePi, ownGentlePiVersion());
 });
 
-test("a changed gentle-pi version re-runs the flow and prints the gentle-pi-changed line", (t) => {
+test("a legacy marker that still carries a gentle-ai pin re-runs the flow once and drops the field", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const log = join(f.root, "install-runs.log");
+	const env = enableAutoProvision(provisioning(f, { log }));
+	assert.equal(run(env, []).status, 0);
 
-	const first = run(env, []);
-	assert.equal(first.status, 0, first.stderr);
+	const configPath = join(f.home, ".nub-ia", "config.json");
+	const homeKey = realpathSync(f.gentleShellHome);
+	const legacyConfig = JSON.parse(readFileSync(configPath, "utf8"));
+	legacyConfig.provisioned[homeKey].gentleAi = "3.6.0";
+	writeFileSync(configPath, JSON.stringify(legacyConfig));
+
+	const second = run(env, []);
+	assert.equal(second.status, 0, second.stderr);
+	assert.equal(installRuns(log).length, 2, "a legacy marker needs provisioning once");
+	assert.equal(JSON.parse(readFileSync(configPath, "utf8")).provisioned[homeKey].gentleAi, undefined);
+
+	const third = run(env, []);
+	assert.equal(third.status, 0, third.stderr);
+	assert.equal(installRuns(log).length, 2, "the rewritten marker no longer re-runs");
+});
+
+test("a changed nub-ia version re-runs the flow and prints the changed line", (t) => {
+	const f = fixture(t);
+	const log = join(f.root, "install-runs.log");
+	const env = enableAutoProvision(provisioning(f, { log }));
+	assert.equal(run(env, []).status, 0);
 
 	const configPath = join(f.home, ".nub-ia", "config.json");
 	const homeKey = realpathSync(f.gentleShellHome);
@@ -1609,94 +800,64 @@ test("a changed gentle-pi version re-runs the flow and prints the gentle-pi-chan
 
 	const second = run(env, []);
 	assert.equal(second.status, 0, second.stderr);
-	assert.match(second.stderr, new RegExp(`nub-ia: gentle-pi changed \\(0\\.0\\.0-previous-launcher -> ${ownGentlePiVersion().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\): updating`));
-	assert.doesNotMatch(second.stderr, /gentle-ai pin changed/);
-
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 2);
-	const config = JSON.parse(readFileSync(configPath, "utf8"));
-	assert.equal(config.provisioned[homeKey].gentlePi, ownGentlePiVersion());
+	assert.match(second.stderr, new RegExp(`nub-ia changed \\(0\\.0\\.0-previous-launcher -> ${escapeForRegExp(ownGentlePiVersion())}\\): updating`));
+	assert.equal(installRuns(log).length, 2);
+	assert.equal(JSON.parse(readFileSync(configPath, "utf8")).provisioned[homeKey].gentlePi, ownGentlePiVersion());
 });
 
 test("a failing auto-provision flow warns, still launches pi, and writes no marker", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript, 5);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const env = enableAutoProvision(provisioning(f, { installExit: 5 }));
 
 	const result = run(env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(
-		result.stderr,
-		/nub-ia: automatic setup failed \(exit 5\); starting anyway and retrying next run\. Run `nub-ia setup` to see the full output\./,
-	);
-	// pi still launches, with today's plain injection (the home never got a
-	// gentle-pi declaration since the flow failed).
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args.slice(-2), ["--mode", "rpc"]);
+	assert.match(result.stderr, /nub-ia: automatic setup failed \(exit 5\); starting anyway and retrying next run\. Run `nub-ia setup` to see the full output\./);
+	assert.match(result.stderr, /nub-ia: could not install npm:example-a/);
+	assert.deepEqual(JSON.parse(result.stdout.trim().split("\n").at(-1)!).args.slice(-2), ["--mode", "rpc"]);
 
 	const configPath = join(f.home, ".nub-ia", "config.json");
-	if (existsSync(configPath)) {
-		const config = JSON.parse(readFileSync(configPath, "utf8"));
-		assert.equal(config.provisioned, undefined);
-	}
+	if (existsSync(configPath)) assert.equal(JSON.parse(readFileSync(configPath, "utf8")).provisioned, undefined);
 });
 
 test("a failing auto-provision flow names the --home selector in its retry remediation", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "custom-home");
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript, 5);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const env = enableAutoProvision(provisioning(f, { installExit: 5 }));
 
 	const result = run(env, ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(
-		result.stderr,
-		new RegExp(`Run \`nub-ia --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} setup\` to see the full output\\.`),
-	);
+	assert.match(result.stderr, new RegExp(`Run \`nub-ia --home ${escapeForRegExp(target)} setup\` to see the full output\\.`));
 });
 
 test("GENTLE_SHELL_NO_AUTO_SETUP=1 skips auto-provisioning entirely", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_NO_AUTO_SETUP: "1" };
-
-	const result = run(env, []);
+	const log = join(f.root, "install-runs.log");
+	const result = run(provisioning(f, { log }), []);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(existsSync(counterPath), false);
-	const configPath = join(f.home, ".nub-ia", "config.json");
-	assert.equal(existsSync(configPath), false);
+	assert.equal(installRuns(log).length, 0);
+	assert.equal(existsSync(join(f.home, ".nub-ia", "config.json")), false);
 });
 
 test("--link never auto-provisions", (t) => {
 	const f = fixture(t);
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, PI_CODING_AGENT_DIR: piAgentDir });
+	const log = join(f.root, "install-runs.log");
+	const env = enableAutoProvision(provisioning(f, { log }, { PI_CODING_AGENT_DIR: piAgentDir }));
 
 	const result = run(env, ["--link", "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(existsSync(counterPath), false);
+	assert.equal(installRuns(log).length, 0);
 	assert.equal(existsSync(join(piAgentDir, ".nub-ia-setup.lock")), false);
 });
 
 test("a pi subcommand (list) never auto-provisions", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript });
-
-	const result = run(env, ["list"]);
+	const log = join(f.root, "install-runs.log");
+	const result = run(enableAutoProvision(provisioning(f, { log })), ["list"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(existsSync(counterPath), false);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args, ["list"]);
+	assert.equal(installRuns(log).length, 0);
+	assert.deepEqual(JSON.parse(result.stdout).args, ["list"]);
 });
 
 test("a fresh concurrent lock skips auto-provisioning for this run, without removing the lock", (t) => {
@@ -1704,14 +865,11 @@ test("a fresh concurrent lock skips auto-provisioning for this run, without remo
 	mkdirSync(f.gentleShellHome, { recursive: true });
 	const lockPath = join(f.gentleShellHome, ".nub-ia-setup.lock");
 	writeFileSync(lockPath, "");
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript });
+	const log = join(f.root, "install-runs.log");
 
-	const result = run(env, ["--mode", "rpc"]);
+	const result = run(enableAutoProvision(provisioning(f, { log })), ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(existsSync(counterPath), false);
+	assert.equal(installRuns(log).length, 0);
 	assert.match(result.stderr, /already provisioning/);
 	assert.equal(existsSync(lockPath), true);
 });
@@ -1723,14 +881,11 @@ test("a stale lock (older than 15 minutes) is removed and auto-provisioning proc
 	writeFileSync(lockPath, "");
 	const staleTime = new Date(Date.now() - 16 * 60 * 1000);
 	utimesSync(lockPath, staleTime, staleTime);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const log = join(f.root, "install-runs.log");
 
-	const result = run(env, ["--mode", "rpc"]);
+	const result = run(enableAutoProvision(provisioning(f, { log })), ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1);
+	assert.equal(installRuns(log).length, 1);
 	assert.equal(existsSync(lockPath), false, "the lock must be released once the flow completes");
 });
 
@@ -1741,46 +896,35 @@ test("a --home pointing at an existing non-empty, unmarked directory is never au
 	const target = join(f.root, "existing-pi-home");
 	mkdirSync(target, { recursive: true });
 	writeFileSync(join(target, "settings.json"), JSON.stringify({}));
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const log = join(f.root, "install-runs.log");
 
-	const result = run(env, ["--home", target, "--mode", "rpc"]);
+	const result = run(enableAutoProvision(provisioning(f, { log })), ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(existsSync(counterPath), false, "gentle-ai must never run against a foreign, unmarked home");
-	assert.match(
-		result.stderr,
-		new RegExp(`nub-ia: ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} already has content and was not set up by nub-ia`),
-	);
-	assert.match(result.stderr, new RegExp(`run \`nub-ia --home ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} setup\` to provision it`));
+	assert.equal(installRuns(log).length, 0, "the install must never run against a foreign, unmarked home");
+	assert.match(result.stderr, new RegExp(`nub-ia: ${escapeForRegExp(target)} already has content and was not set up by nub-ia`));
+	assert.match(result.stderr, new RegExp(`run \`nub-ia --home ${escapeForRegExp(target)} setup\` to provision it`));
 });
 
 test("an empty or nonexistent --home is still auto-provisioned", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "brand-new-home");
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const log = join(f.root, "install-runs.log");
 
-	const result = run(env, ["--home", target, "--mode", "rpc"]);
+	const result = run(enableAutoProvision(provisioning(f, { log })), ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1, "a fresh --home must still be auto-provisioned");
+	assert.equal(installRuns(log).length, 1, "a fresh --home must still be auto-provisioned");
 });
 
 test("a --home equal to pi's own default agent home is never auto-provisioned, even when empty", (t) => {
 	const f = fixture(t);
 	const defaultPiHome = join(f.home, ".pi", "agent");
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	writeGentleAiScriptCountingRuns(gentleAiScript, counterPath);
+	const log = join(f.root, "install-runs.log");
 	// Exercise the default Pi home, not an ambient PI_CODING_AGENT_DIR override.
-	const env = enableAutoProvision({ ...f.env, PI_CODING_AGENT_DIR: undefined, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const env = enableAutoProvision(provisioning(f, { log }, { PI_CODING_AGENT_DIR: undefined }));
 
 	const result = run(env, ["--home", defaultPiHome, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(existsSync(counterPath), false, "gentle-ai must never run against pi's own default agent home");
+	assert.equal(installRuns(log).length, 0, "the install must never run against pi's own default agent home");
 	assert.match(result.stderr, /never auto-provisions it/);
 });
 
@@ -1799,25 +943,18 @@ test("a freshly bootstrapped isolated or --home directory gets a nub-ia ownershi
 test("a --home directory nub-ia itself bootstrapped is retried after its first auto-provision attempt fails", (t) => {
 	const f = fixture(t);
 	const target = join(f.root, "retry-home");
-	const failingGentleAiScript = join(f.root, "fake-gentle-ai-fails.mjs");
-	writeGentleAiScript(failingGentleAiScript, 1);
-	const firstEnv = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: failingGentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
 
-	const first = run(firstEnv, ["--home", target, "--mode", "rpc"]);
+	const first = run(enableAutoProvision(provisioning(f, { installExit: 1 })), ["--home", target, "--mode", "rpc"]);
 	assert.equal(first.status, 0, first.stderr);
 	assert.match(first.stderr, /nub-ia: automatic setup failed/);
 	assert.ok(existsSync(join(target, "settings.json")), "bootstrap must have seeded settings.json before the failed attempt");
-	assert.ok(existsSync(join(target, ".nub-ia-home")), "bootstrap must mark the home as gentle-shell-owned");
+	assert.ok(existsSync(join(target, ".nub-ia-home")), "bootstrap must mark the home as nub-ia-owned");
 
-	const counterPath = join(f.root, "gentle-ai-runs.log");
-	const succeedingGentleAiScript = join(f.root, "fake-gentle-ai-succeeds.mjs");
-	writeGentleAiScriptCountingRuns(succeedingGentleAiScript, counterPath);
-	const secondEnv = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: succeedingGentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
-
-	const second = run(secondEnv, ["--home", target, "--mode", "rpc"]);
+	const log = join(f.root, "install-runs.log");
+	const second = run(enableAutoProvision(provisioning(f, { log })), ["--home", target, "--mode", "rpc"]);
 	assert.equal(second.status, 0, second.stderr);
 	assert.doesNotMatch(second.stderr, /already has content and was not set up by nub-ia/);
-	assert.equal(readFileSync(counterPath, "utf8").trim().split("\n").length, 1, "the retry must actually run gentle-ai against the previously-failed home");
+	assert.equal(installRuns(log).length, 1, "the retry must actually run the install against the previously-failed home");
 });
 
 // --- auto-provisioning interrupts, resilience, timeouts, atomic writes -----
@@ -1846,33 +983,9 @@ function waitForExit(child: ReturnType<typeof spawn>): Promise<{ code: number | 
 	});
 }
 
-function delay(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// Unique token the stub gentle-ai below writes to its own stderr (relayed
-// through this launcher's inherited stdio, see buildSetupEnv's stdio wiring)
-// the instant it starts, before it sleeps. Waiting for this — instead of the
-// launcher's own "provisioning" stderr line, which is written before the
-// child is even spawned and proves nothing about the child or spawnAndWait's
-// signal-forwarding listeners being ready — is deterministic: it can only
-// appear once the child process actually exists and spawnAndWait has
-// resolved its Promise executor synchronously (spawn + signal handler
-// registration, no `await` in between), so no fixed settle delay is needed
-// before sending the real signal.
-const CHILD_READY_TOKEN = "GENTLE_SHELL_TEST_CHILD_READY";
-
 test("SIGINT during automatic provisioning kills the child and exits 130 without launching pi", { timeout: 10000 }, async (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai-sleep.mjs");
-	writeFileSync(
-		gentleAiScript,
-		["#!/usr/bin/env node", `process.stderr.write(${JSON.stringify(CHILD_READY_TOKEN)} + "\\n");`, "await new Promise((resolve) => setTimeout(resolve, 20000));", "process.exit(0);", ""].join(
-			"\n",
-		),
-	);
-	chmodSync(gentleAiScript, 0o755);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const env = enableAutoProvision(provisioning(f, { installSleepMs: 20000 }));
 
 	const child = spawn(process.execPath, [binPath, "--mode", "rpc", "-p", "hi"], { env, stdio: ["ignore", "pipe", "pipe"] });
 	let stdout = "";
@@ -1883,6 +996,8 @@ test("SIGINT during automatic provisioning kills the child and exits 130 without
 		if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
 	});
 
+	// The child writes the token the instant it starts, so the signal can only
+	// arrive once spawnAndWait's forwarding listeners exist.
 	await waitForStderrMatch(child, new RegExp(CHILD_READY_TOKEN));
 	child.kill("SIGINT");
 	const { code, signal } = await waitForExit(child);
@@ -1894,16 +1009,10 @@ test("SIGINT during automatic provisioning kills the child and exits 130 without
 
 test("a child that dies by a signal on its own during automatic provisioning is an ordinary failure, not a launcher interrupt: pi still launches", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai-self-kill.mjs");
-	writeFileSync(gentleAiScript, ["#!/usr/bin/env node", "process.kill(process.pid, 'SIGKILL');", ""].join("\n"));
-	chmodSync(gentleAiScript, 0o755);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
-
-	const result = run(env, ["--mode", "rpc", "-p", "hi"]);
+	const result = run(enableAutoProvision(provisioning(f, { signalSelf: true })), ["--mode", "rpc", "-p", "hi"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(result.stderr, /nub-ia: automatic setup failed/);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
+	assert.deepEqual(JSON.parse(result.stdout.trim().split("\n").at(-1)!).args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 });
 
 test(
@@ -1911,90 +1020,24 @@ test(
 	{ skip: process.platform === "win32" ? "chmod-based write restriction is not portable to Windows" : false },
 	(t) => {
 		const f = fixture(t);
-		// The config.json path itself does not exist yet (loadConfig's and
-		// maybeAutoProvisionHome's own initial read both tolerate ENOENT, so
-		// they succeed normally and reach the install); only its parent
-		// directory is read+execute but not write, which lets writeRawConfig's
-		// later mkdirSync — run only after a successful install, when it
-		// writes the S7 marker — fail with EACCES instead of silently
-		// succeeding. This isolates the failure to the write step inside
-		// maybeAutoProvisionHome, the one this fix wraps in try/catch.
+		// Only the config directory's parent is read+execute, so the marker write
+		// (run after a successful install) fails with EACCES.
 		const restrictedRoot = join(f.root, "locked-config-root");
 		mkdirSync(restrictedRoot, { recursive: true });
 		const configPath = join(restrictedRoot, ".nub-ia", "config.json");
 		chmodSync(restrictedRoot, 0o500);
-		// No permission restore needed: restrictedRoot stays empty (its own
-		// .nub-ia subdirectory never gets created), and removing an
-		// empty directory only requires write permission on its *parent*
-		// (f.root, unaffected), not on the directory's own mode.
 
-		const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-		writeGentleAiScript(gentleAiScript);
-		const env = enableAutoProvision({
-			...f.env,
-			GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript,
-			GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0",
-			GENTLE_SHELL_CONFIG: configPath,
-		});
-
+		const env = enableAutoProvision(provisioning(f, {}, { GENTLE_SHELL_CONFIG: configPath }));
 		const result = run(env, ["--mode", "rpc", "-p", "hi"]);
 		assert.equal(result.status, 0, result.stderr);
 		assert.match(result.stderr, /nub-ia: automatic setup failed unexpectedly/);
-		const payload = JSON.parse(result.stdout);
-		assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
+		assert.deepEqual(JSON.parse(result.stdout.trim().split("\n").at(-1)!).args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 	},
 );
 
-test("a persona snapshot read failure is a non-fatal warning in both manual and automatic modes", (t) => {
+test("a hung install during automatic provisioning is killed after the timeout ceiling, treated as a failure, and pi still launches", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	// A directory where persona.json should be: readFileSync throws EISDIR
-	// (not ENOENT), the exact non-fatal case snapshotFile must not propagate.
-	const personaPath = personaPathFor(f);
-	mkdirSync(personaPath, { recursive: true });
-
-	const manual = run({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript }, ["setup"]);
-	assert.equal(manual.status, 0, manual.stderr);
-	assert.match(manual.stderr, /nub-ia: could not snapshot your Pi persona file/);
-
-	const auto = run(
-		enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.1" }),
-		["--mode", "rpc", "-p", "hi"],
-	);
-	assert.equal(auto.status, 0, auto.stderr);
-	assert.match(auto.stderr, /nub-ia: could not snapshot your Pi persona file/);
-	const payload = JSON.parse(auto.stdout);
-	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
-});
-
-test("automatic setup failure includes the underlying message on the line after the generic failure line", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	// A pin below MIN_SETUP_GENTLE_AI_VERSION makes runSetupFlow fail early
-	// with a concrete `message`, before ever spawning the stub.
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.5.0" });
-
-	const result = run(env, ["--mode", "rpc"]);
-	assert.equal(result.status, 0, result.stderr);
-	const lines = result.stderr.trim().split("\n");
-	const failureIndex = lines.findIndex((line) => /nub-ia: automatic setup failed/.test(line));
-	assert.notEqual(failureIndex, -1, result.stderr);
-	assert.match(lines[failureIndex + 1], /nub-ia: setup needs the package-local gentle-ai v3\.6\.0 or newer \(pinned: 3\.5\.0\)/);
-});
-
-test("a hung child during automatic provisioning is killed after the timeout ceiling, treated as a failure, and pi still launches", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai-sleep.mjs");
-	writeFileSync(gentleAiScript, ["#!/usr/bin/env node", "await new Promise((resolve) => setTimeout(resolve, 60000));", "process.exit(0);", ""].join("\n"));
-	chmodSync(gentleAiScript, 0o755);
-	const env = enableAutoProvision({
-		...f.env,
-		GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript,
-		GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0",
-		GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS: "300",
-	});
+	const env = enableAutoProvision(provisioning(f, { installSleepMs: 60000 }, { GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS: "300" }));
 
 	const started = Date.now();
 	const result = run(env, ["--mode", "rpc", "-p", "hi"]);
@@ -2002,72 +1045,17 @@ test("a hung child during automatic provisioning is killed after the timeout cei
 	assert.equal(result.status, 0, result.stderr);
 	assert.ok(elapsed < 15000, `expected the hung child to be killed quickly, took ${elapsed}ms`);
 	assert.match(result.stderr, /nub-ia: automatic setup failed/);
-	// The message reports the *effective* ceiling (GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS=300
-	// above), not the hardcoded production default: 300ms is not a whole number
-	// of minutes, so it renders in seconds.
-	assert.match(result.stderr, /timed out after 0\.3 seconds/);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
-});
-
-test("a hung 'pi remove' during post-install cleanup is killed after the timeout ceiling and reports it in seconds too", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai-declares-conflict.mjs");
-	writeGentleAiScriptDeclaringConflict(gentleAiScript);
-	const hangingPiScript = join(f.root, "fake-pi-hangs-on-remove.mjs");
-	writeFileSync(
-		hangingPiScript,
-		[
-			"#!/usr/bin/env node",
-			"const args = process.argv.slice(2);",
-			'if (args.includes("--version")) { console.log("0.99.1"); process.exit(0); }',
-			"if (args[0] === 'remove') { await new Promise((resolve) => setTimeout(resolve, 60000)); process.exit(0); }",
-			"console.log(JSON.stringify({ args, PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR }));",
-			"process.exit(0);",
-			"",
-		].join("\n"),
-	);
-	chmodSync(hangingPiScript, 0o755);
-	const env = enableAutoProvision({
-		...f.env,
-		GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript,
-		GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0",
-		GENTLE_SHELL_PI: hangingPiScript,
-		GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS: "2000",
-	});
-
-	const started = Date.now();
-	const result = run(env, ["--mode", "rpc", "-p", "hi"]);
-	const elapsed = Date.now() - started;
-	assert.equal(result.status, 0, result.stderr);
-	assert.ok(elapsed < 15000, `expected the hung 'pi remove' to be killed quickly, took ${elapsed}ms`);
-	assert.match(result.stderr, /nub-ia: pi remove npm:@juicesharp\/rpiv-ask-user-question timed out after 2 seconds/);
-	const payload = JSON.parse(result.stdout);
-	assert.deepEqual(payload.args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
-});
-
-test("manual setup never times out even past the auto-mode ceiling override", (t) => {
-	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai-sleep.mjs");
-	writeFileSync(gentleAiScript, ["#!/usr/bin/env node", "await new Promise((resolve) => setTimeout(resolve, 300));", "process.exit(0);", ""].join("\n"));
-	chmodSync(gentleAiScript, 0o755);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS: "50" };
-
-	const result = run(env, ["setup"]);
-	assert.equal(result.status, 0, result.stderr);
-	assert.doesNotMatch(result.stderr, /timed out/);
+	// The message reports the effective ceiling (300ms is not a whole number of
+	// minutes, so it renders in seconds).
+	assert.match(result.stderr, /pi install npm:example-a timed out after 0\.3 seconds/);
+	assert.deepEqual(JSON.parse(result.stdout.trim().split("\n").at(-1)!).args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 });
 
 test("the provisioning marker write leaves no stray temp file behind", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScriptCountingRuns(gentleAiScript, join(f.root, "gentle-ai-runs.log"));
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
-
-	const result = run(env, []);
+	const result = run(enableAutoProvision(provisioning(f)), []);
 	assert.equal(result.status, 0, result.stderr);
-	const configDir = join(f.home, ".nub-ia");
-	assert.deepEqual(readdirSync(configDir), ["config.json"]);
+	assert.deepEqual(readdirSync(join(f.home, ".nub-ia")), ["config.json"]);
 });
 
 // --- default Nub-IA theme -------------------------------------------
@@ -2080,21 +1068,23 @@ test("a freshly bootstrapped home defaults to the Nub-IA theme", (t) => {
 	assert.equal(settings.theme, "Nub-IA");
 });
 
+const SET_THEME_JS = (theme: string) =>
+	`const settingsPath = join(process.env.PI_CODING_AGENT_DIR, 'settings.json'); const settings = JSON.parse(readFileSync(settingsPath, 'utf8')); settings.theme = ${JSON.stringify(theme)}; writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\\n');`;
+
+function ownedHome(f: ReturnType<typeof fixture>, name: string, settings: Record<string, unknown>) {
+	const target = join(f.root, name);
+	mkdirSync(target, { recursive: true });
+	writeFileSync(join(target, "settings.json"), JSON.stringify(settings));
+	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
+	return target;
+}
+
 test("automatic setup never overwrites a theme the home already declared", (t) => {
 	const f = fixture(t);
-	const target = join(f.root, "themed-home");
-	mkdirSync(target, { recursive: true });
-	writeFileSync(join(target, "settings.json"), JSON.stringify({ tuiMode: "fullscreen", theme: "rose" }));
-	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
-
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
-
-	const result = run(env, ["--home", target, "--mode", "rpc"]);
+	const target = ownedHome(f, "themed-home", { tuiMode: "fullscreen", theme: "rose" });
+	const result = run(enableAutoProvision(provisioning(f)), ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	const settings = JSON.parse(readFileSync(join(target, "settings.json"), "utf8"));
-	assert.equal(settings.theme, "rose");
+	assert.equal(JSON.parse(readFileSync(join(target, "settings.json"), "utf8")).theme, "rose");
 });
 
 test("nub-ia --link setup never touches the home's theme", (t) => {
@@ -2102,67 +1092,39 @@ test("nub-ia --link setup never touches the home's theme", (t) => {
 	const piAgentDir = join(f.root, "pi-agent-link");
 	mkdirSync(piAgentDir, { recursive: true });
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ tuiMode: "fullscreen" }));
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, PI_CODING_AGENT_DIR: piAgentDir };
 
-	const result = run(env, ["--link", "setup"]);
+	const result = run(provisioning(f, {}, { PI_CODING_AGENT_DIR: piAgentDir }), ["--link", "setup"]);
 	assert.equal(result.status, 0, result.stderr);
-	const settings = JSON.parse(readFileSync(join(piAgentDir, "settings.json"), "utf8"));
-	assert.equal(settings.theme, undefined, "link mode must never gain a theme from nub-ia's own default-theme logic");
+	assert.equal(JSON.parse(readFileSync(join(piAgentDir, "settings.json"), "utf8")).theme, undefined, "link mode must never gain a theme");
 });
 
-test("automatic setup replaces a theme gentle-ai wrote into a home that had none with the default Nub-IA theme", (t) => {
+test("automatic setup replaces a theme the install wrote into a home that had none with the default Nub-IA theme", (t) => {
 	const f = fixture(t);
-	const target = join(f.root, "theme-home");
-	mkdirSync(target, { recursive: true });
-	writeFileSync(join(target, "settings.json"), JSON.stringify({ tuiMode: "fullscreen" }));
-	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
-
-	const gentleAiScript = join(f.root, "fake-gentle-ai-sets-theme.mjs");
-	writeGentleAiScriptSettingTheme(gentleAiScript, "kanagawa");
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const target = ownedHome(f, "theme-home", { tuiMode: "fullscreen" });
+	const env = enableAutoProvision(provisioning(f, { installJs: SET_THEME_JS("kanagawa") }));
 
 	const result = run(env, ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	const settings = JSON.parse(readFileSync(join(target, "settings.json"), "utf8"));
-	assert.equal(settings.theme, "Nub-IA");
+	assert.equal(JSON.parse(readFileSync(join(target, "settings.json"), "utf8")).theme, "Nub-IA");
 });
 
-// R3-theme-enforcement-dead-on-fresh-home: on a brand-new home, the isolated
-// bootstrap (installIsolatedTuiModeSetting) already writes "theme":
-// "Nub-IA" into settings.json *before* auto-provisioning's gentle-ai
-// spawn ever runs — so the snapshot runSetupFlow takes right before that
-// spawn already has a theme, and a naive "only act when the home had no
-// theme before the spawn" check would never fire, letting gentle-ai's own
-// theme silently win on every freshly bootstrapped home.
-test("automatic setup restores the bootstrapped default theme when gentle-ai overwrites it on a fresh home", (t) => {
+test("automatic setup restores the bootstrapped default theme when the install overwrites it on a fresh home", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai-sets-theme.mjs");
-	writeGentleAiScriptSettingTheme(gentleAiScript, "kanagawa");
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const env = enableAutoProvision(provisioning(f, { installJs: SET_THEME_JS("kanagawa") }));
 
 	const result = run(env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
-	assert.equal(settings.theme, "Nub-IA");
+	assert.equal(JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8")).theme, "Nub-IA");
 });
 
-test("automatic setup restores the home's own theme when gentle-ai overwrites it", (t) => {
+test("automatic setup restores the home's own theme when the install overwrites it", (t) => {
 	const f = fixture(t);
-	const target = join(f.root, "themed-home-to-restore");
-	mkdirSync(target, { recursive: true });
-	writeFileSync(join(target, "settings.json"), JSON.stringify({ tuiMode: "fullscreen", theme: "dracula" }));
-	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
-
-	const gentleAiScript = join(f.root, "fake-gentle-ai-sets-theme.mjs");
-	writeGentleAiScriptSettingTheme(gentleAiScript, "kanagawa");
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const target = ownedHome(f, "themed-home-to-restore", { tuiMode: "fullscreen", theme: "dracula" });
+	const env = enableAutoProvision(provisioning(f, { installJs: SET_THEME_JS("kanagawa") }));
 
 	const result = run(env, ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	const settings = JSON.parse(readFileSync(join(target, "settings.json"), "utf8"));
-	assert.equal(settings.theme, "dracula");
+	assert.equal(JSON.parse(readFileSync(join(target, "settings.json"), "utf8")).theme, "dracula");
 });
 
 // --- builtin codemode exclusion ----------------------------------------------
@@ -2281,9 +1243,7 @@ test("a pi subcommand and setup --dry-run never edit the home's settings", (t) =
 	mkdirSync(f.gentleShellHome, { recursive: true });
 	const text = JSON.stringify({ tuiMode: "fullscreen" });
 	writeFileSync(join(f.gentleShellHome, "settings.json"), text);
-	const gentleAiScript = join(f.root, "fake-gentle-ai.mjs");
-	writeGentleAiScript(gentleAiScript);
-	const env = { ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript };
+	const env = provisioning(f);
 
 	for (const args of [["list"], ["setup", "--dry-run"]]) {
 		const result = run(env, args);
@@ -2294,24 +1254,10 @@ test("a pi subcommand and setup --dry-run never edit the home's settings", (t) =
 
 test("the exclusion is ensured after automatic setup rewrites settings.json", (t) => {
 	const f = fixture(t);
-	const gentleAiScript = join(f.root, "fake-gentle-ai-drops-extensions.mjs");
-	writeFileSync(
-		gentleAiScript,
-		[
-			"#!/usr/bin/env node",
-			"import { readFileSync, writeFileSync } from 'node:fs';",
-			"import { join } from 'node:path';",
-			"const settingsPath = join(process.env.PI_CODING_AGENT_DIR, 'settings.json');",
-			"const { extensions, ...settings } = JSON.parse(readFileSync(settingsPath, 'utf8'));",
-			"writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\\n');",
-			"process.exit(0);",
-			"",
-		].join("\n"),
-	);
-	chmodSync(gentleAiScript, 0o755);
 	mkdirSync(f.gentleShellHome, { recursive: true });
 	writeFileSync(join(f.gentleShellHome, "settings.json"), `${JSON.stringify({ tuiMode: "fullscreen", extensions: [CODEMODE_EXCLUSION] }, null, 2)}\n`);
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const dropExtensions = "const settingsPath = join(process.env.PI_CODING_AGENT_DIR, 'settings.json'); const { extensions, ...settings } = JSON.parse(readFileSync(settingsPath, 'utf8')); writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\\n');";
+	const env = enableAutoProvision(provisioning(f, { installJs: dropExtensions }));
 
 	const result = run(env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
@@ -2376,9 +1322,7 @@ test("the automatic setup theme restore writes through a symlinked settings.json
 	symlinkedFile(linkPath, targetPath, JSON.stringify({ tuiMode: "fullscreen", theme: "dracula" }), 0o600);
 	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
 
-	const gentleAiScript = join(f.root, "fake-gentle-ai-sets-theme.mjs");
-	writeGentleAiScriptSettingTheme(gentleAiScript, "kanagawa");
-	const env = enableAutoProvision({ ...f.env, GENTLE_SHELL_GENTLE_AI_BIN: gentleAiScript, GENTLE_SHELL_GENTLE_AI_PIN: "3.6.0" });
+	const env = enableAutoProvision(provisioning(f, { installJs: SET_THEME_JS("kanagawa") }));
 
 	const result = run(env, ["--home", target, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);

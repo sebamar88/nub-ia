@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { YoloSessionPolicy, YOLO_DIRECTIVE, updateYoloPrompt, registerYoloSessionPolicy, discoverYoloUiAdapter } from "../lib/yolo-session-policy.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { ReviewSessionIdentity } from "../lib/review-session-standing-permission.ts";
+import type { SessionIdentity } from "../lib/session-identity.ts";
 
-function identity(): ReviewSessionIdentity {
+function identity(): SessionIdentity {
 	return { sessionManager: { getSessionId: () => "live" }, sessionId: "live", repositoryIdentity: "clone-a", worktreeRoot: "/repo" };
 }
 

@@ -70,7 +70,7 @@ function fixture(t: test.TestContext, order = "owner-first", env: NodeJS.Process
 	let controller: yolo.YoloSessionController | undefined;
 	const owner = () => { controller = yolo.registerYoloSessionPolicy(pi, env); };
 	const shell = () => gentleShell(pi, { ...env, GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, {
-		fetch: async () => { assert.fail("network disabled"); }, activeProfile: () => undefined, devBinary: () => undefined,
+		fetch: async () => { assert.fail("network disabled"); }, activeProfile: () => undefined, 
 	});
 	if (order === "owner-first") { owner(); shell(); }
 	else { shell(); if (order !== "absent") owner(); }
@@ -120,7 +120,7 @@ for (const order of ["owner-first", "shell-first"]) test(`Editor YOLO menu and s
 	assert.match(initial, /Vim: disable[\s\S]*YOLO: OFF · session only/);
 	assert.match(initial, /ordinary scoped commits\/push\/PR/);
 	assert.match(initial, /destructive confirmations remain/);
-	assert.match(initial, /review consent unchanged/);
+	assert.match(initial, /reset on reload/);
 	assert.match(initial, /reset on reload/);
 	assert.equal(await h.controller().active(h.ctx), false, "render/preview/navigation never grant");
 	await h.apply("\r");

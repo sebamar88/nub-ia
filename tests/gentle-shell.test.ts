@@ -7,7 +7,7 @@ import { join } from "node:path";
 import test, { after } from "node:test";
 import { initTheme, type ExtensionAPI, type ExtensionContext, type SlashCommandInfo, type SourceInfo } from "@earendil-works/pi-coding-agent";
 import { CURSOR_MARKER, visibleWidth, type TUI, type TuiMouseEvent } from "@earendil-works/pi-tui";
-import installGentleShell, { buildShellBarModel, createActiveProfileReader, changesShortcut, devBinaryCard, extractQueuedText, fetchCodexUsage, fetchNanUsage, loadFileDiff, shellGitRunner, openInExternalEditor, usageShortcut, GentlePromptEditor } from "../extensions/gentle-shell.ts";
+import installGentleShell, { buildShellBarModel, createActiveProfileReader, changesShortcut, extractQueuedText, fetchCodexUsage, fetchNanUsage, loadFileDiff, shellGitRunner, openInExternalEditor, usageShortcut, GentlePromptEditor } from "../extensions/gentle-shell.ts";
 import { CODEX_USAGE_URL, NAN_QUOTA_URL, USAGE_SOURCE_EVENT, USAGE_SOURCE_SCHEMA } from "../lib/shell-usage.ts";
 import { bindSessionProfile, clearSessionProfileBinding, resetSessionProfileBindingsForTesting } from "../lib/session-profile-binding.ts";
 import { createVimEditorAdapter } from "../lib/vim-editor-adapter.ts";
@@ -17,10 +17,6 @@ import { sidebarPart, sidebarState, type SidebarRail } from "../lib/shell-sideba
 import { renderTodoCard } from "../lib/shell-todo.ts";
 import type { ShellBarTheme } from "../lib/shell-bar.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
-import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
-import { decodeReviewStatusV3 } from "../lib/review-integration-v2.ts";
-import { REVIEW_SIDEBAR_EVENT } from "../lib/review-sidebar-state.ts";
-import type { NativeReviewCli } from "../lib/native-review-cli.ts";
 import { resolveVisualSettings, writeVisualSettings } from "../lib/visual-customization-policy.ts";
 import { resolveAnimationPolicy } from "../lib/animation-policy.ts";
 import { resolveVimPolicy, writeVimPolicy } from "../lib/vim-policy.ts";
@@ -297,138 +293,6 @@ test("gentleShell installs the footer on session_start when a UI exists", () => 
 	const lines = component.render(120);
 	assert.equal(lines.length, 1);
 	assert.match(lines[0], /main ⟡ gpt-5\.5 · medium/);
-});
-
-async function reviewSidebarHarness() {
-	const { pi, handlers, tools } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { activeProfile: () => undefined });
-	const { ctx, ui } = fakeContext();
-	ctx.cwd = process.cwd();
-	let sessionId = "shell-session";
-	ctx.sessionManager.getSessionId = () => sessionId;
-	const raw = JSON.parse(readFileSync(new URL("./fixtures/devbinary/status-v5-capture-result-submission.captured.json", import.meta.url), "utf8"));
-	raw.action = "stop";
-	raw.projection.paths = ["src/fresh.ts"];
-	const status = decodeReviewStatusV3(raw);
-	// Each hold() parks the next native status call until the returned release runs.
-	const held: Array<(release: (result: typeof status) => void) => void> = [];
-	const native = { targetStatus: async () => {
-		const park = held.shift();
-		return park ? new Promise<typeof status>((resolve) => park(resolve)) : status;
-	} } as unknown as NativeReviewCli;
-	const hold = () => {
-		let release!: () => void;
-		held.push((resolve) => { release = () => resolve(status); });
-		return () => release();
-	};
-	const published: unknown[] = [];
-	const bus = pi.events;
-	const observedPi = { ...pi, events: {
-		...bus,
-		emit(name: string, value: unknown) {
-			if (name === REVIEW_SIDEBAR_EVENT) published.push(value);
-			bus.emit(name, value);
-		},
-	} } as ExtensionAPI;
-	const producerHooks = new Map<string, Array<(event: unknown, context: ExtensionContext) => unknown>>();
-	createGentleAiExtension({ nativeReviewCli: native, candidateViews: null, processEnv: {} })({
-		...observedPi,
-		on(name: string, handler: (event: unknown, context: ExtensionContext) => unknown) {
-			producerHooks.set(name, [...(producerHooks.get(name) ?? []), handler]);
-		},
-	} as ExtensionAPI);
-	const produce = async (name: string, event: unknown = {}) => {
-		for (const hook of producerHooks.get(name) ?? []) await hook(event, ctx);
-	};
-	await fire(handlers, "session_start", ctx);
-	await produce("session_start");
-	const tui = { terminal: { rows: 40, columns: 160 }, requestRender() {} };
-	const factory = ui.footerFactory as (tui: unknown, theme: ShellBarTheme, footerData: unknown) => { dispose(): void };
-	const component = factory(tui, plainTheme, { getGitBranch: () => "main", getExtensionStatuses: () => new Map(), getAvailableProviderCount: () => 1, onBranchChange: () => () => {} });
-	const rail = sidebarState(tui as unknown as TUI).parts.get("footer") as SidebarRail;
-	return {
-		pi,
-		rail,
-		published,
-		hold,
-		text: () => rail.render(60).join("\n"),
-		sessionId: () => sessionId,
-		run: () => tools.get("gentle_review")!.execute("reset-test", { operation: "status", lineageId: status.authority!.lineageId }, undefined, undefined, ctx),
-		async startSession(next: string) {
-			sessionId = next;
-			await fire(handlers, "session_start", ctx);
-			await produce("session_start");
-		},
-		async navigateTree() {
-			await fire(handlers, "session_tree", ctx);
-			await produce("session_tree");
-		},
-		shutdownShell: () => fire(handlers, "session_shutdown", ctx),
-		async dispose() {
-			await produce("session_shutdown", { reason: "quit" });
-			await fire(handlers, "session_shutdown", ctx);
-			component.dispose();
-		},
-	};
-}
-
-test("review sidebar ignores a stale completion after session_start and accepts the new session", async () => {
-	const harness = await reviewSidebarHarness();
-	try {
-		const release = harness.hold();
-		const pending = harness.run();
-		assert.match(harness.text(), /Updating…/);
-		await harness.startSession("next-session");
-		assert.doesNotMatch(harness.text(), /RDD/);
-		const before = harness.published.length;
-		release();
-		await pending;
-		assert.equal(harness.published.length, before, "producer must not publish the old session completion");
-		assert.doesNotMatch(harness.text(), /RDD/, "old completion must not repaint the new session");
-		await harness.run();
-		assert.match(harness.text(), /fresh\.ts/, "a fresh result in the new session is accepted");
-	} finally {
-		await harness.dispose();
-	}
-});
-
-test("review sidebar ignores a stale completion after same-session tree navigation", async () => {
-	const harness = await reviewSidebarHarness();
-	try {
-		await harness.run();
-		assert.match(harness.text(), /fresh\.ts/);
-		const release = harness.hold();
-		const pending = harness.run();
-		assert.match(harness.text(), /Updating…/);
-		await harness.navigateTree();
-		assert.doesNotMatch(harness.text(), /RDD/, "tree navigation clears the visible snapshot");
-		const before = harness.published.length;
-		release();
-		await pending;
-		assert.equal(harness.published.length, before, "producer must not publish the old tree completion with the same session ID");
-		assert.doesNotMatch(harness.text(), /RDD/);
-		await harness.run();
-		assert.match(harness.text(), /fresh\.ts/, "a fresh tree-bound result is accepted");
-	} finally {
-		await harness.dispose();
-	}
-});
-
-test("review sidebar rejects foreign-session events and unsubscribes on shutdown", async () => {
-	const harness = await reviewSidebarHarness();
-	try {
-		await harness.run();
-		assert.match(harness.text(), /fresh\.ts/);
-		const previous = harness.rail.digest?.();
-		harness.pi.events.emit(REVIEW_SIDEBAR_EVENT, { sessionId: "foreign", snapshot: { state: "closed", scope: "foreign.ts" } });
-		assert.equal(harness.rail.digest?.(), previous, "foreign events cannot replace the current snapshot");
-		await harness.shutdownShell();
-		assert.doesNotMatch(harness.text(), /RDD/);
-		harness.pi.events.emit(REVIEW_SIDEBAR_EVENT, { sessionId: harness.sessionId(), snapshot: { state: "closed", scope: "late.ts" } });
-		assert.doesNotMatch(harness.text(), /RDD/, "shutdown unsubscribes the consumer");
-	} finally {
-		await harness.dispose();
-	}
 });
 
 test("the fullscreen Status rail carries a live digest so a profile switch refreshes it", async () => {
@@ -4549,7 +4413,7 @@ test("registered canonical root governs real Git discovery, status and diff desp
 	const discovery = await run(["worktree", "list", "--porcelain", "-z"]);
 	assert.match(discovery.stdout, new RegExp(`worktree ${selected}`));
 	assert.ok(!discovery.stdout.includes(foreign));
-	installGentleShell(h.pi, isolatedEnv({ GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }), { devBinary: () => undefined, gitRunner: (cwd) => shellGitRunner(cwd, poisoned) });
+	installGentleShell(h.pi, isolatedEnv({ GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }), { gitRunner: (cwd) => shellGitRunner(cwd, poisoned) });
 	await fire(h.handlers, "session_start", ctx);
 	t.after(() => fire(h.handlers, "session_shutdown", ctx));
 	assert.equal(ui.widgets.has("gentle-shell-changes"), false, "preexisting dirty files are not agent changes");
@@ -5098,82 +4962,6 @@ test("gentleShell binds the usage shortcut to the same handler as /gentle:usage"
 	const silent = fakePi();
 	gentleShell(silent.pi, { GENTLE_PI_SHELL_USAGE_KEY: "off" });
 	assert.equal(silent.shortcuts.has("alt+u"), false, "the usage shortcut must not register when disabled");
-});
-
-test("gentleShell draws the review preflight message as a Gentle card", (t) => {
-	const found = cardStyle();
-	t.after(() => setCardStyle(found));
-	const { pi } = fakePi();
-	gentleShell(pi, {});
-	setCardStyle(CARD_STYLE.NEON);
-	const renderer = renderers.get("gentle-pi.review-preflight");
-	assert.ok(renderer, "renderer not registered");
-	const message = { customType: "gentle-pi.review-preflight", content: "Receipt-driven development is enabled.\n\nCall the gentle_review tool." };
-	const sentinelTheme = { ...plainTheme, bg: (_role: string, text: string) => `\x1b[44m${text}\x1b[49m` };
-	for (const expanded of [true, false]) {
-		assert.doesNotMatch(renderer(message, { expanded }, sentinelTheme).render(80).join("\n"), /\x1b\[44m/);
-	}
-	const expanded = renderer(message, { expanded: true }, plainTheme).render(80).map(stripAnsi);
-	assert.match(expanded[0], /^╭─ ∞ Gentle AI · review preflight ─+ .*collapse ╮$/);
-	assert.match(expanded[1], /^│ Receipt-driven development is enabled\. +│$/);
-	assert.ok(expanded.some((line) => line.includes("gentle_review")));
-	const collapsed = renderer({ ...message, content: [{ type: "text", text: message.content }] }, { expanded: false }, plainTheme).render(80).map(stripAnsi);
-	assert.equal(collapsed.length, 4, "collapsed previews both sentences without the blank separator");
-	assert.match(collapsed[1], /^│ Receipt-driven development is enabled\. +│$/);
-	assert.match(collapsed[2], /^│ Call the gentle_review tool\. +│$/);
-	assert.match(collapsed[3], /^╰─+╯$/);
-	const long = { ...message, content: "First sentence.\n\nSecond.\nThird.\nFourth." };
-	const bounded = renderer(long, { expanded: false }, plainTheme).render(80).map(stripAnsi);
-	assert.deepEqual(bounded.slice(1, -1).map((row) => row.replace(/^│ | *│$/g, "")), ["First sentence.", "Second.", "Third."]);
-	assert.ok(renderer(long, { expanded: true }, plainTheme).render(80).some((line) => line.includes("Fourth.")), "expanded keeps the full notice");
-	assert.deepEqual(renderer(long, { expanded: false }, plainTheme).render(0), []);
-});
-
-test("the review preflight card paints the rose INFO frame (border) and title (accent)", () => {
-	const { pi } = fakePi();
-	gentleShell(pi, {});
-	const renderer = renderers.get("gentle-pi.review-preflight")!;
-	const taggedTheme = { ...plainTheme, fg: (color: string, text: string) => `<${color}>${text}</${color}>` };
-	const message = { customType: "gentle-pi.review-preflight", content: "Receipt-driven development is enabled." };
-	const lines = renderer(message, { expanded: true }, taggedTheme).render(60);
-	assert.match(lines[0]!, /^<border>╭<\/border>/);
-	assert.match(lines[0]!, /<accent>∞ Gentle AI<\/accent>/);
-});
-
-test("gentleShell keeps a dev-binary override visible above the editor for the whole session", async (t) => {
-	const found = cardStyle();
-	t.after(() => setCardStyle(found));
-	const { pi, handlers } = fakePi();
-	const deps = { fetch: fakeFetch({}, false).fetchFn, now: () => 0, devBinary: () => ({ state: "active" as const, path: "/Users/me/go/bin/gentle-ai", sha256: "6e53bfc6305a3949deadbeef" }) };
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, deps);
-	const { ctx, ui } = fakeContext();
-	await fire(handlers, "session_start", ctx);
-	setCardStyle(CARD_STYLE.NEON);
-	const factory = ui.widgets.get("gentle-shell-dev-binary") as (tui: unknown, theme: unknown) => { render(width: number): string[] };
-	assert.ok(factory, "dev binary widget missing");
-	const lines = factory(fakeTui, plainTheme).render(100).map(stripAnsi);
-	assert.match(lines[0], /^╭─ \u{1F339} gentle-ai · dev binary override · field-test only ─+╮$/u, "the override notice carries the Gentle AI rose");
-	assert.match(lines[1], /^│ \/Users\/me\/go\/bin\/gentle-ai · sha256:6e53bfc6305a3949 +│$/);
-	assert.match(lines[2], /^╰─+╯$/);
-	assert.equal(lines[3], "", "a blank line keeps the card off the prompt frame");
-	const painted = factory(fakeTui, { ...plainTheme, bg: (_role: string, text: string) => `\x1b[44m${text}\x1b[49m` }).render(100);
-	assert.equal(painted[0], lines[0], "top frame cells have no background");
-	assert.equal(painted[1], lines[1], "body interior remains transparent");
-	assert.equal(painted[2], lines[2], "bottom frame cells have no background");
-	assert.equal(painted[3], "", "external spacer has no background");
-	await fire(handlers, "agent_start", ctx);
-	assert.equal(ui.widgets.has("gentle-shell-dev-binary"), false, "the startup notice leaves with the first prompt");
-
-	const clean = fakePi();
-	gentleShell(clean.pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { ...deps, devBinary: () => undefined });
-	const fresh = fakeContext();
-	await fire(clean.handlers, "session_start", fresh.ctx);
-	assert.equal(fresh.ui.widgets.has("gentle-shell-dev-binary"), false);
-
-	const invalid = devBinaryCard({ state: "invalid", reason: "binary missing" });
-	assert.equal(invalid.tone, "error");
-	assert.equal(invalid.glyph, "\u{1F339}", "the invalid override notice keeps the rose too");
-	assert.deepEqual(factory(fakeTui, plainTheme).render(0), [""], "zero width keeps only the spacer");
 });
 
 test("gentle:commands registers alt+k by default", () => {

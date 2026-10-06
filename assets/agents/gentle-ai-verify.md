@@ -39,6 +39,6 @@ Probe on your first launch; never wait for further authorization. Create a fresh
 - Do not run unapproved commands (the scratch-copy probes above are approved), alter an authorized command, install dependencies, or mutate repository state. Outside the scratch directory, authorized commands may create only outputs the parent explicitly identified as expected.
 - Treat every unexpected mutation as a blocker: report it, but do not clean it up or fix it.
 - Do not delegate to child agents, commit, or push.
-- Do not use review lenses. RDD review remains independent and parent-owned.
+- Do not use review lenses. The 4R review (`nub_review`) remains independent and parent-owned.
 
 Return a compressed evidence handoff of at most ~2k tokens: exact commands run, observed results, `path:line` evidence, the verdict per spec item, blockers, and anything left unverified; the probe regression tests follow it. Never claim a command ran or a check passed without observed output.

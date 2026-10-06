@@ -42,7 +42,7 @@ test("separate extension loaders share only the active session's ODD phase and r
 		events: { on: () => () => {}, emit() {} },
 		exec: async () => ({ stdout: "", stderr: "", code: 0, killed: false }),
 	};
-	createGentleAiExtension({ nativeReviewCli: null } as never)(pi as never);
+	createGentleAiExtension({ } as never)(pi as never);
 	shell(pi as never, {}, { resolveWorktree: (path: string) => ({ root: path, commonDir: path }), gitRunner: () => async () => ({ stdout: "", stderr: "", code: 0, killed: false }), devBinary: () => undefined } as never);
 	let sessionId: string | undefined = "primary-loader-test";
 	let editorFactory: ((tui: unknown, theme: unknown, bindings: unknown) => { render(width: number): string[]; setAnimationPolicy(policy: string): void; dispose(): void }) | undefined;
@@ -161,7 +161,7 @@ test("tool activity in the primary session drives the working label across exten
 		events: { on: () => () => {}, emit() {} },
 		exec: async () => ({ stdout: "", stderr: "", code: 0, killed: false }),
 	};
-	createGentleAiExtension({ nativeReviewCli: null } as never)(pi as never);
+	createGentleAiExtension({ } as never)(pi as never);
 	shell(pi as never, {}, { resolveWorktree: (path: string) => ({ root: path, commonDir: path }), gitRunner: () => async () => ({ stdout: "", stderr: "", code: 0, killed: false }), devBinary: () => undefined } as never);
 	let sessionId = "tool-activity-loader-test";
 	let redraws = 0;

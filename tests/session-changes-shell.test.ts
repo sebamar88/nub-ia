@@ -14,7 +14,7 @@ function fixture(entries: any[] = []) {
 	const notices: string[] = [];
 	const ctx: any = { hasUI:true, cwd:"/repo", sessionManager:{getSessionId:()=>"session",getEntries:()=>entries},
 		ui: { setFooter() {}, getEditorComponent:()=>({}), setWorkingVisible() {}, setWidget:(key,value)=>widgets.set(key,value), notify:(text)=>notices.push(text) } };
-	shell(pi,{}, {resolveWorktree:()=>({root:"/repo",commonDir:"/git"}),devBinary:()=>undefined,
+	shell(pi,{}, {resolveWorktree:()=>({root:"/repo",commonDir:"/git"}),
 		gitRunner:()=>async()=>{gitCalls++; return await new Promise<any>(()=>{});} });
 	const fire=async(key,event={})=>{for(const fn of handlers.get(key)??[]) await fn(event,ctx);};
 	return {pi,ctx,entries,notices,commands,widgets,fire,gitCalls:()=>gitCalls};
@@ -47,7 +47,7 @@ test("the changes overlay labels each session tree with its root's branch instea
 	const ctx:any={hasUI:true,cwd:"/repo",sessionManager:{getSessionId:()=>"session",getEntries:()=>entries},
 		ui:{setFooter(){},getEditorComponent:()=>({}),setWorkingVisible(){},setWidget(){},notify(){},
 			custom:async(factory:any)=>{view=factory({terminal:{rows:40,columns:120},requestRender:()=>renders++},{fg:(_c:string,t:string)=>t,bold:(t:string)=>t},{},()=>{});return new Promise(()=>{});}}};
-	shell(pi,{},{resolveWorktree:()=>({root:"/repo",commonDir:"/git"}),devBinary:()=>undefined,
+	shell(pi,{},{resolveWorktree:()=>({root:"/repo",commonDir:"/git"}),
 		gitRunner:(root:string)=>async(args:string[])=>{gitRoots.push(root);await new Promise(r=>setImmediate(r));
 			if(args[0]==="symbolic-ref")return root==="/repo"?{stdout:"feature\n",code:0}:{stdout:"",code:1};
 			return {stdout:"deadbeef\n",code:0};}});

@@ -19,6 +19,6 @@ Map relevant files, symbols, relationships, and uncertainty within the parent-pr
 - If CodeGraph reports that it is unavailable or fails, then use `read`, `grep`, and `find` as the fallback. Do not use that fallback before CodeGraph is unavailable or fails.
 - Other than the explicit `.codegraph/` index exception, read and search only. Do not edit, write, run commands, or mutate state.
 - Do not fix findings, delegate to child agents, commit, or push.
-- Do not use review lenses. RDD review remains independent and parent-owned.
+- Do not use review lenses. The 4R review (`nub_review`) remains independent and parent-owned.
 
 Return a compressed handoff of at most ~2k tokens: `path:line` evidence, observed relationships, and remaining uncertainty. Never claim evidence you did not observe.

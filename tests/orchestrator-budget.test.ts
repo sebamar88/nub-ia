@@ -114,21 +114,8 @@ function measureOrchestratorPromptBytes(assetsDir: string): number {
 // 2.2 — Byte budget (Spec: Always-On Injection Byte Budget)
 // ---------------------------------------------------------------------------
 
-// gentle-pi#661: `renderOrchestratorPrompt`/`getOrchestratorPrompt` default
-// `rddStatusLine` to the "unknown (native status unavailable)" line -- the
-// longest of the three renderable RDD status lines -- precisely so that a
-// no-argument call renders the worst case this budget measures, not a
-// smaller placeholder that production would later exceed. Assert that line
-// is actually present so a future default change cannot silently start
-// measuring a shorter render again.
-const RDD_WORST_CASE_LINE = "Receipt-driven development: unknown (native status unavailable)";
-
 test("getOrchestratorPrompt return value stays within the canonical 8,400 B budget at a short assets root", () => {
 	const rendered = __testing.renderOrchestratorPrompt(representativeProductionAssetsDir);
-	assert.ok(
-		rendered.includes(RDD_WORST_CASE_LINE),
-		"the default render must include the worst-case RDD status line to measure the real production budget",
-	);
 	const bytes = Buffer.byteLength(rendered, "utf8");
 	assert.ok(
 		bytes <= BUDGET_BYTES,
@@ -138,10 +125,6 @@ test("getOrchestratorPrompt return value stays within the canonical 8,400 B budg
 
 test(`getOrchestratorPrompt keeps a controlled long (>= ${MIN_CONTROLLED_LONG_ASSETS_ROOT_CHARS} char) assets root within the canonical budget`, () => {
 	const rendered = __testing.renderOrchestratorPrompt(controlledLongAssetsDir);
-	assert.ok(
-		rendered.includes(RDD_WORST_CASE_LINE),
-		"the default render must include the worst-case RDD status line to measure the real production budget",
-	);
 	const bytes = measureOrchestratorPromptBytes(controlledLongAssetsDir);
 	assert.equal(bytes, Buffer.byteLength(rendered, "utf8"), "child-process and direct render byte counts must match");
 	assert.ok(
@@ -375,10 +358,11 @@ test("lazy coordination detail retains subject guidance without inflating the co
 	assert.match(detail, /Names display only; stable IDs route/);
 });
 
-test("core-alone: dynamic Gentle AI ownership replaces package lifecycle instructions", () => {
+test("core-alone: the orchestrator core carries no RDD or provider-contract lifecycle instructions", () => {
 	const core = readRealAsset("orchestrator.md");
-	assert.match(core, /injects the mirrored provider-bundle review execution contract into this session's system prompt at start/);
-	assert.match(core, /Absent that mirrored contract, this package invents no lifecycle instructions/);
+	assert.doesNotMatch(core, /mirrored provider-bundle/);
+	assert.doesNotMatch(core, /Gentle AI RDD ownership/);
+	assert.doesNotMatch(core, /gentle_review/);
 	assert.doesNotMatch(core, /start -> finalize -> validate/i);
 	assert.doesNotMatch(core, /receipt validation/i);
 });

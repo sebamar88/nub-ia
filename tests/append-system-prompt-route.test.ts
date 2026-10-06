@@ -59,10 +59,7 @@ function gentleAiHandlers(processEnv: NodeJS.ProcessEnv = {}): Map<string, Handl
 		registerTool() {},
 	} as unknown as ExtensionAPI;
 	createGentleAiExtension({
-		nativeReviewCli: null,
 		processEnv: { ...fixtureEnvironment, GENTLE_PI_AGENTS_CHILD: "0", ...processEnv, GENTLE_AI_TELEMETRY: "0" },
-		resolveTelemetryTriggerBinary: () => join(fixtureCwd, "never-executed"),
-		telemetryTriggerSpawn: () => assert.fail("Route fixtures must not spawn telemetry"),
 	})(pi);
 	return handlers;
 }
@@ -114,11 +111,11 @@ test("both extensions land their block in appendSystemPrompt on one shared optio
 	assert.equal(todoResult, undefined, "gentle-todo must not return a replacement systemPrompt");
 
 	const appended = event.systemPromptOptions.appendSystemPrompt;
-	assert.match(appended, /el Gentleman Identity and Harness/);
+	assert.match(appended, /Nub-IA Identity and Harness/);
 	assert.match(appended, /## Todo list/);
 	assert.match(appended, /1\. \[pending\] Fix the bug/);
 	assert.ok(
-		appended.indexOf("el Gentleman Identity and Harness") < appended.indexOf("## Todo list"),
+		appended.indexOf("Nub-IA Identity and Harness") < appended.indexOf("## Todo list"),
 		"gentle-ai's block must precede gentle-todo's, matching handler registration order",
 	);
 });
@@ -134,13 +131,13 @@ test("re-running both handlers on the same already-populated options object does
 
 	const event = { systemPrompt: "base", systemPromptOptions: { appendSystemPrompt: "" } };
 	await aiHandlers.get("before_agent_start")!(event, session);
-	const gentleAiOccurrencesAfterFirstRun = event.systemPromptOptions.appendSystemPrompt.split("el Gentleman Identity and Harness").length - 1;
+	const gentleAiOccurrencesAfterFirstRun = event.systemPromptOptions.appendSystemPrompt.split("Nub-IA Identity and Harness").length - 1;
 	assert.equal(gentleAiOccurrencesAfterFirstRun, 1);
 
 	// A defensive re-run of gentle-ai's own handler against an options object
 	// that already carries its exact block must not append it again.
 	await aiHandlers.get("before_agent_start")!(event, session);
-	const gentleAiOccurrencesAfterSecondRun = event.systemPromptOptions.appendSystemPrompt.split("el Gentleman Identity and Harness").length - 1;
+	const gentleAiOccurrencesAfterSecondRun = event.systemPromptOptions.appendSystemPrompt.split("Nub-IA Identity and Harness").length - 1;
 	assert.equal(gentleAiOccurrencesAfterSecondRun, 1, "a second gentle-ai run on the same options object must not duplicate the harness");
 });
 
@@ -155,6 +152,6 @@ for (const scenario of ["child", "named-agent"] as const) {
 		const result = await handlers.get("before_agent_start")!(event, ctx());
 		assert.equal(result, undefined, "excluded sessions must not return a replacement system prompt");
 		assert.equal(event.systemPromptOptions.appendSystemPrompt, "Existing provider section");
-		assert.doesNotMatch(event.systemPromptOptions.appendSystemPrompt, /el Gentleman Identity and Harness/);
+		assert.doesNotMatch(event.systemPromptOptions.appendSystemPrompt, /Nub-IA Identity and Harness/);
 	});
 }

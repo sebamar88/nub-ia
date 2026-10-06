@@ -20,7 +20,6 @@ import {
 	type ShellBarModel,
 	type ShellBarTheme,
 } from "../lib/shell-bar.ts";
-import { REVIEW_SCOPE_UNAVAILABLE } from "../lib/review-sidebar-state.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 import { CARD_STYLE, cardStyle, setCardStyle, type CardStyle } from "../lib/shell-card.ts";
 
@@ -107,42 +106,17 @@ test("visual visibility hides only selected optional status segments", () => {
 	assert.doesNotMatch(renderShellHeaderBar(buildShellHeaderModel(data), plainTheme, 160, undefined, settings).text, /gpt-5\.5|ctx|\$9\.49|usage/);
 });
 
-test("Status title stays plain without an active review", () => {
+test("Status title stays plain", () => {
 	const lines = renderShellSidebarBar(model(), plainTheme, 54);
 	assert.match(lines[0], /^╭─ ∞ Status ─+╮$/);
 	assert.doesNotMatch(lines.slice(1).join("\n"), /◈ RDD/);
 });
 
-test("Status title stays plain above the review lifecycle block", () => {
-	const lines = renderShellSidebarBar(model({ review: { state: "reviewing", scope: "first.ts +2 files" } }), plainTheme, 54);
-	assert.match(lines[0], /^╭─ ∞ Status ─+╮$/);
-	assert.match(lines.slice(1).join("\n"), /◈ RDD[\s\S]*Reviewers running…[\s\S]*first\.ts \+2 files/);
-});
-
-test("review lifecycle block omits the scope line when the candidate scope is unknown", () => {
-	const known = renderShellSidebarBar(model({ review: { state: "checking", scope: "first.ts" } }), plainTheme, 54);
-	const unknown = renderShellSidebarBar(model({ review: { state: "checking", scope: REVIEW_SCOPE_UNAVAILABLE } }), plainTheme, 54);
-	const text = unknown.join("\n");
-	assert.match(text, /◈ RDD[\s\S]*Updating…/);
-	assert.doesNotMatch(text, /Candidate scope unavailable/);
-	assert.equal(unknown.length, known.length - 1);
-});
-
-test("rdd visibility hides only the review lifecycle block", () => {
-	const data = model({ review: { state: "reviewing", scope: "first.ts +2" }, changes: { files: 2, added: 1, deleted: 1 } });
-	assert.match(renderShellSidebarBar(data, plainTheme, 60, DEFAULT_VISUAL_SETTINGS).join("\n"), /◈ RDD[\s\S]*Reviewers running…/);
-	const hidden = renderShellSidebarBar(data, plainTheme, 60, { ...DEFAULT_VISUAL_SETTINGS, visibility: { ...DEFAULT_VISUAL_SETTINGS.visibility, rdd: false } }).join("\n");
-	assert.doesNotMatch(hidden, /◈ RDD|Reviewers running|first\.ts \+2 files/);
-	assert.match(hidden, /Changes[\s\S]*2 files/);
-});
-
-test("Status and review lifecycle block respect terminal width", () => {
+test("Status card respects terminal width", () => {
 	for (const width of [8, 12, 16, 20, 32, 60]) {
-		for (const review of [undefined, { state: "reviewing" as const, scope: "first.ts +2 files" }, { state: "approved" as const, scope: REVIEW_SCOPE_UNAVAILABLE }]) {
-			const lines = renderShellSidebarBar(model({ review }), plainTheme, width);
-			for (const line of lines) assert.ok(visibleWidth(line) <= width, `${width}: ${line}`);
-			if (width >= 20) assert.match(lines[0], /^╭─ ∞ Status ─+╮$/);
-		}
+		const lines = renderShellSidebarBar(model(), plainTheme, width);
+		for (const line of lines) assert.ok(visibleWidth(line) <= width, `${width}: ${line}`);
+		if (width >= 20) assert.match(lines[0], /^╭─ ∞ Status ─+╮$/);
 	}
 });
 
@@ -529,9 +503,9 @@ test("renderShellHeaderRule paints one full-width line in the editor frame color
 
 test("the sidebar Status card in the float style is a float panel two rows taller than neon, with a separator row after the header", (t) => {
 	const theme = withBackground(plainTheme);
-	const neon = renderShellSidebarBar(model({ review: { state: "reviewing", scope: "first.ts +2 files" } }), theme, 60);
+	const neon = renderShellSidebarBar(model(), theme, 60);
 	useCardStyle(t, CARD_STYLE.FLOAT);
-	const float = renderShellSidebarBar(model({ review: { state: "reviewing", scope: "first.ts +2 files" } }), theme, 60);
+	const float = renderShellSidebarBar(model(), theme, 60);
 	assert.equal(float.length, neon.length + 2);
 	assert.equal(stripAnsi(float[1]!), ` ▎ ∞ Status${" ".repeat(49)}`);
 	assert.equal(stripAnsi(float[2]!), ` ▎${" ".repeat(57)} `, "a blank separator row follows the header");

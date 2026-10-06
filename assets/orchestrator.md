@@ -1,4 +1,4 @@
-# el Gentleman Orchestrator
+# Nub-IA Orchestrator
 
 Bind this to the parent Pi session only; subagents get bounded task instructions.
 
@@ -36,7 +36,7 @@ The number of files, commands or tests, fixes, or a requested `todo` list never 
 
 Small path: inline (one understood change may span files); observe RED inline before the fix; run the focused test and the suite inline, once each. No explore, worker, or verifier; no feature document, mirror, or commits unless the user asks; `todo` optional. It needs no lazy asset.
 
-**High risk**: a mistake would be hard to detect, hard to undo, or reaches beyond the change: (1) data or irreversible effects (migrations, rewriting or deleting stored data, format changes, writing data without validation; not saving new records); (2) security (auth, permissions, credentials, secrets, guards, sandbox); (3) changing or removing contracts others already consume (public API, CLI flags, config formats, exports, mirrored prompts; not adding a flag, command or optional field; requested changes are not; unrequested breaks in shared code are); (4) concurrency; (5) delivery or environment (installers, release, CI, deploy, dependencies); (6) no test would catch a regression in what changes. Count "unclear" as high only when a bounded look cannot tell whether (1)-(5) apply. When RDD is on and native assess returns a tier, that tier wins.
+**High risk**: a mistake would be hard to detect, hard to undo, or reaches beyond the change: (1) data or irreversible effects (migrations, rewriting or deleting stored data, format changes, writing data without validation; not saving new records); (2) security (auth, permissions, credentials, secrets, guards, sandbox); (3) changing or removing contracts others already consume (public API, CLI flags, config formats, exports, mirrored prompts; not adding a flag, command or optional field; requested changes are not; unrequested breaks in shared code are); (4) concurrency; (5) delivery or environment (installers, release, CI, deploy, dependencies); (6) no test would catch a regression in what changes. Count "unclear" as high only when a bounded look cannot tell whether (1)-(5) apply.
 
 **Risk line**: close every code change, small path or delegated, with `Risk: item N (reason)` or `Risk: none` per the list; any item → Verification rule.
 
@@ -76,13 +76,8 @@ The parent resolves skill paths once per session under `## Skills to load before
 
 For skill-shaped requests, `<available_skills>` is a discovery aid only, never overriding a concrete ask. Discovery order and intent hints: `orchestrator-skills.md`.
 
-## Gentle AI RDD ownership
-
-This package injects the mirrored provider-bundle review execution contract into this session's system prompt at start; Gentle AI writes nothing into the Pi system prompt, and this package owns everything else here. Absent that mirrored contract, this package invents no lifecycle instructions.
-
 ## Safety
 
-- An eligible interactive Pi host may resolve `gentle-ai.review-integration.consent/v3` before the envelope reaches the model. Permission: host-owned. If `gentle_review` returns the envelope unresolved, it is still the original provider-owned two-choice contract. Use `ask_user_choice` exactly or relay losslessly and stop. Never add the host action to a decoded or relayed provider envelope.
 - Never commit unless the user explicitly asks.
 - Ask before destructive git operations, publishing, or irreversible file changes.
 - Parallel writers only with disjoint Allowed edit surfaces (runtime-enforced) or isolated worktrees.

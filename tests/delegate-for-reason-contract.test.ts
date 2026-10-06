@@ -4,7 +4,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { __testing } from "../extensions/gentle-ai.ts";
-import { HIGH_RISK_ITEMS } from "../lib/review-risk-assessment.ts";
 import { readDelegationDetail } from "./support/orchestrator-modules.ts";
 
 // gentle-shell#1731: the delegated writer fires on named reasons (parallelism,
@@ -105,7 +104,7 @@ test("AC4: verification stays risk-gated and the writer reasons never include ri
 	);
 	assert.ok(
 		delegation.includes(
-			"3. **Verification rule** (gentle-pi#661/#662, RDD-aware): a high-risk change (Task Size) gets an independent `gentle-ai-verify` run after the change's own checks; otherwise whoever made the change runs its focused test and suite inline, small tasks included.",
+			"3. **Verification rule**: a high-risk change (Task Size) gets an independent `gentle-ai-verify` run after the change's own checks; otherwise whoever made the change runs its focused test and suite inline, small tasks included.",
 		),
 		"lazy Verification rule changed",
 	);
@@ -145,16 +144,13 @@ test("AC5/S5: every worker self-reviews against the spec by reference before ret
 	assert.ok(writer.includes("Parallel review protocol") && writer.includes("`orchestrator-verification.md`"), "the writer module must point at the review protocol");
 });
 
-test("AC5/S6/L4: per-worker independent verify fires only on assess or escalate, never on the summary alone", () => {
+test("AC5/S6/L4: per-worker independent verify fires only on high risk or escalation, never on the summary alone", () => {
 	const item = reviewItem("2. **Independent verify per unit**");
 	for (const clause of [
 		"in parallel when several finish together",
 		"only when that unit is high risk",
-		"`assess` over its actual diff",
-		"the worker's own `escalate`",
+		"the worker's own escalation",
 		"never inferred from the worker's summary alone",
-		'its work-unit commit (`{"baseRef":"<previous>","committedOnly":true}`)',
-		"its own isolated worktree",
 	]) {
 		assert.ok(item.includes(clause), `independent verify item is missing: ${clause}`);
 	}
@@ -177,7 +173,7 @@ test("T12/S6: one independent verify per delegated unit after its self-review, n
 		"once, after its final self-review",
 		"never per worker cycle or retry",
 		"its Risk line",
-		"small-model bias per the tier table",
+		"small-model bias as above",
 	]) {
 		assert.ok(item.includes(clause), `independent verify timing is missing: ${clause}`);
 	}
@@ -193,7 +189,7 @@ test("T15/S6: same-model inline code over several deliveries gets one verify at 
 		"one verify at the feature's end",
 		"smaller-model writer code stays per unit",
 		"only when that unit is high risk",
-		"small-model bias per the tier table",
+		"small-model bias as above",
 	]) {
 		assert.ok(item.includes(clause), `independent verify exception is missing: ${clause}`);
 	}
@@ -219,7 +215,7 @@ test("AC4/S4: the normative verification rule text is unchanged by the review pr
 	const normative = sectionFrom(verification, "## Verification rule (normative)");
 	assert.equal(
 		createHash("sha256").update(normative).digest("hex"),
-		"decd9979faa4f6329df9b8fec16d69230428f14d116edff136f1bee2f540a888",
+		"a45a7883271f10db35e324ba353a32c1c60a8c7f31890d38a9977f65e9c9bb6c",
 		"the normative Verification rule section changed",
 	);
 	assert.ok(verification.includes("or a delegated writer returns"), "the module must still load when a delegated writer returns");
@@ -284,12 +280,6 @@ test("T10/AC4: item 3 covers changing or removing consumed contracts, not adding
 	assert.ok(item.startsWith("(3) changing or removing contracts others already consume ("), `item 3 is not limited to existing contracts: ${item}`);
 	for (const clause of ["public API", "CLI flags", "config formats", "exports", "mirrored prompts", "not adding a flag, command or optional field"]) {
 		assert.ok(item.includes(clause), `item 3 is missing: ${clause}`);
-	}
-});
-
-test("T10: escalate labels name the core high-risk items", () => {
-	for (const [n, label] of Object.entries(HIGH_RISK_ITEMS)) {
-		assert.ok(highRiskItem(Number(n)).startsWith(`(${n}) ${label}`), `escalate label ${n} drifts from the core list: ${label}`);
 	}
 });
 

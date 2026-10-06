@@ -83,9 +83,6 @@ const UNHOOKED_CHECK_IDS = new Set([
 	"asset-lib-agents-session-transport-owned", "asset-lib-agents-session-transport-hash",
 	"asset-extension-gentle-agents-owned", "asset-extension-gentle-agents-hash",
 	"asset-extension-gentle-ai-owned", "asset-extension-gentle-ai-hash",
-	"asset-native-review-cli-owned", "asset-native-review-cli-hash",
-	"asset-review-integration-v2-owned", "asset-review-integration-v2-hash",
-	"asset-installer-gentle-ai-owned", "asset-installer-gentle-ai-hash",
 	"asset-installer-tui-mode-setting-owned", "asset-installer-tui-mode-setting-hash",
 	"native-package-cache-absent", "native-command-absent", "sdk-manifest-owned", "sdk-version", "jiti-manifest-owned", "jiti-static-export", "jiti-entry-owned", "jiti-version",
 	"home-empty", "gentle-pi-agent-empty", "pi-coding-agent-empty", "gentle-pi-config-empty", "xdg-config-empty", "xdg-cache-empty", "xdg-data-empty", "appdata-empty", "local-appdata-empty",
@@ -634,49 +631,8 @@ async function testHookedPackedRunner() {
 	assert.equal(existsSync(join(installDirectory, ".pi", "settings.json")), false);
 	const packageRoot = join(installDirectory, "node_modules", "gentle-pi");
 	assert.ok(existsSync(join(packageRoot, "scripts", "install-tui-mode-setting.mjs")));
-	const { nativeReviewAbandonAuthorization } = await import(pathToFileURL(join(packageRoot, "runtime", "native-review-cli.mjs")).href);
-	const abandonAuthorization = nativeReviewAbandonAuthorization({
-		lineage: "review-abc",
-		expectedRevision: "revision-9",
-		snapshotIdentity: "snapshot-1",
-		capturedLensResults: ["00-risk.json", "01-refuter.json"],
-		findingsPresent: true,
-		actor: "maintainer",
-		reason: "operator_disposition",
-	});
-	assert.equal(abandonAuthorization, [
-		"gentle-ai.review-abandon-authorization/v2",
-		"lineage=review-abc",
-		"revision=revision-9",
-		"snapshot_identity=snapshot-1",
-		"reason=operator_disposition",
-		"captured_lens_results=00-risk.json,01-refuter.json",
-		"findings_present=true",
-		"actor=maintainer",
-	].join("\n"));
-	assert.ok(!abandonAuthorization.includes("evidence_records_present"));
-	// Accept prerelease pins too: a stable-only pattern here was a second,
-	// silent pin that refused the first prerelease version directory.
-	const versions = readdirSync(join(packageRoot, ".gentle-ai"), { withFileTypes: true }).filter((entry) => entry.isDirectory() && /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z][0-9A-Za-z.]*)?$/.test(entry.name));
-	if (versions.length !== 1) throw new Error("packed install did not contain exactly one package-local Gentle AI version");
-	const executable = join(packageRoot, ".gentle-ai", versions[0].name, process.platform === "win32" ? "gentle-ai.exe" : "gentle-ai");
-	const capabilities = JSON.parse(execFileSync(executable, ["review", "capabilities", "--contract", "gentle-ai.review-integration/v2"], { cwd: installDirectory, encoding: "utf8", env: isolatedEnv }));
-	// Decode with the PACKED consumer's own decoder rather than comparing the
-	// schema string against a list hand-copied into this script. The copy was a
-	// second, silent pin: it accepted only `capabilities/v2`, so the moment the
-	// pinned provider advertised an additive minor this E2E rejected a pairing
-	// that gentle-pi reads correctly, and it would have done so again on the
-	// next minor. Using the shipped decoder makes the assertion what it always
-	// meant to be — the packed consumer can read the packed provider — and it
-	// checks the whole envelope (protocol major/minor, required operations,
-	// gates, projections, advertised schemas, mandatory features, and the
-	// self-reported executable digest) instead of one string.
-	const { decodeReviewCapabilitiesV2 } = await import(pathToFileURL(join(packageRoot, "runtime", "review-integration-v2.mjs")).href);
-	const executableDigest = `sha256:${createHash("sha256").update(readFileSync(executable)).digest("hex")}`;
-	const decoded = decodeReviewCapabilitiesV2(capabilities, executableDigest);
-	if (decoded.contract !== "gentle-ai.review-integration/v2" || decoded.packageVersion !== versions[0].name.slice(1)) throw new Error("package-local Gentle AI returned incompatible capabilities");
 	const packageManifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
-		process.stdout.write(`packed package E2E passed (gentle-pi ${packageManifest.version ?? "unknown"}; Gentle AI ${decoded.packageVersion ?? "unknown"})\n`);
+		process.stdout.write(`packed package E2E passed (nub-ia ${packageManifest.version ?? "unknown"})\n`);
 	} finally {
 		rmSync(temporary, { recursive: true, force: true });
 	}
@@ -820,9 +776,6 @@ const HASHED_PACKED_ASSETS = [
 	{ ownedCheckId: "asset-lib-agents-session-transport-owned", hashCheckId: "asset-lib-agents-session-transport-hash", relativePath: "lib/agents-session-transport.ts" },
 	{ ownedCheckId: "asset-extension-gentle-agents-owned", hashCheckId: "asset-extension-gentle-agents-hash", relativePath: "extensions/gentle-agents.ts" },
 	{ ownedCheckId: "asset-extension-gentle-ai-owned", hashCheckId: "asset-extension-gentle-ai-hash", relativePath: "extensions/gentle-ai.ts" },
-	{ ownedCheckId: "asset-native-review-cli-owned", hashCheckId: "asset-native-review-cli-hash", relativePath: "runtime/native-review-cli.mjs" },
-	{ ownedCheckId: "asset-review-integration-v2-owned", hashCheckId: "asset-review-integration-v2-hash", relativePath: "runtime/review-integration-v2.mjs" },
-	{ ownedCheckId: "asset-installer-gentle-ai-owned", hashCheckId: "asset-installer-gentle-ai-hash", relativePath: "scripts/install-gentle-ai.mjs" },
 	{ ownedCheckId: "asset-installer-tui-mode-setting-owned", hashCheckId: "asset-installer-tui-mode-setting-hash", relativePath: "scripts/install-tui-mode-setting.mjs" },
 ];
 
@@ -919,8 +872,8 @@ async function register(relativePath) {
 }
 await register("extensions/gentle-agents.ts");
 await register("extensions/gentle-ai.ts");
-for (const name of ["subagent_list_agents", "subagent_run", "orchestrator_session_id", "orchestrator_list", "orchestrator_send_message", "gentle_review", "gentle_review_capture", "gentle_review_capture_group", "gentle_review_scope"]) assert.ok(registrations.tools.includes(name), \`missing registered tool: \${name}\`);
-for (const name of ["gentle:agents", "gentle:status", "gentle:review-mode"]) assert.ok(registrations.commands.includes(name), \`missing registered command: \${name}\`);
+for (const name of ["subagent_list_agents", "subagent_run", "orchestrator_session_id", "orchestrator_list", "orchestrator_send_message", "gentle_odd_phase"]) assert.ok(registrations.tools.includes(name), \`missing registered tool: \${name}\`);
+for (const name of ["gentle:agents", "gentle:status", "gentle:doctor"]) assert.ok(registrations.commands.includes(name), \`missing registered command: \${name}\`);
 assert.ok(registrations.events.includes("session_start"), "expected session_start registration");
 assert.ok(registrations.events.includes("session_shutdown"), "expected session_shutdown registration");
 process.stdout.write(JSON.stringify({ tools: registrations.tools.sort(), commands: registrations.commands.sort(), loader: "Jiti from @earendil-works/pi-coding-agent dependency" }));

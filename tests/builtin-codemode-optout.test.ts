@@ -202,7 +202,7 @@ test("a failing dialog never escapes and writes nothing", async (t) => {
 test("quiet-tools always registers the compact codemode and offers the opt-out once per process from session_start", async (t) => {
 	const f = fixture(t, "{}");
 	const { pi, tools, startSession } = extensionHarness();
-	await quietTools(pi, undefined, { agentDir: f.agentDir, configHome: f.configHome });
+	await quietTools(pi, { agentDir: f.agentDir, configHome: f.configHome });
 	assert.ok(tools.some((tool) => tool.name === "codemode"), "compact codemode must stay registered");
 
 	const declined = interactive(false);
@@ -224,7 +224,7 @@ test("quiet-tools reads explicit entries from the effective settings and stays s
 	] as const) {
 		const f = fixture(t, "{}");
 		const { pi, tools, startSession } = extensionHarness(settings);
-		await quietTools(pi, undefined, { agentDir: f.agentDir, configHome: f.configHome });
+		await quietTools(pi, { agentDir: f.agentDir, configHome: f.configHome });
 		assert.ok(tools.some((tool) => tool.name === "codemode"));
 		await startSession(session.ctx);
 		assert.equal(session.prompts.length, 0);
@@ -235,7 +235,7 @@ test("quiet-tools reads explicit entries from the effective settings and stays s
 test("quiet-tools accepts the opt-out end to end", async (t) => {
 	const f = fixture(t, '{"theme":"rose"}\n');
 	const { pi, tools, startSession } = extensionHarness();
-	await quietTools(pi, undefined, { agentDir: f.agentDir, configHome: f.configHome });
+	await quietTools(pi, { agentDir: f.agentDir, configHome: f.configHome });
 	assert.ok(tools.some((tool) => tool.name === "codemode"));
 	await startSession(interactive(true).ctx);
 	assert.equal(read(f.settingsPath), '{"theme":"rose","extensions":["-builtin:codemode"]}\n');

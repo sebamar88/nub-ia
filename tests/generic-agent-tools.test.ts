@@ -40,11 +40,11 @@ test("ODD explorer and verifier remain read-only while writer is bounded", () =>
 		assert.match(source, /generic ODD work/);
 		assert.match(source, /Do not edit, write|read and search only/);
 		assert.ok(!tools(file).includes("edit") && !tools(file).includes("write"));
-		assert.match(source, /RDD review remains independent and parent-owned/);
+		assert.match(source, /The 4R review \(`nub_review`\) remains independent and parent-owned/);
 	}
 	const worker = readFileSync(join(agents, "gentle-ai-worker.md"), "utf8");
 	assert.match(worker, /exact allowed edit surfaces/);
-	assert.match(worker, /Work-unit commit decisions and the independent RDD review lifecycle remain parent-owned/);
+	assert.match(worker, /Work-unit commit decisions and the independent 4R review lifecycle remain parent-owned/);
 });
 
 test("retired Pi adversarial role agents are not packaged", () => {

@@ -1,6 +1,6 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { appendSystemPromptOnce, type AppendableSystemPromptOptions } from "./append-system-prompt.ts";
-import { captureReviewSessionIdentity, sameReviewSessionIdentity, type ReviewSessionIdentity } from "./review-session-standing-permission.ts";
+import { captureSessionIdentity, sameSessionIdentity, type SessionIdentity } from "./session-identity.ts";
 
 export const YOLO_STATUS_KEY = "gentle:yolo";
 export const YOLO_STATUS_TEXT = "🚀 YOLO ON 🔥 — destructive confirmations remain";
@@ -8,12 +8,12 @@ export const YOLO_DIRECTIVE = `<gentle-yolo-session>
 YOLO session standing permission is ON, explicitly activated by the human for this live primary session and Git clone.
 Qualify the default commit, push and PR confirmation clauses: for ordinary already-scoped implementation, checks, commits, non-force pushes and PR creation, this activation supplies standing permission instead of repeated permission questions. Make ordinary reversible implementation choices without needless interviews.
 This does NOT override explicit human restrictions, repository policy, project trust, configured confirmations or blocks, or the authorized task scope. Ask before scope expansion, privacy-sensitive disclosure, genuinely unresolved consequential product choices, or ambiguous destinations or credentials. Never invent destinations or credentials.
-Destructive/data-loss confirmations remain mandatory and independent. Never auto-answer ask_user tools, provider consent, maintenance/recovery authorization or opaque-token decisions. Review standing permission and RDD are unchanged. Children remain bounded by their delegated task; they receive no independent delivery grant or YOLO inheritance.
+Destructive/data-loss confirmations remain mandatory and independent. Never auto-answer ask_user tools, maintenance/recovery authorization or opaque-token decisions. Children remain bounded by their delegated task; they receive no independent delivery grant or YOLO inheritance.
 </gentle-yolo-session>`;
 
-/** Separate from review grants; no registry, entries, configuration or environment enable switch. */
+/** No registry, entries, configuration or environment enable switch. */
 export class YoloSessionPolicy {
-	private grant: ReviewSessionIdentity | undefined;
+	private grant: SessionIdentity | undefined;
 	private generation = 0;
 
 	get epoch(): number { return this.generation; }
@@ -24,7 +24,7 @@ export class YoloSessionPolicy {
 		this.grant = undefined;
 	}
 
-	set(enabled: boolean, identity: ReviewSessionIdentity | undefined, expectedEpoch = this.epoch): boolean {
+	set(enabled: boolean, identity: SessionIdentity | undefined, expectedEpoch = this.epoch): boolean {
 		if (expectedEpoch !== this.epoch) return false;
 		this.reset();
 		if (!enabled) return true;
@@ -33,9 +33,9 @@ export class YoloSessionPolicy {
 		return true;
 	}
 
-	active(identity: ReviewSessionIdentity | undefined): boolean {
+	active(identity: SessionIdentity | undefined): boolean {
 		if (!this.grant) return false;
-		if (identity !== undefined && sameReviewSessionIdentity(this.grant, identity)) return true;
+		if (identity !== undefined && sameSessionIdentity(this.grant, identity)) return true;
 		this.reset();
 		return false;
 	}
@@ -112,10 +112,10 @@ export function registerYoloSessionPolicy(pi: ExtensionAPI, env: NodeJS.ProcessE
 		publishedEpoch = policy.epoch;
 		for (const refresh of [...observers]) { try { refresh(); } catch { /* display only */ } }
 	};
-	const capture = async (context: ExtensionContext): Promise<ReviewSessionIdentity | undefined> => {
+	const capture = async (context: ExtensionContext): Promise<SessionIdentity | undefined> => {
 		try {
 			const cwd = context.cwd;
-			const identity = await captureReviewSessionIdentity(context, env);
+			const identity = await captureSessionIdentity(context, env);
 			// Git lookup awaits: a replacement manager ID must not activate stale scope.
 			return cwd === context.cwd && identity?.sessionManager === context.sessionManager &&
 				identity?.sessionId === context.sessionManager.getSessionId() ? identity : undefined;

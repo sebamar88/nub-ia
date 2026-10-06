@@ -219,7 +219,7 @@ interface RegisteredTool {
 
 function gentleOddPhaseTool(): RegisteredTool {
 	const tools = new Map<string, RegisteredTool>();
-	createGentleAiExtension({ nativeReviewCli: null } as unknown as Parameters<typeof createGentleAiExtension>[0])({
+	createGentleAiExtension({ } as unknown as Parameters<typeof createGentleAiExtension>[0])({
 		on() {},
 		registerTool(definition: RegisteredTool & { name: string }) { tools.set(definition.name, definition); },
 		registerCommand() {},

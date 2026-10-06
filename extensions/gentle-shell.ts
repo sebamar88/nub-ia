@@ -1,4 +1,4 @@
-import { CustomEditor, keyHint, type ExtensionAPI, type ExtensionContext, type KeybindingsManager } from "@earendil-works/pi-coding-agent";
+import { CustomEditor, type ExtensionAPI, type ExtensionContext, type KeybindingsManager } from "@earendil-works/pi-coding-agent";
 import { Editor, decodeKittyPrintable, isKeyRelease, matchesKey, parseKey, truncateToWidth, visibleWidth, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
 import { execFile, spawnSync } from "node:child_process";
 import { realpathSync, statSync } from "node:fs";
@@ -12,7 +12,7 @@ import { buildShellHeaderModel, renderShellBar, renderShellBelowInputFloat, rend
 import { CHANGE_STATUS, RootBranchLabels, renderChangesWidget, type ChangedFile, type ChangesModel, type GitRunner, type WorktreeChanges } from "../lib/shell-changes.ts";
 import { WorktreeChangesView } from "../lib/shell-changes-view.ts";
 import { SessionWorktreeRegistry, resolveSessionWorktree, worktreeGitEnvironment, type WorktreeResolver, type WorktreeIdentity } from "../lib/session-worktree-registry.ts";
-import { CARD_STYLE, CARD_TONE, cardStyle, renderCard, setCardStyle, type Card, type CardTheme } from "../lib/shell-card.ts";
+import { CARD_STYLE, cardStyle, setCardStyle } from "../lib/shell-card.ts";
 import { resolveCardStyle, writeCardStyle } from "../lib/card-style-policy.ts";
 import { CommandPalette, commandsKey, type CommandPaletteResult } from "../lib/command-palette.ts";
 import { buildCommandPaletteGroups } from "../lib/command-palette-catalog.ts";
@@ -23,7 +23,6 @@ import { sourcePalettePreview } from "../lib/theme-customization.ts";
 import { DEFAULT_VISUAL_SETTINGS, DENSITY, HEADER_PLACEMENT, STATUS_PLACEMENT, VISUAL_SECTION_KEYS, resolveVisualSettings, writeVisualSettings } from "../lib/visual-customization-policy.ts";
 import { BANNER_COLORS, DEFAULT_BANNER_CONFIG, readBannerConfig, readBannerConfigForEdit, writeBannerConfig } from "./startup-banner.ts";
 import { agentsViewKey } from "../lib/agents-keys.ts";
-import { GentleAiDevBinaryOverrideError, resolveGentleAiDevBinaryOverride } from "../lib/gentle-ai-binary.ts";
 import { DOUBLE_ESC_CANCEL_HINT, floatPromptRow, framePromptLines, resolvePromptLayout, IDLE_ESC_CLEAR_HINT, PROMPT_HINT, PROMPT_STATE, SHELL_PULSE_MS, withPromptHint, type PromptState } from "../lib/shell-prompt.ts";
 import { oddPhaseRegistry } from "../lib/odd-phase.ts";
 import { inferOddPhase } from "../lib/odd-phase-inference.ts";
@@ -115,7 +114,6 @@ import { UsageView } from "../lib/shell-usage-view.ts";
 import { sidebarHeader, sidebarPart, sidebarState, VISUAL_SETTINGS_CHANGED, type SidebarRail } from "../lib/shell-sidebar.ts";
 import { installSidebar, invalidateSidebar, narrowStatusOwner, STATUS_OWNER } from "../lib/shell-sidebar-layout.ts";
 import { SessionChanges, SESSION_CHANGE_EVENT } from "../lib/session-changes.ts";
-import { REVIEW_SIDEBAR_EVENT, isReviewSidebarSnapshot, type ReviewSidebarSnapshot } from "../lib/review-sidebar-state.ts";
 import { installSessionChangeCapture } from "../lib/session-change-capture.ts";
 import { SelectionEngine } from "../lib/selection-engine.ts";
 import { withOverlayRepaint } from "../lib/overlay-repaint.ts";
@@ -149,13 +147,10 @@ interface BuildOptions {
 	usage?: ProviderUsage;
 }
 
-export type DevBinaryNotice = { state: "active"; path: string; sha256: string } | { state: "invalid"; reason: string };
-
 export interface ShellDeps {
 	activeProfile(): string | undefined;
 	fetch: typeof fetch;
 	now(): number;
-	devBinary(): DevBinaryNotice | undefined;
 	resolveWorktree: WorktreeResolver;
 	gitRunner(cwd: string): GitRunner;
 	vimRuntimeVersion?(): string | undefined;
@@ -230,17 +225,7 @@ export function createActiveProfileReader(env: NodeJS.ProcessEnv = process.env):
 	return reader;
 }
 
-function ambientDevBinary(): DevBinaryNotice | undefined {
-	try {
-		const override = resolveGentleAiDevBinaryOverride();
-		return override ? { state: "active", path: override.path, sha256: override.sha256 } : undefined;
-	} catch (error) {
-		if (error instanceof GentleAiDevBinaryOverrideError) return { state: "invalid", reason: error.message };
-		return undefined;
-	}
-}
-
-const defaultShellDeps: Omit<ShellDeps, "activeProfile"> = { fetch: (input, init) => globalThis.fetch(input, init), now: () => Date.now(), devBinary: ambientDevBinary, resolveWorktree: resolveSessionWorktree, gitRunner: shellGitRunner };
+const defaultShellDeps: Omit<ShellDeps, "activeProfile"> = { fetch: (input, init) => globalThis.fetch(input, init), now: () => Date.now(), resolveWorktree: resolveSessionWorktree, gitRunner: shellGitRunner };
 
 interface AssistantUsageEntry {
 	type: string;
@@ -1358,56 +1343,6 @@ function showChanges(ctx: ExtensionContext, model: ChangesModel, visible = true,
 
 const USAGE_COMMAND_NAME = "gentle:usage";
 const USAGE_SHORTCUT_DEFAULT = "alt+u";
-const REVIEW_PREFLIGHT_TYPE = "gentle-pi.review-preflight";
-const DEV_BINARY_WIDGET_KEY = "gentle-shell-dev-binary";
-const SHA_PREFIX_LENGTH = 16;
-
-function messageText(content: string | Array<{ type: string; text?: string }>): string {
-	if (typeof content === "string") return content;
-	return content.map((part) => (part.type === "text" ? (part.text ?? "") : "")).join("\n");
-}
-
-interface CardComponentOptions {
-	expanded: boolean;
-	previewRows?: number;
-	hint?: string;
-}
-
-function cardComponent(card: Card, theme: CardTheme, options: CardComponentOptions) {
-	return {
-		render(width: number) {
-			return renderCard(card, theme, width, options);
-		},
-		invalidate() {},
-	};
-}
-
-// Widgets above the editor sit flush against the prompt frame; a blank line
-// after the card keeps the two frames apart.
-function spaced(component: { render(width: number): string[]; invalidate(): void }) {
-	return {
-		render(width: number) {
-			return [...component.render(width), ""];
-		},
-		invalidate() {},
-	};
-}
-
-// Same rose identity as the Gentle AI tool cards (lib/gentle-ai-renderer.ts).
-const GENTLE_AI_GLYPH = "\u{1F339}";
-
-export function devBinaryCard(notice: DevBinaryNotice): Card {
-	if (notice.state === "invalid") {
-		return { title: "gentle-ai", subtitle: "dev binary override invalid", body: [notice.reason], tone: CARD_TONE.ERROR, glyph: GENTLE_AI_GLYPH };
-	}
-	return {
-		title: "gentle-ai",
-		subtitle: "dev binary override · field-test only",
-		body: [`${notice.path} · sha256:${notice.sha256.slice(0, SHA_PREFIX_LENGTH)}`],
-		tone: CARD_TONE.WARNING,
-		glyph: GENTLE_AI_GLYPH,
-	};
-}
 
 const USAGE_REFRESH_MS = 5 * 60_000;
 
@@ -1641,12 +1576,6 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		renderHost?.invalidateSidebar?.();
 		renderHost?.requestRender();
 	});
-	pi.registerMessageRenderer(REVIEW_PREFLIGHT_TYPE, (message, options, theme) => {
-		const lines = messageText(message.content as string | Array<{ type: string; text?: string }>).split("\n");
-		const body = options.expanded ? lines : lines.filter((line) => line.trim() !== "");
-		const hint = keyHint("app.tools.expand", options.expanded ? "collapse" : "expand");
-		return cardComponent({ title: "Gentle AI", subtitle: "review preflight", body, tone: CARD_TONE.INFO }, theme, { expanded: options.expanded, previewRows: 3, hint });
-	});
 	const openUsage = (ctx: ExtensionContext) =>
 		ctx.ui.custom<null>(
 			(tui, theme, _keybindings, done) => {
@@ -1726,22 +1655,6 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	let changes: SessionChanges | undefined;
 	let registry: SessionWorktreeRegistry | undefined;
 	let currentContext: ExtensionContext | undefined;
-	let review: ReviewSidebarSnapshot | undefined;
-	const redrawReview = () => {
-		renderHost?.invalidateSidebar?.();
-		renderHost?.requestRender();
-	};
-	const unsubscribeReview = pi.events.on(REVIEW_SIDEBAR_EVENT, (value) => {
-		const event = value as { sessionId?: unknown; snapshot?: unknown } | undefined;
-		if (!currentContext || event?.sessionId !== currentContext.sessionManager.getSessionId()) return;
-		if (!isReviewSidebarSnapshot(event.snapshot)) return;
-		review = { state: event.snapshot.state, scope: event.snapshot.scope };
-		redrawReview();
-	});
-	pi.on("session_tree", () => {
-		review = undefined;
-		redrawReview();
-	});
 	let shown = "";
 	const applyChanges = (ctx: ExtensionContext, model: ChangesModel) => {
 		const fingerprint = changesFingerprint(model);
@@ -1777,10 +1690,6 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	});
 	pi.on("session_start", async (_event, ctx) => {
 		closeCustomize?.();
-		if (review) {
-			review = undefined;
-			redrawReview();
-		}
 		stopProfilePoll();
 		registry?.close();
 		currentContext = ctx;
@@ -1815,7 +1724,6 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			const footerModel = (): ShellBarModel => ({
 				...buildShellBarModel(pi, ctx, footerData, { dirty: tracker.model.files.length, usage: usage.get(ctx.model?.provider ?? ""), profile: deps.activeProfile() }),
 				changes: { files: tracker.model.files.length, added: tracker.model.added, deleted: tracker.model.deleted, notice: tracker.model.notice },
-				review,
 			});
 			// At narrow fullscreen widths only one status row paints: a top header
 			// suppresses the bottom bar in the layout, and otherwise the bottom bar
@@ -1903,26 +1811,14 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		// Hide native feedback only when our petal replaces it. Native transcript
 		// thinking blocks remain Pi-owned; this changes only the supported loader UI.
 		if (ownsPrompt) ctx.ui.setWorkingVisible(false);
-		const notice = deps.devBinary();
-		ctx.ui.setWidget(
-			DEV_BINARY_WIDGET_KEY,
-			notice
-				? (_tui, theme) => spaced(cardComponent(devBinaryCard(notice), theme, { expanded: true, previewRows: 3 }))
-				: undefined,
-		);
 		if (changes !== tracker) return;
 		shown = "";
 		applyChanges(ctx, tracker.model);
 	});
 	pi.on("session_shutdown", (_event, ctx) => {
 		closeCustomize?.();
-		if (review) {
-			review = undefined;
-			redrawReview();
-		}
 		// Pi rebuilds the extension runtime after every shutdown (reload, replacement,
 		// fork, quit), so the factory-level subscription never needs to be restored.
-		unsubscribeReview();
 		stopProfilePoll();
 		oddPhaseRegistry.clear(ctx.sessionManager.getSessionId());
 		oddPhaseRegistry.clearRenderRequest(ctx.sessionManager.getSessionId());
@@ -2119,7 +2015,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			rows.push({
 				category,
 				label: () => `YOLO: ${yoloDisplay} · session only`,
-				preview: () => ({ title: "YOLO · session permission", sample: "ordinary scoped commits/push/PR · destructive confirmations remain · review consent unchanged · reset on reload" }),
+				preview: () => ({ title: "YOLO · session permission", sample: "ordinary scoped commits/push/PR · destructive confirmations remain · reset on reload" }),
 				action: async () => {
 					if (closed) return;
 					if (!adapter || yoloDisplay === YOLO_DISPLAY.unavailable) {
@@ -2386,8 +2282,6 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		// activity, or an explicit orchestrator report, labels it again.
 		oddPhaseRegistry.clear(ctx.sessionManager.getSessionId());
 		prompt?.setWorking(true);
-		// The dev-binary card is a startup notice: it leaves with the first prompt.
-		if (ctx.hasUI) ctx.ui.setWidget(DEV_BINARY_WIDGET_KEY, undefined);
 	});
 	pi.on("tool_execution_start", (event, ctx) => {
 		// The working label follows the primary session's own tool activity so

@@ -3,7 +3,6 @@ import test from "node:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { captureReviewSessionIdentity, grantReviewSessionPermission, hasReviewSessionPermission, revokeReviewSessionPermission } from "../lib/review-session-standing-permission.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
 import { YOLO_STATUS_TEXT } from "../lib/yolo-session-policy.ts";
@@ -42,8 +41,7 @@ export function harness(env: NodeJS.ProcessEnv = {}) {
 		events: { emit() {}, on: () => () => {} },
 		getActiveTools: () => [],
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null, candidateViews: null, processEnv: env,
-		resolveTelemetryTriggerBinary: () => { throw new Error("disabled in test"); },
+	createGentleAiExtension({ processEnv: env,
 	})(pi);
 	return { ctx, commands, tools, notices, statuses, widgets, confirmations: () => confirmations,
 		setSessionId: (id: string) => { sessionId = id; },
@@ -211,21 +209,14 @@ test("active command path preserves configured push confirmations and blocks, in
 	}
 });
 
-test("YOLO never grants or revokes separate review standing permission and never answers ask_user", async () => {
+test("YOLO never answers ask_user tools", async () => {
 	const h = harness();
-	const identity = await captureReviewSessionIdentity(h.ctx, {}); assert.ok(identity);
-	assert.equal(hasReviewSessionPermission(identity), false);
-	await h.command("enable"); assert.equal(hasReviewSessionPermission(identity), false);
-	grantReviewSessionPermission(identity);
-	await h.command("disable"); assert.equal(hasReviewSessionPermission(identity), true);
 	await h.command("enable");
 	const question = { toolName: "ask_user", input: { question: "Authorize recovery?", options: ["Approve", "Decline"] } };
 	const original = structuredClone(question);
 	assert.equal(await h.emit("tool_call", question), undefined);
 	assert.deepEqual(question, original);
 	assert.equal(h.confirmations(), 0);
-	assert.equal(hasReviewSessionPermission(identity), true);
-	revokeReviewSessionPermission(identity);
 });
 
 test("tool input and task text cannot activate; scope/UI loss removes instruction and widget", async () => {

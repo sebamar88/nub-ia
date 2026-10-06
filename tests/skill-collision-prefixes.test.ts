@@ -18,7 +18,6 @@ const PREFIXED_NAMES: Record<string, string> = {
 	"comment-writer": "gentle-ai-comment-writer",
 	"issue-creation": "gentle-ai-issue-creation",
 	"judgment-day": "gentle-ai-judgment-day",
-	"rdd-defect-workflow": "gentle-ai-rdd-defect-workflow",
 	"skill-creator": "gentle-ai-skill-creator",
 	"skill-improver": "gentle-ai-skill-improver",
 	"skill-registry": "gentle-ai-skill-registry",

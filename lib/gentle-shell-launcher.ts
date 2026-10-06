@@ -294,7 +294,10 @@ export function parseRawLauncherConfig(text: string | undefined): RawLauncherCon
 }
 
 export interface ProvisionedEntry {
-	gentleAi: string;
+	// Legacy: entries written before the gentle-ai binary was removed carry the
+	// pin they were provisioned with. needsProvisioning treats their presence as
+	// "needs provisioning" once; new entries never write it.
+	gentleAi?: string;
 	// Optional: a marker written before gentle-pi version tracking (S8) has
 	// no `gentlePi` field at all. needsProvisioning below treats that
 	// omission as "needs provisioning" rather than trusting or crashing on it.
@@ -305,7 +308,8 @@ export interface ProvisionedEntry {
 function isProvisionedEntry(value: unknown): value is ProvisionedEntry {
 	if (typeof value !== "object" || value === null) return false;
 	const record = value as Record<string, unknown>;
-	if (typeof record.gentleAi !== "string" || typeof record.at !== "string") return false;
+	if (typeof record.at !== "string") return false;
+	if (record.gentleAi !== undefined && typeof record.gentleAi !== "string") return false;
 	return record.gentlePi === undefined || typeof record.gentlePi === "string";
 }
 
@@ -329,24 +333,23 @@ export function provisionedEntry(config: RawLauncherConfig, homeDir: string): Pr
 	return provisionedMap(config)[homeDir];
 }
 
-// True when `homeDir` has never been provisioned, was provisioned with a
-// gentle-ai pin other than `pin`, or was provisioned against a gentle-pi
-// other than `gentlePiVersion` (the running launcher's own version, from its
-// package.json) — the signal bin/nub-ia.mjs uses to decide whether a
-// plain launch should run the setup flow automatically before starting pi.
-// A marker written before gentle-pi version tracking existed has no
-// `gentlePi` field, which never strictly-equals a real version string, so it
-// always counts as needing provisioning too — see ProvisionedEntry above.
-export function needsProvisioning(config: RawLauncherConfig, homeDir: string, pin: string, gentlePiVersion: string): boolean {
+// True when `homeDir` has never been provisioned, or was provisioned against
+// a launcher version other than `gentlePiVersion` (the running launcher's own
+// version, from its package.json) — the signal bin/nub-ia.mjs uses to decide
+// whether a plain launch should run the setup flow automatically before
+// starting pi. A legacy marker that still carries a `gentleAi` field (written
+// when the gentle-ai binary was provisioned) or has no `gentlePi` field counts
+// as needing provisioning once; the re-recorded entry drops the legacy field.
+export function needsProvisioning(config: RawLauncherConfig, homeDir: string, gentlePiVersion: string): boolean {
 	const entry = provisionedEntry(config, homeDir);
-	return entry === undefined || entry.gentleAi !== pin || entry.gentlePi !== gentlePiVersion;
+	return entry === undefined || entry.gentleAi !== undefined || entry.gentlePi !== gentlePiVersion;
 }
 
-// Returns a new config object recording `homeDir` as provisioned at `pin`
-// and `gentlePiVersion`, preserving every other key — including every other
+// Returns a new config object recording `homeDir` as provisioned at
+// `gentlePiVersion`, preserving every other key — including every other
 // home's provisioned entry — unchanged. Never mutates `config`.
-export function recordProvisioned(config: RawLauncherConfig, homeDir: string, pin: string, gentlePiVersion: string, now: string): RawLauncherConfig {
-	return { ...config, provisioned: { ...provisionedMap(config), [homeDir]: { gentleAi: pin, gentlePi: gentlePiVersion, at: now } } };
+export function recordProvisioned(config: RawLauncherConfig, homeDir: string, gentlePiVersion: string, now: string): RawLauncherConfig {
+	return { ...config, provisioned: { ...provisionedMap(config), [homeDir]: { gentlePi: gentlePiVersion, at: now } } };
 }
 
 // --- pi runtime resolution ---------------------------------------------------
@@ -417,25 +420,6 @@ export function checkPiVersion(output: string, minimum: string = MIN_PI_VERSION)
 		return { ok: false, version, message: `pi version ${version} is older than the required minimum ${minimum}.` };
 	}
 	return { ok: true, version };
-}
-
-// --- setup subcommand's gentle-ai pin gate -----------------------------------
-
-// The first gentle-ai release that honors PI_CODING_AGENT_DIR in its own
-// `install --agent pi` provisioning. `nub-ia setup` spawns the
-// package-local pinned gentle-ai with PI_CODING_AGENT_DIR set to the
-// resolved home; an older pin ignores that variable and silently provisions
-// the caller's real ~/.pi/agent instead, so setup must refuse to run it.
-export const MIN_SETUP_GENTLE_AI_VERSION = "3.6.0";
-
-export function isSetupCapablePin(version: string, minimum: string = MIN_SETUP_GENTLE_AI_VERSION): boolean {
-	const match = VERSION_PATTERN.exec(version);
-	if (!match) return false;
-	const minimumMatch = VERSION_PATTERN.exec(minimum);
-	if (!minimumMatch) throw new Error(`invalid minimum version "${minimum}"`);
-	const found: [number, number, number] = [Number(match[1]), Number(match[2]), Number(match[3])];
-	const wanted: [number, number, number] = [Number(minimumMatch[1]), Number(minimumMatch[2]), Number(minimumMatch[3])];
-	return compareVersions(found, wanted) >= 0;
 }
 
 // --- packaging drift guard -----------------------------------------------------
@@ -540,63 +524,7 @@ export function settingsDeclareGentlePi(settingsText: string | undefined): boole
 	return packages.some(packageEntryDeclaresGentlePi);
 }
 
-// gentle-ai's own managed Pi stack still installs
-// npm:@juicesharp/rpiv-ask-user-question, which conflicts with gentle-pi's
-// first-party ask_user_question tool: Pi tool names are exclusive, so a
-// second provider for the same name fails the whole load (see
-// extensions/ask-user-question.ts). Tracked upstream as gentle-ai #4820 and
-// nub-ia #1277; the gentle-ai fix lands separately, so `nub-ia
-// setup` (bin/nub-ia.mjs) must remove it from the provisioned home
-// itself.
-//
-// gentle-ai's managed Pi stack also always declares npm:gentle-pi itself.
-// That declaration must never survive setup either, for an unrelated reason:
-// this launcher always loads its own gentle-pi (its own package root, or a
-// take-over), never the one gentle-ai's stack installs, so leaving the
-// declaration in place would silently let the home drift onto whatever
-// gentle-pi npm last installed — or, for a developer running from a source
-// checkout, onto the published npm package — instead of the running
-// launcher's own copy. See docs/readme-reference.md's "setup" section.
-//
-// Table of every package `setup` removes after gentle-ai finishes, so a
-// future addition only needs a new row here.
-const POST_INSTALL_REMOVAL_PACKAGES: readonly { readonly name: string; readonly source: string }[] = [
-	{ name: "@juicesharp/rpiv-ask-user-question", source: "npm:@juicesharp/rpiv-ask-user-question" },
-	{ name: "gentle-pi", source: "npm:gentle-pi" },
-];
-
-// The known removal sources, exposed so a `--dry-run` caller can report what
-// setup would remove *if* gentle-ai's install declares it, without reading
-// settings.json itself: a dry run writes nothing, so settings.json
-// afterwards would only reflect whatever pre-existed the run, not what the
-// (skipped) install would have declared. See runPostInstallCleanup in
-// bin/nub-ia.mjs.
-export const POST_INSTALL_REMOVAL_SOURCES: readonly string[] = POST_INSTALL_REMOVAL_PACKAGES.map((entry) => entry.source);
-
-// Scans a settings.json `packages` list (same string/object-source parsing
-// as settingsDeclareGentlePi/findGentlePiDeclaration above) for any entry
-// whose npm package name matches POST_INSTALL_REMOVAL_PACKAGES, at any
-// version spec. Returns each match's canonical unversioned source, deduped,
-// in the order those packages first appear in `packages` — never the
-// declared (possibly versioned) source text, since the caller always removes
-// the bare package.
-export function postInstallRemovals(settingsText: string | undefined): string[] {
-	const packages = parseSettingsPackages(settingsText);
-	if (packages === undefined) return [];
-
-	const found: string[] = [];
-	for (const entry of packages) {
-		const source = entrySource(entry);
-		if (source === undefined || packageSourceKind(source) !== "npm") continue;
-		const name = npmPackageName(source);
-		const match = POST_INSTALL_REMOVAL_PACKAGES.find((candidate) => candidate.name === name);
-		if (match !== undefined && !found.includes(match.source)) found.push(match.source);
-	}
-	return found;
-}
-
-// Team companion packages: Pi packages every Nub-IA home gets on top of the
-// gentle-ai stack, installed by `setup` (and the first-run auto-provision)
+// Team companion packages: Pi packages every Nub-IA home gets, installed by `setup` (and the first-run auto-provision)
 // through pi's own `install`, so `nub-ia update` keeps them current. Edit this
 // table to change what the team ships with. GENTLE_SHELL_TEAM_PACKAGES
 // overrides it (comma-separated sources; the empty string installs nothing),
@@ -1094,13 +1022,8 @@ function jsonValuesEqual(a: unknown, b: unknown): boolean {
 // Pure JSON merge: restores `field` in `currentText` back to whatever it was
 // in `originalText`, keeping every other field exactly as `currentText` left
 // it, and formatting the result to match `originalText`'s indentation and
-// trailing newline. Used by bin/nub-ia.mjs's setup flow to restore
-// `managed_asset_digest` in the user's shared `~/.gentle-ai/state.json` after
-// the pinned gentle-ai spawn rewrites it (the same shared-file problem
-// persona.json has — see sharedPersonaPath/snapshotFile/restoreFile in
-// bin/nub-ia.mjs — but state.json also carries fields the pinned
-// gentle-ai is supposed to update, like installed_agents, so this restores
-// only the one field instead of the whole file).
+// trailing newline. Used by bin/nub-ia.mjs's setup flow to put back the
+// home's `settings.json` theme after the pi `install` spawns rewrite it.
 //
 // Returns the new text, or `undefined` when either text fails to parse as a
 // JSON object, or the field's presence and value are already identical on
@@ -1156,7 +1079,7 @@ export function restoreJsonField(originalText: string, currentText: string, fiel
 // produced, so its own convention is respected instead of imposed on).
 // Used by bin/nub-ia.mjs's setup flow so a home nub-ia provisions
 // ends up with the maintainer's default theme unless the home (or the user)
-// already had an opinion about it, even when gentle-ai's own managed install
+// already had an opinion about it, even when pi's own install
 // writes a *different* default theme into settings.json.
 //
 // Returns the new text, or `undefined` when either text fails to parse as a
@@ -1220,10 +1143,9 @@ export function helpText(): string {
 		"",
 		"Commands:",
 		"  home             Print or persist the effective home mode (link, isolated, or a path).",
-		"  setup            Provision the resolved home with the gentle-ai companion packages",
-		"                   (runs the package-local gentle-ai 'install --agent pi --scope global'),",
-		"                   then installs the team packages (ponytail) the home does not declare yet.",
-		"                   Accepts --dry-run, forwarded to gentle-ai. Accepts a home selector",
+		"  setup            Provision the resolved home: installs the team packages (ponytail)",
+		"                   the home does not declare yet, through pi's own 'install'.",
+		"                   Accepts --dry-run (report only). Accepts a home selector",
 		"                   (--link, --isolated, --home <dir>) before it.",
 		"",
 		"Managing packages:",

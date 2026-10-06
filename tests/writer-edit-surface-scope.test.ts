@@ -49,7 +49,7 @@ function dispatchWriter(input: Record<string, unknown>) {
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ nativeReviewCli: null })(pi);
+	createGentleAiExtension({ })(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-writer-surfaces-"));

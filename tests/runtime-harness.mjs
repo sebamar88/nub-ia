@@ -10,8 +10,7 @@ import { discoverAndLoadExtensions } from "@earendil-works/pi-coding-agent";
 import { matchesKey } from "@earendil-works/pi-tui";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { stripAnsi } from "../lib/terminal-theme.ts";
-import { domainHashV1 } from "../lib/review-canonical.ts";
-import { canonicalHash } from "../lib/review-transaction.ts";
+import { canonicalHash } from "../lib/canonical-hash.ts";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const { createGentleAiExtension } = await import(pathToFileURL(join(ROOT, "extensions/gentle-ai.ts")).href);
@@ -242,7 +241,6 @@ async function run() {
 	// role, but must never acquire the worker's parent-permission channel.
 	delete process.env.GENTLE_PI_AGENTS_PARENT_PERMISSION_FD;
 	const fixtureDependencies = {
-		nativeReviewCli: {},
 		processEnv: {
 			HOME: globalAgentHome, USERPROFILE: globalAgentHome,
 			GENTLE_PI_CONFIG_HOME: globalConfigHome, GENTLE_PI_AGENT_HOME: globalAgentHome,
@@ -250,127 +248,12 @@ async function run() {
 			XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
 			GENTLE_PI_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0",
 		},
-		resolveTelemetryTriggerBinary: () => join(globalAgentHome, "never-executed"),
-		telemetryTriggerSpawn: () => assert.fail("Runtime fixtures must not spawn telemetry"),
 	};
 	const globalModelsPath = join(globalConfigHome, "models.json");
 	const globalSubagentsPath = join(globalAgentHome, "subagents.json");
 	const { pi, hooks, commands, providers, flags, tools, emittedEvents } = createPi();
 	await loadExtensions(pi, fixtureDependencies);
 	assert.equal(providers.get("nan")?.getModels()[0]?.api, "openai-completions", "runtime extension loading registers the NaN provider");
-
-	// gentle-pi#404: a collect binding that returns the native last-event
-	// closure must terminate after one capture. It must not re-enter a public
-	// lifecycle mutation or synthesize a follow-up transition.
-	{
-		const lineageId = "runtime-last-event";
-		const sha = `sha256:${"a".repeat(64)}`;
-		const tree = "b".repeat(40);
-		const repositoryContext = `rctx1_${"c".repeat(64)}`;
-		const calls = [];
-		const arguments_ = [
-			{ name: "lineage", value: lineageId, token: `--lineage=${lineageId}` },
-			{ name: "expected-revision", value: sha, token: `--expected-revision=${sha}` },
-			{ name: "target", value: sha, token: `--target=${sha}` },
-			{ name: "repository-context", value: repositoryContext, token: `--repository-context=${repositoryContext}` },
-			{ name: "lens", value: "review-risk", token: "--lens=review-risk" },
-			{ name: "order", value: "0", token: "--order=0" },
-			{ name: "subject-hash", value: sha, token: `--subject-hash=${sha}` },
-		];
-		const input = {
-			name: "correction_plan",
-			schema: "gentle-ai.review-correction-plan/v1",
-			captureOperation: "review.capture-correction-plan",
-			arguments: arguments_,
-			submission: {
-				operationToken: "capture-correction-plan",
-				argumentTokens: [...arguments_.map((argument) => argument.token), "--correction-lines={{value}}"],
-				values: [{ slot: "correction_lines", domain: "positive_integer", substitutionLocation: 7, minimum: 1, maximum: 1 }],
-			},
-		};
-		const status = {
-			contract: "gentle-ai.review-integration/v2",
-			applicability: "current_target",
-			authority: { version: "compact-v2", lineageId, state: "correction_required", generation: 1, revision: sha },
-			receipt: { status: "expected_missing" },
-			action: "stop",
-			replayability: "not_replayable",
-			targetIdentity: sha,
-			projection: {
-				schema: "gentle-ai.review-candidate-projection/v1",
-				kind: "current-changes",
-				projection: "workspace",
-				baseTree: tree,
-				initialReviewTree: tree,
-				currentCandidateTree: tree,
-				pathsDigest: sha,
-				paths: ["app.ts"],
-				intendedUntracked: [],
-				intendedUntrackedProof: sha,
-				initialSnapshotIdentity: sha,
-				currentSnapshotIdentity: sha,
-			},
-			repair: { schema: "gentle-ai.review-authority-repair-assessment/v1", status: "unsupported", counts: { lineages: 0, compactLineages: 0, legacyLineages: 0, events: 0, bytes: 0, eligibleCandidates: 0, unsupportedLineages: 0, conflicts: 0 }, supportedOperations: ["review/complete-fix", "review/validate-fix"], authorizationSchema: "gentle-ai.review-repair-authorization/v1" },
-			candidates: [],
-			nextTransition: { kind: "collect", reasonCode: "correction_plan_required", collect: { inputs: [input] } },
-			raw: { schema: "gentle-ai.review-integration.status/v5" },
-		};
-		const nativeReviewCli = {
-			async targetStatus(request) {
-				calls.push({ operation: "status", request });
-				return status;
-			},
-			async captureCorrectionPlan(request) {
-				calls.push({ operation: "capture-correction-plan", request });
-				return {
-					schema: "gentle-ai.review-last-event-closure/v1",
-					operation: "review.capture-correction-plan",
-					lineageId,
-					state: "correction_required",
-					targetIdentity: sha,
-					requestHash: sha,
-					correctionLines: 1,
-					storeRevision: sha,
-				};
-			},
-		};
-		const lastEventPi = createPi();
-		createGentleAiExtension({ ...fixtureDependencies, nativeReviewCli })(lastEventPi.pi);
-		const controller = lastEventPi.tools.get("gentle_review");
-		const capture = lastEventPi.tools.get("gentle_review_capture");
-		assert.ok(controller, "runtime must register the public status controller");
-		assert.ok(capture, "runtime must register the one-slot capture tool");
-		assert.equal(lastEventPi.tools.get("gentle_review_capture_group")?.executionMode, "sequential", "runtime must register grouped capture with bounded foreground concurrency");
-		assert.equal(controller.parameters.properties.operation.enum.includes("finalize"), false);
-		assert.equal(controller.parameters.properties.operation.enum.includes("validate"), false);
-
-		const publicStatus = await controller.execute(
-			"runtime-status",
-			{ operation: "status", lineageId },
-			undefined,
-			undefined,
-			createCtx(ROOT, false, lineageId),
-		);
-		const collectBindings = publicStatus.details.collectBindings;
-		assert.equal(publicStatus.details.status, "blocked");
-		assert.equal(collectBindings.length, 1);
-
-		const captured = await capture.execute(
-			"runtime-capture",
-			{ lineageId, collectBinding: collectBindings[0].collectBinding, correctionLines: 1 },
-			undefined,
-			undefined,
-			createCtx(ROOT, false, lineageId),
-		);
-		assert.equal(captured.details.status, "closed");
-		assert.equal(captured.details.outcome, "native-last-event-closure");
-		assert.equal(captured.details.closure.operation, "review.capture-correction-plan");
-		assert.deepEqual(
-			calls.map(({ operation }) => operation),
-			["status", "status", "capture-correction-plan"],
-			"last-event closure must make no follow-up lifecycle mutation",
-		);
-	}
 
 	for (const name of EXPECTED_COMMANDS) {
 		assert.ok(commands.has(name), `missing command ${name}`);
@@ -404,13 +287,8 @@ async function run() {
 	assert.equal(typeof codemode.renderResult, "function");
 	assert.equal(typeof codemode.prepareLoadout, "function", "upstream loadout policy must survive decoration");
 	assert.deepEqual(pi.getActiveTools(), ["read", "bash", "edit", "write"], "card registration must not change tool activation");
-	assert.ok(tools.has("gentle_review"), "missing registered bounded review controller tool");
-	assert.ok(tools.has("gentle_review_scope"), "missing registered bounded review scope tool");
-	assert.deepEqual(
-		tools.get("gentle_review").parameters.properties.operation.enum.filter((operation) => operation.includes("supersession") || operation === "supersede" || operation === "reconcile-authority"),
-		["reconcile-authority"],
-		"runtime controller must expose only native authority reconciliation",
-	);
+	assert.equal(tools.has("gentle_review"), false, "the gentle-ai review controller tool is gone");
+	assert.ok(tools.has("gentle_odd_phase"), "missing registered ODD phase tool");
 
 	for (const entry of await readdir(join(ROOT, "assets", "agents"))) {
 		if (!entry.endsWith(".md")) continue;
@@ -464,10 +342,9 @@ async function run() {
 		assert.equal(promptResult, undefined, "before_agent_start must not return a replacement systemPrompt");
 		assert.equal(promptEvent.systemPrompt, "base", "the original systemPrompt field must be left untouched");
 		const promptAppended = promptEvent.systemPromptOptions.appendSystemPrompt;
-		assert.match(promptAppended, /el Gentleman/);
+		assert.match(promptAppended, /Nub-IA/);
 		assert.match(promptAppended, /Organic Driven Development/);
 		assert.doesNotMatch(promptAppended, /## SDD Research Capabilities/);
-		assert.match(promptAppended, /review execution contract/);
 		assert.doesNotMatch(await readFile(join(ROOT, "extensions", "gentle-ai.ts"), "utf8"), /readCommandSddStatus/);
 		assert.match(promptAppended + delegationDetail, /do not pass the `model` parameter by default/);
 		assert.doesNotMatch(promptAppended, /Every Agent tool call MUST include `model`/);
@@ -534,13 +411,11 @@ async function run() {
 	try {
 		execFileSync("git", ["init"], { cwd: toolCwd, stdio: "ignore" });
 		const toolHook = hooks.get("tool_call")[0];
-		const toolResultHook = hooks.get("tool_result")[0];
 		const promptHook = hooks.get("before_agent_start")[0];
 		const oddCtx = createCtx(toolCwd, false, "odd-runtime-gate");
 		await promptHook({ systemPrompt: "primary" }, oddCtx);
 		const firstOddPath = join(toolCwd, "first.ts");
 		assert.equal(await toolHook({ toolName: "write", input: { path: firstOddPath } }, oddCtx), undefined);
-		await toolResultHook({ toolName: "write", toolCallId: "odd-first", input: { path: firstOddPath }, isError: false }, oddCtx);
 		const secondOdd = await toolHook({ toolName: "edit", input: { path: join(toolCwd, "second.ts") } }, oddCtx);
 		assert.equal(secondOdd, undefined, "write history alone must not refuse a second direct file");
 		const ghPrCwd = await tempWorkspace();
@@ -558,12 +433,6 @@ async function run() {
 		const denied = await toolHook({ toolName: "bash", input: { command: "rm -rf /" } }, createCtx(toolCwd));
 		assert.equal(denied.block, true);
 		assert.match(denied.reason, /destructive/);
-		const reviewDispatch = { agent: "review-risk", task: "review", mode: "task" };
-		const missingReviewView = await toolHook({ toolName: "subagent_run", input: reviewDispatch }, createCtx(toolCwd));
-		assert.equal(missingReviewView.block, true);
-		assert.match(missingReviewView.reason, /candidate view/i);
-		assert.equal(reviewDispatch.task, "review", "blocked review dispatch must not mutate child input");
-
 		for (const [agent, label, task] of [
 			["gentle-ai-worker", "missing", "Implement the requested change."],
 			["gentle-ai-worker", "absolute", "## Allowed edit surfaces\n/tmp/outside.ts"],
@@ -837,69 +706,6 @@ async function run() {
 		}
 	} finally {
 		await rm(toolCwd, { recursive: true, force: true });
-	}
-
-	// review-candidate-view Phase 3.6 settling test: a contributor edit landing
-	// strictly between the controller-owned candidate binding and reviewer
-	// dispatch must diverge the live candidate tree from the frozen one, and
-	// dispatch must fail closed rather than expose a substituted view to the
-	// lens sub-agent. This drives the real `createGentleAiExtension` tool_call
-	// wiring (not the bare library function tested in
-	// tests/review-candidate-view.test.ts) with an injected candidate-view
-	// registry, so the actual production dispatch path is exercised.
-	const candidateDriftCwd = await tempWorkspace();
-	try {
-		const { createGentleAiExtension } = await import(
-			pathToFileURL(join(ROOT, "extensions/gentle-ai.ts")).href
-		);
-		const { CandidateViewRegistry } = await import(
-			pathToFileURL(join(ROOT, "lib/review-candidate-view.ts")).href
-		);
-
-		gitSync(candidateDriftCwd, "init", "-b", "main");
-		await writeFile(join(candidateDriftCwd, "tracked.txt"), "base\n");
-		gitSync(candidateDriftCwd, "add", "tracked.txt");
-		gitSync(
-			candidateDriftCwd,
-			"-c", "user.name=Runtime Harness",
-			"-c", "user.email=runtime-harness@example.invalid",
-			"commit", "-m", "base",
-		);
-
-		const registry = new CandidateViewRegistry();
-		const view = registry.create({ contributorRoot: candidateDriftCwd });
-		registry.bindCurrent({ token: view.token, lineageId: "harness-candidate-drift", selectedLenses: ["review-risk"] });
-
-		const dispatchPi = createPi();
-		createGentleAiExtension({ ...fixtureDependencies, candidateViews: registry })(dispatchPi.pi);
-		const dispatchToolHook = dispatchPi.hooks.get("tool_call")[0];
-
-		// The contributor edits the tracked file strictly after the candidate
-		// view was bound (START) and strictly before dispatch would run.
-		await writeFile(join(candidateDriftCwd, "tracked.txt"), "drifted after bind, before dispatch\n");
-
-		const dispatchInput = { agent: "review-risk", task: "review", mode: "task" };
-		const dispatchResult = await dispatchToolHook(
-			{ toolName: "subagent_run", input: dispatchInput },
-			createCtx(candidateDriftCwd),
-		);
-		assert.equal(dispatchResult?.block, true, "dispatch must fail closed when the candidate tree diverges between bind and dispatch");
-		assert.match(dispatchResult.reason, /live candidate|drift/i);
-		assert.equal(
-			dispatchInput.task,
-			"review",
-			"a failed-closed dispatch must never mutate the child dispatch input",
-		);
-		assert.doesNotMatch(
-			dispatchInput.task,
-			/Controller-owned review lineage/,
-			"a failed-closed dispatch must never inject a substituted candidate view into the lens sub-agent's task",
-		);
-		await chmod(view.root, 0o700);
-		registry.cleanup(view.token);
-	} finally {
-		restoreWorkspaceWritePermissions(candidateDriftCwd);
-		await rm(candidateDriftCwd, { recursive: true, force: true });
 	}
 
 	const bannerCwd = await tempWorkspace();

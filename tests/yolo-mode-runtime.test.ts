@@ -15,7 +15,7 @@ import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
 test("complete Gentle AI extension registers and executes YOLO through the actual SDK loader", async () => {
 	const cwd = process.cwd();
 	const runtime = createExtensionRuntime();
-	const extension = await loadExtensionFromFactory(createGentleAiExtension({ nativeReviewCli: null, candidateViews: null, processEnv: {} }), cwd, createEventBus(), runtime);
+	const extension = await loadExtensionFromFactory(createGentleAiExtension({ processEnv: {} }), cwd, createEventBus(), runtime);
 	assert.equal(extension.handlers.get("session_start")?.length, 1, "original startup hook remains the sole handler");
 	assert.equal(extension.handlers.get("session_shutdown")?.length, 1, "original shutdown hook remains the sole handler");
 	const runner = new ExtensionRunner([extension], runtime, cwd, SessionManager.inMemory(cwd), {} as never);
@@ -92,11 +92,10 @@ for (const shellFirst of [false, true]) test(`SDK loads both extensions on one b
 	t.after(() => rmSync(home, { recursive: true, force: true }));
 	const cwd = process.cwd(), runtime = createExtensionRuntime(), bus = createEventBus();
 	const env = { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" };
-	const ownerFactory = createGentleAiExtension({ nativeReviewCli: null, candidateViews: null, processEnv: env,
-		resolveTelemetryTriggerBinary: () => { throw new Error("disabled in test"); },
+	const ownerFactory = createGentleAiExtension({ processEnv: env,
 	});
 	const shellFactory = (pi: Parameters<typeof gentleShell>[0]) => gentleShell(pi, env, {
-		fetch: async () => { assert.fail("no network calls"); }, devBinary: () => undefined, activeProfile: () => undefined,
+		fetch: async () => { assert.fail("no network calls"); }, activeProfile: () => undefined,
 	});
 	const extensions = [];
 	for (const factory of shellFirst ? [shellFactory, ownerFactory] : [ownerFactory, shellFactory]) {

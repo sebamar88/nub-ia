@@ -7,7 +7,6 @@ import { stripVTControlCharacters } from "node:util";
 import { withoutInteractiveHost } from "./rpc-host.ts";
 import { AGENT_MODE, formatModelRef, type AgentDefinition, type AgentMode, type ModelRef } from "./agents-config.ts";
 import { CHILD_QUERY_MAX_INFLIGHT, CHILD_QUERY_TIMEOUT_MS, parseChildFrame, validChildMessage, validChildQueryId } from "./agents-messaging.ts";
-import { ParentStandingReviewPermissionBroker } from "./review-session-standing-permission-ipc.ts";
 import { isFinished, normalizeRpcEvent, ToolArgumentProgress, TASK_EVENT, TASK_STATUS, taskLabel, type AskRequest, type ChildResponseObservation, type TaskRecord, type TaskStore } from "./agents-protocol.ts";
 import { WriterSurfaceRegistry, writerSurfaceConflictMessage } from "./writer-surfaces.ts";
 
@@ -156,9 +155,6 @@ export interface TaskRequest {
 	 * Omission preserves the explicit opt-in producer API, not policy authority.
 	 */
 	canCollectResponseObservations?: () => boolean;
-	// This closure stays only in the parent process. Its presence creates an
-	// inherited fd, never an environment boolean or model-visible permission.
-	authorizeParentStandingReviewPermission?: (repositoryIdentity: string) => boolean;
 }
 
 interface ProcessLike {
@@ -199,7 +195,6 @@ interface LiveTask {
 	cleanupDeadlineAt: number | undefined;
 	quarantined: boolean;
 	nextId: number;
-	permissionBroker?: ParentStandingReviewPermissionBroker;
 	ipcClosed: boolean;
 	acknowledgedIpcIds: Set<string>;
 	acknowledgedIpcOrder: string[];
@@ -478,8 +473,6 @@ export class AgentRunner {
 			return;
 		}
 		const detached = this.processControl.platform !== "win32";
-		const hasParentPermissionChannel = request.authorizeParentStandingReviewPermission !== undefined;
-		const permissionChannelStdio = this.processControl.platform === "win32" ? "overlapped" : "pipe";
 		// Subagent children are always headless: strip the desktop app's
 		// interactive-host signal even if it leaked into `request.env`, so a
 		// child spawned from an interactive RPC host never mistakes itself for
@@ -488,7 +481,6 @@ export class AgentRunner {
 			...request.env,
 			[CHILD_MARKER]: "1",
 			[IPC_MARKER]: `${this.deps.now()}-${Math.random().toString(36).slice(2)}`,
-			...(hasParentPermissionChannel ? { GENTLE_PI_AGENTS_PARENT_PERMISSION_FD: "3" } : {}),
 		});
 		// Do not forward stale legacy child selection or authorization.
 		delete env.GENTLE_PI_SDD_REMEDIATION_PLAN;
@@ -519,7 +511,7 @@ export class AgentRunner {
 				cwd: request.cwd,
 				env,
 				detached,
-				stdio: hasParentPermissionChannel ? ["pipe", "pipe", "pipe", permissionChannelStdio, "ipc"] : ["pipe", "pipe", "pipe", "ipc"],
+				stdio: ["pipe", "pipe", "pipe", "ipc"],
 			});
 		} catch (error) {
 			if (instructionsTransportDir) {
@@ -543,13 +535,6 @@ export class AgentRunner {
 			if (!request.prepareResponseObservations) this.checkObservationGrant(live);
 		}
 		this.live.set(id, live);
-		const permissionPipe = child.stdio?.[3];
-		if (hasParentPermissionChannel && permissionPipe !== undefined && permissionPipe !== null) {
-			live.permissionBroker = new ParentStandingReviewPermissionBroker(
-				{ readable: permissionPipe, writable: permissionPipe },
-				(repositoryIdentity) => this.live.get(id) === live && !live.terminal && request.authorizeParentStandingReviewPermission?.(repositoryIdentity) === true,
-			);
-		}
 		this.store.update(id, { status: TASK_STATUS.RUNNING, startedAt: this.deps.now(), lastStep: "starting" });
 		child.channel?.unref?.();
 		child.on("error", (error) => this.childError(id, error));
@@ -873,7 +858,6 @@ export class AgentRunner {
 		live.mutationStarts.clear();
 		live.inFlightTools.clear();
 		live.cleanupDeadlineAt = this.deps.now() + GROUP_CONFIRM_DEADLINE_MS;
-		live.permissionBroker?.close();
 		this.closeIpc(live);
 		live.cancelStall();
 		if (abort) void this.send(id, { type: "abort" });
@@ -943,7 +927,6 @@ export class AgentRunner {
 	}
 
 	private cleanupLive(live: LiveTask): void {
-		live.permissionBroker?.close();
 		this.closeIpc(live);
 		live.cancelStall();
 		live.cancelGrace();

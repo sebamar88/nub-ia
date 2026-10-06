@@ -6,7 +6,6 @@ import test from "node:test";
 import { CHILD_PACKAGE_INJECTION_ENV, encodeChildPackageInjection, parseChildPackageInjection } from "../lib/child-package-injection.ts";
 import {
 	MIN_PI_VERSION,
-	MIN_SETUP_GENTLE_AI_VERSION,
 	PI_SUBCOMMANDS,
 	buildPiInvocation,
 	checkPeerVersionPin,
@@ -18,7 +17,6 @@ import {
 	forceJsonFieldIfAbsentInOriginal,
 	helpText,
 	homeSelectorFlags,
-	isSetupCapablePin,
 	launcherConfigPath,
 	type LooseExtensionFsEntry,
 	missingPiMessage,
@@ -28,7 +26,6 @@ import {
 	parseLauncherConfig,
 	parseRawLauncherConfig,
 	planSpawn,
-	postInstallRemovals,
 	provisionedEntry,
 	quoteForCmdExe,
 	recordProvisioned,
@@ -453,57 +450,53 @@ test("provisionedEntry tolerates a malformed provisioned map (non-object, missin
 });
 
 test("needsProvisioning is true for a home with no marker", () => {
-	assert.equal(needsProvisioning({}, "/a", "3.6.0", "3.5.1"), true);
+	assert.equal(needsProvisioning({}, "/a", "0.1.0"), true);
 });
 
-test("needsProvisioning is true when the marker's pin differs from the current pin", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", gentlePi: "3.5.1", at: "2026-09-22T00:00:00.000Z" } } };
-	assert.equal(needsProvisioning(config, "/a", "3.6.1", "3.5.1"), true);
+test("needsProvisioning is false when the marker's launcher version matches the running one", () => {
+	const config: RawLauncherConfig = { provisioned: { "/a": { gentlePi: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } };
+	assert.equal(needsProvisioning(config, "/a", "0.1.0"), false);
 });
 
-test("needsProvisioning is false when the marker's pin and gentle-pi version both match the current ones", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", gentlePi: "3.5.1", at: "2026-09-22T00:00:00.000Z" } } };
-	assert.equal(needsProvisioning(config, "/a", "3.6.0", "3.5.1"), false);
+test("needsProvisioning is true when the marker's launcher version differs from the running one", () => {
+	const config: RawLauncherConfig = { provisioned: { "/a": { gentlePi: "0.0.9", at: "2026-09-22T00:00:00.000Z" } } };
+	assert.equal(needsProvisioning(config, "/a", "0.1.0"), true);
 });
 
-// A marker written before gentle-pi version tracking existed (S8) has no
-// `gentlePi` field at all; that omission must never equal a real running
-// version, so it always counts as needing provisioning even though the
-// gentle-ai pin itself still matches.
-test("needsProvisioning is true when the marker predates gentle-pi version tracking (no gentlePi field)", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", at: "2026-09-22T00:00:00.000Z" } } };
-	assert.equal(needsProvisioning(config, "/a", "3.6.0", "3.5.1"), true);
+test("needsProvisioning is true when the marker predates version tracking (no gentlePi field)", () => {
+	const config: RawLauncherConfig = { provisioned: { "/a": { at: "2026-09-22T00:00:00.000Z" } } };
+	assert.equal(needsProvisioning(config, "/a", "0.1.0"), true);
 });
 
-test("needsProvisioning is true when the marker's gentle-pi version differs from the running one, even though the pin matches", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", gentlePi: "3.5.0", at: "2026-09-22T00:00:00.000Z" } } };
-	assert.equal(needsProvisioning(config, "/a", "3.6.0", "3.5.1"), true);
+test("needsProvisioning is true once for a legacy marker that still carries a gentle-ai pin", () => {
+	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", gentlePi: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } };
+	assert.equal(needsProvisioning(config, "/a", "0.1.0"), true);
 });
 
-test("recordProvisioned adds a marker (gentleAi, gentlePi, at) and preserves every other key, including other homes", () => {
+test("recordProvisioned adds a marker (gentlePi, at) without a gentle-ai pin and preserves every other key, including other homes", () => {
 	const config: RawLauncherConfig = {
 		home: "isolated",
-		provisioned: { "/other": { gentleAi: "3.5.0", gentlePi: "3.4.0", at: "2026-01-01T00:00:00.000Z" } },
+		provisioned: { "/other": { gentlePi: "0.0.1", at: "2026-01-01T00:00:00.000Z" } },
 	};
-	const updated = recordProvisioned(config, "/a", "3.6.0", "3.5.1", "2026-09-22T00:00:00.000Z");
+	const updated = recordProvisioned(config, "/a", "0.1.0", "2026-09-22T00:00:00.000Z");
 	assert.deepEqual(updated, {
 		home: "isolated",
 		provisioned: {
-			"/other": { gentleAi: "3.5.0", gentlePi: "3.4.0", at: "2026-01-01T00:00:00.000Z" },
-			"/a": { gentleAi: "3.6.0", gentlePi: "3.5.1", at: "2026-09-22T00:00:00.000Z" },
+			"/other": { gentlePi: "0.0.1", at: "2026-01-01T00:00:00.000Z" },
+			"/a": { gentlePi: "0.1.0", at: "2026-09-22T00:00:00.000Z" },
 		},
 	});
 	// Returns a new object; never mutates the input.
 	assert.deepEqual(config, {
 		home: "isolated",
-		provisioned: { "/other": { gentleAi: "3.5.0", gentlePi: "3.4.0", at: "2026-01-01T00:00:00.000Z" } },
+		provisioned: { "/other": { gentlePi: "0.0.1", at: "2026-01-01T00:00:00.000Z" } },
 	});
 });
 
-test("recordProvisioned overwrites an existing marker for the same home", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", gentlePi: "3.5.0", at: "2026-01-01T00:00:00.000Z" } } };
-	const updated = recordProvisioned(config, "/a", "3.6.1", "3.5.1", "2026-09-22T00:00:00.000Z");
-	assert.deepEqual(updated, { provisioned: { "/a": { gentleAi: "3.6.1", gentlePi: "3.5.1", at: "2026-09-22T00:00:00.000Z" } } });
+test("recordProvisioned overwrites an existing marker for the same home and drops a legacy gentle-ai pin", () => {
+	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", gentlePi: "0.0.9", at: "2026-01-01T00:00:00.000Z" } } };
+	const updated = recordProvisioned(config, "/a", "0.1.0", "2026-09-22T00:00:00.000Z");
+	assert.deepEqual(updated, { provisioned: { "/a": { gentlePi: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } });
 });
 
 // --- resolvePiRuntime ------------------------------------------------------
@@ -685,44 +678,6 @@ test("checkPiVersion accepts a custom minimum", () => {
 	assert.equal(checkPiVersion("1.2.0", "1.1.0").ok, true);
 });
 
-// --- isSetupCapablePin -------------------------------------------------------
-// `nub-ia setup` provisions a home through the package-local pinned
-// gentle-ai binary by pointing PI_CODING_AGENT_DIR at that home; only
-// gentle-ai >= 3.6.0 honors that variable in its own `install --agent pi`
-// provisioning. An older pin would silently provision the caller's real
-// ~/.pi/agent instead, so setup must refuse to spawn it.
-
-test("MIN_SETUP_GENTLE_AI_VERSION is 3.6.0", () => {
-	assert.equal(MIN_SETUP_GENTLE_AI_VERSION, "3.6.0");
-});
-
-test("isSetupCapablePin accepts a version equal to the minimum", () => {
-	assert.equal(isSetupCapablePin("3.6.0"), true);
-});
-
-test("isSetupCapablePin accepts a version above the minimum", () => {
-	assert.equal(isSetupCapablePin("3.6.1"), true);
-	assert.equal(isSetupCapablePin("4.0.0"), true);
-});
-
-test("isSetupCapablePin rejects a version below the minimum", () => {
-	assert.equal(isSetupCapablePin("3.5.1"), false);
-	assert.equal(isSetupCapablePin("3.5.9"), false);
-});
-
-test("isSetupCapablePin accepts a v-prefixed version", () => {
-	assert.equal(isSetupCapablePin("v3.6.0"), true);
-});
-
-test("isSetupCapablePin rejects unparsable input", () => {
-	assert.equal(isSetupCapablePin("not a version"), false);
-});
-
-test("isSetupCapablePin accepts a custom minimum", () => {
-	assert.equal(isSetupCapablePin("2.0.0", "2.1.0"), false);
-	assert.equal(isSetupCapablePin("2.1.0", "2.1.0"), true);
-});
-
 // --- settingsDeclareGentlePi ------------------------------------------------
 
 test("settingsDeclareGentlePi is false when settings text is undefined", () => {
@@ -762,61 +717,6 @@ test("settingsDeclareGentlePi is false for a path package entry, even one that r
 	// declarations, matching its pre-existing behaviour before path detection
 	// was added via findGentlePiDeclaration.
 	assert.equal(settingsDeclareGentlePi('{"packages":["../../work/gentle-pi"]}'), false);
-});
-
-// --- postInstallRemovals -----------------------------------------------
-//
-// gentle-ai's managed Pi stack (gentle-ai #4820, nub-ia #1277) still
-// installs npm:@juicesharp/rpiv-ask-user-question, which conflicts with
-// gentle-pi's own first-party ask_user_question tool: Pi refuses two
-// providers for the same tool name. It also always declares npm:gentle-pi
-// itself, which must never stay in the home's settings.json: this launcher
-// always loads its own gentle-pi, so leaving that declaration in place would
-// let the home drift onto whatever gentle-pi npm installed instead. This
-// pure helper tells `nub-ia setup` which declared packages it must
-// remove after provisioning a home, for either reason.
-
-test("postInstallRemovals is empty when settings text is undefined", () => {
-	assert.deepEqual(postInstallRemovals(undefined), []);
-});
-
-test("postInstallRemovals is empty for invalid JSON", () => {
-	assert.deepEqual(postInstallRemovals("not json"), []);
-});
-
-test("postInstallRemovals is empty when packages is absent", () => {
-	assert.deepEqual(postInstallRemovals("{}"), []);
-});
-
-test("postInstallRemovals detects a bare npm:@juicesharp/rpiv-ask-user-question string entry", () => {
-	assert.deepEqual(postInstallRemovals('{"packages":["npm:@juicesharp/rpiv-ask-user-question"]}'), ["npm:@juicesharp/rpiv-ask-user-question"]);
-});
-
-test("postInstallRemovals detects a versioned entry and returns the canonical unversioned source", () => {
-	assert.deepEqual(postInstallRemovals('{"packages":["npm:@juicesharp/rpiv-ask-user-question@1.2.3"]}'), [
-		"npm:@juicesharp/rpiv-ask-user-question",
-	]);
-});
-
-test("postInstallRemovals detects a versioned object source entry", () => {
-	assert.deepEqual(postInstallRemovals('{"packages":[{"source":"npm:@juicesharp/rpiv-ask-user-question@1.2.3"}]}'), [
-		"npm:@juicesharp/rpiv-ask-user-question",
-	]);
-});
-
-test("postInstallRemovals detects npm:gentle-pi at any version, alongside an unrelated package", () => {
-	assert.deepEqual(postInstallRemovals('{"packages":["npm:gentle-pi@3.5.1","npm:some-other-package"]}'), ["npm:gentle-pi"]);
-});
-
-test("postInstallRemovals dedupes a duplicated declaration and preserves declaration order", () => {
-	const settingsText =
-		'{"packages":["npm:gentle-pi@1.0.0","npm:@juicesharp/rpiv-ask-user-question@1.0.0","npm:@juicesharp/rpiv-ask-user-question@2.0.0"]}';
-	assert.deepEqual(postInstallRemovals(settingsText), ["npm:gentle-pi", "npm:@juicesharp/rpiv-ask-user-question"]);
-});
-
-test("postInstallRemovals ignores a path entry that happens to share the package name", () => {
-	assert.deepEqual(postInstallRemovals('{"packages":["./local-ask-user-question"]}'), []);
-	assert.deepEqual(postInstallRemovals('{"packages":["./local-gentle-pi"]}'), []);
 });
 
 // --- findGentlePiDeclaration -------------------------------------------------

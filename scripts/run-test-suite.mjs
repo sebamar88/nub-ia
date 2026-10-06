@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 // Sequential test-suite runner for `pnpm test` (gentle-pi#1285).
 //
-// `pnpm test` used to chain its three stages with `&&`, so any stage-1
+// `pnpm test` used to chain its stages with `&&`, so any stage-1
 // failure — including a known-flaky unit test — silently suppressed the
-// provider-contract check and the runtime harness while reporting a plain
-// "test failed". This runner executes every stage unconditionally, prints a
+// runtime harness while reporting a plain "test failed". This runner executes every stage unconditionally, prints a
 // per-stage header and a final summary, and exits non-zero when any stage
 // fails. Stages are plain shell commands, so behavior stays identical on
 // POSIX and Windows CI.
@@ -15,7 +14,6 @@ import { fileURLToPath } from "node:url";
 
 export const DEFAULT_STAGES = Object.freeze([
 	{ name: "unit-tests", command: "node --experimental-strip-types --test tests/*.test.ts" },
-	{ name: "provider-contract", command: "pnpm run check:provider-contract" },
 	{ name: "runtime-harness", command: "pnpm run test:harness" },
 ]);
 

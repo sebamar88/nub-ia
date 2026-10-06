@@ -1,7 +1,6 @@
 import { agentsViewKey, agentsCollapseKey, agentsStopKey } from "../lib/agents-keys.ts";
 import { spawn } from "node:child_process";
 import { Type } from "typebox";
-import { recordReviewMutation } from "../lib/review-reminder-receipt.ts";
 import { SESSION_CHANGE_RELAY } from "../lib/session-changes.ts";
 import { publishForeignSessionChange } from "../lib/session-change-capture.ts";
 import { SESSION_WORKTREE_ENTRY, SESSION_WORKTREE_CHANGED, SessionWorktreeRegistry, resolveSessionWorktree, type WorktreeResolver } from "../lib/session-worktree-registry.ts";
@@ -21,7 +20,7 @@ import { VISUAL_SETTINGS_CHANGED } from "../lib/shell-sidebar.ts";
 import { resolveVisualSettings } from "../lib/visual-customization-policy.ts";
 import { createCompletionQueue } from "../lib/agents-completion-delivery.ts";
 import { createAgentMessageQueue, type PendingAgentMessage } from "../lib/agents-message-delivery.ts";
-import { AGENT_MODE, discoverAgents, formatModelRef, loadAgentsConfig, resolveAgentProfile, withPinnedModelProfiles, type AgentDefinition, type AgentMode } from "../lib/agents-config.ts";
+import { AGENT_MODE, discoverAgents, loadAgentsConfig, resolveAgentProfile, withPinnedModelProfiles, type AgentDefinition, type AgentMode } from "../lib/agents-config.ts";
 import { readSessionProfileBinding, sessionOrPinModelProfiles } from "../lib/session-profile-binding.ts";
 import { resolveBackgroundSubagentsPolicy } from "../lib/background-subagents-policy.ts";
 import { installBackgroundCacheWarming } from "../lib/background-cache-warming.ts";
@@ -30,8 +29,7 @@ import { AgentRunner, piCommand, abortReasonText, type AskAnswer, type RunnerDep
 import { ChildMessenger, type IpcEndpoint } from "../lib/agents-messaging.ts";
 import { ActiveSessionClient, ActiveSessionListener, SessionPresenceRegistry, type PresenceRecord, type ReceivedNotification, type SentNotification, type SessionPresenceCandidate } from "../lib/agents-session-transport.ts";
 import { WindowsActiveSessionClient, WindowsActiveSessionListener, WindowsSessionPresenceRegistry, type WindowsSessionRegistryPhaseObserver } from "../lib/windows-session-transport.ts";
-import { hasReviewSessionPermission, resolveCanonicalGitRepositoryIdentitySync, type ReviewSessionManager } from "../lib/review-session-standing-permission.ts";
-import { inheritedUnsafeGitEnvironmentKeys } from "../lib/review-repository.ts";
+import { inheritedUnsafeGitEnvironmentKeys } from "../lib/git-environment.ts";
 import { historyDir, loadHistory, loadStoredTask, pruneHistory, saveTask } from "../lib/agents-history.ts";
 import { sessionToMarkdown } from "../lib/agents-transcript.ts";
 import { AgentsView } from "../lib/agents-view.ts";
@@ -55,7 +53,7 @@ import { resolveAgentHomeDirectory } from "../lib/agent-model-resolution.ts";
 import { resolveProfilePin, resolveUnversionedProjectProfile } from "../lib/agent-profile-pin.ts";
 import { allowedEditSurfaces, inheritAllowedEditSurfaces, isBoundedWriter, isDevelopmentSurface, isGenericBoundedWriter, prepareBoundSessionRepository, rejectUnscopedBoundedWriterDispatch, safeBootstrapDirectory, sessionRepositoryAuthority } from "../lib/bounded-writer-admission.ts";
 import { CHILD_METRICS_EVENT, CHILD_METRICS_REVOKED, childEvent, launchSelection, type LaunchSelection } from "../lib/runtime-metrics-children.ts";
-import { runtimeMetricsEnvAllows, type RuntimeMetricsPolicyDeps } from "../lib/runtime-metrics-policy.ts";
+import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
 
 // Gentle Agents: subagents as isolated `pi --mode rpc` children, a task
 // store that notifies per task, and a Gentle Shell card above the editor.
@@ -121,7 +119,6 @@ export interface AgentsDeps extends RunnerDeps {
 	sessionTransport?: SessionTransportFactory;
 	env: NodeJS.ProcessEnv;
 	resolveWorktree: WorktreeResolver;
-	runtimeMetricsPolicy?: RuntimeMetricsPolicyDeps;
 	metricsNow?: () => number;
 	metricsSchedule?: RunnerDeps["schedule"];
 	// Extensions every child loads with --extension (gentle-shell#1587).
@@ -277,15 +274,6 @@ function text(value: string, details: Record<string, unknown> = {}, terminate = 
 // the unresolved `formatModelRef(undefined)` placeholder; the parent's current
 // model is not reliable evidence (the child resolves its own default), so it is
 // omitted and ASSESS treats the writer as unknown, i.e. small.
-function runtimeWriterProfile(task: TaskRecord): { writerModelId?: string; writerEffort?: string } {
-	const modelId = typeof task.model === "string" && task.model !== formatModelRef(undefined) && task.model.trim() ? task.model : undefined;
-	const effort = typeof task.thinking === "string" && task.thinking.trim() ? task.thinking : undefined;
-	return {
-		...(modelId === undefined ? {} : { writerModelId: modelId }),
-		...(effort === undefined ? {} : { writerEffort: effort }),
-	};
-}
-
 function taskDetails(task: TaskRecord): Record<string, unknown> {
 	return { gentleAgents: { taskId: task.id, agent: task.agent, status: task.status, mode: task.mode, cwd: task.cwd } };
 }
@@ -1048,7 +1036,6 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 				}
 				else if (resolvedPath !== undefined) noteDrop("evidence-path-mismatch");
 			}
-			if (!foreignTask) recordReviewMutation(pi, sessions, root, { source: "subagent", taskId: task.id, toolName: tool.toolName, toolCallId: tool.toolCallId, ...runtimeWriterProfile(task) });
 		},
 		onFinish: (task, observations) => {
 			// Completion is the only forwarding opportunity. No pending event, policy
@@ -1438,10 +1425,8 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 		}
 		if (signal?.aborted) throw new Error("Subagent launch aborted before queueing.");
 		mkdirSync(sessionDir, { recursive: true });
-		const parentSessionManager = ctx.sessionManager as unknown as ReviewSessionManager;
 		const parentSessionId = ctx.sessionManager.getSessionId() ?? "";
 		const parentWorktreeRoot = ctx.sessionManager.getCwd();
-		const parentRepositoryIdentity = resolveCanonicalGitRepositoryIdentitySync(parentWorktreeRoot);
 		const childEnv = { ...deps.env };
 		if (foreign) for (const key of inheritedUnsafeGitEnvironmentKeys(childEnv)) delete childEnv[key];
 		const request: TaskRequest = {
@@ -1473,23 +1458,6 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 			// and running lifetime; a continuation is a new task and claims them again.
 			...(isBoundedWriter(agent.name) && surfaces ? { writerSurfaces: surfaces, writerRoot: canonicalWriterRoot(target ?? parentWorktreeRoot, foreign ? resolveSessionWorktree : deps.resolveWorktree) } : {}),
 			env: childEnv,
-			...(foreign || parentRepositoryIdentity === undefined ? {} : {
-				authorizeParentStandingReviewPermission: (repositoryIdentity: string) => {
-					try {
-						return repositoryIdentity === parentRepositoryIdentity &&
-							parentSessionManager.getSessionId() === parentSessionId &&
-							parentSessionId.length > 0 &&
-							hasReviewSessionPermission({
-								sessionManager: parentSessionManager,
-								sessionId: parentSessionId,
-								worktreeRoot: parentWorktreeRoot,
-								repositoryIdentity: parentRepositoryIdentity,
-							});
-					} catch {
-						return false;
-					}
-				},
-			}),
 		};
 		if (foreign && target && foreignIdentity) foreignRequests.set(request, { root: target, commonDir: foreignIdentity.commonDir, manager: ctx.sessionManager });
 		return request;

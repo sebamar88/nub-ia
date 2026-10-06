@@ -35,9 +35,7 @@ import {
 	forceJsonFieldIfAbsentInOriginal,
 	helpText,
 	homeSelectorFlags,
-	isSetupCapablePin,
 	launcherConfigPath,
-	MIN_SETUP_GENTLE_AI_VERSION,
 	missingPiMessage,
 	needsProvisioning,
 	otherPackageInjections,
@@ -45,8 +43,6 @@ import {
 	parseLauncherConfig,
 	parseRawLauncherConfig,
 	planSpawn,
-	POST_INSTALL_REMOVAL_SOURCES,
-	postInstallRemovals,
 	resolveTeamPackageSources,
 	teamPackagesToInstall,
 	provisionedEntry,
@@ -63,7 +59,6 @@ import {
 	RESUME_HANDOFF_ENV,
 	RESUME_HANDOFF_FILE,
 } from "../runtime/gentle-shell-resume-hint.mjs";
-import { GENTLE_AI_VERSION, gentleAiBinaryPath, PackageLocalGentleAiBinaryMissingError } from "../runtime/gentle-ai-binary.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -387,38 +382,6 @@ function handleHomeCommand(commandArgs) {
 	process.exit(0);
 }
 
-// Test/development-only override for the setup subcommand's gentle-ai
-// executable path. Lets a test point at a stub script (or a deliberately
-// missing path) without touching the real pinned .gentle-ai/v<version>/gentle-ai
-// install this package ships, and without needing to fake its release-asset
-// integrity manifest. Never consulted outside `setup`; see docs/readme-reference.md.
-function resolveSetupGentleAiBinary() {
-	const override = process.env.GENTLE_SHELL_GENTLE_AI_BIN;
-	return override !== undefined && override.length > 0 ? override : gentleAiBinaryPath();
-}
-
-// Test/development-only override for the setup subcommand's reported
-// package-local gentle-ai pin. Lets a test simulate an older or newer pin
-// without changing the real installed .gentle-ai/v<version> bundle. Never
-// consulted outside `setup`; see docs/readme-reference.md.
-function resolveSetupGentleAiPin() {
-	const override = process.env.GENTLE_SHELL_GENTLE_AI_PIN;
-	return override !== undefined && override.length > 0 ? override : GENTLE_AI_VERSION;
-}
-
-const SKIP_GENTLE_AI_INSTALL_ENV = "GENTLE_PI_SKIP_GENTLE_AI_INSTALL";
-
-// Test/development-only override for the setup subcommand's self-heal
-// installer script path. Lets a test point at a stub installer (one that
-// creates the stub binary, or deliberately doesn't) instead of running the
-// real node scripts/install-gentle-ai.mjs, whose supply-chain integrity
-// checks (and real network download) a test cannot cheaply satisfy. Never
-// consulted outside `setup`; see docs/readme-reference.md.
-function resolveSetupGentleAiInstaller() {
-	const override = process.env.GENTLE_SHELL_GENTLE_AI_INSTALLER;
-	return override !== undefined && override.length > 0 ? override : join(packageRoot, "scripts", "install-gentle-ai.mjs");
-}
-
 // Spawns `command` and resolves once it exits, instead of exiting the
 // process directly: the shared core the manual `setup` subcommand and the
 // automatic first-run provisioning flow (S7) both drive, deciding for
@@ -434,7 +397,7 @@ function resolveSetupGentleAiInstaller() {
 // `interrupted` lets a caller skip printing remediation advice and abort the
 // whole launch; a plain `signal` with no `interrupted` is treated like any
 // other failure. `timeoutMs`, when given, kills the child and resolves with
-// `timedOut: true` instead of waiting forever on a hung gentle-ai/pi
+// `timedOut: true` instead of waiting forever on a hung pi
 // invocation; only the automatic first-run flow passes it (see
 // AUTO_SETUP_CHILD_TIMEOUT_MS below) — manual `setup` never times out.
 function spawnAndWait(command, args, env, stdio, timeoutMs) {
@@ -500,58 +463,10 @@ function formatTimeoutCeiling(ms) {
 	return `${seconds} second${seconds === 1 ? "" : "s"}`;
 }
 
-// Self-heals a missing package-local gentle-ai binary before the setup flow
-// gives up on it. `npm install -g <tarball>` on a machine whose npm config
-// disables lifecycle scripts (`ignore-scripts=true`, this maintainer's own
-// machine included) never runs the package's own postinstall
-// (scripts/install-gentle-ai.mjs), so .gentle-ai/v<pin>/gentle-ai is missing
-// even though the package itself installed fine. Running that same
-// installer here recovers it: it downloads the pinned, sha256-verified
-// release asset, exactly as postinstall would have. Skipped when
-// GENTLE_PI_SKIP_GENTLE_AI_INSTALL is "1" — the same variable that already
-// controls whether real postinstall provisioning runs (see
-// docs/readme-reference.md) — in which case today's plain missing-binary
-// failure is kept, with the variable named in the message. Returns
-// {ok, exitCode, message} instead of exiting the process, so the caller
-// decides whether to exit (manual setup) or warn and continue (auto mode).
-//
-// Signal-contract note (R2-signal-contract-cleanup-gap): unlike the two
-// children spawnAndWait drives during this flow (the package-local gentle-ai
-// binary in runSetupFlow, and each `pi remove` in removePostInstallSources),
-// this installer runs via a *synchronous* spawnSync with no timeout and no
-// launcher-interrupt tracking. A SIGINT/SIGTERM/SIGHUP reaching the launcher
-// while this specific call is blocking falls back to Node's default signal
-// disposition (the launcher exits immediately) instead of the
-// interrupted-vs-ordinary-failure distinction spawnAndWait's callers get. The
-// installer script itself is small, fast, and non-interactive in practice, so
-// this gap is accepted rather than converting it to the async, timeout-bound
-// spawnAndWait path.
-function ensurePackageLocalGentleAi(binaryPath, pinnedVersion, stdio) {
-	if (existsSync(binaryPath)) return { ok: true };
-	if (process.env[SKIP_GENTLE_AI_INSTALL_ENV] === "1") {
-		return {
-			ok: false,
-			exitCode: 1,
-			message: `${new PackageLocalGentleAiBinaryMissingError(binaryPath).message} (${SKIP_GENTLE_AI_INSTALL_ENV} is set; not installing it automatically)`,
-		};
-	}
-	process.stderr.write(
-		`nub-ia: the package-local gentle-ai v${pinnedVersion} is missing (npm lifecycle scripts may be disabled); installing it now\n`,
-	);
-	const installerPath = resolveSetupGentleAiInstaller();
-	const result = spawnSync(process.execPath, [installerPath], { stdio });
-	if (result.error) {
-		return { ok: false, exitCode: 1, message: `Could not run the gentle-ai installer at ${installerPath}: ${result.error.message}` };
-	}
-	if (!existsSync(binaryPath)) return { ok: false, exitCode: 1, message: new PackageLocalGentleAiBinaryMissingError(binaryPath).message };
-	return { ok: true };
-}
-
-// Shared env for the gentle-ai install spawn and the pi remove cleanup spawn
-// below: PI_CODING_AGENT_DIR/GENTLE_PI_AGENT_HOME point both at the resolved
-// home, and the resolved pi runtime's directory is prepended to PATH so
-// gentle-ai's (or pi's own) preflight finds `pi` even when it is bundled or
-// given through GENTLE_SHELL_PI.
+// Shared env for the pi install spawns below: PI_CODING_AGENT_DIR/
+// GENTLE_PI_AGENT_HOME point at the resolved home, and the resolved pi
+// runtime's directory is prepended to PATH so pi finds itself even when it is
+// bundled or given through GENTLE_SHELL_PI.
 function buildSetupEnv(home, runtime) {
 	return {
 		...process.env,
@@ -561,89 +476,13 @@ function buildSetupEnv(home, runtime) {
 	};
 }
 
-// The shared Pi persona file gentle-ai writes on every install, regardless
-// of the target home: its own PiPersonaConfigPath always resolves against
-// the OS home, never PI_CODING_AGENT_DIR (gentle-ai internal/components/persona/inject.go),
-// so a `setup` run for any home silently resets whatever persona mode the
-// user already chose back to gentle-ai's default preset unless something
-// snapshots and restores it. See snapshotFile/restoreFile below and
-// docs/readme-reference.md's setup "Known limitation".
-function sharedPersonaPath() {
-	return join(homedir(), ".pi", "gentle-ai", "persona.json");
-}
-
-// Records `path`'s current state before a child process that might rewrite
-// it runs: whether it exists, and if so its exact bytes and mode. Returns
-// `{ path, existed: false }` for a missing file so restoreFile below knows
-// to delete rather than rewrite it. Any error other than "does not exist"
-// propagates — a snapshot that silently treats a permissions error as
-// "missing" would then delete a file it never actually read.
-function snapshotFile(path) {
-	try {
-		const bytes = readFileSync(path);
-		const mode = statSync(path).mode & 0o777;
-		return { path, existed: true, bytes, mode };
-	} catch (error) {
-		if (error.code === "ENOENT") return { path, existed: false };
-		throw error;
-	}
-}
-
-// Restores `snapshot` after the child that might have rewritten it exits,
-// but only when its current state actually differs from what was recorded:
-// a changed existing file is rewritten atomically (temp file in the same
-// directory, then renamed, so a crash mid-restore never leaves a partial
-// file) preserving the original mode; a file that did not exist before is
-// removed if the child created one. Returns true when a restore/removal
-// actually happened, so the caller prints exactly one notice.
-function restoreFile(snapshot) {
-	const { path, existed } = snapshot;
-	if (!existed) {
-		if (!existsSync(path)) return false;
-		rmSync(path, { force: true });
-		return true;
-	}
-	let currentBytes;
-	try {
-		currentBytes = readFileSync(path);
-	} catch (error) {
-		if (error.code !== "ENOENT") throw error;
-	}
-	if (currentBytes !== undefined && currentBytes.equals(snapshot.bytes)) return false;
-	mkdirSync(dirname(path), { recursive: true });
-	writeFileAtomically(path, snapshot.bytes, { mode: snapshot.mode });
-	return true;
-}
-
 function basenameOf(path) {
 	const parts = path.split(/[\\/]/);
 	return parts[parts.length - 1];
 }
 
-// gentle-ai records the running binary's managed-asset bundle digest in the
-// shared `~/.gentle-ai/state.json`, field managed_asset_digest (gentle-ai
-// internal/cli/run.go, internal/state/state.go), regardless of which home it
-// was installing into — same shared-file-outside-PI_CODING_AGENT_DIR problem
-// as sharedPersonaPath above. The pinned package-local gentle-ai this setup
-// flow spawns writes its own digest there, so afterward the user's own
-// (unrelated, on-PATH) gentle-ai reports its managed assets as outdated and
-// demands `gentle-ai sync`, even though nothing about the user's install
-// changed. Unlike persona.json, state.json also carries fields the pinned
-// gentle-ai is supposed to update (for example installed_agents), so this
-// restores only the managed_asset_digest field via restoreJsonField
-// (lib/gentle-shell-launcher.ts) instead of snapshotting the whole file. See
-// docs/readme-reference.md's setup "Known limitation".
-function sharedGentleAiStatePath() {
-	return join(homedir(), ".gentle-ai", "state.json");
-}
-
-const MANAGED_ASSET_DIGEST_FIELD = "managed_asset_digest";
-
-// Reads state.json's raw text before the gentle-ai spawn that might rewrite
-// it, tolerating a missing or unparsable file by returning undefined: unlike
-// snapshotFile (persona.json above), there is nothing worth restoring later
-// in that case, so the caller skips the restore step entirely rather than
-// treating "missing" as its own snapshot state.
+// Reads a JSON file's raw text, tolerating a missing or unparsable file by
+// returning undefined: there is nothing worth restoring later in that case.
 function readParsableJsonText(path) {
 	const text = readJsonIfExists(path);
 	if (text === undefined) return undefined;
@@ -655,28 +494,8 @@ function readParsableJsonText(path) {
 	return text;
 }
 
-// Restores managed_asset_digest in state.json after the gentle-ai spawn.
-// Deliberately does NOT delete or otherwise touch a state.json the child
-// created where none existed before (unlike restoreFile's whole-file
-// persona.json handling): state.json is the user's own gentle-ai global
-// state file, not something nub-ia owns end-to-end, so removing one
-// the tool just created would destroy state fields unrelated to this fix —
-// `originalText` is undefined for that case (see readParsableJsonText
-// above), and this returns early without reading or writing anything.
-// Returns true when it actually wrote a restored file, so the caller prints
-// exactly one notice.
-function restoreManagedAssetDigestField(path, originalText) {
-	if (originalText === undefined) return false;
-	const currentText = readJsonIfExists(path);
-	if (currentText === undefined) return false;
-	const restoredText = restoreJsonField(originalText, currentText, MANAGED_ASSET_DIGEST_FIELD);
-	if (restoredText === undefined) return false;
-	writeFileAtomically(path, restoredText);
-	return true;
-}
-
 // Restores the home's own settings.json "theme" field to whatever it was
-// right before the gentle-ai spawn (`originalSettingsText`) — gentle-ai's
+// right before the pi install spawns (`originalSettingsText`) — pi's
 // managed install may write its own theme into settings.json, which would
 // otherwise silently replace the theme Nub-IA had going in. This is a
 // field-level snapshot/restore around the spawn, not a "only act if there
@@ -686,9 +505,9 @@ function restoreManagedAssetDigestField(path, originalText) {
 // into settings.json before this snapshot is taken, so `originalSettingsText`
 // already declares a theme there too — a check that skipped restoring
 // whenever the original had a theme would never fire on a fresh home and let
-// gentle-ai's own theme win. When the original truly declared a theme
+// the install's own theme win. When the original truly declared a theme
 // (either that bootstrap default, or the user's own earlier choice),
-// whatever gentle-ai changed it to afterward is restored via the pure
+// whatever the install changed it to afterward is restored via the pure
 // restoreJsonField (lib/gentle-shell-launcher.ts). When the original had no
 // theme at all, there is nothing to restore, so DEFAULT_THEME_NAME is forced
 // instead via forceJsonFieldIfAbsentInOriginal, so a home still ends up
@@ -779,152 +598,53 @@ function ensureBuiltinCodemodeExcluded(settingsPath) {
 	return true;
 }
 
-// Provisions `home` with everything `gentle-ai install --agent pi` installs
-// into a regular Pi, by spawning the package-local pinned gentle-ai binary
-// (never a PATH `gentle-ai`) with PI_CODING_AGENT_DIR/GENTLE_PI_AGENT_HOME set
-// to `home.dir` and the resolved pi runtime's directory prepended to PATH, so
-// gentle-ai's own preflight finds `pi` even when it is bundled or given
-// through GENTLE_SHELL_PI, then removes any conflicting package it declared
-// (see runPostInstallCleanup below). `home` and `runtime` are resolved by
-// the caller exactly as a normal run resolves them (including the
-// isolated/--home bootstrap and the pi version gate). Precondition: the
-// package-local gentle-ai pin must be at least MIN_SETUP_GENTLE_AI_VERSION —
-// the first release that honors PI_CODING_AGENT_DIR here — or this refuses
-// to spawn it, since an older pin would silently provision the caller's real
-// ~/.pi/agent.
+// Provisions `home`: installs the team companion packages (lib/gentle-shell-
+// launcher.ts TEAM_PACKAGE_SOURCES) the home does not declare yet, through the
+// resolved pi runtime's own `install`. `home` and `runtime` are resolved by the
+// caller exactly as a normal run resolves them (including the isolated/--home
+// bootstrap and the pi version gate).
 //
-// Returns {ok, exitCode, message?} instead of exiting the process: the
-// manual `setup` subcommand (handleSetupCommand) exits on the result, and
-// the automatic first-run flow (maybeAutoProvisionHome, S7) warns and
-// continues the launch on failure instead. `stdio` is threaded through to
-// both child spawns unchanged (see spawnAndWait and
-// ensurePackageLocalGentleAi above) — "inherit" for a manual `setup`, or
-// `["ignore", 2, 2]` in auto mode so every child's stdout/stderr lands on
-// this launcher's own stderr and its real stdout stays clean for `--mode
-// rpc`/`-p` consumers. `timeoutMs` is threaded into every child this flow
-// spawns (see spawnAndWait's own doc comment) — manual `setup` never passes
-// it, so it never times out; the automatic flow does (S9).
+// Returns {ok, exitCode, message?} instead of exiting the process: the manual
+// `setup` subcommand (handleSetupCommand) exits on the result, and the
+// automatic first-run flow (maybeAutoProvisionHome) warns and continues the
+// launch on failure instead. `stdio` is threaded through to the child spawns
+// unchanged -- "inherit" for a manual `setup`, or `["ignore", 2, 2]` in auto
+// mode so every child's stdout/stderr lands on this launcher's own stderr and
+// its real stdout stays clean for `--mode rpc`/`-p` consumers. `timeoutMs` is
+// threaded into every child this flow spawns -- manual `setup` never passes it,
+// so it never times out; the automatic flow does.
 async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
-	const pinnedVersion = resolveSetupGentleAiPin();
-	if (!isSetupCapablePin(pinnedVersion)) {
-		return {
-			ok: false,
-			exitCode: 1,
-			message: `nub-ia: setup needs the package-local gentle-ai v${MIN_SETUP_GENTLE_AI_VERSION} or newer (pinned: ${pinnedVersion}); this build cannot provision a home without touching ~/.pi/agent`,
-		};
-	}
-
-	const binaryPath = resolveSetupGentleAiBinary();
-	const ensured = ensurePackageLocalGentleAi(binaryPath, pinnedVersion, stdio);
-	if (!ensured.ok) return ensured;
-
-	process.stderr.write(`nub-ia: provisioning ${home.dir} with the gentle-ai companion packages\n`);
-
-	const setupArgs = ["install", "--agent", "pi", "--scope", "global", ...(dryRun ? ["--dry-run"] : [])];
-	const env = buildSetupEnv(home, runtime);
-	const personaPath = sharedPersonaPath();
-	const personaSnapshot = safely("snapshot your Pi persona file", personaPath, undefined, () => snapshotFile(personaPath));
-	const statePath = sharedGentleAiStatePath();
-	const originalStateText = safely("read your Gentle AI state file", statePath, undefined, () => readParsableJsonText(statePath));
-	// Theme restore (never for --link — that home is the user's own
-	// pre-existing pi agent home — and never for a --dry-run, which must
-	// write nothing): snapshot the home's own settings.json theme right
-	// before the spawn, so enforceDefaultThemeField can restore it
-	// afterward if gentle-ai's managed install changed it — whether that
-	// theme was the isolated-home bootstrap's own default or the user's own
-	// earlier choice.
-	const trackTheme = !dryRun && home.mode !== "link";
-	const settingsPath = join(home.dir, "settings.json");
-	const originalSettingsText = trackTheme ? safely("read your Pi settings file", settingsPath, undefined, () => readParsableJsonText(settingsPath)) : undefined;
-	let installResult;
-	try {
-		installResult = await spawnAndWait(binaryPath, setupArgs, env, stdio, timeoutMs);
-	} finally {
-		if (personaSnapshot !== undefined && safely("restore your Pi persona file", personaPath, false, () => restoreFile(personaSnapshot))) {
-			process.stderr.write(`nub-ia: kept your Pi persona unchanged (gentle-ai rewrote ${personaPath}; tracked upstream)\n`);
-		}
-		if (safely("restore your Gentle AI managed-asset record", statePath, false, () => restoreManagedAssetDigestField(statePath, originalStateText))) {
-			process.stderr.write(
-				`nub-ia: kept your Gentle AI managed-asset record unchanged (the pinned gentle-ai rewrote ${statePath}; tracked upstream)\n`,
-			);
-		}
-		const themeOutcome = trackTheme ? safely("apply the default Nub-IA theme", settingsPath, false, () => enforceDefaultThemeField(settingsPath, originalSettingsText)) : false;
-		if (themeOutcome === "forced") {
-			process.stderr.write(`nub-ia: set the default ${DEFAULT_THEME_NAME} theme for ${home.dir} (no theme was set before this run)\n`);
-		} else if (themeOutcome === "restored") {
-			process.stderr.write(`nub-ia: kept your Pi theme unchanged (gentle-ai rewrote ${settingsPath}; tracked upstream)\n`);
-		}
-	}
-	if (installResult.timedOut) {
-		return { ok: false, exitCode: 1, message: `nub-ia: gentle-ai install timed out after ${formatTimeoutCeiling(timeoutMs)}` };
-	}
-	if (installResult.error) {
-		return { ok: false, exitCode: 1, message: `Could not start the gentle-ai binary: ${installResult.error.message}` };
-	}
-	if (!installResult.ok) return installResult;
-
-	return runPostInstallCleanup(home, runtime, dryRun, stdio, timeoutMs);
-}
-
-// The stderr line printed once `source` is actually removed from `home`.
-// npm:gentle-pi names the running launcher's own version, so it is
-// self-evident which copy stays authoritative; every other source keeps its
-// original gentle-ai #4820 wording unchanged.
-function postInstallRemovingMessage(source, home) {
-	if (source === "npm:gentle-pi") {
-		return `nub-ia: removing ${source} from ${home.dir}: this launcher loads its own gentle-pi ${ownPackageVersion()}, so the home always matches it`;
-	}
-	return `nub-ia: removing ${source} from ${home.dir}: gentle-pi ships ask_user_question and Pi refuses two providers (gentle-ai #4820)`;
-}
-
-// The --dry-run stderr line for `source`, printed unconditionally (see
-// runPostInstallCleanup below). Kept byte-identical to the pre-existing
-// rpiv wording; npm:gentle-pi gets its own analogous "would remove" line.
-function postInstallWouldRemoveMessage(source) {
-	if (source === "npm:gentle-pi") {
-		return `nub-ia: setup would then remove ${source} if the install declares it: this launcher loads its own gentle-pi ${ownPackageVersion()}, so the home always matches it`;
-	}
-	return `nub-ia: setup would then remove ${source} if the install declares it (gentle-ai #4820)`;
-}
-
-// Runs once the gentle-ai install spawned by runSetupFlow above has exited
-// 0. gentle-ai's managed Pi stack always declares two packages this launcher
-// must remove from the just-provisioned home itself, unless this is a
-// --dry-run: npm:@juicesharp/rpiv-ask-user-question, which conflicts with
-// gentle-pi's own first-party ask_user_question tool (Pi refuses two
-// providers for the same tool name; gentle-ai #4820, nub-ia #1277,
-// fix pending upstream), and npm:gentle-pi itself, which must never survive
-// setup — this launcher always loads its own gentle-pi, never the one
-// gentle-ai's stack installs. A --dry-run gentle-ai install writes nothing,
-// so settings.json read afterwards would only report whatever pre-existed
-// the run (e.g. the isolated-home bootstrap), never what the skipped
-// install would have declared; report every known removal source
-// unconditionally instead of reading settings.json at all.
-async function runPostInstallCleanup(home, runtime, dryRun, stdio, timeoutMs) {
+	process.stderr.write(`nub-ia: provisioning ${home.dir} with the team packages\n`);
 	if (dryRun) {
-		for (const source of POST_INSTALL_REMOVAL_SOURCES) {
-			process.stderr.write(`${postInstallWouldRemoveMessage(source)}\n`);
-		}
 		for (const source of resolveTeamPackageSources(process.env)) {
 			process.stderr.write(`nub-ia: setup would then install team package ${source} unless the home already declares it\n`);
 		}
 		return { ok: true, exitCode: 0 };
 	}
-	const settingsText = readJsonIfExists(join(home.dir, "settings.json"));
-	const removals = postInstallRemovals(settingsText);
-	if (removals.length > 0) {
-		const removed = await removePostInstallSources(removals, 0, home, runtime, stdio, timeoutMs);
-		if (!removed.ok) return removed;
+	// Theme enforcement (never for --link: that home is the user's own
+	// pre-existing pi agent home): snapshot the home's own settings.json theme
+	// right before the pi installs, so enforceDefaultThemeField can put it back
+	// afterward if they changed it -- whether that theme was the isolated-home
+	// bootstrap's own default or the user's own earlier choice.
+	const trackTheme = home.mode !== "link";
+	const settingsPath = join(home.dir, "settings.json");
+	const originalSettingsText = trackTheme ? safely("read your Pi settings file", settingsPath, undefined, () => readParsableJsonText(settingsPath)) : undefined;
+	try {
+		return await installTeamPackages(home, runtime, stdio, timeoutMs);
+	} finally {
+		const themeOutcome = trackTheme ? safely("apply the default Nub-IA theme", settingsPath, false, () => enforceDefaultThemeField(settingsPath, originalSettingsText)) : false;
+		if (themeOutcome === "forced") {
+			process.stderr.write(`nub-ia: set the default ${DEFAULT_THEME_NAME} theme for ${home.dir} (no theme was set before this run)\n`);
+		} else if (themeOutcome === "restored") {
+			process.stderr.write(`nub-ia: kept your Pi theme unchanged (pi rewrote ${settingsPath})\n`);
+		}
 	}
-	return installTeamPackages(home, runtime, stdio, timeoutMs);
 }
 
 // Installs the team companion packages (lib/gentle-shell-launcher.ts
 // TEAM_PACKAGE_SOURCES) the home does not declare yet, via the resolved pi
 // runtime's own `install`, after the conflict cleanup so settings.json is
-// read in its final post-cleanup state. A failure here is reported like a
-// failed removal (actionable `nub-ia ... install <source>` remediation) but
-// the preceding gentle-ai provisioning already succeeded and is kept.
+
 async function installTeamPackages(home, runtime, stdio, timeoutMs) {
 	const settingsText = readJsonIfExists(join(home.dir, "settings.json"));
 	const pending = teamPackagesToInstall(settingsText, resolveTeamPackageSources(process.env));
@@ -949,32 +669,6 @@ async function installTeamPackageSources(sources, index, home, runtime, stdio, t
 		return { ok: false, exitCode: result.exitCode, message: `nub-ia: could not install ${source}; run \`nub-ia ${remediation}\` to retry` };
 	}
 	return installTeamPackageSources(sources, index + 1, home, runtime, stdio, timeoutMs);
-}
-
-// Removes each declared post-install source in turn via the resolved pi
-// runtime itself (never gentle-ai), stopping at the first failure so its
-// exit code and actionable message are not masked by a later removal.
-async function removePostInstallSources(sources, index, home, runtime, stdio, timeoutMs) {
-	if (index >= sources.length) return { ok: true, exitCode: 0 };
-	const source = sources[index];
-	process.stderr.write(`${postInstallRemovingMessage(source, home)}\n`);
-	const env = buildSetupEnv(home, runtime);
-	const result = await spawnAndWait(runtime.command, [...runtime.args, "remove", source], env, stdio, timeoutMs);
-	if (result.timedOut) {
-		return { ok: false, exitCode: 1, message: `nub-ia: pi remove ${source} timed out after ${formatTimeoutCeiling(timeoutMs)}` };
-	}
-	if (result.error) {
-		return { ok: false, exitCode: 1, message: `Could not run the pi runtime to remove ${source}: ${result.error.message}` };
-	}
-	if (!result.ok) {
-		// Only a launcher-forwarded interrupt (R3-002) skips remediation and
-		// bubbles straight up; a signal death the child caused on its own is an
-		// ordinary failure and gets the same remediation message as any other.
-		if (result.interrupted) return result;
-		const remediation = [...homeSelectorFlags(home).map(shellQuote), "remove", source].join(" ");
-		return { ok: false, exitCode: result.exitCode, message: `nub-ia: could not remove ${source}; run \`nub-ia ${remediation}\` before starting` };
-	}
-	return removePostInstallSources(sources, index + 1, home, runtime, stdio, timeoutMs);
 }
 
 // CLI entry for `nub-ia [home selectors] setup [--dry-run]`: parses
@@ -1055,7 +749,7 @@ function homeIsForeign(home, previousEntry, homeHadContentBeforeBootstrap) {
 // exclusive create (`wx`) fails when the lock already exists. A lock file
 // younger than SETUP_LOCK_STALE_MS means another nub-ia process is (or
 // very recently was) provisioning this home, so this run skips
-// auto-provisioning entirely rather than racing gentle-ai's own installer;
+// auto-provisioning entirely rather than racing another setup;
 // the existing lock is left untouched since this run never owned it. An
 // older lock is stale — a previous run crashed or was killed before its
 // `finally` released it — so it is removed here, but only after re-stating
@@ -1120,7 +814,7 @@ function releaseSetupLock(lockPath) {
 	}
 }
 
-// Ceiling for every child this flow spawns (S9): a hung pinned gentle-ai or
+// Ceiling for every child this flow spawns (S9): a hung
 // pi invocation must never hang a plain `nub-ia` launch forever.
 // Test/development only: GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS overrides the
 // 15-minute ceiling so a test can exercise it without actually waiting;
@@ -1136,12 +830,12 @@ function resolveAutoSetupTimeoutMs() {
 
 // Runs the same flow as `nub-ia setup` automatically before a plain
 // launch, for an isolated or `--home <path>` home that was never provisioned
-// or was provisioned with a different gentle-ai pin (S7). Never runs for
+// or was provisioned by a different nub-ia version (S7). Never runs for
 // `--link` (the caller only calls this for home.mode "isolated"/"path") or a
 // pi subcommand (the caller only calls this when args.piSubcommand is
 // undefined) — see main() below. Never blocks the launch: a failure (an
 // older pin, a missing binary the self-heal could not recover, a non-zero
-// gentle-ai or pi exit, a timeout, or a spawned child dying by a signal on
+// pi exit, a timeout, or a spawned child dying by a signal on
 // its own — a crash, an OOM kill, an external `kill`, never something this
 // launcher asked for) only warns and lets the plain launch continue with
 // today's injection behavior, to retry automatically on a later run —
@@ -1156,10 +850,9 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 
 	const configPath = resolveConfigPath();
 	const homeKey = safeRealpath(home.dir);
-	const pin = resolveSetupGentleAiPin();
 	const gentlePiVersion = ownPackageVersion();
 	const beforeConfig = readRawConfig(configPath);
-	if (!needsProvisioning(beforeConfig, homeKey, pin, gentlePiVersion)) return undefined;
+	if (!needsProvisioning(beforeConfig, homeKey, gentlePiVersion)) return undefined;
 
 	const previous = provisionedEntry(beforeConfig, homeKey);
 	if (homeIsForeign(home, previous, homeHadContentBeforeBootstrap)) {
@@ -1177,24 +870,14 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 	try {
 		if (previous === undefined) {
 			process.stderr.write(
-				`nub-ia: first run in ${home.dir}: installing the Gentle AI companion packages (one time; set ${AUTO_SETUP_OPT_OUT_ENV}=1 to skip)\n`,
+				`nub-ia: first run in ${home.dir}: installing the team packages (one time; set ${AUTO_SETUP_OPT_OUT_ENV}=1 to skip)\n`,
 			);
 		} else {
-			// A marker written before gentle-pi version tracking existed (S8)
-			// has no `gentlePi` field: needsProvisioning above already treats
-			// that as changed, so this reports "unknown" as its prior value
-			// instead of "undefined".
-			const gentleAiChanged = previous.gentleAi !== pin;
-			const gentlePiChanged = previous.gentlePi !== gentlePiVersion;
-			if (gentleAiChanged && gentlePiChanged) {
-				process.stderr.write(
-					`nub-ia: gentle-ai pin changed (${previous.gentleAi} -> ${pin}) and gentle-pi changed (${previous.gentlePi ?? "unknown"} -> ${gentlePiVersion}): updating ${home.dir}\n`,
-				);
-			} else if (gentlePiChanged) {
-				process.stderr.write(`nub-ia: gentle-pi changed (${previous.gentlePi ?? "unknown"} -> ${gentlePiVersion}): updating ${home.dir}\n`);
-			} else {
-				process.stderr.write(`nub-ia: gentle-ai pin changed (${previous.gentleAi} -> ${pin}): updating ${home.dir}\n`);
-			}
+			// A marker written before launcher version tracking (or by a build that
+			// provisioned the gentle-ai binary) has no `gentlePi` field or still
+			// carries a legacy `gentleAi` one: needsProvisioning above treats that
+			// as changed, so this reports "unknown" as its prior version.
+			process.stderr.write(`nub-ia changed (${previous.gentlePi ?? "unknown"} -> ${gentlePiVersion}): updating ${home.dir}\n`);
 		}
 
 		const result = await runSetupFlow(home, runtime, { dryRun: false, stdio: ["ignore", 2, 2], timeoutMs: resolveAutoSetupTimeoutMs() });
@@ -1212,7 +895,7 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 			return undefined;
 		}
 
-		writeRawConfig(configPath, recordProvisioned(readRawConfig(configPath), homeKey, pin, gentlePiVersion, new Date().toISOString()));
+		writeRawConfig(configPath, recordProvisioned(readRawConfig(configPath), homeKey, gentlePiVersion, new Date().toISOString()));
 		return undefined;
 	} finally {
 		releaseSetupLock(lockPath);

@@ -30,10 +30,8 @@ test("edits and writes to other paths infer implementing", () => {
 	assert.equal(inferOddPhase("edit", undefined), "implementing");
 });
 
-test("native review tools infer checking", () => {
-	for (const tool of ["gentle_review", "gentle_review_scope", "gentle_review_capture", "gentle_review_capture_group"]) {
-		assert.equal(inferOddPhase(tool, {}), "checking", tool);
-	}
+test("the nub_review tool infers checking", () => {
+	assert.equal(inferOddPhase("nub_review", {}), "checking");
 });
 
 test("shell test, typecheck, lint, and build commands infer checking", () => {

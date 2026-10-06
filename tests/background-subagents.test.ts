@@ -504,7 +504,7 @@ interface CommandFixture {
 
 function registeredCommands(activeTools?: readonly string[]): Map<string, CommandFixture> {
 	const commands = new Map<string, CommandFixture>();
-	createGentleAiExtension({ nativeReviewCli: null })({
+	createGentleAiExtension({ })({
 		on() {},
 		registerTool() {},
 		registerCommand(name: string, definition: CommandFixture) {

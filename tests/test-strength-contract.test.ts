@@ -53,11 +53,11 @@ test("T26b: inline and delegated work update the help and docs that describe a c
 // shipped the silent `budget set --year` defect. Single-shot hosts render off.
 test("T27: single-shot host modes render the background policy as off", () => {
 	for (const mode of ["json", "print"]) {
-		const prompt = __testing.buildGentlePrompt("gentleman", process.cwd(), undefined, undefined, mode);
+		const prompt = __testing.buildGentlePrompt("gentleman", process.cwd(), undefined, mode);
 		assert.match(prompt, /Background subagent policy: off \(single-shot mode\)/, `${mode} must render off`);
 	}
 	for (const mode of ["tui", "rpc", undefined]) {
-		const prompt = __testing.buildGentlePrompt("gentleman", process.cwd(), undefined, undefined, mode);
+		const prompt = __testing.buildGentlePrompt("gentleman", process.cwd(), undefined, mode);
 		assert.doesNotMatch(prompt, /single-shot mode/, `${String(mode)} must keep the configured policy`);
 	}
 });

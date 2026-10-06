@@ -21,7 +21,7 @@ The Session command palette also includes YOLO. Activation fails closed without 
 2. Select **YOLO: OFF · session only**, immediately after the Vim enable/disable rows.
 3. Press **Enter** or **Space** to toggle the same permission as `/gentle:yolo`. The row updates to **YOLO: ON · session only**; slash changes and revocation also update an open menu.
 
-Navigation, the read-only preview and Escape never grant permission. The preview reminds you that ordinary scoped commits/push/PR are covered, destructive confirmations remain, review consent is unchanged and reload resets the grant. **UNAVAILABLE** means the live primary owner or eligible session/clone cannot be used; selecting it cannot activate YOLO.
+Navigation, the read-only preview and Escape never grant permission. The preview reminds you that ordinary scoped commits/push/PR are covered, destructive confirmations remain, reload resets the grant. **UNAVAILABLE** means the live primary owner or eligible session/clone cannot be used; selecting it cannot activate YOLO.
 
 Unlike Vim, this control does not write a global/repository preference, visual profile, prompt-history preference or guardrail setting. Closing the menu removes its observers and cancels unfinished menu activation; it does not revoke an already completed activation. Reload or session replacement invalidates old menu callbacks and resets the permission.
 
@@ -36,7 +36,7 @@ Only a single plain `git push` can skip the shell guard's routine default confir
 - Destructive operations retain fresh confirmations or hard denial: recognized SQL DROP/TRUNCATE and broad deletion, recursive removal, destructive Git and other guarded operations are not waived. Explicit configured confirmations/blocks and sensitive-path protection remain.
 - Current explicit human restrictions, repository policy, project trust and authorized scope still apply. Scope expansion, privacy-sensitive disclosure and genuinely unresolved consequential product choices require a human decision.
 - Ambiguous destinations or credentials remain unresolved. YOLO does not invent a remote, deployment destination, account or credential, nor authorize discovery or reuse of ambient credentials.
-- `ask_user` tools, provider consent, maintenance/recovery authorization and opaque-token choices are never automatically answered. Native review, RDD and review standing permission remain separate and unchanged.
+- `ask_user` tools, maintenance/recovery authorization and opaque-token choices are never automatically answered.
 
 Children retain only their bounded delegated scope. They cannot activate or inherit YOLO, and receive no independent delivery permission.
 
@@ -83,4 +83,4 @@ Children receive the lightweight `child-safety.ts` entry alongside `child-contex
 - Only `bash` tool calls reach this data-loss boundary, including nested calls dispatched through Pi's tool-event pipeline. Direct process execution, user shell commands, MCP tools and other tools are not covered by these hooks.
 - The older primary regex safeguards remain authoritative and may be more conservative about text than the shared recognizer. Missing or explicitly overridden child extension paths remove the lightweight boundary; a valid package installation must include the safety entry.
 
-Keep task authorization, explicit user restrictions, sensitive-path protection and safer execution plans in force. The destructive guard itself does not grant delivery or remote-operation authority, activate YOLO, change RDD, or auto-answer any modal.
+Keep task authorization, explicit user restrictions, sensitive-path protection and safer execution plans in force. The destructive guard itself does not grant delivery or remote-operation authority, activate YOLO, or auto-answer any modal.

@@ -3,7 +3,7 @@
 Shell de coding-agent para el equipo de Nubiral, construida sobre [Pi](https://pi.dev).
 
 Nub-IA es un fork de [gentle-shell](https://github.com/Gentleman-Programming/gentle-shell) (paquete `gentle-pi`, MIT).
-Mantiene su harness ODD (subagentes enfocados, evidencia TDD, review nativo con `gentle-ai`, skills) con la identidad visual
+Mantiene su harness ODD (subagentes enfocados, evidencia TDD, review 4R en proceso, skills) con la identidad visual
 y la configuración del equipo. No es una distribución oficial de gentle-shell ni está afiliada a sus autores.
 
 ## Instalación
@@ -13,7 +13,7 @@ Requisitos: Node >= 22.19, pnpm 11, y `pi` (`@earendil-works/pi-coding-agent` >=
 ```bash
 git clone <URL-DEL-REPO> nub-ia
 cd nub-ia
-pnpm install          # el postinstall descarga el binario gentle-ai (review nativo)
+pnpm install          # el postinstall descarga el binario rtk pinneado
 pnpm link --global    # expone el comando `nub-ia`
 nub-ia                # primera ejecución: provisiona ~/.nub-ia/agent automáticamente
 ```
@@ -48,7 +48,6 @@ Se conservan los nombres del upstream para no romper la compatibilidad interna:
 | `GENTLE_SHELL_HOME` | Directorio del home aislado (default `~/.nub-ia/agent`). |
 | `GENTLE_SHELL_PI` | Ruta al ejecutable `pi` a usar. |
 | `GENTLE_SHELL_NO_AUTO_SETUP=1` | No provisionar el home automáticamente en el primer arranque. |
-| `GENTLE_PI_SKIP_GENTLE_AI_INSTALL=1` | Saltar la descarga de `gentle-ai` en el postinstall (el review nativo deja de funcionar). |
 | `GENTLE_PI_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` en el postinstall. |
 | `GENTLE_SHELL_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |
 | `RTK_DISABLED=1` | Apagar la reescritura de comandos con rtk en la sesión. |
@@ -89,7 +88,7 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 
 ### Paquetes del equipo
 
-`nub-ia setup` (y el primer arranque automático) instala en el home, además del stack de `gentle-ai`, los paquetes Pi de
+`nub-ia setup` (y el primer arranque automático) instala en el home los paquetes Pi de
 `TEAM_PACKAGE_SOURCES` en `lib/gentle-shell-launcher.ts`. Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail)
 (`npm:@dietrichgebert/ponytail`, modo "lazy senior dev": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`,
 `/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. Para agregar otro, sumá su source a la tabla;
@@ -126,12 +125,13 @@ la descarga; `RTK_DISABLED=1` apaga la reescritura en una sesión. No hace falta
 - Banner de inicio: isologo de Nubiral y wordmark `nubiral` (trazados en braille / bloques desde `assets/brand/nubiral-isologo.png` con `scripts/trace-brand.mjs`) en lugar de la rosa, wordmark `nubiral` en lugar de `Gentle Shell`, paleta `lime` por defecto.
 - Tema por defecto `Nub-IA` (los temas `Gentle*` siguen disponibles).
 - Home aislado en `~/.nub-ia/` (config en `~/.nub-ia/config.json`).
+- Sin binario gentle-ai: el review nativo (RDD) se reemplaza por el review 4R en proceso (`nub_review`).
 - Review 4R en proceso con gate de push (`extensions/nub-ia-review.ts`, `lib/nub-review.ts`).
 - Reescritura de comandos con RTK (`extensions/rtk-rewrite.ts`) con binario pinneado incluido (`scripts/rtk-installer.mjs`).
 - Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).
 - Workflow de publicación a npm eliminado.
 
-Los identificadores internos (`gentle_review`, `GENTLE_PI_*`, nombres de archivos en `lib/`, comandos `/gentle:*`) se mantienen
+Los identificadores internos (`GENTLE_PI_*`, nombres de archivos en `lib/`, comandos `/gentle:*`) se mantienen
 tal cual para poder hacer merge de cambios del upstream.
 
 ## Mantener sincronizado con el upstream

@@ -14,7 +14,7 @@ function harness(child: boolean, primary = false) {
 		registerTool() {}, registerCommand() {}, registerShortcut() {}, registerMessageRenderer() {},
 	} as unknown as ExtensionAPI;
 	const env = { GENTLE_PI_AGENTS_CHILD: child ? "1" : "0" };
-	if (primary) createGentleAiExtension({ processEnv: env, nativeReviewCli: null })(pi);
+	if (primary) createGentleAiExtension({ processEnv: env, })(pi);
 	else createChildSafetyExtension(env)(pi);
 	return { handlers, events };
 }

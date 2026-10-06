@@ -52,7 +52,7 @@ function containsSequence(segments, sequence) {
 	return false;
 }
 
-/** Gates the POSTINSTALL entry point only (scripts/install-gentle-ai.mjs), not
+/** Gates the POSTINSTALL entry point only (no package postinstall calls it now), not
  * installTuiModeSetting or installIsolatedTuiModeSetting: true when
  * `packageDir` (the directory of the gentle-pi package actually running,
  * typically derived from that script's own import.meta.url) sits under one of

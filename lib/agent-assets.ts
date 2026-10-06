@@ -33,6 +33,8 @@ const ASSET_OWNER_BY_KEY = Object.freeze({
 	"agents/review-reliability.md": "review",
 	"agents/review-resilience.md": "review",
 	"agents/review-risk.md": "review",
+	// Retired actors (see RETIRED_MANAGED_ASSETS): kept so a "review" install
+	// still retires their stale managed copies.
 	"agents/review-refuter.md": "review",
 	"agents/review-validator.md": "review",
 	"chains/4r-review.chain.md": "review",
@@ -482,10 +484,8 @@ function copyDirectoryFiles(
 	return { copied, skipped };
 }
 
-// Assets retired by gentle-pi#311 P5: the Pi-owned adversarial review actors.
-// The refuter and validator verdicts now execute through Go-owned pi
-// processes via provider-rendered self-contained vectors, so these agent
-// definitions have no runtime consumer. The migration manifests under
+// Retired managed assets: the SDD agents/chains and the retired adversarial
+// review actors (refuter, validator), which have no runtime consumer. The migration manifests under
 // assets/migrations are append-only legacy-hash HISTORY (adoption evidence
 // for force-installs) with no removal semantics, so history stays untouched
 // and retirement happens here: an installed copy is deleted only when its

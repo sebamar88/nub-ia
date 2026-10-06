@@ -5,7 +5,6 @@ import { homedir, tmpdir } from "node:os";
 import { createRequire, syncBuiltinESMExports } from "node:module";
 import { dirname, isAbsolute, join, relative, resolve, sep, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
-import { pendingReviewMutation, pendingReviewMutationProfiles, REVIEW_REMINDER_RECEIPT } from "../lib/review-reminder-receipt.ts";
 import { SESSION_WORKTREE_ENTRY, SESSION_WORKTREE_CHANGED, resolveSessionWorktree } from "../lib/session-worktree-registry.ts";
 import { installSessionChangeCapture } from "../lib/session-change-capture.ts";
 import { SessionChanges, type SessionChangeEvidence } from "../lib/session-changes.ts";
@@ -336,7 +335,6 @@ function deps(): { deps: Partial<AgentsDeps>; children: FakeChild[]; spawned: st
 		children,
 		spawned,
 		deps: {
-			runtimeMetricsPolicy: { resolve: () => { throw new Error("Policy not configured in fixture"); } },
 			spawn: (command, args) => {
 				spawned.push([command, ...args]);
 				const child = fakeChild();
@@ -1223,7 +1221,7 @@ for (const boundary of ["allowed", "env", "session", "replacement", "bus-throws"
 		mkdirSync(join(profile, "agents"), { recursive: true });
 		writeFileSync(join(profile, "agents", "gentle-ai-worker.md"), readFileSync(new URL("../assets/agents/gentle-ai-worker.md", import.meta.url)));
 		writeFileSync(join(profile, "subagents.json"), JSON.stringify({ model_profiles: { "gentle-ai-worker": { model: "openai/gpt-4o", effort: "high" } } }));
-		gentleAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile, runtimeMetricsPolicy: policy, metricsNow: () => clock, metricsSchedule });
+		gentleAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile, metricsNow: () => clock, metricsSchedule });
 		const listenerCounts = () => [...h.listeners].map(([name, set]) => [name, set.size]);
 		await h.fire("session_start", context.ctx);
 		const initialListeners = listenerCounts();
@@ -1259,7 +1257,7 @@ for (const boundary of ["allowed", "env", "session", "replacement", "bus-throws"
 				assert.ok([...h.listeners.values()].every(set => set.size === 0), "old bus subscriptions removed");
 				const fresh = fakePi();
 				Object.assign(fresh.pi, { events: h.pi.events });
-				gentleAgents(fresh.pi, env, { ...runtime.deps, env, runtimeMetricsPolicy: policy, metricsSchedule });
+				gentleAgents(fresh.pi, env, { ...runtime.deps, env, metricsSchedule });
 				await fresh.fire("session_start", context.ctx);
 				assert.deepEqual(listenerCounts(), initialListeners, "fresh instance installs one subscription set, including visual preference updates");
 				await fresh.fire("session_shutdown", context.ctx);
@@ -1628,7 +1626,6 @@ for (const matching of [true, false]) {
   const relays=h.events.filter(event=>event.name==="gentle-pi:child-session-change");
   assert.equal(relays.length,matching?1:0);
   if(matching) assert.match((relays[0].data as any).evidence.id,/:write$/);
-  assert.equal(h.entries.filter(entry=>entry.customType===REVIEW_REMINDER_RECEIPT).length,1);
   await h.fire("session_shutdown",ctx); await tick();
  });
 }
@@ -1777,105 +1774,6 @@ test("C1 investigation: the relay mechanism is correct when every guard input is
 		rmSync(gitHooksDir, { recursive: true, force: true });
 	}
 });
-
-for (const scenario of ["own", "other-root", "escaped", "sibling", "session-switch", "shutdown", "unregistered"] as const) {
-	test(`child mutation attribution through registered subagent_run: ${scenario}`, async () => {
-		const h = fakePi();
-		const d = deps();
-		const { ctx } = fakeContext();
-		let sessionId = "s1";
-		const sibling = join(root, "sibling");
-		const childRoot = scenario === "other-root" ? sibling : cwd;
-		ctx.sessionManager.getSessionId = () => sessionId;
-		ctx.sessionManager.getEntries = (() => h.entries) as typeof ctx.sessionManager.getEntries;
-		ctx.sessionManager.getBranch = (() => h.entries) as typeof ctx.sessionManager.getBranch;
-		// The cheap session/ownership guards run before any worktree resolution:
-		// a mutation from a switched-away session must never reach git.
-		let resolutions = 0;
-		d.deps.resolveWorktree = (path, base) => {
-			resolutions++;
-			const absolute = resolve(base, path);
-			const worktree = [cwd, sibling].find((candidate) => containsResolvedPath(candidate, absolute));
-			return worktree ? { root: worktree, commonDir: "/fixture/common" } : undefined;
-		};
-		const spawn = d.deps.spawn!;
-		d.deps.spawn = (...args) => {
-			const child = spawn(...args);
-			const on = child.on.bind(child);
-			child.on = ((event: string, listener: () => void) => {
-				if (event === "spawn" && scenario !== "unregistered") queueMicrotask(listener);
-				return on(event as "spawn", listener);
-			}) as typeof child.on;
-			return child;
-		};
-		gentleAgents(h.pi, {}, d.deps);
-		await h.fire("session_start", ctx);
-		await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write", mode: "background", workspace_root: childRoot }, undefined, undefined, ctx);
-		await tick();
-		assert.equal(h.entries.filter((entry) => entry.customType === REVIEW_REMINDER_RECEIPT).length, 0, "spawn alone is not ownership");
-		if (scenario === "session-switch") sessionId = "s2";
-		if (scenario === "shutdown") await h.fire("session_shutdown", ctx);
-		const path = scenario === "escaped" ? "../../outside.ts" : scenario === "sibling" ? join(sibling, "file.ts") : "file.ts";
-		d.children[0].emit({ type: "tool_execution_start", toolCallId: "write", toolName: "write", args: { path } });
-		d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [] } });
-		const accepted = scenario === "own" || scenario === "other-root";
-		assert.equal(h.entries.filter((entry) => entry.customType === REVIEW_REMINDER_RECEIPT).length, accepted ? 1 : 0);
-		assert.equal(Boolean(pendingReviewMutation(ctx.sessionManager, cwd)), scenario === "own", "another registered root never authorizes current-root STATUS");
-		if (scenario === "other-root") assert.ok(pendingReviewMutation(ctx.sessionManager, sibling));
-		await h.fire("session_shutdown", ctx);
-		await tick();
-	});
-}
-
-// gentle-pi#1175 (T2): the subagent mutation receipt carries the model and
-// effort the runtime resolved for the task, so ASSESS never re-trusts a model
-// declaration. An inherited (unresolved) model is omitted, never "default".
-for (const scenario of ["resolved", "inherited"] as const) {
-	test(`subagent mutation receipt records the runtime-resolved writer profile: ${scenario}`, async () => {
-		const h = fakePi();
-		const d = deps();
-		const { ctx } = fakeContext();
-		if (scenario === "inherited") {
-			const fixtureHome = realpathSync(mkdtempSync(join(root, "inherited-writer-")));
-			mkdirSync(join(fixtureHome, ".pi", "agent", "agents"), { recursive: true });
-			writeFileSync(join(fixtureHome, ".pi", "agent", "agents", "explore.md"), "---\ndescription: inherits the parent model\ntools: [read]\n---\nYou map things.");
-			d.deps.home = fixtureHome;
-		}
-		ctx.sessionManager.getEntries = (() => h.entries) as typeof ctx.sessionManager.getEntries;
-		ctx.sessionManager.getBranch = (() => h.entries) as typeof ctx.sessionManager.getBranch;
-		d.deps.resolveWorktree = (path, base) => containsResolvedPath(cwd, resolve(base, path)) ? { root: cwd, commonDir: "/fixture/common" } : undefined;
-		const spawn = d.deps.spawn!;
-		d.deps.spawn = (...args) => {
-			const child = spawn(...args);
-			const on = child.on.bind(child);
-			child.on = ((event: string, listener: () => void) => {
-				if (event === "spawn") queueMicrotask(listener);
-				return on(event as "spawn", listener);
-			}) as typeof child.on;
-			return child;
-		};
-		gentleAgents(h.pi, {}, d.deps);
-		await h.fire("session_start", ctx);
-		await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write", mode: "background", workspace_root: cwd }, undefined, undefined, ctx);
-		await tick();
-		d.children[0].emit({ type: "tool_execution_start", toolCallId: "write", toolName: "write", args: { path: "file.ts" } });
-		d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [] } });
-		await tick();
-		const receipts = h.entries.filter((entry) => entry.customType === REVIEW_REMINDER_RECEIPT);
-		assert.equal(receipts.length, 1);
-		const data = receipts[0].data as Record<string, unknown>;
-		if (scenario === "resolved") {
-			assert.equal(data.writerModelId, "openai-codex/gpt-5.6-terra");
-			assert.equal(data.writerEffort, "low", "the profile effort override is the runtime-resolved effort");
-		} else {
-			assert.equal(Object.hasOwn(data, "writerModelId"), false, "an inherited model is unknown here and must never be recorded as \"default\"");
-			assert.equal(Object.hasOwn(data, "writerEffort"), false);
-		}
-		assert.deepEqual(pendingReviewMutationProfiles(ctx.sessionManager, cwd), [scenario === "resolved" ? { writerModelId: "openai-codex/gpt-5.6-terra", writerEffort: "low" } : {}]);
-		await h.fire("session_shutdown", ctx);
-		await tick();
-	});
-}
 
 // C1 diagnostics (odd/tasks/usage-click-and-changes-attribution.md): the
 // guard chain's posture is unchanged (spawn-gated registration stays, a
@@ -2133,7 +2031,7 @@ test("worktree attribution containment respects Windows path boundaries", () => 
 	assert.equal(containsResolvedPath(candidate, win32.resolve("C:\\fixture", "project-sibling", "file.ts"), win32), false, "a sibling prefix is excluded");
 });
 
-test("default Node spawn adapter distinguishes IPC-only and permission-capable canonical Git children", async () => {
+test("default Node spawn adapter launches IPC-only children, canonical Git or not", async () => {
 	const childProcess = createRequire(import.meta.url)("node:child_process") as typeof import("node:child_process");
 	const originalSpawn = childProcess.spawn;
 	type CapturedSpawnOptions = { cwd: string; env: NodeJS.ProcessEnv; shell?: boolean; windowsHide?: boolean; detached?: boolean; stdio?: string[] };
@@ -2183,19 +2081,17 @@ test("default Node spawn adapter distinguishes IPC-only and permission-capable c
 
 		const args = ["--host-flag", "--mode", "rpc", "--session-dir", join(home, ".pi", "agent", "gentle-agents", "sessions"), ...childContextExtensionPaths().flatMap((path) => ["--extension", path]), "--model", "openai-codex/gpt-5.6-terra:low", "--tools", "read,grep,subagent_parent_message", "--append-system-prompt", "You map things."];
 		assert.equal(captured.length, 3, "the extension reaches Node's spawn boundary for IPC-only and permission-channel launches");
-		const permissionChannelStdio = process.platform === "win32" ? "overlapped" : "pipe";
 		for (const [index, fixture] of ["task", "background", "permission"].entries()) {
-			const permissionChannel = index === 2;
 			const ownedIpc = captured[index]?.options.env.GENTLE_PI_AGENTS_OWNED_IPC;
 			assert.match(ownedIpc ?? "", /^\d+-[a-z0-9]+$/, "the child receives an opaque owned-IPC marker");
 			assert.equal(captured[index]?.command, "/fixture/pi");
 			assert.deepEqual(captured[index]?.args, args);
-			assert.equal(captured[index]?.options.cwd, permissionChannel ? canonicalGitCwd : nonGitCwd);
-			assert.deepEqual(captured[index]?.options.env, { PATH: "/bin", FIXTURE: fixture, GENTLE_PI_AGENTS_CHILD: "1", GENTLE_PI_AGENTS_OWNED_IPC: ownedIpc, ...(permissionChannel ? { GENTLE_PI_AGENTS_PARENT_PERMISSION_FD: "3" } : {}) });
+			assert.equal(captured[index]?.options.cwd, index === 2 ? canonicalGitCwd : nonGitCwd);
+			assert.deepEqual(captured[index]?.options.env, { PATH: "/bin", FIXTURE: fixture, GENTLE_PI_AGENTS_CHILD: "1", GENTLE_PI_AGENTS_OWNED_IPC: ownedIpc });
 			assert.equal(captured[index]?.options.shell, undefined, "the adapter does not invoke a shell");
 			assert.equal(captured[index]?.options.windowsHide, true, "the adapter always hides a Windows console");
 			assert.equal(captured[index]?.options.detached, process.platform !== "win32", "the adapter forwards the runner's platform selection");
-			assert.deepEqual(captured[index]?.options.stdio, permissionChannel ? ["pipe", "pipe", "pipe", permissionChannelStdio, "ipc"] : ["pipe", "pipe", "pipe", "ipc"], permissionChannel ? "canonical repository children retain an fd3 permission channel and receive messaging IPC at fd4" : "IPC-only children have no inherited permission fd");
+			assert.deepEqual(captured[index]?.options.stdio, ["pipe", "pipe", "pipe", "ipc"], "children receive messaging IPC and no inherited permission fd");
 		}
 		await Promise.all(shutdown.map((close) => close()));
 		assert.deepEqual(children[1]?.killed, ["SIGTERM"], "session shutdown cleans up an active background child");
@@ -2319,7 +2215,6 @@ test("foreign clone tool requires consent before queueing and never enters paren
 		const result = await pending;
 		await tick();
 		assert.deepEqual(spawned, [foreign]);
-		assert.equal((runnerRun.mock.calls[0]?.arguments[0] as { authorizeParentStandingReviewPermission?: unknown }).authorizeParentStandingReviewPermission, undefined, "foreign child must not receive parent review permission channel");
 		assert.equal(runtime.spawned[0]?.[runtime.spawned[0]!.indexOf("--model") + 1], "openai/foreign-model:minimal");
 		assert.equal((result.details.gentleAgents as { cwd: string }).cwd, foreign);
 		assert.deepEqual(h.entries.filter(entry => entry.customType === SESSION_WORKTREE_ENTRY), []);
@@ -2355,7 +2250,6 @@ test("foreign clone tool requires consent before queueing and never enters paren
 		assert.equal((queued.details.gentleAgents as { cwd: string }).cwd, foreign);
 		assert.equal(runtime.children.length, 3, "later launches wait in the runner queue");
 		await run.execute("same-clone", { agent: "explore", task: "Map parent", workspace_root: parent, mode: "background" }, undefined, undefined, ctx);
-		assert.equal(typeof (runnerRun.mock.calls.at(-1)?.arguments[0] as { authorizeParentStandingReviewPermission?: unknown }).authorizeParentStandingReviewPermission, "function", "same-clone child retains parent review permission channel");
 		const { ctx: successor } = fakeContext();
 		successor.sessionManager.getCwd = () => parent;
 		await h.fire("session_start", successor);
@@ -2877,7 +2771,6 @@ for (const explicit of [false, true]) {
 		await tick();
 		const taskId = (result.details.gentleAgents as { taskId: string }).taskId;
 		assert.match((await h.tools.get("subagent_status")!.execute("status", { task_id: taskId }, undefined, undefined, ctx)).content[0].text, /completed/);
-		assert.equal(h.entries.some(entry => entry.customType === REVIEW_REMINDER_RECEIPT), false, "spawn registration is not mutation evidence");
 	});
 }
 

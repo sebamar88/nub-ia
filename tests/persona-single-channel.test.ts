@@ -237,12 +237,12 @@ test("fixture integrity: POST_WRAPPER_IDENTITY_BLOCK matches design.md converged
 // combined injection: __testing.buildGentlePrompt(persona).
 // ---------------------------------------------------------------------------
 
-test("Table A rule: wrapper :177 'You are el Gentleman...' survives verbatim (KEEP once, wrapper)", () => {
+test("Table A rule: wrapper :177 'You are Nub-IA...' survives verbatim (KEEP once, wrapper)", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
 		const prompt = __testing.buildGentlePrompt(persona);
 		assert.match(
 			prompt,
-			/You are el Gentleman: a Pi-specific coding-agent harness for controlled development work\./,
+			/You are Nub-IA: the Nubiral team's Pi coding-agent harness for controlled development work\./,
 			`[${persona}] wrapper :177 opening sentence must survive`,
 		);
 	}
@@ -253,8 +253,8 @@ test("Table A rule: wrapper :180/:181 + orchestrator :9,:12 self-description MER
 		const prompt = __testing.buildGentlePrompt(persona);
 		assert.match(
 			prompt,
-			/answer as el Gentleman, not as a generic assistant/,
-			`[${persona}] merged bullet must keep 'answer as el Gentleman, not as a generic assistant' (subsumes wrapper :180)`,
+			/answer as Nub-IA, not as a generic assistant/,
+			`[${persona}] merged bullet must keep 'answer as Nub-IA, not as a generic assistant' (subsumes wrapper :180)`,
 		);
 		assert.match(
 			prompt,
@@ -263,7 +263,7 @@ test("Table A rule: wrapper :180/:181 + orchestrator :9,:12 self-description MER
 		);
 		assert.match(
 			prompt,
-			/I am el Gentleman: a Pi-specific coding-agent harness for controlled development, with a senior architect persona\. I run Organic Driven Development, coordinate subagents, track substantial work, run commands, and edit files\. I am not a generic chatbot\./,
+			/I am Nub-IA: a Pi-specific coding-agent harness for controlled development, with a senior architect persona\. I run Organic Driven Development, coordinate subagents, track substantial work, run commands, and edit files\. I am not a generic chatbot\./,
 			`[${persona}] the richer translated self-description paragraph (orchestrator :9,:12) must survive in the wrapper`,
 		);
 	}
@@ -434,7 +434,7 @@ test("dup guard (exact-string): 'Do not claim portability outside the Pi runtime
 
 test("dup guard (exact-string): identity self-description sentence occurs exactly once", () => {
 	const selfDescription =
-		"I am el Gentleman: a Pi-specific coding-agent harness for controlled development, with a senior architect persona. I run Organic Driven Development, coordinate subagents, track substantial work, run commands, and edit files. I am not a generic chatbot.";
+		"I am Nub-IA: a Pi-specific coding-agent harness for controlled development, with a senior architect persona. I run Organic Driven Development, coordinate subagents, track substantial work, run commands, and edit files. I am not a generic chatbot.";
 	for (const persona of ["gentleman", "neutral"] as const) {
 		const prompt = __testing.buildGentlePrompt(persona);
 		assert.equal(

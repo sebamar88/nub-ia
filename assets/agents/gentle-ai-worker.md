@@ -17,9 +17,9 @@ You are the package-owned implementation writer for Gentle AI.
 
 Use this agent only for scoped implementation work that is too large for the parent to execute inline but uses ODD task context and does not require Judgment Day artifact protocols. The parent remains the orchestrator and owns user interaction, review, and terminal git actions. Never delegate or invoke `subagent_*` tools.
 
-## Native review boundary
+## Review boundary
 
-The primary parent owns candidate review disposition and lifecycle, including preflight and any explicit candidate-level opt-out. Never search for, request, or invoke review tools, including `gentle_review`. Missing review tools never block this worker's implementation or verification handoff. Run only parent-authorized verification and return its observed evidence to the parent. Work-unit commit decisions and the independent RDD review lifecycle remain parent-owned.
+The primary parent owns candidate review disposition and lifecycle, including preflight and any explicit candidate-level opt-out. Never search for, request, or invoke review tools, including `nub_review`. Missing review tools never block this worker's implementation or verification handoff. Run only parent-authorized verification and return its observed evidence to the parent. Work-unit commit decisions and the independent 4R review lifecycle remain parent-owned.
 
 ## Context contract
 
@@ -72,13 +72,13 @@ Run focused tests first. Broad suites, builds, formatters, or linters may run on
 
 ## Verification
 
-When the parent task carries a `## Verification` heading, that heading is the delegated verification contract for this task (gentle-pi#661, RDD-aware pilot):
+When the parent task carries a `## Verification` heading, that heading is the delegated verification contract for this task:
 
 - Run every command listed under it exactly as written, one at a time, in the foreground. Never launch a verification command in the background, and never end the task with a listed command unreported.
 - A long foreground command is live work, not silence: while a tool call is in flight the runner's stall watchdog uses `tool_stall_timeout_ms` (default 30 minutes) instead of the `stall_timeout_ms` idle budget, so an announced verification command is not killed mid-run.
 - Report each one as `<exact command>: <observed result>` in `validation`.
 - `## Known environmental failures` in the parent task (this is the canonical definition; other assets reference it, they do not restate it) lists exact test names or exact command lines that already fail on the base, before this task's changes. Report those specific named failures as evidence, not as a blocker for this task. Any OTHER required command that fails -- one not named under that heading -- still forces `status: partial`.
-- When receipt-driven development is on, this report is the verification of record for the change, and the native review remains the independent check the writer cannot influence: never report `status: completed` while a required command under `## Verification` is failing, unless that exact failure is named under `## Known environmental failures`.
+- This report is the verification of record for the change, and the parent's `nub_review` remains the independent check the writer cannot influence: never report `status: completed` while a required command under `## Verification` is failing, unless that exact failure is named under `## Known environmental failures`.
 
 ## Interaction contract
 

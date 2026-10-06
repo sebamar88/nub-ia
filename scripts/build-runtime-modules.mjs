@@ -7,12 +7,6 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const sources = [
-	"gentle-ai-binary",
-	"review-relay-contract",
-	"review-integration-v2",
-	"review-risk-assessment",
-	"native-review-cli",
-	"telemetry-trigger",
 	"child-package-injection",
 	"gentle-shell-launcher",
 	"gentle-shell-resume-hint",
@@ -43,7 +37,7 @@ async function main() {
 	}
 	// Pi loads these directly as TypeScript. Check syntax without generating
 	// another runtime copy or expanding the published module boundary.
-	for (const path of ["lib/runtime-metrics-delivery.ts", "lib/runtime-metrics-native.ts",
+	for (const path of ["lib/runtime-metrics-delivery.ts",
 		"lib/runtime-metrics-children.ts", "extensions/runtime-metrics.ts"]) {
 		const source = await readFile(join(root, path), "utf8");
 		assertNoTrailingWhitespace(source, path);
