@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import {
 	chmodSync,
+	cpSync,
 	existsSync,
 	lstatSync,
 	mkdirSync,
@@ -2184,4 +2185,41 @@ test("nub-ia setup prints the provider sign-in hint, but --dry-run does not", (t
 	assert.match(result.stderr, /Amazon Bedrock uses your AWS_\* credentials/);
 	const dry = run(env, ["setup", "--dry-run"]);
 	assert.doesNotMatch(dry.stderr, /sign in to at least one provider/);
+});
+
+// --- `nub-ia update` self-update of the package checkout ---------------------
+
+test("nub-ia update fast-forwards a Git checkout before forwarding update to pi, and respects NUB_IA_NO_SELF_UPDATE", (t) => {
+	const f = fixture(t);
+	// A throwaway package checkout: a bare "origin" with one extra commit ahead.
+	const origin = join(f.root, "origin.git");
+	const checkout = join(f.root, "checkout");
+	const seed = join(f.root, "seed");
+	const git = (cwd: string, ...args: string[]) => spawnSync("git", ["-C", cwd, ...args], { encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } });
+	mkdirSync(seed, { recursive: true });
+	cpSync(new URL("../bin/", import.meta.url), join(seed, "bin"), { recursive: true });
+	cpSync(new URL("../runtime/", import.meta.url), join(seed, "runtime"), { recursive: true });
+	cpSync(new URL("../scripts/", import.meta.url), join(seed, "scripts"), { recursive: true });
+	writeFileSync(join(seed, "package.json"), JSON.stringify({ name: "nub-ia", version: "0.1.0", type: "module" }));
+	git(seed, "init", "-q", "-b", "trunk"); git(seed, "add", "-A"); git(seed, "commit", "-qm", "v1");
+	spawnSync("git", ["clone", "-q", "--bare", seed, origin]);
+	spawnSync("git", ["clone", "-q", "--branch", "trunk", origin, checkout]);
+	writeFileSync(join(seed, "NEW.txt"), "v2"); git(seed, "add", "-A"); git(seed, "commit", "-qm", "v2"); git(seed, "push", "-q", origin, "trunk:trunk");
+	const before = git(checkout, "rev-parse", "HEAD").stdout.trim();
+	const env = { ...f.env, NUB_IA_NO_SELF_UPDATE: "1" };
+
+	const skipped = spawnSync(process.execPath, [join(checkout, "bin", "nub-ia.mjs"), "update"], { encoding: "utf8", env });
+	assert.equal(skipped.status, 0, skipped.stderr);
+	assert.doesNotMatch(skipped.stderr, /updating/);
+	assert.equal(git(checkout, "rev-parse", "HEAD").stdout.trim(), before, "opt-out leaves the checkout alone");
+
+	delete (env as Record<string, string | undefined>).NUB_IA_NO_SELF_UPDATE;
+	const updated = spawnSync(process.execPath, [join(checkout, "bin", "nub-ia.mjs"), "update"], { encoding: "utf8", env });
+	assert.equal(updated.status, 0, updated.stderr);
+	assert.match(updated.stderr, /nub-ia: updating .*checkout \(git pull --ff-only\)/);
+	assert.match(updated.stderr, /package updated [0-9a-f]+ -> [0-9a-f]+; installing dependencies/);
+	assert.notEqual(git(checkout, "rev-parse", "HEAD").stdout.trim(), before, "the checkout fast-forwarded to origin");
+	assert.ok(existsSync(join(checkout, "NEW.txt")));
+	const forwarded = JSON.parse(updated.stdout.trim().split("\n").filter(Boolean).at(-1)!);
+	assert.deepEqual(forwarded.args, ["update"], "pi's own update still runs for the home's packages");
 });

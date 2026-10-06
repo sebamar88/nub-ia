@@ -949,6 +949,43 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 	}
 }
 
+// Self-update of the package checkout: fast-forward pull on the current
+// branch, then reinstall dependencies so the postinstall refreshes the pinned
+// rtk binary when the pin changed. Only acts on a Git checkout with an
+// `origin` remote; a Pi-managed install (`pi install git:`) or an npm install
+// is left to its own manager. Never fails the launch: every problem is a
+// notice, and the pi `update` that follows still runs.
+async function selfUpdatePackage(root) {
+	const probe = spawnSync("git", ["-C", root, "rev-parse", "--is-inside-work-tree"], { stdio: "ignore", windowsHide: true });
+	if (probe.status !== 0) return;
+	const originProbe = spawnSync("git", ["-C", root, "remote", "get-url", "origin"], { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true });
+	if (originProbe.status !== 0) return;
+	const dirty = spawnSync("git", ["-C", root, "status", "--porcelain", "--untracked-files=no"], { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true });
+	if ((dirty.stdout ?? "").trim().length > 0) {
+		process.stderr.write(`nub-ia: skipping self-update, ${root} has local changes\n`);
+		return;
+	}
+	const before = spawnSync("git", ["-C", root, "rev-parse", "--short", "HEAD"], { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true }).stdout?.trim();
+	process.stderr.write(`nub-ia: updating ${root} (git pull --ff-only)\n`);
+	const pull = spawnSync("git", ["-C", root, "pull", "--ff-only", "--quiet"], { stdio: ["ignore", "inherit", "inherit"], windowsHide: true, timeout: 120_000 });
+	if (pull.status !== 0) {
+		process.stderr.write(`nub-ia: self-update failed (git pull exit ${pull.status ?? "signal"}); continuing with the installed version\n`);
+		return;
+	}
+	const after = spawnSync("git", ["-C", root, "rev-parse", "--short", "HEAD"], { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true }).stdout?.trim();
+	if (before === after) {
+		process.stderr.write("nub-ia: package already up to date\n");
+		return;
+	}
+	process.stderr.write(`nub-ia: package updated ${before} -> ${after}; installing dependencies\n`);
+	const pm = ["pnpm", ["install", "--frozen-lockfile"]];
+	const plan = planSpawn({ command: pm[0], args: pm[1], platform: process.platform });
+	const install = spawnSync(plan.command, plan.args, { cwd: root, stdio: ["ignore", "inherit", "inherit"], shell: plan.shell, windowsHide: true, timeout: 15 * 60_000 });
+	if (install.status !== 0) {
+		process.stderr.write("nub-ia: dependency install failed after the update; run `pnpm install` (or `npx pnpm@11 install`) in the package directory\n");
+	}
+}
+
 async function main() {
 	const args = parseLauncherArgs(process.argv.slice(2));
 	if (args.error !== undefined) fail(`${args.error}\nRun 'nub-ia --help' for usage.`, 2);
@@ -1017,6 +1054,14 @@ async function main() {
 	if (args.command === "setup") {
 		await handleSetupCommand(args.commandArgs, home, runtime);
 		return;
+	}
+
+	// `nub-ia update` first updates this very package when it runs from a Git
+	// checkout made by install.sh/install.ps1 (the private repo cannot be
+	// managed by `pi install git:`), then falls through to pi's own `update`
+	// for the home's packages (ponytail, …). Opt out with NUB_IA_NO_SELF_UPDATE=1.
+	if (args.piSubcommand === "update" && process.env.NUB_IA_NO_SELF_UPDATE !== "1") {
+		await selfUpdatePackage(packageRoot);
 	}
 
 	// Auto-provision (S7): a plain launch against an isolated or --home home
