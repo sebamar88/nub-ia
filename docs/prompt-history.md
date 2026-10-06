@@ -12,7 +12,7 @@ nothing is stored unless you explicitly opt in.
 
 ### Turn capture on or off
 
-1. Run `/gentle:customize` and open the **History** category.
+1. Run `/nubia:customize` and open the **History** category.
 2. Select **Prompt history capture: enable** (or **disable**) and press Enter
    or Space. Highlighting a row only previews the saved preference and the
    effective state.

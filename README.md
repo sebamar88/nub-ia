@@ -35,7 +35,7 @@ nub-ia install npm:<pkg> | remove <source> | list | update | config | auth <cmd>
 
 `nub-ia --help` muestra la referencia completa. Dentro de la sesión:
 
-- `/gentle:banner`, `/gentle:toggle-rose`, `/gentle:toggle-text-logo`, `/gentle:banner-color` — configuran el banner de inicio
+- `/nubia:banner`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo`, `/nubia:banner-color` — configuran el banner de inicio
   (marca Nubiral + wordmark; paleta por defecto `lime`).
 - El tema por defecto es `Nub-IA` (`themes/Nub-IA.json`); se cambia desde `/settings`.
 
@@ -83,7 +83,7 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 - Un home nuevo arranca con `defaultProvider: nub-ia`, `defaultModel: balanced`; se cambia con `/model`.
 - El footer muestra `balanced • medium → claude-sonnet-5.5 • medium`; `/session` desglosa costos por modelo físico.
 - Para cambiar la política: editar `assets/model-tiers.json`, o sobreescribirlo por repo en `.pi/nub-ia/model-tiers.json`.
-- Para fijar un modelo concreto a un agente: `/gentle:models` o `/gentle:profiles` (gana sobre el tier).
+- Para fijar un modelo concreto a un agente: `/nubia:models` o `/nubia:profiles` (gana sobre el tier).
 - Cada integrante hace `/login` una vez por provider que tenga (Copilot, OpenAI, o variables `AWS_*` para Bedrock).
 
 ### Paquetes del equipo
@@ -125,13 +125,14 @@ la descarga; `RTK_DISABLED=1` apaga la reescritura en una sesión. No hace falta
 - Banner de inicio: isologo de Nubiral y wordmark `nubiral` (trazados en braille / bloques desde `assets/brand/nubiral-isologo.png` con `scripts/trace-brand.mjs`) en lugar de la rosa, wordmark `nubiral` en lugar de `Gentle Shell`, paleta `lime` por defecto.
 - Tema por defecto `Nub-IA` (los temas `Gentle*` siguen disponibles).
 - Home aislado en `~/.nub-ia/` (config en `~/.nub-ia/config.json`).
+- Comandos de la shell bajo `/nubia:*` (`/nubia:models`, `/nubia:profiles`, `/nubia:banner`, …) en lugar de `/gentle:*`.
 - Sin binario gentle-ai: el review nativo (RDD) se reemplaza por el review 4R en proceso (`nub_review`).
 - Review 4R en proceso con gate de push (`extensions/nub-ia-review.ts`, `lib/nub-review.ts`).
 - Reescritura de comandos con RTK (`extensions/rtk-rewrite.ts`) con binario pinneado incluido (`scripts/rtk-installer.mjs`).
 - Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).
 - Workflow de publicación a npm eliminado.
 
-Los identificadores internos (`GENTLE_PI_*`, nombres de archivos en `lib/`, comandos `/gentle:*`) se mantienen
+Los identificadores internos (`GENTLE_PI_*`, nombres de archivos en `lib/`) se mantienen
 tal cual para poder hacer merge de cambios del upstream.
 
 ## Mantener sincronizado con el upstream

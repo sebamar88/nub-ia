@@ -1159,7 +1159,7 @@ test("buildPiInvocation in link mode with a pi subcommand is exactly pi <subcomm
 
 // The isolated home overrides PI_CODING_AGENT_DIR for the session, so the
 // user's own Pi home travels separately for read-only features such as
-// /gentle:stats. Isolation itself is unchanged.
+// /nubia:stats. Isolation itself is unchanged.
 test("buildPiInvocation carries the user's original Pi home without weakening isolation", () => {
 	const build = (baseEnv: Record<string, string | undefined>, home: ResolvedHome = isolatedHomeResolved) => buildPiInvocation({
 		runtime: { kind: "path", command: "/usr/bin/pi", args: [] },

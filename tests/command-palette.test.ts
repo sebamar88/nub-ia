@@ -6,7 +6,7 @@ import { CommandPalette, commandsKey, rankPaletteGroups, type CommandPaletteGrou
 import { buildCommandPaletteGroups, COMMAND_PALETTE_CATALOG } from "../lib/command-palette-catalog.ts";
 
 // Command palette: a pure, curated, grouped overlay component for
-// `/gentle:commands` and its `alt+k` shortcut. These tests drive ranking,
+// `/nubia:commands` and its `alt+k` shortcut. These tests drive ranking,
 // keyboard input, and rendering without any Pi extension API — the
 // component only depends on pi-tui key/width helpers and plain data
 // (groups of items) in, plain strings out.
@@ -34,29 +34,29 @@ function createPalette(groups: readonly CommandPaletteGroup[], theme?: CommandPa
 }
 
 test("Vim palette help names the opt-in editor and Pi slash handoff without promising full parity", () => {
-	const groups = buildCommandPaletteGroups([{ name: "gentle:vim", description: "Show or set global Vim prompt editing (status|enable|disable); no argument opens a menu." }], {});
+	const groups = buildCommandPaletteGroups([{ name: "nubia:vim", description: "Show or set global Vim prompt editing (status|enable|disable); no argument opens a menu." }], {});
 	assert.equal(groups[0]?.title, "Configuration");
 	const vim = groups[0]?.items[0];
-	assert.equal(vim?.command, "gentle:vim");
+	assert.equal(vim?.command, "nubia:vim");
 	assert.match(vim?.label ?? "", /Vim.*opt-in/i);
 	assert.match(vim?.label ?? "", /Pi.*slash/i);
 	assert.equal(vim?.description, "Show or set global Vim prompt editing (status|enable|disable); no argument opens a menu.");
-	assert.equal(rankPaletteGroups(groups, "vim")[0]?.items[0]?.command, "gentle:vim");
+	assert.equal(rankPaletteGroups(groups, "vim")[0]?.items[0]?.command, "nubia:vim");
 });
 
 test("Vim reference distinguishes supported commands, scope and slash divergence", () => {
 	const reference = readFileSync(new URL("../docs/readme-reference.md", import.meta.url), "utf8");
 	const section = reference.split("### Vim prompt editing\n")[1]?.split(/\n#{2,3} /)[0] ?? "";
-	for (const term of ["`/gentle:vim enable`", "`/gentle:vim disable`", "`/gentle:vim status`", "VISUAL", "`Ctrl+[`", "`gg/G`", "`f/F/t/T`", "`d/c/y`", "`u`", "`.`", "Pi", "first line", "reverse prompt-history search", "0.99.1", "paste marker"]) {
+	for (const term of ["`/nubia:vim enable`", "`/nubia:vim disable`", "`/nubia:vim status`", "VISUAL", "`Ctrl+[`", "`gg/G`", "`f/F/t/T`", "`d/c/y`", "`u`", "`.`", "Pi", "first line", "reverse prompt-history search", "0.99.1", "paste marker"]) {
 		assert.ok(section.includes(term), `Vim reference missing ${term}`);
 	}
 	assert.doesNotMatch(section, /full Claude (?:Code )?parity/i);
 });
 
 test("animations is discoverable under Configuration with its live description", () => {
-	const groups = buildCommandPaletteGroups([{ name: "gentle:animations", description: "status|quality|performance|potato" }], {});
+	const groups = buildCommandPaletteGroups([{ name: "nubia:animations", description: "status|quality|performance|potato" }], {});
 	assert.equal(groups[0]?.title, "Configuration");
-	assert.equal(groups[0]?.items[0]?.command, "gentle:animations");
+	assert.equal(groups[0]?.items[0]?.command, "nubia:animations");
 	assert.match(groups[0]?.items[0]?.label ?? "", /[Aa]nimation/);
 	assert.equal(groups[0]?.items[0]?.description, "status|quality|performance|potato");
 });
@@ -68,22 +68,22 @@ test("rankPaletteGroups ranks label-prefix, label-contains, label-subsequence, c
 		title: "G",
 		items: [
 			// rank 4: only the description contains "mod".
-			{ command: "gentle:xyz-tool", label: "xyz", description: "custom mod support" },
+			{ command: "nubia:xyz-tool", label: "xyz", description: "custom mod support" },
 			// rank 3: only the command name contains "mod".
-			{ command: "gentle:mod-tool", label: "xyz-abc" },
+			{ command: "nubia:mod-tool", label: "xyz-abc" },
 			// rank 2: the label matches "mod" only as a subsequence.
-			{ command: "gentle:whatever3", label: "my-old-doc" },
+			{ command: "nubia:whatever3", label: "my-old-doc" },
 			// rank 1: the label contains "mod", but does not start with it.
-			{ command: "gentle:whatever2", label: "gentle models here" },
+			{ command: "nubia:whatever2", label: "gentle models here" },
 			// rank 0: the label starts with "mod".
-			{ command: "gentle:whatever1", label: "Modify a thing" },
+			{ command: "nubia:whatever1", label: "Modify a thing" },
 		],
 	};
 	const ranked = rankPaletteGroups([group], "mod");
 	assert.equal(ranked.length, 1);
 	assert.deepEqual(
 		ranked[0]?.items.map((item) => item.command),
-		["gentle:whatever1", "gentle:whatever2", "gentle:whatever3", "gentle:mod-tool", "gentle:xyz-tool"],
+		["nubia:whatever1", "nubia:whatever2", "nubia:whatever3", "nubia:mod-tool", "nubia:xyz-tool"],
 	);
 });
 
@@ -110,13 +110,13 @@ test("rankPaletteGroups returns every group unchanged for an empty or whitespace
 
 test("rankPaletteGroups drops a group with no matching item, and never reorders groups", () => {
 	const groups: CommandPaletteGroup[] = [
-		{ title: "Configuration", items: [{ command: "gentle:models", label: "Assign models and effort" }, { command: "gentle:profiles", label: "Agent-model profiles" }] },
-		{ title: "Session", items: [{ command: "gentle:usage", label: "Subscription usage" }] },
-		{ title: "Diagnostics", items: [{ command: "gentle:status", label: "Gentle AI status" }] },
+		{ title: "Configuration", items: [{ command: "nubia:models", label: "Assign models and effort" }, { command: "nubia:profiles", label: "Agent-model profiles" }] },
+		{ title: "Session", items: [{ command: "nubia:usage", label: "Subscription usage" }] },
+		{ title: "Diagnostics", items: [{ command: "nubia:status", label: "Gentle AI status" }] },
 	];
 	const ranked = rankPaletteGroups(groups, "model");
 	assert.deepEqual(ranked.map((g) => g.title), ["Configuration"]);
-	assert.deepEqual(ranked[0]?.items.map((i) => i.command), ["gentle:models", "gentle:profiles"]);
+	assert.deepEqual(ranked[0]?.items.map((i) => i.command), ["nubia:models", "nubia:profiles"]);
 });
 
 test("rankPaletteGroups returns no groups for a query that matches nothing anywhere", () => {
@@ -130,26 +130,26 @@ const GROUPS: CommandPaletteGroup[] = [
 	{
 		title: "Configuration",
 		items: [
-			{ command: "gentle:models", label: "Assign models and effort" },
-			{ command: "gentle:profiles", label: "Agent-model profiles" },
+			{ command: "nubia:models", label: "Assign models and effort" },
+			{ command: "nubia:profiles", label: "Agent-model profiles" },
 		],
 	},
 	{
 		title: "Session",
-		items: [{ command: "gentle:changes", label: "Browse captured changes", shortcut: "alt+g" }],
+		items: [{ command: "nubia:changes", label: "Browse captured changes", shortcut: "alt+g" }],
 	},
 ];
 
 test("typing filters across groups and resets the selection to the first visible item", () => {
 	const { palette, results } = createPalette(GROUPS);
 	palette.handleInput(KEY.DOWN);
-	palette.handleInput(KEY.DOWN); // selection is now "gentle:changes" (index 2)
+	palette.handleInput(KEY.DOWN); // selection is now "nubia:changes" (index 2)
 	// "s" keeps every item (each label contains "s") in the same relative
 	// order, so this only exercises the selection reset: without it, enter
-	// would still pick "gentle:changes".
+	// would still pick "nubia:changes".
 	palette.handleInput("s");
 	palette.handleInput(KEY.ENTER);
-	assert.deepEqual(results, [{ type: "run", name: "gentle:models" }]);
+	assert.deepEqual(results, [{ type: "run", name: "nubia:models" }]);
 });
 
 test("backspace removes the last query character", () => {
@@ -157,7 +157,7 @@ test("backspace removes the last query character", () => {
 	type(palette, "changez");
 	palette.handleInput(KEY.BACKSPACE);
 	palette.handleInput(KEY.ENTER);
-	assert.deepEqual(results, [{ type: "run", name: "gentle:changes" }]);
+	assert.deepEqual(results, [{ type: "run", name: "nubia:changes" }]);
 });
 
 test("ctrl+u clears the query", () => {
@@ -165,25 +165,25 @@ test("ctrl+u clears the query", () => {
 	type(palette, "changes");
 	palette.handleInput(KEY.CTRL_U);
 	palette.handleInput(KEY.ENTER);
-	assert.deepEqual(results, [{ type: "run", name: "gentle:models" }]);
+	assert.deepEqual(results, [{ type: "run", name: "nubia:models" }]);
 });
 
 test("up and down move the selection across groups and clamp at the ends", () => {
 	const { palette, results } = createPalette(GROUPS);
-	palette.handleInput(KEY.UP); // clamps at 0, still "gentle:models"
-	palette.handleInput(KEY.DOWN); // gentle:profiles
-	palette.handleInput(KEY.DOWN); // gentle:changes (crosses into the Session group)
+	palette.handleInput(KEY.UP); // clamps at 0, still "nubia:models"
+	palette.handleInput(KEY.DOWN); // nubia:profiles
+	palette.handleInput(KEY.DOWN); // nubia:changes (crosses into the Session group)
 	palette.handleInput(KEY.DOWN); // clamps at the last item
 	palette.handleInput(KEY.ENTER);
-	assert.deepEqual(results, [{ type: "run", name: "gentle:changes" }]);
+	assert.deepEqual(results, [{ type: "run", name: "nubia:changes" }]);
 });
 
 test("ctrl+j and ctrl+k also move the selection", () => {
 	const { palette, results } = createPalette(GROUPS);
-	palette.handleInput(KEY.CTRL_J); // gentle:profiles
-	palette.handleInput(KEY.CTRL_K); // gentle:models
+	palette.handleInput(KEY.CTRL_J); // nubia:profiles
+	palette.handleInput(KEY.CTRL_K); // nubia:models
 	palette.handleInput(KEY.ENTER);
-	assert.deepEqual(results, [{ type: "run", name: "gentle:models" }]);
+	assert.deepEqual(results, [{ type: "run", name: "nubia:models" }]);
 });
 
 test("enter runs the highlighted item and is a no-op with no match", () => {
@@ -216,7 +216,7 @@ test("a key release event is ignored even when it would otherwise match a bindin
 	// ":3B" flags a Kitty protocol key release for the down arrow.
 	palette.handleInput("\x1b[1;1:3B");
 	palette.handleInput(KEY.ENTER);
-	assert.deepEqual(results, [{ type: "run", name: "gentle:models" }]);
+	assert.deepEqual(results, [{ type: "run", name: "nubia:models" }]);
 });
 
 // --- rendering ---------------------------------------------------------------
@@ -286,7 +286,7 @@ test("render shows a muted no-match row when nothing matches", () => {
 });
 
 test("render escapes control characters in labels and shortcuts", () => {
-	const groups: CommandPaletteGroup[] = [{ title: "G", items: [{ command: "gentle:evil", label: "line1\x07line2", shortcut: "alt+\x07" }] }];
+	const groups: CommandPaletteGroup[] = [{ title: "G", items: [{ command: "nubia:evil", label: "line1\x07line2", shortcut: "alt+\x07" }] }];
 	const lines = render(groups, "").join("\n");
 	assert.doesNotMatch(lines, /\x07/);
 	assert.match(lines, /\\x07/);
@@ -306,8 +306,8 @@ test("render keeps the right border aligned when a label has wide characters", (
 		{
 			title: "G",
 			items: [
-				{ command: "gentle:emoji", label: "中文中文中文中文中文" },
-				{ command: "gentle:plain", label: "plain desc" },
+				{ command: "nubia:emoji", label: "中文中文中文中文中文" },
+				{ command: "nubia:plain", label: "plain desc" },
 			],
 		},
 	];
@@ -360,30 +360,30 @@ test("COMMAND_PALETTE_CATALOG matches the curated command set, in order", () => 
 	);
 	const byTitle = (title: string) => COMMAND_PALETTE_CATALOG.find((group) => group.title === title)?.items.map((item) => item.command);
 	assert.deepEqual(byTitle("Configuration"), [
-		"gentle:models",
-		"gentle:profiles",
-		"gentle:persona",
-		"gentle:review-mode",
-		"gentle:background-subagents",
-		"gentle:double-esc-cancel",
-		"gentle:customize",
-		"gentle:animations",
-		"gentle:vim",
-		"gentle:telemetry",
-		"gentle:banner",
-		"gentle:banner-color",
-		"gentle:toggle-rose",
-		"gentle:toggle-text-logo",
-		"gentle:dev-binary",
+		"nubia:models",
+		"nubia:profiles",
+		"nubia:persona",
+		"nubia:review-mode",
+		"nubia:background-subagents",
+		"nubia:double-esc-cancel",
+		"nubia:customize",
+		"nubia:animations",
+		"nubia:vim",
+		"nubia:telemetry",
+		"nubia:banner",
+		"nubia:banner-color",
+		"nubia:toggle-rose",
+		"nubia:toggle-text-logo",
+		"nubia:dev-binary",
 	]);
-	assert.deepEqual(byTitle("Session"), ["gentle:yolo", "gentle:changes", "gentle:agents", "gentle:usage", "gentle:review-session-permission"]);
-	assert.deepEqual(byTitle("Diagnostics"), ["gentle:status", "gentle:doctor"]);
+	assert.deepEqual(byTitle("Session"), ["nubia:yolo", "nubia:changes", "nubia:agents", "nubia:usage", "nubia:review-session-permission"]);
+	assert.deepEqual(byTitle("Diagnostics"), ["nubia:status", "nubia:doctor"]);
 	assert.equal(byTitle("SDD"), undefined);
 	assert.deepEqual(byTitle("Skills"), ["skill-registry:refresh"]);
 });
 
 test("retired SDD commands are absent from the palette and extension registrations", () => {
-	const retired = ["gentle:sdd-preflight", "gentle-sdd-status", "gentle-sdd-continue", "gentle-sdd-init", "gentle:install-sdd"];
+	const retired = ["nubia:sdd-preflight", "gentle-sdd-status", "gentle-sdd-continue", "gentle-sdd-init", "nubia:install-sdd"];
 	const catalogCommands = COMMAND_PALETTE_CATALOG.flatMap((group) => group.items.map((item) => item.command));
 	assert.equal(existsSync(new URL("../extensions/sdd-init.ts", import.meta.url)), false, "retired init extension must stay absent");
 	const source = readFileSync(new URL("../extensions/gentle-ai.ts", import.meta.url), "utf8");
@@ -391,29 +391,29 @@ test("retired SDD commands are absent from the palette and extension registratio
 		assert.ok(!catalogCommands.includes(command), `${command} must not appear in the palette`);
 		assert.ok(!source.includes(`registerCommand("${command}"`), `${command} must not be registered`);
 	}
-	assert.match(source, /for \(const owner of \["delegation", "review"\] as const\) \{\s*const label = owner;\s*pi\.registerCommand\(`gentle:install-\$\{owner\}`/);
-	assert.ok(catalogCommands.includes("gentle:review-mode"));
+	assert.match(source, /for \(const owner of \["delegation", "review"\] as const\) \{\s*const label = owner;\s*pi\.registerCommand\(`nubia:install-\$\{owner\}`/);
+	assert.ok(catalogCommands.includes("nubia:review-mode"));
 });
 
 test("buildCommandPaletteGroups keeps only registered commands, attaches descriptions and shortcuts, drops empty groups, preserves catalog order", () => {
 	const registered = [
-		{ name: "gentle:models", description: "Configure models" },
-		{ name: "gentle:changes", description: "Browse changes" },
-		{ name: "gentle:status", description: "Show status" },
+		{ name: "nubia:models", description: "Configure models" },
+		{ name: "nubia:changes", description: "Browse changes" },
+		{ name: "nubia:status", description: "Show status" },
 		{ name: "skill-registry:refresh", description: "Refresh registry" },
 	];
-	const shortcuts = { "gentle:changes": "alt+g" };
+	const shortcuts = { "nubia:changes": "alt+g" };
 	const groups = buildCommandPaletteGroups(registered, shortcuts);
 	assert.deepEqual(
 		groups.map((group) => group.title),
 		["Configuration", "Session", "Diagnostics", "Skills"],
 	);
 	const configuration = groups.find((group) => group.title === "Configuration");
-	assert.deepEqual(configuration?.items.map((item) => item.command), ["gentle:models"]);
+	assert.deepEqual(configuration?.items.map((item) => item.command), ["nubia:models"]);
 	assert.equal(configuration?.items[0]?.description, "Configure models");
 	assert.equal(configuration?.items[0]?.shortcut, undefined);
 	const session = groups.find((group) => group.title === "Session");
-	assert.deepEqual(session?.items.map((item) => item.command), ["gentle:changes"]);
+	assert.deepEqual(session?.items.map((item) => item.command), ["nubia:changes"]);
 	assert.equal(session?.items[0]?.shortcut, "alt+g");
 	assert.equal(groups.some((group) => group.title === "SDD"), false);
 });

@@ -27,7 +27,7 @@ export interface CardTheme {
 	bg?(color: string, text: string): string;
 }
 
-// Conversation cards come in two styles, chosen in /gentle:customize. Pi loads
+// Conversation cards come in two styles, chosen in /nubia:customize. Pi loads
 // every extension with its own jiti loader (moduleCache:false), so each one
 // gets a copy of this module; the global symbol keeps one style per process.
 export const CARD_STYLE = {

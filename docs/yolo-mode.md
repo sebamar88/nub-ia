@@ -2,14 +2,14 @@
 
 > 🚀 **Full speed, destructive actions still ask.** YOLO lets the agent implement, commit, push and open PRs within the already authorized task without asking each time, which suits long autonomous runs. Destructive operations still require fresh confirmation.
 
-Use `/gentle:yolo enable` in the interactive primary Pi TUI to stop repeated permission questions for ordinary work **within your already authorized task**. YOLO defaults **OFF**. The active status and a separate editor widget both say **🚀 YOLO ON 🔥 — destructive confirmations remain**, even when Gentle Shell hides its status layout.
+Use `/nubia:yolo enable` in the interactive primary Pi TUI to stop repeated permission questions for ordinary work **within your already authorized task**. YOLO defaults **OFF**. The active status and a separate editor widget both say **🚀 YOLO ON 🔥 — destructive confirmations remain**, even when Gentle Shell hides its status layout.
 
 | Command | Effect |
 | --- | --- |
-| `/gentle:yolo enable` | Activate for this live session and Git clone. |
-| `/gentle:yolo disable` | Revoke immediately and clear the indicators. |
-| `/gentle:yolo status` | Show the current state without activating. |
-| `/gentle:yolo` | Open a menu titled **🚀 Gentle YOLO 🔥 — full speed, destructive actions still ask (current: ON\|OFF)** with `enable`, `disable` and `status`. Cancelling changes nothing. Without an interactive menu UI it behaves like `status`. |
+| `/nubia:yolo enable` | Activate for this live session and Git clone. |
+| `/nubia:yolo disable` | Revoke immediately and clear the indicators. |
+| `/nubia:yolo status` | Show the current state without activating. |
+| `/nubia:yolo` | Open a menu titled **🚀 Gentle YOLO 🔥 — full speed, destructive actions still ask (current: ON\|OFF)** with `enable`, `disable` and `status`. Cancelling changes nothing. Without an interactive menu UI it behaves like `status`. |
 
 Invalid arguments leave state unchanged.
 
@@ -17,9 +17,9 @@ The Session command palette also includes YOLO. Activation fails closed without 
 
 ## Configuration menu path
 
-1. Open `/gentle:customize` → **Editor**.
+1. Open `/nubia:customize` → **Editor**.
 2. Select **YOLO: OFF · session only**, immediately after the Vim enable/disable rows.
-3. Press **Enter** or **Space** to toggle the same permission as `/gentle:yolo`. The row updates to **YOLO: ON · session only**; slash changes and revocation also update an open menu.
+3. Press **Enter** or **Space** to toggle the same permission as `/nubia:yolo`. The row updates to **YOLO: ON · session only**; slash changes and revocation also update an open menu.
 
 Navigation, the read-only preview and Escape never grant permission. The preview reminds you that ordinary scoped commits/push/PR are covered, destructive confirmations remain, reload resets the grant. **UNAVAILABLE** means the live primary owner or eligible session/clone cannot be used; selecting it cannot activate YOLO.
 

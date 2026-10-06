@@ -171,7 +171,7 @@ function routingConsumerFixture(t: test.TestContext, agents = ["worker"]) {
 test("models rejects invalid project routing with its selected source path", async (t) => {
 	const fixture = routingConsumerFixture(t);
 	writeFileSync(fixture.projectPath, "[]");
-	await fixture.run("gentle:models");
+	await fixture.run("nubia:models");
 	assert.equal(fixture.notifications[0]?.severity, "warning");
 	assert.ok(fixture.notifications[0]?.message.includes(fixture.projectPath));
 	assert.equal(fixture.panelVisits(), 0);
@@ -185,7 +185,7 @@ test("export re-reads saved routing and rejects invalid project before creating 
 		writeFileSync(fixture.projectPath, "[]");
 		return { type: "export", config: {} };
 	});
-	await fixture.run("gentle:models");
+	await fixture.run("nubia:models");
 	assert.equal(fixture.notifications[0]?.severity, "warning");
 	assert.ok(fixture.notifications[0]?.message.includes(`Invalid model config: ${fixture.projectPath}`));
 	assert.equal(existsSync(fixture.exportPath), false);
@@ -195,7 +195,7 @@ test("export re-reads saved routing and rejects invalid project before creating 
 test("status reports invalid saved routing path instead of default agent routing", async (t) => {
 	const fixture = routingConsumerFixture(t);
 	writeFileSync(fixture.projectPath, "[]");
-	await fixture.run("gentle:status");
+	await fixture.run("nubia:status");
 	const report = fixture.notifications.at(-1)!;
 	assert.match(report.message, /Saved model routing: invalid/);
 	assert.ok(report.message.includes(fixture.projectPath));
@@ -210,7 +210,7 @@ test("models exports missing, normalized project, and global-precedence saved ro
 			if (source !== "missing") writeFileSync(fixture.projectPath, '{"worker":" openai/gpt-5 ","ignored":null}');
 			if (source === "global") writeMarkdown(fixture.globalPath, '{"worker":{"model":" anthropic/opus ","thinking":"high"}}');
 			fixture.onPanel(() => ({ type: fixture.panelVisits() === 1 ? "export" : "cancel", config: {} }));
-			await fixture.run("gentle:models");
+			await fixture.run("nubia:models");
 			const agents = source === "missing" ? {} : source === "project"
 				? { worker: { model: "openai/gpt-5" } }
 				: { worker: { model: "anthropic/opus", thinking: "high" } };
@@ -218,7 +218,7 @@ test("models exports missing, normalized project, and global-precedence saved ro
 			assert.equal(fixture.notifications[0]?.severity, "info");
 			assert.match(fixture.notifications[0]!.message, /exported/);
 			assert.equal(fixture.panelVisits(), 2);
-			await fixture.run("gentle:status");
+			await fixture.run("nubia:status");
 			const report = fixture.notifications.at(-1)!.message;
 			assert.ok(report.includes(`Saved model routing: ${source === "missing" ? "missing" : "valid"}`));
 			assert.ok(report.includes(`Global model config: ${source === "global" ? "present" : "missing"}`));
@@ -241,13 +241,13 @@ test("invalid global routing overrides valid project in models, status, and expo
 				writeMarkdown(fixture.globalPath, "[]");
 				return { type: "export", config: {} };
 			});
-			await fixture.run("gentle:models");
+			await fixture.run("nubia:models");
 			assert.equal(fixture.notifications[0]?.severity, "warning");
 			assert.ok(fixture.notifications[0]?.message.includes(fixture.globalPath));
 			assert.match(fixture.notifications[0]!.message, atExport ? /export failed/ : /cannot open model config/);
 			assert.equal(fixture.panelVisits(), atExport ? 2 : 0);
 			assert.equal(existsSync(fixture.exportPath), false);
-			await fixture.run("gentle:status");
+			await fixture.run("nubia:status");
 			const report = fixture.notifications.at(-1)!;
 			assert.match(report.message, /Global model config: present\nSaved model routing: invalid/);
 			assert.ok(report.message.includes(fixture.globalPath));
@@ -875,7 +875,7 @@ test(`${channel} emits only a private, balanced Herdr projection`, () => {
 		registerTool() {},
 	} as unknown as ExtensionAPI;
 	createGentleAiExtension({})(pi);
-	const privateHostDiscovery = "gentle:yolo:host-ui";
+	const privateHostDiscovery = "nubia:yolo:host-ui";
 	assert.equal(eventHandlers.has(privateHostDiscovery), true);
 	assert.deepEqual([...eventHandlers.keys()].filter(name => name !== privateHostDiscovery).sort(), [
 		"gentle-pi:ask-user-choice:blocked", "gentle-pi:ask-user-question:blocked", "rpiv:ask-user:blocked",
@@ -1235,7 +1235,7 @@ test("bash tool_call confirms every compound action and centers a long git -C pu
 	assert.match(preview, /push origin main && npm publish --tag beta/);
 	assert.ok(preview.startsWith("…"));
 });
-// /gentle:profiles reopens its panel after actions that finish the interaction,
+// /nubia:profiles reopens its panel after actions that finish the interaction,
 // so a test that applies once must confirm on the first visit and close on the
 // next, or the panel and the action loop feed each other forever.
 function applyOnce(
@@ -1310,7 +1310,7 @@ test("applying a profile persists its orchestrator and never leaks the key into 
 	// dialog explicitly before running.
 	fixture.onConfirm(async () => true);
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	const after = JSON.parse(readFileSync(settingsPath, "utf8"));
 	assert.equal(after.defaultProvider, "nan");
@@ -1343,7 +1343,7 @@ test("applying a profile whose orchestrator model is unknown to the registry per
 	writeSettings();
 	writeStore({ team: { orchestrator: { model: "nan/not-in-catalog", thinking: "high" }, worker: { model: "openai/alpha" } } });
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	const after = JSON.parse(readFileSync(settingsPath, "utf8"));
 	assert.equal(after.defaultModel, "not-in-catalog", "the default for new sessions is still recorded");
 	assert.deepEqual(fixture.liveSwitches, [], "nothing is switched live without a registry model");
@@ -1357,7 +1357,7 @@ test("a thinking level the switched model rejects keeps the model switch and rep
 	writeStore({ team: { orchestrator: { model: "nan/glm5.3", thinking: "max" }, worker: { model: "openai/alpha" } } });
 	fixture.rejectThinkingLevel();
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.equal(JSON.parse(readFileSync(settingsPath, "utf8")).defaultThinkingLevel, "max", "the persisted default is untouched by the live refusal");
 	assert.deepEqual(fixture.liveSwitches, [{ kind: "model", provider: "nan", id: "glm5.3" }], "the model switch stands");
 	const applied = fixture.notifications.at(-1)?.message ?? "";
@@ -1370,7 +1370,7 @@ test("applying a profile whose orchestrator provider has no auth persists the de
 	writeStore({ team: { orchestrator: { model: "nan/glm5.3" }, worker: { model: "openai/alpha" } } });
 	fixture.refuseSetModel();
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.deepEqual(fixture.liveSwitches, [{ kind: "model", provider: "nan", id: "glm5.3" }], "the switch was attempted, no thinking level without one in the profile");
 	const applied = fixture.notifications.at(-1)?.message ?? "";
 	assert.match(applied, /no authentication is configured for nan; this session keeps its current model/);
@@ -1381,7 +1381,7 @@ test("applying a profile without an orchestrator entry leaves settings.json unto
 	writeSettings();
 	writeStore({ team: { worker: { model: "openai/alpha" } } });
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	const after = JSON.parse(readFileSync(settingsPath, "utf8"));
 	assert.equal(after.defaultProvider, "nan");
@@ -1395,7 +1395,7 @@ test("a profile store entry with only the orchestrator key counts zero roles", a
 	const { fixture, writeStore } = profilesStoreFixture(t);
 	writeStore({ team: { orchestrator: { model: "nan/glm5.3", thinking: "high" } } }, "team");
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	const applied = fixture.notifications.at(-1)?.message ?? "";
 	assert.match(applied, /0 agents updated/);
 	assert.match(applied, /Orchestrator set to nan\/glm5\.3 · high/);
@@ -1422,7 +1422,7 @@ test("applying an empty profile asks for confirmation and aborts when declined",
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "confirm dialog must be displayed when applying an empty profile");
 	const [title, message] = fixture.confirmCalls[0];
@@ -1458,7 +1458,7 @@ test("applying an empty profile with explicit confirmation replaces global routi
 	fixture.onConfirm(async () => true);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "confirm dialog must be displayed when applying an empty profile");
 	const models = JSON.parse(readFileSync(fixture.globalPath, "utf8"));
@@ -1492,7 +1492,7 @@ test("applying an orchestrator-only profile asks for confirmation and aborts whe
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "confirm dialog must be displayed when applying an orchestrator-only profile");
 	const [title, message] = fixture.confirmCalls[0];
@@ -1530,7 +1530,7 @@ test("applying an orchestrator-only profile with explicit confirmation updates o
 	fixture.onConfirm(async () => true);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "confirm dialog must be displayed when applying an orchestrator-only profile");
 	const models = JSON.parse(readFileSync(fixture.globalPath, "utf8"));
@@ -1581,7 +1581,7 @@ test("applying a populated profile asks for confirmation naming the diff and abo
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a populated global apply must ask for confirmation");
 	const [title, message] = fixture.confirmCalls[0];
@@ -1611,7 +1611,7 @@ test("applying a populated profile whose routes already match skips the confirma
 	const settingsBefore = readFileSync(settingsPath, "utf8");
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 0, "a no-op populated apply must not ask for confirmation");
 	assert.ok(
@@ -1636,7 +1636,7 @@ test("applying a populated profile whose routes match and whose orchestrator is 
 	writeStore({ team: { orchestrator: { model: "nan/deepseek-v4-flash", thinking: "high" }, worker: { model: "openai/alpha" } } });
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 0, "an already-active profile must not ask for confirmation");
 	assert.deepEqual(fixture.liveSwitches, [], "the no-op apply performs no live switch: the orchestrator is already there");
@@ -1657,7 +1657,7 @@ test("applying a populated profile keeps the confirmation when the live session 
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a live-session orchestrator move is a real change and must confirm");
 	assert.deepEqual(fixture.liveSwitches, [], "declining must not switch the live session");
@@ -1678,7 +1678,7 @@ test("applying a populated profile keeps the confirmation when settings.json hol
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "an invalid stored thinking level cannot prove a no-op");
 	assert.equal(readFileSync(settingsPath, "utf8"), settingsBefore, "declining preserves the invalid key byte-identically");
@@ -1695,7 +1695,7 @@ test("applying a populated profile keeps the confirmation when settings.json is 
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "an unreadable settings.json cannot prove an orchestrator no-op");
 	assert.notEqual(JSON.parse(readFileSync(storePath, "utf8")).active, "team");
@@ -1713,7 +1713,7 @@ test("applying a populated profile with a thinking-only orchestrator entry skips
 	const settingsBefore = readFileSync(settingsPath, "utf8");
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 0, "a thinking-only orchestrator entry changes nothing and must not confirm");
 	assert.ok(
@@ -1735,7 +1735,7 @@ test("applying a populated profile with matching routes but a different orchestr
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "an orchestrator change is a real change and must confirm");
 	assert.match(fixture.confirmCalls[0]?.[0] ?? "", /Apply profile/);
@@ -1768,7 +1768,7 @@ test("applying a populated profile names materialized-only routes it would clear
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a populated global apply must ask for confirmation");
 	const [title, message] = fixture.confirmCalls[0];
@@ -1799,7 +1799,7 @@ test("applying a populated profile clears the materialized-only route it named w
 	fixture.onConfirm(async () => true);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a populated global apply must ask for confirmation");
 	const [, message] = fixture.confirmCalls[0];
@@ -1824,7 +1824,7 @@ test("applying a populated profile with an orchestrator entry discloses the sett
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a populated global apply must ask for confirmation");
 	const [, message] = fixture.confirmCalls[0];
@@ -1852,7 +1852,7 @@ test("applying a populated profile with an orchestrator entry discloses the effe
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a populated global apply must ask for confirmation");
 	const [, message] = fixture.confirmCalls[0];
@@ -1888,7 +1888,7 @@ test("applying a populated profile with an unreadable routing authority disclose
 	fixture.onConfirm(async () => false);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a populated global apply must ask for confirmation");
 	const [title, message] = fixture.confirmCalls[0];
@@ -1920,7 +1920,7 @@ test("applying a populated profile with an unreadable routing authority still ap
 	fixture.onConfirm(async () => true);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a populated global apply must ask for confirmation");
 	const [, message] = fixture.confirmCalls[0];
@@ -1956,7 +1956,7 @@ test("applying a populated profile with explicit confirmation applies the routin
 	fixture.onConfirm(async () => true);
 
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(fixture.confirmCalls.length, 1, "a populated global apply must ask for confirmation");
 	const models = JSON.parse(readFileSync(fixture.globalPath, "utf8"));
@@ -1981,7 +1981,7 @@ test("applying a populated profile with explicit confirmation applies the routin
 test("applying a profile replaces materialized routing for agents the profile omits", async (t) => {
 	const { fixture, writeStore, writeSettings } = profilesStoreFixture(t);
 	writeSettings();
-	// Routing materialized earlier (a previous profile, /gentle:models, or a
+	// Routing materialized earlier (a previous profile, /nubia:models, or a
 	// migration) for an agent the new profile does not mention.
 	const helperPath = join(fixture.root, ".pi", "agents", "helper.md");
 	writeMarkdown(helperPath, "---\nname: helper\ndescription: Helper\nmodel: openai/beta\nthinking: high\n---\nbody\n");
@@ -1989,7 +1989,7 @@ test("applying a profile replaces materialized routing for agents the profile om
 	writeFileSync(subagentsPath, `${JSON.stringify({ model_profiles: { helper: { model: "openai/beta", effort: "high" } } }, null, 2)}\n`);
 	writeStore({ team: { worker: { model: "openai/alpha" } } });
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	const profiles = JSON.parse(readFileSync(subagentsPath, "utf8"));
 	assert.deepEqual(profiles.model_profiles, { worker: { model: "openai/alpha" } }, "omitted agents lose their materialized route");
@@ -2020,7 +2020,7 @@ test("a failed apply restores the previous profile's routing with the same repla
 		old: { helper: { model: "openai/beta" } },
 	}, "old");
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	const warning = fixture.notifications.find((entry) => /could not apply profile "team"/.test(entry.message));
 	assert.ok(warning, "the failed apply is reported");
@@ -2062,7 +2062,7 @@ test("s snapshots current routing in place without applying or reopening the pro
 			panel.handleInput("\x1b");
 		}
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	const store = JSON.parse(readFileSync(join(fixture.configHome, "profiles.json"), "utf8"));
 	assert.deepEqual(store.profiles["a-target"], {
@@ -2085,8 +2085,8 @@ test("s snapshots current routing in place without applying or reopening the pro
 	assert.match(renderComponent(firstPanel!), /Snapshot saved; live routing unchanged\. Profile "a-target" saved from current routing\./);
 });
 
-// /gentle:models can finish with `u`: the global save `ctrl+s` performs, followed
-// by the snapshot `/gentle:profiles` performs with `s` on the current profile.
+// /nubia:models can finish with `u`: the global save `ctrl+s` performs, followed
+// by the snapshot `/nubia:profiles` performs with `s` on the current profile.
 function pickWorkerModelThenUpdateProfile(panel: RoutingConsumerPanel): void {
 	// Rows: "Set all agents", then "worker".
 	panel.handleInput("j");
@@ -2111,7 +2111,7 @@ test("u saves global routing and captures live session orchestrator instead of d
 		assert.match(renderComponent(panel), /u capture session in "team"/);
 		pickWorkerModelThenUpdateProfile(panel);
 	});
-	await fixture.run("gentle:models");
+	await fixture.run("nubia:models");
 
 	assert.deepEqual(JSON.parse(readFileSync(fixture.globalPath, "utf8")), { worker: { model: "openai/alpha" } });
 	const store = JSON.parse(readFileSync(storePath, "utf8"));
@@ -2146,7 +2146,7 @@ test("u updates the pinned profile instead of the active one inside a pinned rep
 		assert.match(renderComponent(panel), /Current profile: other \(pinned\)/);
 		pickWorkerModelThenUpdateProfile(panel);
 	});
-	await fixture.run("gentle:models");
+	await fixture.run("nubia:models");
 
 	assert.deepEqual(JSON.parse(readFileSync(fixture.globalPath, "utf8")), { worker: { model: "openai/alpha" } });
 	const store = JSON.parse(readFileSync(storePath, "utf8"));
@@ -2171,17 +2171,17 @@ test("u keeps the global save and reports when no profile is current", async (t)
 		assert.match(renderComponent(panel), /Current profile: none/);
 		pickWorkerModelThenUpdateProfile(panel);
 	});
-	await fixture.run("gentle:models");
+	await fixture.run("nubia:models");
 
 	assert.deepEqual(JSON.parse(readFileSync(fixture.globalPath, "utf8")), { worker: { model: "openai/alpha" } });
 	assert.equal(readFileSync(storePath, "utf8"), before, "the store is untouched");
 	assert.ok(
-		fixture.notifications.some((entry) => entry.severity === "warning" && /no profile is current/.test(entry.message) && /\/gentle:profiles/.test(entry.message)),
+		fixture.notifications.some((entry) => entry.severity === "warning" && /no profile is current/.test(entry.message) && /\/nubia:profiles/.test(entry.message)),
 		`missing current profile is reported: ${JSON.stringify(fixture.notifications)}`,
 	);
 });
 
-test("u seeds the profiles store the way /gentle:profiles does when it is missing", async (t) => {
+test("u seeds the profiles store the way /nubia:profiles does when it is missing", async (t) => {
 	const { fixture, storePath, writeSettings } = profilesStoreFixture(t);
 	writeSettings();
 	assert.equal(existsSync(storePath), false);
@@ -2189,7 +2189,7 @@ test("u seeds the profiles store the way /gentle:profiles does when it is missin
 		assert.match(renderComponent(panel), /Current profile: none/);
 		pickWorkerModelThenUpdateProfile(panel);
 	});
-	await fixture.run("gentle:models");
+	await fixture.run("nubia:models");
 
 	const store = JSON.parse(readFileSync(storePath, "utf8"));
 	assert.equal(store.kind, PROFILES_KIND);
@@ -2223,7 +2223,7 @@ test("snapshot feedback keeps both outcomes visible for long profile names at na
 			panel.handleInput("\x1b");
 		}
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.ok(firstPanel);
 	const constrained = stripAnsi(firstPanel!.render(60).join("\n"));
 	assert.match(constrained, /Snapshot failed; live routing unchanged\./);
@@ -2240,7 +2240,7 @@ test("the profiles command seeds and shows the routing the runtime uses when mod
 		rendered = stripAnsi(renderComponent(panel));
 		panel.handleInput("\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	const store = JSON.parse(readFileSync(join(fixture.configHome, "profiles.json"), "utf8"));
 	assert.equal(store.active, "current", "materialized routing counts as existing routing");
@@ -2302,7 +2302,7 @@ test("the profiles panel fills the terminal, lists routing per agent, and scroll
 		rendered = renderComponent(visited);
 		visited.handleInput("\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.ok(rendered);
 	const lines = rendered.split("\n");
@@ -2346,7 +2346,7 @@ test("j and k scroll the detail pane one line at a time, like the agents view", 
 		panel = visited;
 		visited.handleInput("\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.ok(panel, "the panel must open");
 	const body = () => panel!.render(120).slice(1, -2).map((line) => line.replace(/[ \t]+$/, "")).join("\n");
 	const firstAgentRow = (text: string) => text.split("\n").findIndex((line) => line.includes("agent-01"));
@@ -2374,7 +2374,7 @@ async function runProfilesNameAction(
 		if (visits > 1) return panel.handleInput("\x1b");
 		for (const key of [keys].flat()) panel.handleInput(key);
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.equal(fixture.panels.length, 2, "the panel reopens once after the action");
 	return fixture.panels[1];
 }
@@ -2487,7 +2487,7 @@ test("p pins the selected profile for the clone without touching the global rout
 			panel.handleInput("\x1b");
 		}
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(
 		readFileSync(localPinPath, "utf8"),
@@ -2535,7 +2535,7 @@ test("P declares the profile in the worktree so the routing can be committed", a
 			panel.handleInput("\x1b");
 		}
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(
 		readFileSync(repoPinPath, "utf8"),
@@ -2554,7 +2554,7 @@ test("a stale pin is named as missing instead of silently changing nothing", asy
 		if (rendered === undefined) rendered = stripAnsi(renderComponent(panel));
 		panel.handleInput("\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.match(rendered ?? "", /pin\s+local: deleted-profile \(missing from this store\)/);
 });
 
@@ -2569,7 +2569,7 @@ test("pinning outside a Git worktree warns and writes nothing", async (t) => {
 		// A completed panel ignores Escape; close the next visit instead.
 		panel.handleInput(visits === 1 ? "p" : "\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.equal(existsSync(localPinPath), false);
 	assert.equal(existsSync(repoPinPath), false);
 	assert.match(fixture.notifications.at(-1)?.message ?? "", /not inside a Git worktree/);
@@ -2589,7 +2589,7 @@ test("pressing p again on the pinned profile removes the clone pin", async (t) =
 			panel.handleInput("\x1b");
 		}
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.equal(existsSync(localPinPath), false, "a second p removes the layer instead of rewriting it");
 	assert.match(fixture.notifications.at(-1)?.message ?? "", /removed the local pin for this clone/);
 });
@@ -2606,7 +2606,7 @@ test("the profile list marks the layer that wins with (pinned)", async (t) => {
 		if (rendered === undefined) rendered = stripAnsi(renderComponent(panel));
 		panel.handleInput("\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.match(rendered ?? "", /other \(pinned\)/);
 	assert.doesNotMatch(rendered ?? "", /team \(pinned\)/);
 });
@@ -2621,7 +2621,7 @@ test("an invalid pin file is surfaced by the panel instead of reading as no pin"
 		if (rendered === undefined) rendered = stripAnsi(renderComponent(panel));
 		panel.handleInput("\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.match(rendered ?? "", /invalid pin file/);
 	assert.doesNotMatch(rendered ?? "", /\(missing from this store\)/);
 	assert.equal(readFileSync(localPinPath, "utf8"), "{ not json\n", "reading never rewrites a broken pin");
@@ -2642,7 +2642,7 @@ test("applying a profile in a pinned repository re-pins the clone and writes no 
 	}, "pinned");
 	writePin(localPinPath, "pinned");
 	applyOnce(fixture);
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 
 	assert.equal(
 		readFileSync(localPinPath, "utf8"),
@@ -2677,7 +2677,7 @@ test("deleting a profile is refused when a non-winning pin layer names it", asyn
 			panel.handleInput("\x1b");
 		}
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	assert.equal(existsSync(repoPinPath), true, "the declaration survives the refused delete");
 	assert.match(fixture.notifications.at(-1)?.message ?? "", /is pinned for this repository/);
 	const store = JSON.parse(readFileSync(join(fixture.configHome, "profiles.json"), "utf8"));
@@ -2948,7 +2948,7 @@ test("a session-bound panel renders the binding snapshot as the current routing"
 		assert.doesNotMatch(rendered, /openai\/alpha/, "the global routing stays out of a bound session's panel");
 		panel.handleInput("\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	resetSessionProfileBindingsForTesting();
 });
 
@@ -2966,7 +2966,7 @@ test("the (session) marker survives a snapshot refresh of the panel list", async
 		assert.match(renderComponent(panel), /team \(active\) \(session\)/, "the refreshed list keeps the session marker");
 		panel.handleInput("\x1b");
 	});
-	await fixture.run("gentle:profiles");
+	await fixture.run("nubia:profiles");
 	// The snapshot must capture the routing the panel showed as current, so the
 	// saved team profile carries the session binding's model, never the global
 	// layer underneath it.

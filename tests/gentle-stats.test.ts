@@ -6,7 +6,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { stripAnsi } from "../lib/terminal-theme.ts";
 import gentleStats, { STATS_COMMAND_NAME, statsSessionRoots, statsViewKey } from "../extensions/gentle-stats.ts";
 
-// /gentle:stats wiring: the command (and optional shortcut) opens the stats
+// /nubia:stats wiring: the command (and optional shortcut) opens the stats
 // panel as a full-terminal overlay, loads sessions after it opens, closes
 // with a forced repaint, and session shutdown force-closes it.
 
@@ -69,10 +69,10 @@ test("statsViewKey is off by default and honors an explicit key", () => {
 	assert.equal(statsViewKey({ GENTLE_PI_STATS_VIEW_KEY: "" }), undefined);
 });
 
-test("registers /gentle:stats and only registers a shortcut when one is configured", () => {
+test("registers /nubia:stats and only registers a shortcut when one is configured", () => {
 	const plain = fakePi();
 	gentleStats(plain.pi, { env: {} });
-	assert.equal(STATS_COMMAND_NAME, "gentle:stats");
+	assert.equal(STATS_COMMAND_NAME, "nubia:stats");
 	assert.match(plain.commands.get(STATS_COMMAND_NAME)!.description, /usage/i);
 	assert.equal(plain.shortcuts.size, 0);
 	const keyed = fakePi();

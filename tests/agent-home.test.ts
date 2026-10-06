@@ -8,7 +8,7 @@ import { gentlePiConfigHome } from "../lib/agent-home.ts";
 // The two Pi homes: `~/.pi/agent` holds Pi's own agent definitions and
 // `~/.pi/gentle-ai` holds everything the Gentle AI commands own. Both are resolved
 // once and shared, because the launch-time profile pin resolver reads the same
-// profiles store the `/gentle:profiles` panel writes: two spellings of the override
+// profiles store the `/nubia:profiles` panel writes: two spellings of the override
 // would silently read two different stores.
 
 function isolatedHome(t: test.TestContext): string {

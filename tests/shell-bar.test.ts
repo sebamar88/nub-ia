@@ -294,7 +294,7 @@ test("sidebar unifies project, captured changes and integrations in one frame", 
 	}
 	assert.match(text, /2 files.*\+7.*−3/);
 	assert.match(text, /capture warning/);
-	assert.match(text, /\/gentle:changes/);
+	assert.match(text, /\/nubia:changes/);
 	assert.match(text, /main/);
 	for (const width of [1, 8, 24, 46]) assert.ok(renderShellSidebarBar(data, plainTheme, width).every((line) => visibleWidth(line) <= width));
 	const empty = renderShellSidebarBar(model(), plainTheme, 46).join("\n");

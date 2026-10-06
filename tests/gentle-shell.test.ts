@@ -39,7 +39,7 @@ initTheme("dark");
 
 const resolveWorktree = (path: string) => ({ root: path.startsWith("/repo") || path === "." ? "/repo" : path, commonDir: "/clone/git" });
 // Without GENTLE_PI_CONFIG_HOME the extension reads ~/.pi/gentle-ai, so a
-// developer's persisted preferences (for example /gentle:vim on) would leak into
+// developer's persisted preferences (for example /nubia:vim on) would leak into
 // tests. Each instance gets a fresh empty config home unless the test owns one.
 const isolatedConfigHomes: string[] = [];
 after(() => { for (const home of isolatedConfigHomes) rmSync(home, { recursive: true, force: true }); });
@@ -98,12 +98,12 @@ const renderers = new Map<string, MessageRenderer>();
 const FAKE_SOURCE_INFO: SourceInfo = { path: "extensions/gentle-shell.ts", source: "gentle-shell", scope: "project", origin: "top-level" };
 
 const DEFAULT_COMMANDS: SlashCommandInfo[] = [
-	{ name: "gentle:models", description: "Configure models", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
-	{ name: "gentle:changes", description: "Browse changes", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
-	{ name: "gentle:status", description: "Show Gentle AI status", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
+	{ name: "nubia:models", description: "Configure models", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
+	{ name: "nubia:changes", description: "Browse changes", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
+	{ name: "nubia:status", description: "Show Gentle AI status", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
 	{ name: "skill-registry:refresh", description: "Regenerate the skill registry", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
-	{ name: "gentle:commands", description: "Open the command palette", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
-	{ name: "gentle:not-in-catalog", description: "Not a curated command", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
+	{ name: "nubia:commands", description: "Open the command palette", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
+	{ name: "nubia:not-in-catalog", description: "Not a curated command", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
 	{ name: "skill:foo", description: "A skill", source: "skill", sourceInfo: FAKE_SOURCE_INFO },
 ];
 
@@ -1743,16 +1743,16 @@ test("visual customization and Vim register once and remain independently discov
 		register(name, registration);
 	}) as typeof pi.registerCommand;
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
-	for (const name of ["gentle:customize", "gentle:vim"]) {
+	for (const name of ["nubia:customize", "nubia:vim"]) {
 		assert.equal(registrations.filter((registered) => registered === name).length, 1, `${name} must register once`);
 		assert.ok(commands.has(name));
 	}
 	const groups = buildCommandPaletteGroups([...commands].map(([name, value]) => ({ name, description: value.description })), {});
 	const configuration = groups.find((group) => group.title === "Configuration")!;
-	assert.deepEqual(configuration.items.filter((item) => ["gentle:customize", "gentle:vim"].includes(item.command)).map((item) => item.command), ["gentle:customize", "gentle:vim"]);
+	assert.deepEqual(configuration.items.filter((item) => ["nubia:customize", "nubia:vim"].includes(item.command)).map((item) => item.command), ["nubia:customize", "nubia:vim"]);
 	const { ctx, ui, overlayReady } = fakeContext();
-	await commands.get("gentle:vim")!.handler("enable", ctx);
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	await commands.get("nubia:vim")!.handler("enable", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(ui.overlayView!.render(90).some((row) => row.includes("Animations: quality")));
 	ui.overlayView!.handleInput("\x1b");
@@ -1768,7 +1768,7 @@ test("actual Pi 1.0.0 enables a live prompt and enters NORMAL without a compatib
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers);
  editor.setText("hello");
- await commands.get("gentle:vim")!.handler("enable", ctx);
+ await commands.get("nubia:vim")!.handler("enable", ctx);
  editor.handleInput("\x1b");
  assert.equal(editor.getText(), "hello");
  assert.match(editor.render(60).join("\n"), /NORMAL/);
@@ -1788,7 +1788,7 @@ test("vim command distinguishes persisted preference from rejected live editor a
  const editor = installedPrompt(ctx, ui, handlers);
  try {
   editor.setText("draft");
-  await commands.get("gentle:vim")!.handler("enable", ctx);
+  await commands.get("nubia:vim")!.handler("enable", ctx);
   assert.equal(JSON.parse(readFileSync(join(configHome, "vim.json"), "utf8")).policy, "on");
   assert.match(ui.notices.at(-1)!, /vim: on.*ordinary editing remains active/i);
   assert.doesNotMatch(ui.notices.at(-1)!, /applies now/i);
@@ -1797,7 +1797,7 @@ test("vim command distinguishes persisted preference from rejected live editor a
   // Split bracketed paste must not leak its framing bytes or run modal commands.
   for (const part of ["\x1b[200~", "z", "\x1b[20", "1~"]) editor.handleInput(part);
   assert.equal(editor.getExpandedText(), "drafthz");
-  await commands.get("gentle:vim")!.handler("status", ctx);
+  await commands.get("nubia:vim")!.handler("status", ctx);
   assert.match(ui.notices.at(-1)!, /vim: on.*ordinary editing remains active/i);
   editor.dispose();
   const next = installedPrompt(ctx, ui, handlers);
@@ -1805,7 +1805,7 @@ test("vim command distinguishes persisted preference from rejected live editor a
    assert.doesNotMatch(next.render(40).join("\n"), /NORMAL|INSERT/);
    next.handleInput("h");
    assert.equal(next.getText(), "h");
-   await commands.get("gentle:vim")!.handler("disable", ctx);
+   await commands.get("nubia:vim")!.handler("disable", ctx);
    assert.match(ui.notices.at(-1)!, /vim: off.*ordinary editing/i);
   } finally { next.dispose(); }
  } finally { editor.dispose(); }
@@ -1817,11 +1817,11 @@ test("compatible vim command reports live activation and disable returns ordinar
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers);
  try {
-  await commands.get("gentle:vim")!.handler("enable", ctx);
+  await commands.get("nubia:vim")!.handler("enable", ctx);
   assert.match(ui.notices.at(-1)!, /Prompt applies now/);
   editor.handleInput("\x1b");
   assert.match(editor.render(40).join("\n"), /NORMAL/);
-  await commands.get("gentle:vim")!.handler("disable", ctx);
+  await commands.get("nubia:vim")!.handler("disable", ctx);
   assert.doesNotMatch(editor.render(40).join("\n"), /NORMAL|INSERT/);
   editor.handleInput("h");
   assert.equal(editor.getText(), "h");
@@ -1839,7 +1839,7 @@ test("vim NORMAL slash uses Pi's command and skill completion without displacing
 		fg: (_color, text) => text, bold: (text) => text, requestRender() {}, pending: () => false,
 		now: () => 0, doubleEscCancelEnabled: () => false, dispatchQueuedText() {}, tuiVersion: () => INSTALLED_PI,
 	});
-	const entries = ["gentle:vim", "gentle:models", "skill:example"];
+	const entries = ["nubia:vim", "nubia:models", "skill:example"];
 	const requests: string[] = [];
 	editor.setAutocompleteProvider({
 		async getSuggestions(lines: string[], line: number, col: number) {
@@ -1873,9 +1873,9 @@ test("vim NORMAL slash uses Pi's command and skill completion without displacing
 		assert.match(editor.render(40).join("\n"), /NORMAL/);
 		editor.setText("");
 		editor.handleInput("/");
-		for (const char of "gentle:") editor.handleInput(char);
+		for (const char of "nubia:") editor.handleInput(char);
 		await new Promise<void>((resolve) => setImmediate(resolve));
-		assert.equal(requests.at(-1), "/gentle:");
+		assert.equal(requests.at(-1), "/nubia:");
 		assert.ok(editor.isShowingAutocomplete(), "Pi filters command entries");
 		editor.handleInput("\x1b");
 		editor.handleInput("\x1b");
@@ -1934,7 +1934,7 @@ test("vim NORMAL blocks Kitty and emoji text, handles encoded motions and ignore
  gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-keys-")) });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers, { matches: (data: string, binding: string) => binding === "app.interrupt" && data === "\x1b" });
- await commands.get("gentle:vim")!.handler("enable", ctx);
+ await commands.get("nubia:vim")!.handler("enable", ctx);
  editor.setText("ab\n雪🙂");
  editor.handleInput("\x1b");
  editor.handleInput("\x1b[120u");
@@ -2089,7 +2089,7 @@ test("vim NORMAL rejects encoded insertions and paste without losing Unicode mul
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-safety-")) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
-	await commands.get("gentle:vim")!.handler("enable", ctx);
+	await commands.get("nubia:vim")!.handler("enable", ctx);
 	editor.setText("雪🙂\nhello");
 	editor.handleInput("\x1b");
 	for (const input of ["\x1b[13u", "\x1b[9u", "\x1b[200~", "pasted", "\x1b[201~", "\x1b[27;5;120~", "\x1b[27;1;120~", "\x1b[105;2u", "\x1b[105;1:2u"]) {
@@ -2401,9 +2401,9 @@ test("vim status preserves NORMAL and frame remains width-safe in every state", 
  gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-frame-")) });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers);
- await commands.get("gentle:vim")!.handler("enable", ctx);
+ await commands.get("nubia:vim")!.handler("enable", ctx);
  editor.handleInput("\x1b");
- await commands.get("gentle:vim")!.handler("status", ctx);
+ await commands.get("nubia:vim")!.handler("status", ctx);
  for (const state of ["idle", "working", "queued"]) {
   editor.setWorking(state !== "idle");
   if (state === "queued") ctx.hasPendingMessages = () => true;
@@ -2421,7 +2421,7 @@ test("vim NORMAL Escape retains working cancellation and idle draft clearing", a
  gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-esc-")) });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers, { matches: (data: string, binding: string) => binding === "app.interrupt" && data === "\x1b" });
- await commands.get("gentle:vim")!.handler("enable", ctx);
+ await commands.get("nubia:vim")!.handler("enable", ctx);
  let aborted = 0;
  editor.onEscape = () => { aborted++; };
  editor.setWorking(true);
@@ -2445,18 +2445,18 @@ test("vim live disable restores ordinary input, re-enable starts INSERT, and inv
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
 	try {
-		await commands.get("gentle:vim")!.handler("enable", ctx);
+		await commands.get("nubia:vim")!.handler("enable", ctx);
 		editor.setText("draft");
 		editor.handleInput("\x1b");
 		editor.handleInput("z");
 		assert.equal(editor.getText(), "draft");
-		await commands.get("gentle:vim")!.handler("disable", ctx);
+		await commands.get("nubia:vim")!.handler("disable", ctx);
 		editor.handleInput("z");
 		assert.equal(editor.getText(), "draftz");
-		await commands.get("gentle:vim")!.handler("enable", ctx);
+		await commands.get("nubia:vim")!.handler("enable", ctx);
 		assert.match(editor.render(40).join("\n"), /INSERT/);
 		writeFileSync(join(home, "vim.json"), '{"schema":"gentle-pi.vim/v1","policy":"invalid"}');
-		await commands.get("gentle:vim")!.handler("status", ctx);
+		await commands.get("nubia:vim")!.handler("status", ctx);
 		assert.match(ui.notices.at(-1)!, /vim: off.*falling back to off/);
 		assert.doesNotMatch(editor.render(40).join("\n"), /INSERT|NORMAL/);
 	} finally { editor.dispose(); }
@@ -2472,7 +2472,7 @@ test("vim selector exposes enable, disable and status; status and cancellation d
  const { ctx, ui } = fakeContext({ select: async (_title, options) => { choices.push(options); return selected; } });
  const editor = installedPrompt(ctx, ui, handlers);
  try {
-  const command = commands.get("gentle:vim")!;
+  const command = commands.get("nubia:vim")!;
   await command.handler("", { ...ctx, hasUI: false });
   assert.match(ui.notices.at(-1)!, /vim: off/);
   assert.equal(existsSync(join(home, "vim.json")), false);
@@ -2507,7 +2507,7 @@ test("animations command reports without writing and switches the live pulse", a
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
-	const command = commands.get("gentle:animations");
+	const command = commands.get("nubia:animations");
 	assert.ok(command);
 	await command.handler("", ctx);
 	assert.match(ui.notices.at(-1)!, /animations: quality/);
@@ -2563,7 +2563,7 @@ test("potato repaints start/settle and shows queued state on the host's next ren
 	for (const handler of handlers.get("agent_settled") ?? []) handler({}, ctx);
 	assert.ok(renders.mock.callCount() > before);
 	assert.doesNotMatch(stripAnsi(editor.render(60)[0]), /working|queued/);
-	await commands.get("gentle:animations")!.handler("status", ctx);
+	await commands.get("nubia:animations")!.handler("status", ctx);
 	assert.match(ui.notices.at(-1)!, /animations: potato/);
 	for (const handler of handlers.get("session_shutdown") ?? []) handler({}, ctx);
 	assert.equal(intervals.mock.callCount(), 1);
@@ -2576,12 +2576,12 @@ test("animations status attributes malformed files and reports a failed write", 
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
-	await commands.get("gentle:animations")!.handler("", ctx);
+	await commands.get("nubia:animations")!.handler("", ctx);
 	assert.match(ui.notices.at(-1)!, /animations: quality.*global file.*malformed/);
 	assert.equal(readFileSync(path, "utf8"), "broken");
 	rmSync(path);
 	mkdirSync(path);
-	await commands.get("gentle:animations")!.handler("potato", ctx);
+	await commands.get("nubia:animations")!.handler("potato", ctx);
 	assert.match(ui.notices.at(-1)!, /EISDIR|ENOTEMPTY|EPERM/);
 });
 
@@ -2599,7 +2599,7 @@ test("animations with no argument opens a selectable menu and applies the chosen
 			return "potato";
 		},
 	});
-	await commands.get("gentle:animations")!.handler("", chosen.ctx);
+	await commands.get("nubia:animations")!.handler("", chosen.ctx);
 	assert.equal(JSON.parse(readFileSync(path, "utf8")).policy, "potato");
 	assert.match(chosen.ui.notices.at(-1)!, /animations: potato/);
 
@@ -2608,7 +2608,7 @@ test("animations with no argument opens a selectable menu and applies the chosen
 	const { pi: dismissPi, commands: dismissCommands } = fakePi();
 	gentleShell(dismissPi, { GENTLE_PI_CONFIG_HOME: dismissHome });
 	const dismissed = fakeContext({ select: async () => undefined });
-	await dismissCommands.get("gentle:animations")!.handler("", dismissed.ctx);
+	await dismissCommands.get("nubia:animations")!.handler("", dismissed.ctx);
 	assert.equal(dismissed.ui.notices.length, 0);
 	assert.equal(existsSync(join(dismissHome, "animations.json")), false);
 });
@@ -2700,7 +2700,7 @@ test("customize Editor rows preview global preference without applying until Ent
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Vim: enable"));
 	assert.match(ui.overlayView!.render(90).join("\n"), /Preview · Vim[\s\S]*preference: off.*effective: no active prompt/i);
@@ -2721,7 +2721,7 @@ test("customize History rows persist prompt history capture and keep stored hist
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Prompt history capture: enable"));
 	assert.match(ui.overlayView!.render(90).join("\n"), /History · 1\/2/);
@@ -2748,7 +2748,7 @@ test("customize Cards rows persist the card style and switch live conversation c
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	assert.equal(cardStyle(), CARD_STYLE.FLOAT, "no preference file means float");
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Card style: float (current)"));
 	assert.match(ui.overlayView!.render(90).join("\n"), /Cards · 2\/2/);
@@ -2823,7 +2823,7 @@ test("T3 live style Cards action refreshes cached TODO, header, footer and promp
 	const neon = { ...frame };
 	paint();
 	assert.equal(todoRenders, 1, "unchanged frame uses cached TODO");
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	let overlayRenders = 0;
 	t.mock.method(fakeTui, "requestRender", () => { overlayRenders++; });
@@ -2867,7 +2867,7 @@ test("T3 live style failed persistence leaves live style and sidebar revision un
 	const factory = ui.footerFactory as (tui: unknown, theme: ShellBarTheme, data: unknown) => { dispose(): void };
 	const footer = factory(tui, plainTheme, { getGitBranch: () => "main", getExtensionStatuses: () => new Map(), getAvailableProviderCount: () => 1, onBranchChange: () => () => {} });
 	t.after(() => footer.dispose());
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	writeFileSync(join(home, "card-style.json"), "{");
 	const cache = Symbol.for("gentle-pi.experimental-sidebar.cache");
@@ -2905,7 +2905,7 @@ test("customize Cards rows refuse to overwrite a malformed preference", async (t
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Card style: float"));
 	assert.match(ui.overlayView!.render(90).join("\n"), /malformed or unreadable file/i);
@@ -2923,7 +2923,7 @@ test("customize History rows show when GENTLE_PI_HISTORY_CAPTURE overrides the s
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_HISTORY_CAPTURE: " Off " });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Prompt history capture: enable (current) · env override"));
 	assert.match(ui.overlayView!.render(90).join("\n"), /preference: on · effective: off · GENTLE_PI_HISTORY_CAPTURE overrides/i);
@@ -2944,7 +2944,7 @@ test("customize History rows refuse to overwrite a malformed preference and repo
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Prompt history capture: enable"));
 	assert.match(ui.overlayView!.render(90).join("\n"), /preference: off · effective: off · malformed or unreadable file/i);
@@ -2962,7 +2962,7 @@ test("external Vim preference change while customize is open never implies a com
 	const { ctx, ui, overlayReady } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
 	try {
-		const pending = commands.get("gentle:customize")!.handler("", ctx);
+		const pending = commands.get("nubia:customize")!.handler("", ctx);
 		await overlayReady;
 		assert.ok(findCustomizeRow(ui, "Vim: enable"));
 		writeVimPolicy("on", { gentlePiConfigHome: home }); // Another session changes the global preference.
@@ -2970,7 +2970,7 @@ test("external Vim preference change while customize is open never implies a com
 		const preview = ui.overlayView!.render(90).join("\n");
 		assert.match(preview, /preference: on.*effective: off/i);
 		assert.doesNotMatch(preview, /compatibility rejected|unsupported/i);
-		await commands.get("gentle:vim")!.handler("status", ctx);
+		await commands.get("nubia:vim")!.handler("status", ctx);
 		assert.equal(editor.effectiveVimPolicy, "on");
 		assert.doesNotMatch(ui.notices.at(-1)!, /compatibility rejected|unsupported/i);
 		ui.overlayView!.handleInput("\x1b"); await pending;
@@ -2985,7 +2985,7 @@ test("customize updates live Vim prompt and reports unsupported effective state 
 		const { ctx, ui, overlayReady } = fakeContext();
 		const editor = installedPrompt(ctx, ui, handlers);
 		try {
-			const pending = commands.get("gentle:customize")!.handler("", ctx); await overlayReady;
+			const pending = commands.get("nubia:customize")!.handler("", ctx); await overlayReady;
 			await customizeAction(ui, "Vim: enable");
 			await new Promise<void>(resolve => setImmediate(resolve));
 			assert.equal(editor.effectiveVimPolicy, version === "unsupported" ? "off" : "on");
@@ -3004,7 +3004,7 @@ test("customize Vim reports a persistence error without changing the live prompt
 	const { pi, handlers, commands } = fakePi(); gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
-	const pending = commands.get("gentle:customize")!.handler("", ctx); await overlayReady;
+	const pending = commands.get("nubia:customize")!.handler("", ctx); await overlayReady;
 	chmodSync(home, 0o500);
 	try {
 		await customizeAction(ui, "Vim: enable");
@@ -3024,7 +3024,7 @@ test("customize Vim refuses malformed or unreadable policy without false success
 	writeFileSync(path, "invalid");
 	const { pi, commands } = fakePi(); gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx); await overlayReady;
+	const pending = commands.get("nubia:customize")!.handler("", ctx); await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Vim: enable"));
 	assert.match(ui.overlayView!.render(90).join("\n"), /malformed or unreadable/i);
 	await customizeAction(ui, "Vim: enable");
@@ -3044,7 +3044,7 @@ test("customize command updates displayed settings and applies layout immediatel
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.match(ui.overlayView!.render(90).join("\n"), /Animations: quality.*current/);
 	await customizeAction(ui, "Animations: performance");
@@ -3076,7 +3076,7 @@ test("below-input header remains a fullscreen widget without the rail and follow
 	try {
 		const widget = ui.widgets.get("gentle-shell-below-input-header") as (tui: unknown, theme: ShellBarTheme) => { render(width: number): string[] };
 		assert.deepEqual(widget(tui, plainTheme).render(180), []);
-		const pending = commands.get("gentle:customize")!.handler("", ctx);
+		const pending = commands.get("nubia:customize")!.handler("", ctx);
 		await overlayReady;
 		await customizeAction(ui, "Header placement: below-input");
 		assert.match(widget(tui, plainTheme).render(180).join("\n"), /Nub-IA/);
@@ -3103,7 +3103,7 @@ test("narrow fullscreen with a below-input header shows only the bottom bar, car
 		const topBottom = footer.render(100);
 		assert.equal(topBottom.length, 1, "top placement keeps the compact bar contract");
 		assert.match(topBottom[0]!, /nub-ia/);
-		const pending = commands.get("gentle:customize")!.handler("", ctx);
+		const pending = commands.get("nubia:customize")!.handler("", ctx);
 		await overlayReady;
 		await customizeAction(ui, "Header placement: below-input");
 		assert.deepEqual(widget(tui, plainTheme).render(100), [], "no second status row below the input at narrow width");
@@ -3235,7 +3235,7 @@ test("T4d unified float footer uses one live owner and restores legacy Changes o
 		assert.deepEqual(header.render(240), []);
 		tui.mode = "fullscreen";
 		const previousView = ui.overlayView;
-		const pending = commands.get("gentle:customize")!.handler("", ctx);
+		const pending = commands.get("nubia:customize")!.handler("", ctx);
 		await overlayReady;
 		for (let attempt = 0; attempt < 100 && ui.overlayView === previousView; attempt++) await new Promise<void>((resolve) => setTimeout(resolve, 5));
 		await customizeAction(ui, "Status placement: hidden");
@@ -3272,7 +3272,7 @@ test("customize previews installed source palette without selecting until Enter"
 	themeApi.getTheme = (name) => name === "dark" ? { name, sourcePath: source } : original(name);
 	const applied: string[] = [];
 	themeApi.setTheme = (name) => { applied.push(name); return { success: true }; };
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Theme: dark"), "missing Theme: dark");
 	const lines = ui.overlayView!.render(90).join("\n");
@@ -3294,7 +3294,7 @@ test("customize preserves invalid visual settings and reports failed theme selec
 	const { ctx, ui, overlayReady } = fakeContext();
 	const api = ctx.ui as unknown as { getTheme(name: string): unknown; setTheme(name: string): unknown };
 	api.getTheme = () => undefined;
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	await customizeAction(ui, "Status placement: hidden");
 	assert.equal(readFileSync(path, "utf8"), "invalid");
@@ -3312,7 +3312,7 @@ test("customize never overwrites malformed banner through toggle, color or reset
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	for (const action of ["Banner rose", "Banner color: cyan", "Reset visual, banner and animation defaults"]) {
 		await customizeAction(ui, action);
@@ -3330,7 +3330,7 @@ test("customize refuses an unreadable banner path before modifying visual settin
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	await customizeAction(ui, "Banner color: cyan");
 	assert.match(ui.notices.at(-1)!, /unreadable banner/i);
@@ -3349,7 +3349,7 @@ test("customize reports a partial reset and identifies committed stores on anima
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	await customizeAction(ui, "Reset visual, banner and animation defaults");
 	assert.equal(resolveVisualSettings(options).settings.statusPlacement, "auto");
@@ -3368,7 +3368,7 @@ test("named profile applies installed theme, banner, animation and visual settin
 	const { ctx, ui, overlayReady } = fakeContext();
 	const applied: string[] = [];
 	(ctx.ui as unknown as { setTheme(name: string): { success: boolean } }).setTheme = (name) => { applied.push(name); return { success: true }; };
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	const view = ui.overlayView!;
 	view.handleInput("p");
@@ -3394,7 +3394,7 @@ test("saving a profile refuses an active theme that is not installed or resolvab
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	(ctx.ui as unknown as { theme: { name: string } }).theme = { name: "phantom" };
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	const view = ui.overlayView!;
 	view.handleInput("p");
@@ -3418,7 +3418,7 @@ test("saving a profile refuses a malformed or unreadable animation policy store"
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	(ctx.ui as unknown as { theme: { name: string } }).theme = { name: "dark" };
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	const view = ui.overlayView!;
 	view.handleInput("p");
@@ -3441,7 +3441,7 @@ test("profile save, replace, delete and reset succeed through the modal and pers
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	(ctx.ui as unknown as { theme: { name: string } }).theme = { name: "dark" };
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	const view = ui.overlayView!;
 	view.handleInput("p");
@@ -3498,7 +3498,7 @@ test("named profile reports PARTIAL when animation store fails, and never activa
 	const { ctx, ui, overlayReady } = fakeContext();
 	const applied: string[] = [];
 	(ctx.ui as unknown as { setTheme(name: string): { success: boolean } }).setTheme = (name) => { applied.push(name); return { success: true }; };
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	const view = ui.overlayView!;
 	view.handleInput("p");
@@ -3525,14 +3525,14 @@ test("customize degrades unavailable theme APIs and refuses noninteractive UI", 
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	(ctx.ui as unknown as { getAllThemes(): unknown }).getAllThemes = () => { throw new Error("theme lookup failed"); };
-	const pending = commands.get("gentle:customize")!.handler("", ctx);
+	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Themes unavailable; use Pi /settings"), "missing Themes unavailable message");
 	ui.overlayView!.handleInput("\x1b");
 	await pending;
 	const { ctx: rpc, ui: rpcUi } = fakeContext();
 	(rpc as unknown as { mode: string }).mode = "rpc";
-	await commands.get("gentle:customize")!.handler("", rpc);
+	await commands.get("nubia:customize")!.handler("", rpc);
 	assert.equal(rpcUi.overlayView, undefined);
 	assert.match(rpcUi.notices.at(-1)!, /interactive terminal/);
 });
@@ -3661,7 +3661,7 @@ test("vim INSERT Esc only enters NORMAL; NORMAL Esc hands off queued text after 
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	try {
-		await commands.get("gentle:vim")!.handler("enable", ctx);
+		await commands.get("nubia:vim")!.handler("enable", ctx);
 		editor.setText("draft reply");
 		let aborts = 0;
 		editor.onEscape = () => { aborts++; editor.setText(`follow up\n\n${editor.getText()}`); };
@@ -4093,36 +4093,36 @@ test("idle draft: a bash-mode draft with leading whitespace still bypasses the i
 });
 
 // ---------------------------------------------------------------------------
-// /gentle:double-esc-cancel (issue #1163). Unlike /gentle:background-subagents,
+// /nubia:double-esc-cancel (issue #1163). Unlike /nubia:background-subagents,
 // no argument toggles the effective policy rather than merely reporting it.
 // ---------------------------------------------------------------------------
 
-test("gentle:double-esc-cancel is registered and declares user-initiated sub-actions with a toggling no-argument form", () => {
+test("nubia:double-esc-cancel is registered and declares user-initiated sub-actions with a toggling no-argument form", () => {
 	const { pi, commands } = fakePi();
 	gentleShell(pi, {});
-	const command = commands.get("gentle:double-esc-cancel");
-	assert.ok(command, "gentle:double-esc-cancel must be registered");
+	const command = commands.get("nubia:double-esc-cancel");
+	assert.ok(command, "nubia:double-esc-cancel must be registered");
 	assert.match(command!.description ?? "", /status\|enable\|disable/);
 	assert.match(command!.description ?? "", /no argument toggles/);
 });
 
-test("gentle:double-esc-cancel status reports off by default and writes nothing", async (t) => {
+test("nubia:double-esc-cancel status reports off by default and writes nothing", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
-	await commands.get("gentle:double-esc-cancel")!.handler("status", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("status", ctx);
 	assert.equal(ui.notices.length, 1);
 	assert.match(ui.notices[0]!, /^double-esc-cancel: off \(decided by built-in default\)/);
 	assert.equal(existsSync(join(configHome, "double-esc-cancel.json")), false);
 });
 
-test("gentle:double-esc-cancel enable writes the global file, reports it, and takes effect immediately", async (t) => {
+test("nubia:double-esc-cancel enable writes the global file, reports it, and takes effect immediately", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
-	await commands.get("gentle:double-esc-cancel")!.handler("enable", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("enable", ctx);
 	assert.match(ui.notices[0]!, /^double-esc-cancel: on \(decided by global file/);
 	assert.match(ui.notices[0]!, /Wrote on to the global file/);
 	assert.deepEqual(
@@ -4131,13 +4131,13 @@ test("gentle:double-esc-cancel enable writes the global file, reports it, and ta
 	);
 });
 
-test("gentle:double-esc-cancel disable writes off", async (t) => {
+test("nubia:double-esc-cancel disable writes off", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
-	await commands.get("gentle:double-esc-cancel")!.handler("enable", ctx);
-	await commands.get("gentle:double-esc-cancel")!.handler("disable", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("enable", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("disable", ctx);
 	assert.match(ui.notices[1]!, /^double-esc-cancel: off \(decided by global file/);
 	assert.deepEqual(
 		JSON.parse(readFileSync(join(configHome, "double-esc-cancel.json"), "utf8")),
@@ -4145,39 +4145,39 @@ test("gentle:double-esc-cancel disable writes off", async (t) => {
 	);
 });
 
-test("gentle:double-esc-cancel with no argument toggles the effective policy each time", async (t) => {
+test("nubia:double-esc-cancel with no argument toggles the effective policy each time", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
-	await commands.get("gentle:double-esc-cancel")!.handler("", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("", ctx);
 	assert.match(ui.notices[0]!, /^double-esc-cancel: on /, "off -> on on the first toggle");
-	await commands.get("gentle:double-esc-cancel")!.handler("", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("", ctx);
 	assert.match(ui.notices[1]!, /^double-esc-cancel: off /, "on -> off on the second toggle");
 });
 
-test("gentle:double-esc-cancel reports a malformed global file as fail-closed, not as an ordinary off", async (t) => {
+test("nubia:double-esc-cancel reports a malformed global file as fail-closed, not as an ordinary off", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	mkdirSync(configHome, { recursive: true });
 	writeFileSync(join(configHome, "double-esc-cancel.json"), "{malformed");
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
-	await commands.get("gentle:double-esc-cancel")!.handler("status", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("status", ctx);
 	assert.match(ui.notices[0]!, /present but malformed/);
 });
 
-test("gentle:double-esc-cancel an unknown sub-action warns and changes nothing", async (t) => {
+test("nubia:double-esc-cancel an unknown sub-action warns and changes nothing", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
-	await commands.get("gentle:double-esc-cancel")!.handler("toggle", ctx);
-	assert.match(ui.notices[0]!, /Unknown \/gentle:double-esc-cancel sub-action "toggle"/);
+	await commands.get("nubia:double-esc-cancel")!.handler("toggle", ctx);
+	assert.match(ui.notices[0]!, /Unknown \/nubia:double-esc-cancel sub-action "toggle"/);
 	assert.equal(existsSync(join(configHome, "double-esc-cancel.json")), false);
 });
 
-test("gentle:double-esc-cancel enable updates the in-memory policy so an already-installed prompt picks it up without re-reading the file", async (t) => {
+test("nubia:double-esc-cancel enable updates the in-memory policy so an already-installed prompt picks it up without re-reading the file", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
@@ -4188,14 +4188,14 @@ test("gentle:double-esc-cancel enable updates the in-memory policy so an already
 	for (const handler of handlers.get("agent_start") ?? []) handler({}, ctx);
 	editor.handleInput("\x1b");
 	assert.equal(aborted, 1, "off by default: the first Esc still aborts");
-	await commands.get("gentle:double-esc-cancel")!.handler("enable", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("enable", ctx);
 	editor.handleInput("\x1b");
 	assert.equal(aborted, 1, "now on: the same prompt instance must swallow the first Esc instead of aborting");
 	assert.match(stripAnsi(editor.render(60).join("\n")), /esc again to cancel/);
 	editor.dispose();
 });
 
-test("gentle:double-esc-cancel re-syncs the keypress gate from the global file so status, toggle direction, and Esc behavior agree", async (t) => {
+test("nubia:double-esc-cancel re-syncs the keypress gate from the global file so status, toggle direction, and Esc behavior agree", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
@@ -4207,13 +4207,13 @@ test("gentle:double-esc-cancel re-syncs the keypress gate from the global file s
 	// Another session (or a hand edit) turns the preference on underneath this one.
 	mkdirSync(configHome, { recursive: true });
 	writeFileSync(join(configHome, "double-esc-cancel.json"), JSON.stringify({ schema: "gentle-pi.double-esc-cancel/v1", policy: "on" }));
-	await commands.get("gentle:double-esc-cancel")!.handler("status", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("status", ctx);
 	assert.match(ui.notices[0]!, /^double-esc-cancel: on \(decided by global file/);
 	editor.handleInput("\x1b");
 	assert.equal(aborted, 0, "status reported on, so the gate must swallow the first Esc rather than abort");
 	assert.match(stripAnsi(editor.render(60).join("\n")), /esc again to cancel/);
 	// The no-argument toggle flips relative to that same on-disk value: on -> off.
-	await commands.get("gentle:double-esc-cancel")!.handler("", ctx);
+	await commands.get("nubia:double-esc-cancel")!.handler("", ctx);
 	assert.match(ui.notices[1]!, /^double-esc-cancel: off /);
 	assert.deepEqual(JSON.parse(readFileSync(join(configHome, "double-esc-cancel.json"), "utf8")), { schema: "gentle-pi.double-esc-cancel/v1", policy: "off" });
 	editor.dispose();
@@ -4313,7 +4313,7 @@ test("same-session explicit registration after bootstrap does not claim Changes"
 	await assert.rejects(register.execute("foreign", { path: "/foreign" }, undefined, undefined, ctx), /same Git clone/);
 	assert.equal(ctx.sessionManager, manager);
 	assert.equal(ctx.sessionManager.getEntries().length, 1);
-	await commands.get("gentle:changes")!.handler("", ctx);
+	await commands.get("nubia:changes")!.handler("", ctx);
 	assert.match(ui.notices.join("\n"), /No captured agent changes/);
 	assert.equal(ui.overlay, undefined);
 	assert.deepEqual(git, []);
@@ -4326,12 +4326,12 @@ test("Changes opens only for captured mutations, not registered dirty roots", as
  const {ctx,ui,overlayReady}=fakeContext();
  await fire(handlers,"session_start",ctx);
  await tools.get("session_worktree_register")!.execute("r",{path:"/linked"},undefined,undefined,ctx);
- await commands.get("gentle:changes")!.handler("",ctx);
+ await commands.get("nubia:changes")!.handler("",ctx);
  assert.match(ui.notices.join("\n"),/No captured agent changes/);
  assert.equal(ui.overlay,undefined);
  sessionChange(ctx,"a","/linked","file.ts");
  await fire(handlers,"agent_end",ctx);
- const opened=commands.get("gentle:changes")!.handler("",ctx);
+ const opened=commands.get("nubia:changes")!.handler("",ctx);
  await overlayReady;
  assert.match(ui.overlayView!.render(140).join("\n"),/linked/);
  assert.ok(onlyHeadLabels(git), `overlay ran more than HEAD labelling: ${JSON.stringify(git)}`);
@@ -4346,7 +4346,7 @@ test("overlay groups captured roots and refreshes same-count diffs without HEAD 
  sessionChange(ctx,"a","/repo","same.ts","old\n","first\n");
  sessionChange(ctx,"child:a","/linked","same.ts","old\n","child\n");
  await fire(handlers,"session_start",ctx);
- const opened=commands.get("gentle:changes")!.handler("",ctx);
+ const opened=commands.get("nubia:changes")!.handler("",ctx);
  await overlayReady;
  try {
   ui.overlayView!.handleInput("\r"); ui.overlayView!.handleInput("j");
@@ -4430,7 +4430,7 @@ test("registered canonical root governs real Git discovery, status and diff desp
 	assert.equal(largeDiff.code, 0);
 	assert.ok(largeDiff.stdout.length > 1024 * 1024, "output must not inherit execFile's default one MiB cap");
 	assert.match(largeDiff.stdout, /\+selected final marker/);
-	await h.commands.get("gentle:changes")!.handler("", ctx);
+	await h.commands.get("nubia:changes")!.handler("", ctx);
 	assert.equal(ui.overlay, undefined);
 });
 
@@ -4742,7 +4742,7 @@ test("gentleShell shows the unsupported note for a provider with no built-in or 
 	const { ctx, ui } = fakeContext({ token: undefined });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "acme-cloud";
 	await fire(handlers, "session_start", ctx);
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
 	assert.match(plain[1], /∞ acme-cloud · no subscription usage for this provider/);
@@ -4811,7 +4811,7 @@ test("a registered source's rejecting fetch never crashes the shell or poisons t
 	// The panel still explains itself with the generic failure note (the fetch
 	// ran and answered nothing), never a crash, even through the awaited
 	// refresh openUsage runs on open.
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
 	assert.match(plain[1], /∞ acme-cloud · fetch failed · r to retry/);
@@ -4862,7 +4862,7 @@ test("gentleShell leaves a generic failure note when a registered source resolve
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	assert.doesNotMatch(renderFooter(ui), /acme-cloud/, "a malformed result must never be recorded");
 
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
 	assert.match(plain[1], /∞ acme-cloud · fetch failed · r to retry/);
@@ -4924,12 +4924,12 @@ test("gentleShell records SSE rate-limit headers from provider responses", async
 	assert.doesNotMatch(renderFooter(ui), /codex/);
 });
 
-test("gentleShell registers /gentle:usage and opens the subscriptions overlay", async () => {
+test("gentleShell registers /nubia:usage and opens the subscriptions overlay", async () => {
 	const { pi, handlers, commands } = fakePi();
 	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch().fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
 	assert.match(plain[0], /Subscriptions/);
@@ -4945,7 +4945,7 @@ test("usageShortcut defaults to alt+u and can be overridden or disabled", () => 
 	assert.equal(usageShortcut({ GENTLE_PI_SHELL_USAGE_KEY: "" }), undefined);
 });
 
-test("gentleShell binds the usage shortcut to the same handler as /gentle:usage", async () => {
+test("gentleShell binds the usage shortcut to the same handler as /nubia:usage", async () => {
 	const { pi, handlers, shortcuts } = fakePi();
 	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch().fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
@@ -4964,13 +4964,13 @@ test("gentleShell binds the usage shortcut to the same handler as /gentle:usage"
 	assert.equal(silent.shortcuts.has("alt+u"), false, "the usage shortcut must not register when disabled");
 });
 
-test("gentle:commands registers alt+k by default", () => {
+test("nubia:commands registers alt+k by default", () => {
 	const { pi, shortcuts } = fakePi();
 	gentleShell(pi, {});
 	assert.ok(shortcuts.has("alt+k"));
 });
 
-test("gentle:commands honors GENTLE_PI_COMMANDS_KEY", () => {
+test("nubia:commands honors GENTLE_PI_COMMANDS_KEY", () => {
 	const { pi, shortcuts } = fakePi();
 	gentleShell(pi, { GENTLE_PI_COMMANDS_KEY: "ctrl+p" });
 	assert.ok(shortcuts.has("ctrl+p"));
@@ -4984,11 +4984,11 @@ test("GENTLE_PI_COMMANDS_KEY=off registers no command-palette shortcut", () => {
 	assert.ok(shortcuts.has("alt+g"), "the unrelated changes shortcut still registers");
 });
 
-test("/gentle:commands shows only curated, registered commands, grouped, by their labels", async () => {
+test("/nubia:commands shows only curated, registered commands, grouped, by their labels", async () => {
 	const { pi, commands } = fakePi();
 	gentleShell(pi, {});
 	const { ctx, ui, overlayReady } = fakeContext();
-	const opened = commands.get("gentle:commands")!.handler("", ctx);
+	const opened = commands.get("nubia:commands")!.handler("", ctx);
 	await overlayReady;
 	const lines = ui.overlayView!.render(100);
 	const rendered = lines.join("\n");
@@ -5001,8 +5001,8 @@ test("/gentle:commands shows only curated, registered commands, grouped, by thei
 	assert.match(rendered, /Browse captured changes/);
 	assert.match(rendered, /Gentle AI status/);
 	assert.match(rendered, /Refresh skill registry/);
-	assert.doesNotMatch(rendered, /gentle:models|gentle:changes|gentle:status|skill-registry:refresh/, "raw command names must not leak; only labels are shown");
-	assert.doesNotMatch(rendered, /gentle:not-in-catalog/);
+	assert.doesNotMatch(rendered, /nubia:models|nubia:changes|nubia:status|skill-registry:refresh/, "raw command names must not leak; only labels are shown");
+	assert.doesNotMatch(rendered, /nubia:not-in-catalog/);
 	assert.doesNotMatch(rendered, /skill:foo/);
 	const changesLine = lines.find((line) => line.includes("Browse captured changes"));
 	assert.match(changesLine ?? "", /alt\+g/, "expected the configured alt+g shortcut hint next to Browse captured changes");
@@ -5014,7 +5014,7 @@ test("selecting a command from the palette by its label sends the underlying com
 	const { pi, commands, sentMessages } = fakePi();
 	gentleShell(pi, {});
 	const { ctx, ui, overlayReady } = fakeContext();
-	const opened = commands.get("gentle:commands")!.handler("", ctx);
+	const opened = commands.get("nubia:commands")!.handler("", ctx);
 	await overlayReady;
 	// "mod" only matches the "Assign models and effort" label (it contains
 	// "mod" via "models"); nothing else in the fixture does.
@@ -5022,37 +5022,37 @@ test("selecting a command from the palette by its label sends the underlying com
 	assert.match(ui.overlayView!.render(100).join("\n"), /Assign models and effort/);
 	ui.overlayView!.handleInput("\r");
 	await opened;
-	assert.deepEqual(sentMessages, [{ content: "/gentle:models", options: { expandPromptTemplates: true } }]);
+	assert.deepEqual(sentMessages, [{ content: "/nubia:models", options: { expandPromptTemplates: true } }]);
 });
 
 test("escaping the palette sends no message", async () => {
 	const { pi, commands, sentMessages } = fakePi();
 	gentleShell(pi, {});
 	const { ctx, ui, overlayReady } = fakeContext();
-	const opened = commands.get("gentle:commands")!.handler("", ctx);
+	const opened = commands.get("nubia:commands")!.handler("", ctx);
 	await overlayReady;
 	ui.overlayView!.handleInput("\x1b");
 	await opened;
 	assert.deepEqual(sentMessages, []);
 });
 
-test("/gentle:commands notifies when nothing in the catalog is registered", async () => {
+test("/nubia:commands notifies when nothing in the catalog is registered", async () => {
 	const { pi, commands } = fakePi(undefined, [
 		{ name: "skill:foo", description: "A skill", source: "skill", sourceInfo: FAKE_SOURCE_INFO },
-		{ name: "gentle:not-in-catalog", description: "Not curated", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
+		{ name: "nubia:not-in-catalog", description: "Not curated", source: "extension", sourceInfo: FAKE_SOURCE_INFO },
 	]);
 	gentleShell(pi, {});
 	const { ctx, ui } = fakeContext();
-	await commands.get("gentle:commands")!.handler("", ctx);
+	await commands.get("nubia:commands")!.handler("", ctx);
 	assert.match(ui.notices.join("\n"), /No Gentle commands are registered\./);
 	assert.equal(ui.overlay, undefined);
 });
 
-test("/gentle:commands does nothing in a headless context", async () => {
+test("/nubia:commands does nothing in a headless context", async () => {
 	const { pi, commands, sentMessages } = fakePi();
 	gentleShell(pi, {});
 	const { ctx, ui } = fakeContext({ hasUI: false });
-	await commands.get("gentle:commands")!.handler("", ctx);
+	await commands.get("nubia:commands")!.handler("", ctx);
 	assert.equal(ui.overlay, undefined);
 	assert.deepEqual(sentMessages, []);
 });
@@ -5074,7 +5074,7 @@ test("resolving the overlay through closeOverlay sends nothing and does not thro
 	const { pi, commands, sentMessages } = fakePi();
 	gentleShell(pi, {});
 	const { ctx, ui, overlayReady } = fakeContext();
-	const opened = commands.get("gentle:commands")!.handler("", ctx);
+	const opened = commands.get("nubia:commands")!.handler("", ctx);
 	await overlayReady;
 	ui.closeOverlay?.();
 	await opened;
@@ -5180,7 +5180,7 @@ test("the subscriptions panel shows targeted providers with no data and a generi
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch(NAN_QUOTA_PAYLOAD, false).fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
 	assert.match(plain.find((line) => line.includes("nan")) ?? "", /nan · fetch failed · r to retry/, "a targeted provider whose fetch answered nothing says so, generically");
@@ -5229,7 +5229,7 @@ test("a stalled provider times out without hanging the overlay, and a late answe
 
 	// The stalled fetch is still pending, yet the panel opens right away and
 	// shows whatever the store already holds.
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.ok(ui.overlayView, "the overlay must open while a provider is still stalled");
 	assert.match(ui.overlayView!.render(90).map(stripAnsi).find((line) => /^│ nan · updated just now/.test(line)) ?? "", /nan/, "the healthy provider's snapshot lands while the other provider is stalled");
@@ -5290,7 +5290,7 @@ test("a settled provider repaints the overlay before the stalled provider's wind
 		frames += 1;
 	};
 	try {
-		const opened = commands.get("gentle:usage")!.handler("", ctx);
+		const opened = commands.get("nubia:usage")!.handler("", ctx);
 		await settle();
 		// Both providers are pending; releasing only the healthy one must repaint
 		// the overlay at once, with the refresh still in flight.
@@ -5399,7 +5399,7 @@ test("the panel keeps a headers-only subagent provider pending instead of a fals
 	await fire(handlers, "session_start", ctx);
 	await settle();
 	assert.deepEqual(calls.map((call) => call.url), [CODEX_USAGE_URL], "anthropic has no usage endpoint to fetch; only the session's own provider is fetched");
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	const plain = ui.overlayView!.render(90).map(stripAnsi);
 	assert.match(plain.find((line) => line.includes("anthropic")) ?? "", /anthropic · usage arrives with the first response/);
@@ -5416,14 +5416,14 @@ test("after a profile switch the panel stops presenting the old profile's provid
 	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch(NAN_QUOTA_PAYLOAD).fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.ok(ui.overlayView!.render(90).map(stripAnsi).some((line) => /^│ nan ·/.test(line)), "the team profile's nan route is current scope");
 	ui.closeOverlay?.();
 	await opened;
 
 	writeProfilesStore(home, { team: { reviewer: { model: "nan/glm5.3" } }, solo: {} }, "solo");
-	const reopened = commands.get("gentle:usage")!.handler("", ctx);
+	const reopened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.equal(ui.overlayView!.render(90).map(stripAnsi).some((line) => line.includes("nan")), false, "a provider recorded under the previous profile's routing is not current scope");
 	ui.closeOverlay?.();
@@ -5449,7 +5449,7 @@ test("a failed refresh says so beside the retained snapshot and clears on the ne
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.ok(openPanelLines(ui).some((line) => /^│ nan · updated just now/.test(line)), "the good snapshot is recorded");
 	assert.equal(openPanelLines(ui).some((line) => line.includes("fetch failed")), false, "a successful refresh carries no failure note");
@@ -5460,7 +5460,7 @@ test("a failed refresh says so beside the retained snapshot and clears on the ne
 	now += 6 * 60_000;
 	await fire(handlers, "agent_end", ctx);
 	await settle();
-	const reopened = commands.get("gentle:usage")!.handler("", ctx);
+	const reopened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	const afterFailure = openPanelLines(ui);
 	assert.ok(afterFailure.some((line) => /^│ nan · updated 6m ago/.test(line)), "the retained snapshot still headlines the provider, honestly stale");
@@ -5473,7 +5473,7 @@ test("a failed refresh says so beside the retained snapshot and clears on the ne
 	now += 6 * 60_000;
 	await fire(handlers, "agent_end", ctx);
 	await settle();
-	const recovered = commands.get("gentle:usage")!.handler("", ctx);
+	const recovered = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.ok(openPanelLines(ui).some((line) => /^│ nan · updated just now/.test(line)));
 	assert.equal(openPanelLines(ui).some((line) => line.includes("fetch failed")), false, "a successful refresh clears the failure note");
@@ -5523,7 +5523,7 @@ test("a replaced source's late failure cannot mark the provider failed after its
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.ok(openPanelLines(ui).some((line) => line.includes("acme-cloud") && line.includes("40%")), "the original source's snapshot is showing");
 
@@ -5547,7 +5547,7 @@ test("a valid response-header snapshot clears a prior refresh failure", async (_
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.ok(openPanelLines(ui).some((line) => line.includes("∞ openai-codex · fetch failed")), "the failed refresh is visible first");
 
@@ -5579,7 +5579,7 @@ test("the panel's scope is resolved on refresh, not on every render", async (t) 
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.ok(openPanelLines(ui).some((line) => line.includes("nan")), "the panel renders the scoped providers");
 	const before = resolutions;
@@ -5609,7 +5609,7 @@ test("an older overlapping refresh cannot mark a provider failed after a newer o
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
-	const opened = commands.get("gentle:usage")!.handler("", ctx);
+	const opened = commands.get("nubia:usage")!.handler("", ctx);
 	await settle();
 	assert.ok(openPanelLines(ui).some((line) => line.includes("∞ openai-codex · pro")), "the newer refresh's snapshot is showing");
 

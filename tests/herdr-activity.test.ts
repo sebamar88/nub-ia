@@ -180,7 +180,7 @@ test("CLI transport honors an explicit Herdr binary path without shell interpret
 });
 
 test("one metadata report sets or clears both tokens without changing semantic state", () => {
-	const base = ["pane", "report-metadata", "pane", "--source", "gentle:activity", "--agent", "pi", "--seq", "42", "--ttl-ms", "30000"];
+	const base = ["pane", "report-metadata", "pane", "--source", "nubia:activity", "--agent", "pi", "--seq", "42", "--ttl-ms", "30000"];
 	assert.deepEqual(metadataArgs("pane", null, 42), [...base, "--clear-token", "summary", "--clear-token", "summary2"]);
 	assert.deepEqual(metadataArgs("pane", "◐ long\n  title", 42), [...base, "--token", "summary=◐ long", "--token", "summary2=  title"]);
 	assert.deepEqual(metadataArgs("pane", "◐ short", 42), [...base, "--token", "summary=◐ short", "--clear-token", "summary2"]);

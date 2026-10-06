@@ -204,7 +204,7 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 	const innerWidth = panelInnerWidth(theme, width);
 	const inset = Math.min(1, innerWidth - 1);
 	// Model, effort, context, cost, and the per-model usage table now live in
-	// the always-visible header row (and /gentle:usage for the full table);
+	// the always-visible header row (and /nubia:usage for the full table);
 	// this event-driven card keeps only what a footer/model-switch event does
 	// not already refresh every frame.
 	const groups: Array<{ title: string; lines: string[] }> = [
@@ -224,7 +224,7 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 					? `${changes.files} ${changes.files === 1 ? "file" : "files"} · ${theme.fg("success", `+${changes.added}`)} ${theme.fg("error", `−${changes.deleted}`)}`
 					: label("No captured changes"),
 				...(changes?.notice ? [theme.fg("warning", sanitizeStatus(changes.notice))] : []),
-				label("/gentle:changes"),
+				label("/nubia:changes"),
 			],
 		}]),
 		{ title: "Integrations", lines: model.statuses.length

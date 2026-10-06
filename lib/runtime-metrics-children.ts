@@ -3,10 +3,10 @@ import { parseAgentDefinition, type AgentDefinition, type ModelRef } from "./age
 import type { ChildObservationSnapshot } from "./agents-runner.ts";
 import { FINISHED_STATUSES, type TaskStatus } from "./agents-protocol.ts";
 import { classifyRuntimeModelId, EFFORTS, normalizeRuntimeProvider, parseAgentClass, RuntimeMetrics, UNKNOWN_AGENT_CLASS, validRuntimeResponse, type AgentClass, type FinalResponse, type RuntimeMetricBucket } from "./runtime-metrics.ts";
-export const CHILD_METRICS_EVENT = "gentle:runtime-metrics:child/v1";
+export const CHILD_METRICS_EVENT = "nubia:runtime-metrics:child/v1";
 // Local revocation notification invalidates active observations. Contains only
 // the local session join, never policy output.
-export const CHILD_METRICS_REVOKED = "gentle:runtime-metrics:revoked/v1";
+export const CHILD_METRICS_REVOKED = "nubia:runtime-metrics:revoked/v1";
 const missing = { state: "unavailable" } as const;
 const tokenFields = ["input", "output", "cacheRead", "cacheWrite", "reasoning", "totalTokens"] as const;
 /** Recognize only names from this package's fixed assets and the transport's

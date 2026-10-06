@@ -630,10 +630,10 @@ export default function (pi: ExtensionAPI) {
       },
     });
   };
-  registerBannerCommand("gentle:banner");
-  registerToggleCommand("gentle:toggle-rose", "showRose");
-  registerToggleCommand("gentle:toggle-text-logo", "showTextLogo");
-  registerColorCommand("gentle:banner-color");
+  registerBannerCommand("nubia:banner");
+  registerToggleCommand("nubia:toggle-rose", "showRose");
+  registerToggleCommand("nubia:toggle-text-logo", "showTextLogo");
+  registerColorCommand("nubia:banner-color");
 
   pi.on("session_start", async (_event, ctx) => {
     disposeHeader();

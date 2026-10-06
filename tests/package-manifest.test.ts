@@ -128,7 +128,7 @@ test("public docs and metadata advertise ODD and review without retired phase wo
 		const source = readFileSync(join(PACKAGE_ROOT, path), "utf8");
 		assert.match(source, /ODD|Organic Driven Development/, path);
 		assert.match(source, /review/i, path);
-		assert.doesNotMatch(source, /\bSDD\b|OpenSpec|\/gentle-sdd-init|\/gentle:install-sdd|\/gentle:sdd-preflight|\/sdd-/i, path);
+		assert.doesNotMatch(source, /\bSDD\b|OpenSpec|\/gentle-sdd-init|\/nubia:install-sdd|\/nubia:sdd-preflight|\/sdd-/i, path);
 	}
 });
 
@@ -1690,7 +1690,7 @@ test("technical reference documents the in-process review and no gentle-ai binar
 		assert.ok(reference.includes(clause), `technical reference missing clause: ${clause}`);
 	}
 	assert.doesNotMatch(reference, /New ordinary review uses compact `gentle_review` `start -> finalize -> validate`\./);
-	assert.doesNotMatch(reference, /\/gentle:review-mode|\/gentle:dev-binary|\/gentle:telemetry|review-session-permission/);
+	assert.doesNotMatch(reference, /\/nubia:review-mode|\/nubia:dev-binary|\/nubia:telemetry|review-session-permission/);
 });
 
 

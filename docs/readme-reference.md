@@ -106,7 +106,7 @@ width can itself lag resize by five seconds. This is not live geometry. Missing,
 malformed, oversized or unsupported snapshots fall back to 24 available columns;
 other layouts may need manual adjustment. No CLI/socket query measures width.
 
-Source `gentle:activity` owns only `summary`/`summary2`, not lifecycle. Updates are
+Source `nubia:activity` owns only `summary`/`summary2`, not lifecycle. Updates are
 latest-only, serialized and best-effort offline, with a 30-second TTL refreshed every
 10 seconds while active. Each report clears an unused second row; idle, session
 changes and shutdown clear both. TTL expiry covers abrupt exits. The managed Herdr
@@ -202,7 +202,7 @@ This checkout ships no gentle-ai binary: review is the in-process 4R `nub_review
 
 The current package requires Pi 0.99.1 or newer and Node >=22.19.0. Development tests resolve Pi through the open `>=1.0.0` development range. The private Vim editor adapter admits only the audited Pi `0.99.1`, `0.99.2`, and `1.0.0` releases; any other release keeps ordinary prompt editing until its editor is audited. Use the latest Pi release; gentle-pi does not update your installed Pi automatically. Children, including any `GENTLE_PI_AGENTS_PI` override, must emit `agent_settled`: `agent_end` records a run's output but is not completion because retries or queued continuations may follow.
 
-The [`v2.6.0` release](https://github.com/Gentleman-Programming/gentle-shell/releases/tag/v2.6.0) added persistent registered worktrees and grouped `/gentle:changes` views; fuller workspace interaction details are in the [Gentle Shell reference](gentle-shell.md). It also adds named atomic `/gentle:profiles`, native review intended-untracked selection and provider continuations, and opt-in custom ask responses. Pi recognizes its global Git-managed package path; subsystems install with explicit recovery guidance when npm lifecycle work was skipped. Windows keeps child consoles hidden and fixes ownership mode; Gentle Todo keeps the next pending task visible when collapsed.
+The [`v2.6.0` release](https://github.com/Gentleman-Programming/gentle-shell/releases/tag/v2.6.0) added persistent registered worktrees and grouped `/nubia:changes` views; fuller workspace interaction details are in the [Gentle Shell reference](gentle-shell.md). It also adds named atomic `/nubia:profiles`, native review intended-untracked selection and provider continuations, and opt-in custom ask responses. Pi recognizes its global Git-managed package path; subsystems install with explicit recovery guidance when npm lifecycle work was skipped. Windows keeps child consoles hidden and fixes ownership mode; Gentle Todo keeps the next pending task visible when collapsed.
 
 ### Install-time fullscreen
 
@@ -380,26 +380,26 @@ The Gentle AI adapter projects native `gentle-pi:ask-user-question:blocked`, leg
 ## Quick start
 
 ```text
-/gentle:status          Check package assets and global model config.
-/gentle:doctor          Run read-only diagnostics for assets, config, tools, and guards.
-/gentle:models             Assign global model/effort routing to packaged/custom agents.
-/gentle:profiles           Create, switch, and manage global agent-model profiles.
-/gentle:persona            Switch between gentleman and neutral persona modes.
-/gentle:background-subagents  Show or set the managed background-subagents policy, with its deciding source.
-/gentle:animations         Show or set global animations: quality, performance, or potato.
-/gentle:banner             Configure startup rose, text logo, and color preset.
+/nubia:status          Check package assets and global model config.
+/nubia:doctor          Run read-only diagnostics for assets, config, tools, and guards.
+/nubia:models             Assign global model/effort routing to packaged/custom agents.
+/nubia:profiles           Create, switch, and manage global agent-model profiles.
+/nubia:persona            Switch between gentleman and neutral persona modes.
+/nubia:background-subagents  Show or set the managed background-subagents policy, with its deciding source.
+/nubia:animations         Show or set global animations: quality, performance, or potato.
+/nubia:banner             Configure startup rose, text logo, and color preset.
 ```
 
 Typical flow:
 
 1. Open Pi in your repo.
-2. Run `/gentle:status`.
+2. Run `/nubia:status`.
 3. Describe the outcome, for example: "Add CSV export using the existing report filters." ODD explores, implements authorized changes, and checks the result.
 4. For large work, inspect the feature document and evidence; resume reconciles the full file and Engram copy.
 
 ## Core workflow
 
-1. **Install and inspect.** Install `gentle-pi`, open Pi in the target repository, then run `/gentle:status` or `/gentle:doctor`.
+1. **Install and inspect.** Install `gentle-pi`, open Pi in the target repository, then run `/nubia:status` or `/nubia:doctor`.
 2. **Use ODD.** Explore and clarify proportionately; track large work in one feature document with a full Engram recovery copy.
 3. **Build with evidence.** One focused writer implements authorized scope using the forwarded TDD mode/source/runner. Enabled TDD requires observed RED → GREEN → REFACTOR; disabled still runs functional checks. Test presence is not activation.
 4. **Review with `nub_review` before delivery.** The in-process 4R review runs over the diff; the push gate asks for confirmation when changes were not reviewed or were blocked.
@@ -447,8 +447,8 @@ parent git/status + clarify → one worker writes authorized fixes → focused v
 At startup, `gentle-pi` installs and refreshes only hash-proven delegation and review agents. User-edited files and project overrides remain untouched. Refresh a selected owner explicitly when needed:
 
 ```text
-/gentle:install-delegation --force
-/gentle:install-review --force
+/nubia:install-delegation --force
+/nubia:install-review --force
 ```
 
 Saved model routing is applied separately; these installation commands do not change model settings. Optional ODD research depends on active, authorized tools. Verify source-backed findings, cite the sources actually retrieved, and disclose unavailable evidence instead of treating tool inventory as proof or inventing citations. Research is read-only; unavailable evidence pauses only decisions that depend on it. A source checkout edit does not activate an already installed package; activate the updated package separately before expecting changes in a new session.
@@ -525,7 +525,7 @@ Delegation contract:
 ## Persona modes
 
 ```text
-/gentle:persona
+/nubia:persona
 ```
 
 | Persona     | Behavior                                                                                                      |
@@ -545,12 +545,12 @@ A project can still override the global default with:
 .pi/gentle-ai/persona.json
 ```
 
-`/gentle:persona` writes the global config and updates an existing project override when one is present, so the current project does not stay stale. Run `/reload` or start a new Pi session after switching persona.
+`/nubia:persona` writes the global config and updates an existing project override when one is present, so the current project does not stay stale. Run `/reload` or start a new Pi session after switching persona.
 
 ## Model and effort assignment
 
 ```text
-/gentle:models
+/nubia:models
 ```
 
 The modal discovers:
@@ -575,11 +575,11 @@ Saved globally at:
 ~/.pi/gentle-ai/models.json
 ```
 
-Existing project-local `.pi/gentle-ai/models.json` files are still read as a legacy fallback when no global model config exists, but `/gentle:models` writes the shared global config.
+Existing project-local `.pi/gentle-ai/models.json` files are still read as a legacy fallback when no global model config exists, but `/nubia:models` writes the shared global config.
 
-Inside `/gentle:models`, press `x` to export the saved routing to `~/.pi/gentle-ai/models.export.json`, or `r` to restore from that file after confirmation. Export uses a versioned envelope and restore writes the normal `models.json` shape before applying routing to agents.
+Inside `/nubia:models`, press `x` to export the saved routing to `~/.pi/gentle-ai/models.export.json`, or `r` to restore from that file after confirmation. Export uses a versioned envelope and restore writes the normal `models.json` shape before applying routing to agents.
 
-Press `u` to save global agent routing like `ctrl+s`, then capture that routing plus this session's orchestrator model and thinking level in the current profile. If this session has no model, `u` falls back to the orchestrator defaults in `settings.json`; it never changes those defaults. Unlike `/gentle:profiles` `s`, which snapshots persisted settings, `u` captures the live session when available. The panel names the profile `u` targets: the profile this repository pins when a pin wins, otherwise the globally active profile. When no profiles store exists yet, `u` seeds it with a `current` profile the way `/gentle:profiles` does on first open; when the store exists but nothing is active and nothing is pinned, the global save still happens and the panel points you to `/gentle:profiles`.
+Press `u` to save global agent routing like `ctrl+s`, then capture that routing plus this session's orchestrator model and thinking level in the current profile. If this session has no model, `u` falls back to the orchestrator defaults in `settings.json`; it never changes those defaults. Unlike `/nubia:profiles` `s`, which snapshots persisted settings, `u` captures the live session when available. The panel names the profile `u` targets: the profile this repository pins when a pin wins, otherwise the globally active profile. When no profiles store exists yet, `u` seeds it with a `current` profile the way `/nubia:profiles` does on first open; when the store exists but nothing is active and nothing is pinned, the global save still happens and the panel points you to `/nubia:profiles`.
 
 Config shape (per agent):
 
@@ -600,10 +600,10 @@ Legacy string entries are still accepted and treated as `model`-only config.
 ## Agent-model profiles
 
 ```text
-/gentle:profiles
+/nubia:profiles
 ```
 
-Profiles are named, switchable snapshots of the global agent-model routing from `/gentle:models`. The panel fills the terminal, shows the profile list on the left, and a detail pane comparing the selected profile's routing with the currently effective routing, one line per agent in shared columns. Keys:
+Profiles are named, switchable snapshots of the global agent-model routing from `/nubia:models`. The panel fills the terminal, shows the profile list on the left, and a detail pane comparing the selected profile's routing with the currently effective routing, one line per agent in shared columns. Keys:
 
 | Key     | Action                                                                 |
 | ------- | ---------------------------------------------------------------------- |
@@ -621,7 +621,7 @@ Profiles are named, switchable snapshots of the global agent-model routing from 
 | `pgup`/`pgdn`, `ctrl+j`/`ctrl+k` | Scroll the detail pane by a page.                                |
 | `esc`   | Close.                                                                 |
 
-Applying a profile writes `~/.pi/gentle-ai/models.json`, then reconciles agent frontmatter and `subagents.json` the same way `/gentle:models` does. A profile is a complete snapshot: every discoverable agent it omits returns to inherit, so routing materialized by a previous profile, by `/gentle:models`, or by a migration never survives a switch silently. The reconciliation happens on the next subagent launch, and that launch still routes with the previous routing — expect one launch of lag after switching. The active profile is persisted so `/gentle:profiles` reopens with the applied profile marked.
+Applying a profile writes `~/.pi/gentle-ai/models.json`, then reconciles agent frontmatter and `subagents.json` the same way `/nubia:models` does. A profile is a complete snapshot: every discoverable agent it omits returns to inherit, so routing materialized by a previous profile, by `/nubia:models`, or by a migration never survives a switch silently. The reconciliation happens on the next subagent launch, and that launch still routes with the previous routing — expect one launch of lag after switching. The active profile is persisted so `/nubia:profiles` reopens with the applied profile marked.
 
 A profile also carries the orchestrator under the reserved routing key `orchestrator`. Applying a profile that defines it writes `defaultProvider`, `defaultModel`, and `defaultThinkingLevel` to Pi's global `settings.json` (preserving every other key; an unreadable `settings.json` aborts that part and is reported instead of being overwritten) and switches the session you are in to that model and thinking level right away, so the orchestrator answers with the profile's model from the next turn. When the model is not in Pi's catalog or its provider has no authentication, the default for new sessions is still recorded and the apply note says this session kept its current model. Applying a profile without an `orchestrator` entry never moves the orchestrator, and `s` snapshots the currently effective orchestrator together with the routing. `orchestrator` is reserved: it is not a subagent name, is never written to `subagents.json`, and is not counted as a role.
 
@@ -689,7 +689,7 @@ session is active; the indicator is omitted if no valid profile remains.
 
 For a given working directory the winner is the local pin, then the repository declaration, then no pin. With no pin at all the repository keeps the behavior described above and follows the globally active profile. `p` and `P` are toggles: pressing one on the profile that already holds that layer removes it, and either key pressed outside a Git worktree writes nothing and says so.
 
-In a pinned repository the pinned profile governs subagent launches: the agents it names take its model and effort, and the agents it omits return to inherit (their own definition, then the default model). The globally active profile and writes made through `/gentle:models` do not reach those launches, which `/gentle:models` reports when it runs inside a pinned repository. `enter` follows the same boundary: inside a pinned repository it re-pins that repository instead of writing the global routing, so the panel's main key can never move another repository's routing. The panel states which layer won, names the file that holds it, and marks the profile with `(pinned)`.
+In a pinned repository the pinned profile governs subagent launches: the agents it names take its model and effort, and the agents it omits return to inherit (their own definition, then the default model). The globally active profile and writes made through `/nubia:models` do not reach those launches, which `/nubia:models` reports when it runs inside a pinned repository. `enter` follows the same boundary: inside a pinned repository it re-pins that repository instead of writing the global routing, so the panel's main key can never move another repository's routing. The panel states which layer won, names the file that holds it, and marks the profile with `(pinned)`.
 
 To share a pin, commit the repository declaration. When `.pi/` is ignored, Git cannot re-include a nested file until its parent directories are visible. The panel therefore prints these ordered root `.gitignore` rules, which keep unrelated `.pi` content ignored while making only the declaration committable:
 
@@ -713,22 +713,22 @@ One limitation is worth stating. When a pinned profile omits an agent, that agen
 
 | Command                          | What it does                                                        |
 | -------------------------------- | ------------------------------------------------------------------- |
-| `/gentle:status`              | Shows package assets and global model config status. |
-| `/gentle:doctor`              | Runs read-only diagnostics for assets, model/persona config, memory tools, and safety guards. |
-| `/gentle:models`                 | Opens global model + effort assignment UI. Press `x` to export, `r` to restore saved routing, and `u` to save routing and capture the session in the current profile. |
-| `/gentle:profiles`               | Opens global agent-model profiles: apply live, create, snapshot, duplicate, rename, delete, export, and import. |
-| `/gentle:commands`               | Opens the command palette (default `alt+k`): a curated, grouped menu (Configuration, Session, Diagnostics, Skills) of registered Gentle commands; search and run by label. |
-| `/gentle:persona`                | Switches global persona mode, with project override support.        |
-| `/gentle:background-subagents`   | Shows or sets the managed background-subagents policy (`status\|enable\|disable`), naming the source that decided it. |
-| `/gentle:double-esc-cancel`      | Shows or sets the double-esc-cancel preference (`status\|enable\|disable`); no argument toggles it. |
-| `/gentle:animations`            | Shows or sets global animations (`status\|quality\|performance\|potato`); no argument opens a selector. |
-| `/gentle:vim`                   | Shows or sets opt-in prompt Vim mode (`status\|enable\|disable`); no argument opens a selector. |
-| `/gentle:banner`                 | Configures startup banner rose, text logo, and color preset.        |
-| `/gentle:toggle-rose`            | Toggles the startup rose.                                           |
-| `/gentle:toggle-text-logo`       | Toggles the startup text logo.                                      |
-| `/gentle:banner-color`           | Selects a startup banner color preset.                              |
-| `/gentle:install-delegation` | Installs missing global delegation agents only; `--force` refreshes managed copies. |
-| `/gentle:install-review`     | Installs missing global review agents and chains only; `--force` refreshes managed copies. |
+| `/nubia:status`              | Shows package assets and global model config status. |
+| `/nubia:doctor`              | Runs read-only diagnostics for assets, model/persona config, memory tools, and safety guards. |
+| `/nubia:models`                 | Opens global model + effort assignment UI. Press `x` to export, `r` to restore saved routing, and `u` to save routing and capture the session in the current profile. |
+| `/nubia:profiles`               | Opens global agent-model profiles: apply live, create, snapshot, duplicate, rename, delete, export, and import. |
+| `/nubia:commands`               | Opens the command palette (default `alt+k`): a curated, grouped menu (Configuration, Session, Diagnostics, Skills) of registered Gentle commands; search and run by label. |
+| `/nubia:persona`                | Switches global persona mode, with project override support.        |
+| `/nubia:background-subagents`   | Shows or sets the managed background-subagents policy (`status\|enable\|disable`), naming the source that decided it. |
+| `/nubia:double-esc-cancel`      | Shows or sets the double-esc-cancel preference (`status\|enable\|disable`); no argument toggles it. |
+| `/nubia:animations`            | Shows or sets global animations (`status\|quality\|performance\|potato`); no argument opens a selector. |
+| `/nubia:vim`                   | Shows or sets opt-in prompt Vim mode (`status\|enable\|disable`); no argument opens a selector. |
+| `/nubia:banner`                 | Configures startup banner rose, text logo, and color preset.        |
+| `/nubia:toggle-rose`            | Toggles the startup rose.                                           |
+| `/nubia:toggle-text-logo`       | Toggles the startup text logo.                                      |
+| `/nubia:banner-color`           | Selects a startup banner color preset.                              |
+| `/nubia:install-delegation` | Installs missing global delegation agents only; `--force` refreshes managed copies. |
+| `/nubia:install-review`     | Installs missing global review agents and chains only; `--force` refreshes managed copies. |
 | `/skill-registry:refresh`        | Regenerates `.atl/skill-registry.md`.                               |
 | `/skill-creation`                | Creates or updates an LLM-first skill using the packaged `gentle-ai-skill-creator` contract and style guide. |
 
@@ -750,12 +750,12 @@ Background delegation requires a live interactive/RPC parent and is rejected in 
 
 With the policy `on`, `subagent_run` defaults to `mode: "background"` at the runtime level in interactive and RPC sessions; print and json modes keep `task` regardless of the policy, since `pi -p` and `pi --mode json` exit before a parent session can receive a background result. `mode: "task"` remains available as an explicit opt-in for work that must ask the human mid-flight, such as a dialog-driven task or one the caller wants to wait on.
 
-Background delegation is off unless you turn it on. The policy is user-owned: only an explicit `/gentle:background-subagents enable` or `disable` writes it, and Pi automation never toggles it.
+Background delegation is off unless you turn it on. The policy is user-owned: only an explicit `/nubia:background-subagents enable` or `disable` writes it, and Pi automation never toggles it.
 
 ```text
-/gentle:background-subagents           Report the effective policy, the deciding source, and the resolved capability.
-/gentle:background-subagents enable    Write "on" to the global file.
-/gentle:background-subagents disable   Write "off" to the global file.
+/nubia:background-subagents           Report the effective policy, the deciding source, and the resolved capability.
+/nubia:background-subagents enable    Write "on" to the global file.
+/nubia:background-subagents disable   Write "off" to the global file.
 ```
 
 Four sources can decide the policy, and the first hit wins:
@@ -782,16 +782,16 @@ The Gentle prompt matches Claude Code's Esc model on top of Pi's own. Four flows
 
 Overlays, autocomplete cancel, and bash mode all consume the first Esc locally and are unaffected by any of the four flows above.
 
-Double-esc-cancel's policy is user-owned: only an explicit `/gentle:double-esc-cancel enable` or `disable` writes it, and Pi automation never toggles it.
+Double-esc-cancel's policy is user-owned: only an explicit `/nubia:double-esc-cancel enable` or `disable` writes it, and Pi automation never toggles it.
 
 ```text
-/gentle:double-esc-cancel           Toggle the effective policy (on -> off, off -> on).
-/gentle:double-esc-cancel status    Report the effective policy and the deciding source.
-/gentle:double-esc-cancel enable    Write "on" to the global file.
-/gentle:double-esc-cancel disable   Write "off" to the global file.
+/nubia:double-esc-cancel           Toggle the effective policy (on -> off, off -> on).
+/nubia:double-esc-cancel status    Report the effective policy and the deciding source.
+/nubia:double-esc-cancel enable    Write "on" to the global file.
+/nubia:double-esc-cancel disable   Write "off" to the global file.
 ```
 
-Unlike `/gentle:background-subagents`, no argument here reports status; it toggles the effective policy instead, since this preference has only one file layer and nothing else can outrank a write.
+Unlike `/nubia:background-subagents`, no argument here reports status; it toggles the effective policy instead, since this preference has only one file layer and nothing else can outrank a write.
 
 Three sources can decide the policy, and the first hit wins:
 
@@ -805,7 +805,7 @@ The file uses the strict shape `{"schema":"gentle-pi.double-esc-cancel/v1","poli
 
 ### Animation modes
 
-Use `/gentle:animations performance` to reduce redraw frequency, or `/gentle:animations potato` to stop Gentle-owned periodic animation. Find **Animation mode** under the command palette's **Configuration** group. `/gentle:animations` and `/gentle:animations status` report the effective mode and deciding source without writing; `/gentle:animations quality` restores the default.
+Use `/nubia:animations performance` to reduce redraw frequency, or `/nubia:animations potato` to stop Gentle-owned periodic animation. Find **Animation mode** under the command palette's **Configuration** group. `/nubia:animations` and `/nubia:animations status` report the effective mode and deciding source without writing; `/nubia:animations quality` restores the default.
 
 | Mode | Working prompt | Startup banner |
 |------|----------------|----------------|
@@ -819,7 +819,7 @@ A successful command applies to the live prompt immediately, including while wor
 
 ### Vim prompt editing
 
-`/gentle:vim enable` opts only the Gentle-owned prompt into modal editing; `/gentle:vim disable` restores ordinary Pi editing. `/gentle:vim status` reads the persisted preference and deciding source without writing, and reports the effective mode of the current Gentle prompt separately. With no argument, an interactive selector offers enable, disable, and status; headless use reports status. The global `<configHome>/vim.json` (default config home `~/.pi/gentle-ai`, overridable with `GENTLE_PI_CONFIG_HOME`) uses the strict shape `{"schema":"gentle-pi.vim/v1","policy":"on"}` or `off`. Missing means off; malformed or unreadable files warn and fall back to off without being rewritten. Enable/disable persist globally; compatible owned prompts apply the preference immediately. On compatibility rejection the on preference remains saved, but the active prompt stays in ordinary editing and the command never claims it applies now. Without an active Gentle prompt, the command reports that the preference will be tried at next prompt creation. A foreign editor is never replaced.
+`/nubia:vim enable` opts only the Gentle-owned prompt into modal editing; `/nubia:vim disable` restores ordinary Pi editing. `/nubia:vim status` reads the persisted preference and deciding source without writing, and reports the effective mode of the current Gentle prompt separately. With no argument, an interactive selector offers enable, disable, and status; headless use reports status. The global `<configHome>/vim.json` (default config home `~/.pi/gentle-ai`, overridable with `GENTLE_PI_CONFIG_HOME`) uses the strict shape `{"schema":"gentle-pi.vim/v1","policy":"on"}` or `off`. Missing means off; malformed or unreadable files warn and fall back to off without being rewritten. Enable/disable persist globally; compatible owned prompts apply the preference immediately. On compatibility rejection the on preference remains saved, but the active prompt stays in ordinary editing and the command never claims it applies now. Without an active Gentle prompt, the command reports that the preference will be tried at next prompt creation. A foreign editor is never replaced.
 
 The frame labels INSERT, NORMAL, VISUAL (characterwise), or VISUAL LINE (linewise); narrow frames may omit the hint. INSERT uses Pi's normal input. Escape first leaves INSERT for NORMAL **without** aborting a running turn or clearing a draft. Escape in VISUAL or with a pending command cancels that selection/command first; a later Escape in plain NORMAL follows Gentle's existing working-cancel/queue or idle-draft clear behavior (including the configured double-Escape confirmation). Autocomplete and `!` bash drafts retain Pi's input/Escape handling. `Ctrl+[` acts as Escape only where Pi delivers it as Escape.
 

@@ -2,7 +2,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { appendSystemPromptOnce, type AppendableSystemPromptOptions } from "./append-system-prompt.ts";
 import { captureSessionIdentity, sameSessionIdentity, type SessionIdentity } from "./session-identity.ts";
 
-export const YOLO_STATUS_KEY = "gentle:yolo";
+export const YOLO_STATUS_KEY = "nubia:yolo";
 export const YOLO_STATUS_TEXT = "🚀 YOLO ON 🔥 — destructive confirmations remain";
 export const YOLO_DIRECTIVE = `<gentle-yolo-session>
 YOLO session standing permission is ON, explicitly activated by the human for this live primary session and Git clone.
@@ -55,7 +55,7 @@ export const YOLO_DISPLAY = { on: "ON", off: "OFF", unavailable: "UNAVAILABLE" }
 export type YoloDisplay = (typeof YOLO_DISPLAY)[keyof typeof YOLO_DISPLAY];
 
 /** Private trusted-extension discovery, never a model/tool or serialized authority event. */
-const HOST_UI_CHANNEL = "gentle:yolo:host-ui";
+const HOST_UI_CHANNEL = "nubia:yolo:host-ui";
 const DISCOVERY_TIMEOUT_MS = 100;
 export interface YoloUiAdapter {
 	read(): Promise<YoloDisplay>;
@@ -210,7 +210,7 @@ export function registerYoloSessionPolicy(pi: ExtensionAPI, env: NodeJS.ProcessE
 			});
 		} catch { /* Missing or obsolete trusted host context: discovery expires closed. */ }
 	});
-	pi.registerCommand("gentle:yolo", {
+	pi.registerCommand("nubia:yolo", {
 		description: "Session-only ordinary development/delivery permission (enable|disable|status); no argument opens a menu. Destructive confirmations remain.",
 		handler: async (args, context) => {
 			let action = args.trim() || "status";
@@ -224,7 +224,7 @@ export function registerYoloSessionPolicy(pi: ExtensionAPI, env: NodeJS.ProcessE
 				action = selected;
 			}
 			if (action !== "enable" && action !== "disable" && action !== "status") {
-				context.ui.notify("Use /gentle:yolo enable|disable|status. State unchanged.", "warning");
+				context.ui.notify("Use /nubia:yolo enable|disable|status. State unchanged.", "warning");
 				return;
 			}
 			if (action === "status") {

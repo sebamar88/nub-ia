@@ -6,7 +6,7 @@ import { stripAnsi } from "../lib/terminal-theme.ts";
 import { createStatsLoader, type CurrentSessionStats, type SessionRecord } from "../lib/stats-collector.ts";
 import { StatsView, type StatsViewDeps } from "../lib/stats-view.ts";
 
-// The /gentle:stats panel: Overview / Models / Session tabs over the
+// The /nubia:stats panel: Overview / Models / Session tabs over the
 // collector, with range and scope toggles, q/esc close, and a clickable
 // footer. Rendered against the collector fixtures with a fixed clock.
 

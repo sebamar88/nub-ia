@@ -124,7 +124,7 @@ export function loadDoubleEscCancelPolicy(options: LoadDoubleEscCancelOptions = 
 
 /**
  * Write the global policy file, creating the config home when needed.
- * Used by both `/gentle:double-esc-cancel enable` and `... disable`.
+ * Used by both `/nubia:double-esc-cancel enable` and `... disable`.
  */
 export function writeDoubleEscCancelPolicy(
 	policy: DoubleEscCancelPolicy,

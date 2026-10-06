@@ -1,6 +1,6 @@
 // Per-repository agent-model profile pins.
 //
-// `/gentle:profiles` applies a profile globally: it rewrites `models.json`, the
+// `/nubia:profiles` applies a profile globally: it rewrites `models.json`, the
 // agent frontmatter, `subagents.json`, and the orchestrator in `settings.json`.
 // Two repositories worked in parallel therefore fight over one global routing.
 // A pin re-anchors only the subagent routing of one repository to a named profile
@@ -19,7 +19,7 @@
 // reserved orchestrator key, so a pin never moves the orchestrator model.
 //
 // `evaluateProfilePin` is the single precedence rule. The launch resolver below and
-// the `/gentle:profiles` panel both go through it, so the layer a launch uses and the
+// the `/nubia:profiles` panel both go through it, so the layer a launch uses and the
 // layer the panel reports can never disagree.
 
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
@@ -181,7 +181,7 @@ export function readProfilePin(path: string): string | undefined {
 let profilePinWorktreeResolver: WorktreeResolver = resolveSessionWorktreeWithGit;
 
 /**
- * Test seam, mirroring the other injectable seams in `lib/`: the `/gentle:profiles`
+ * Test seam, mirroring the other injectable seams in `lib/`: the `/nubia:profiles`
  * panel resolves the pin through the ambient resolver, and a test must not depend
  * on where the test runner's working directory happens to sit. The launch path
  * passes its own resolver instead, so it needs no seam.

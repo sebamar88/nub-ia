@@ -489,11 +489,11 @@ test("loadBackgroundSubagentsPolicy delegates to the resolver so the two can nev
 });
 
 // ---------------------------------------------------------------------------
-// /gentle:background-subagents command (issue #345)
+// /nubia:background-subagents command (issue #345)
 //
 // The policy had no user-facing surface at all: it could only be set by
 // hand-writing JSON or exporting an env var, and the deciding source was
-// visible to nobody. The command mirrors /gentle:review-mode — status|enable|
+// visible to nobody. The command mirrors /nubia:review-mode — status|enable|
 // disable, user-initiated only, Pi automation never toggles it.
 // ---------------------------------------------------------------------------
 
@@ -580,17 +580,17 @@ async function runBackgroundSubagents(
 		GENTLE_PI_BACKGROUND_SUBAGENTS: undefined,
 		...env,
 	});
-	const command = registeredCommands().get("gentle:background-subagents");
-	assert.ok(command, "gentle:background-subagents must be registered");
+	const command = registeredCommands().get("nubia:background-subagents");
+	assert.ok(command, "nubia:background-subagents must be registered");
 	const notices: Array<{ message: string; type?: string }> = [];
 	await command!.handler(argument, notifyContext(cwd, notices));
 	assert.equal(notices.length, 1, "one invocation reports exactly once");
 	return notices[0]!;
 }
 
-test("gentle:background-subagents is registered and declares user-initiated sub-actions", () => {
-	const command = registeredCommands().get("gentle:background-subagents");
-	assert.ok(command, "gentle:background-subagents must be registered");
+test("nubia:background-subagents is registered and declares user-initiated sub-actions", () => {
+	const command = registeredCommands().get("nubia:background-subagents");
+	assert.ok(command, "nubia:background-subagents must be registered");
 	assert.match(command!.description ?? "", /status\|enable\|disable/);
 	assert.match(
 		command!.description ?? "",
@@ -620,8 +620,8 @@ test("no argument opens a selectable menu and applies the chosen sub-action", as
 		GENTLE_PI_CONFIG_HOME: configHome,
 		GENTLE_PI_BACKGROUND_SUBAGENTS: undefined,
 	});
-	const command = registeredCommands().get("gentle:background-subagents");
-	assert.ok(command, "gentle:background-subagents must be registered");
+	const command = registeredCommands().get("nubia:background-subagents");
+	assert.ok(command, "nubia:background-subagents must be registered");
 
 	// A dismissed menu (undefined selection) reports nothing and writes nothing.
 	// It runs first so the untouched config home can prove the no-write: a second
@@ -829,7 +829,7 @@ test("an unknown sub-action warns and changes nothing", async (t) => {
 	assert.equal(notice.type, "warning");
 	assert.equal(
 		notice.message,
-		'Unknown /gentle:background-subagents sub-action "toggle". Use status, enable, or disable.',
+		'Unknown /nubia:background-subagents sub-action "toggle". Use status, enable, or disable.',
 	);
 	assert.equal(
 		existsSync(join(configHome, "background-subagents.json")),

@@ -49,7 +49,7 @@ const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 /**
  * The nub-ia tier the packaged lens declares (assets/agents/<lens>.md). The
  * installed copy under the agent home may carry a physical model instead
- * (/gentle:models writes routing into agent frontmatter), so the packaged
+ * (/nubia:models writes routing into agent frontmatter), so the packaged
  * file is the authority for which tier to fail over within.
  */
 export function packagedLensTier(lens: ReviewLens, root = PACKAGE_ROOT): string | undefined {

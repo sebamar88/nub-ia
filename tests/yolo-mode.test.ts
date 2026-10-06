@@ -8,7 +8,7 @@ import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
 import { YOLO_STATUS_TEXT } from "../lib/yolo-session-policy.ts";
 
 const ON_TEXT = "🚀 YOLO ON 🔥 — destructive confirmations remain";
-const USAGE = "Use /gentle:yolo enable|disable|status. State unchanged.";
+const USAGE = "Use /nubia:yolo enable|disable|status. State unchanged.";
 const STALE_MENU = "YOLO unchanged — the session changed while the menu was open.";
 const menuTitle = (state: "ON" | "OFF") => `🚀 Gentle YOLO 🔥 — full speed, destructive actions still ask (current: ${state})`;
 
@@ -45,7 +45,7 @@ export function harness(env: NodeJS.ProcessEnv = {}) {
 	})(pi);
 	return { ctx, commands, tools, notices, statuses, widgets, confirmations: () => confirmations,
 		setSessionId: (id: string) => { sessionId = id; },
-		command: async (args: string) => { const cmd = commands.get("gentle:yolo"); assert.ok(cmd, "/gentle:yolo registered"); await cmd.handler(args, ctx); },
+		command: async (args: string) => { const cmd = commands.get("nubia:yolo"); assert.ok(cmd, "/nubia:yolo registered"); await cmd.handler(args, ctx); },
 		setSelect: (select: (title: string, options: string[]) => Promise<string | undefined>) => { Object.assign(ctx.ui, { select }); },
 		emit: async (name: string, event: unknown) => {
 			let result: unknown; for (const fn of handlers.get(name) ?? []) { const next = await fn(event, ctx); if (next !== undefined) result = next; } return result;
@@ -53,10 +53,10 @@ export function harness(env: NodeJS.ProcessEnv = {}) {
 	};
 }
 
-test("only /gentle:yolo is registered and the ON text carries the rocket and fire markers", () => {
+test("only /nubia:yolo is registered and the ON text carries the rocket and fire markers", () => {
 	const h = harness();
 	assert.equal(h.commands.has("yolo"), false, "bare yolo command is not registered");
-	assert.ok(h.commands.has("gentle:yolo"));
+	assert.ok(h.commands.has("nubia:yolo"));
 	assert.equal(YOLO_STATUS_TEXT, ON_TEXT);
 });
 
@@ -65,26 +65,26 @@ test("human command enable/disable/status/invalid and status/widget clearing", a
 	assert.equal(h.tools.some((name) => name.includes("yolo")), false);
 	await h.command("status"); assert.match(h.notices.at(-1)!, /OFF/);
 	await h.command("enable");
-	assert.equal(h.statuses.get("gentle:yolo"), ON_TEXT);
-	assert.deepEqual(h.widgets.get("gentle:yolo"), [ON_TEXT]);
+	assert.equal(h.statuses.get("nubia:yolo"), ON_TEXT);
+	assert.deepEqual(h.widgets.get("nubia:yolo"), [ON_TEXT]);
 	for (const invalid of ["invalid", "on", "off", "toggle"]) {
 		await h.command(invalid);
 		assert.equal(h.notices.at(-1), USAGE);
-		assert.equal(h.statuses.get("gentle:yolo"), ON_TEXT, `${invalid} leaves state unchanged`);
+		assert.equal(h.statuses.get("nubia:yolo"), ON_TEXT, `${invalid} leaves state unchanged`);
 	}
 	await h.command("status"); assert.match(h.notices.at(-1)!, /ON/);
-	await h.command("disable"); assert.equal(h.statuses.get("gentle:yolo"), undefined);
-	assert.equal(h.widgets.get("gentle:yolo"), undefined);
+	await h.command("disable"); assert.equal(h.statuses.get("nubia:yolo"), undefined);
+	assert.equal(h.widgets.get("nubia:yolo"), undefined);
 	await h.command("status"); assert.match(h.notices.at(-1)!, /OFF/);
 });
 
 test("no argument without a select-capable UI reports status and never toggles", async () => {
 	const h = harness();
 	await h.command(""); assert.equal(h.notices.at(-1), "YOLO OFF");
-	assert.equal(h.statuses.get("gentle:yolo"), undefined);
+	assert.equal(h.statuses.get("nubia:yolo"), undefined);
 	await h.command("enable");
 	await h.command(""); assert.equal(h.notices.at(-1), ON_TEXT);
-	assert.equal(h.statuses.get("gentle:yolo"), ON_TEXT);
+	assert.equal(h.statuses.get("nubia:yolo"), ON_TEXT);
 	let prompts = 0;
 	h.setSelect(async () => { prompts++; return "disable"; });
 	Object.assign(h.ctx, { hasUI: false });
@@ -102,16 +102,16 @@ test("no-argument menu shows the fire title and live state; only an explicit sel
 	await h.command("");
 	assert.deepEqual(prompts.at(-1), { title: menuTitle("OFF"), options: ["enable", "disable", "status"] });
 	assert.equal(h.notices.length, notices, "cancel does nothing");
-	assert.equal(h.statuses.get("gentle:yolo"), undefined);
+	assert.equal(h.statuses.get("nubia:yolo"), undefined);
 	answer = "status"; await h.command("");
-	assert.equal(h.notices.at(-1), "YOLO OFF"); assert.equal(h.statuses.get("gentle:yolo"), undefined);
+	assert.equal(h.notices.at(-1), "YOLO OFF"); assert.equal(h.statuses.get("nubia:yolo"), undefined);
 	answer = "enable"; await h.command("");
-	assert.equal(h.statuses.get("gentle:yolo"), ON_TEXT); assert.equal(h.notices.at(-1), ON_TEXT);
+	assert.equal(h.statuses.get("nubia:yolo"), ON_TEXT); assert.equal(h.notices.at(-1), ON_TEXT);
 	answer = undefined; await h.command("");
 	assert.equal(prompts.at(-1)!.title, menuTitle("ON"));
-	assert.equal(h.statuses.get("gentle:yolo"), ON_TEXT, "cancel leaves ON unchanged");
+	assert.equal(h.statuses.get("nubia:yolo"), ON_TEXT, "cancel leaves ON unchanged");
 	answer = "disable"; await h.command("");
-	assert.equal(h.statuses.get("gentle:yolo"), undefined); assert.equal(h.notices.at(-1), "YOLO OFF");
+	assert.equal(h.statuses.get("nubia:yolo"), undefined); assert.equal(h.notices.at(-1), "YOLO OFF");
 	const shown = prompts.length;
 	await h.command("status"); await h.command("invalid");
 	assert.equal(prompts.length, shown, "explicit arguments bypass the menu");
@@ -126,7 +126,7 @@ test("revocation wins over an activation still awaiting Git identity", async () 
 		else await h.emit("session_shutdown", { reason });
 		await pending;
 		await h.command("status"); assert.match(h.notices.at(-1)!, /OFF/);
-		assert.equal(h.widgets.get("gentle:yolo"), undefined);
+		assert.equal(h.widgets.get("nubia:yolo"), undefined);
 	}
 });
 
@@ -136,9 +136,9 @@ test("child, headless, RPC and unidentified repository cannot activate", async (
 		if (variant === "headless") Object.assign(h.ctx, { hasUI: false });
 		if (variant === "rpc") Object.assign(h.ctx, { mode: "rpc" });
 		if (variant === "no-repository") Object.assign(h.ctx, { cwd: "/" });
-		await h.command("enable"); assert.notEqual(h.statuses.get("gentle:yolo"), ON_TEXT);
+		await h.command("enable"); assert.notEqual(h.statuses.get("nubia:yolo"), ON_TEXT);
 		h.setSelect(async () => "enable");
-		await h.command(""); assert.notEqual(h.statuses.get("gentle:yolo"), ON_TEXT, `${variant} menu enable fails closed`);
+		await h.command(""); assert.notEqual(h.statuses.get("nubia:yolo"), ON_TEXT, `${variant} menu enable fails closed`);
 	}
 });
 
@@ -163,8 +163,8 @@ test("session loss and shutdown (including reload) revoke visible state", async 
 		await h.emit("before_agent_start", event);
 		assert.match(event.systemPromptOptions.appendSystemPrompt, /YOLO session standing permission/);
 		await h.emit("session_shutdown", { reason });
-		assert.equal(h.widgets.get("gentle:yolo"), undefined);
-		assert.equal(h.statuses.get("gentle:yolo"), undefined);
+		assert.equal(h.widgets.get("nubia:yolo"), undefined);
+		assert.equal(h.statuses.get("nubia:yolo"), undefined);
 		await h.emit("before_agent_start", event);
 		assert.doesNotMatch(event.systemPromptOptions.appendSystemPrompt, /YOLO session standing permission/);
 		await h.command("status"); assert.match(h.notices.at(-1)!, /OFF/);
@@ -222,26 +222,26 @@ test("YOLO never answers ask_user tools", async () => {
 test("tool input and task text cannot activate; scope/UI loss removes instruction and widget", async () => {
 	const h = harness();
 	await h.emit("tool_call", { toolName: "bash", input: { command: "echo harmless", yolo: "on" } });
-	const event = { prompt: "/gentle:yolo enable", systemPromptOptions: { appendSystemPrompt: "base" } };
+	const event = { prompt: "/nubia:yolo enable", systemPromptOptions: { appendSystemPrompt: "base" } };
 	await h.emit("before_agent_start", event);
 	assert.doesNotMatch(event.systemPromptOptions.appendSystemPrompt, /YOLO session standing permission/);
 	await h.command("enable");
 	Object.assign(h.ctx, { cwd: "/" });
 	await h.emit("before_agent_start", event);
-	assert.equal(h.widgets.get("gentle:yolo"), undefined);
+	assert.equal(h.widgets.get("nubia:yolo"), undefined);
 	assert.doesNotMatch(event.systemPromptOptions.appendSystemPrompt, /YOLO session standing permission/);
 	Object.assign(h.ctx, { cwd: process.cwd() });
 	await h.command("status"); assert.match(h.notices.at(-1)!, /OFF/);
 	await h.command("enable"); Object.assign(h.ctx, { hasUI: false });
 	await h.emit("before_agent_start", event);
-	assert.equal(h.statuses.get("gentle:yolo"), undefined);
+	assert.equal(h.statuses.get("nubia:yolo"), undefined);
 });
 
 test("a session replaced while the menu is open cannot receive the enable choice", async () => {
 	const h = harness();
 	h.setSelect(async () => { h.setSessionId("replacement-session"); return "enable"; });
 	await h.command("");
-	assert.equal(h.statuses.get("gentle:yolo"), undefined, "stale menu choice never activates the new session");
+	assert.equal(h.statuses.get("nubia:yolo"), undefined, "stale menu choice never activates the new session");
 	assert.equal(h.notices.at(-1), STALE_MENU, "the discarded choice is reported, not silent");
 	h.setSelect(async () => { h.setSessionId("another-session"); return "disable"; });
 	await h.command("");

@@ -2,7 +2,7 @@ import { isKeyRelease, matchesKey, truncateToWidth, visibleWidth } from "@earend
 import { stripAnsi } from "./terminal-theme.ts";
 
 // Command palette: a pure, curated, grouped overlay component for
-// `/gentle:commands` and its `alt+k` shortcut (see
+// `/nubia:commands` and its `alt+k` shortcut (see
 // extensions/gentle-shell.ts). It only knows about plain groups of items
 // (command + label, plus an optional description used for ranking and an
 // optional shortcut hint), never about the Pi extension API, so it can be
@@ -343,7 +343,7 @@ export class CommandPalette {
 }
 
 /**
- * Shortcut for `/gentle:commands`. Reads GENTLE_PI_COMMANDS_KEY: unset
+ * Shortcut for `/nubia:commands`. Reads GENTLE_PI_COMMANDS_KEY: unset
  * defaults to "alt+k" (ctrl+k is reserved by Pi's editor for
  * delete-to-line-end, so an extension shortcut on it is skipped); an empty
  * value or "off" (case-insensitive) disables the shortcut; anything else is

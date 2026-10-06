@@ -1341,7 +1341,7 @@ function liveInstance(t: test.TestContext, profile: string, sessionId: string, m
 }
 
 async function liveOverlay(instance: ReturnType<typeof liveInstance>) {
-	const opened = instance.commands.get("gentle:agents")!.handler("", instance.ctx);
+	const opened = instance.commands.get("nubia:agents")!.handler("", instance.ctx);
 	await eventually(() => instance.overlays.length > 0, "overlay must mount without waiting for an unbounded directory scan");
 	const overlay = instance.overlays.at(-1)!;
 	const frame = () => overlay.render(160).map(stripAnsi).join("\n");
@@ -1404,12 +1404,12 @@ test("manual agents command warns once in RPC mode and stays quiet without UI", 
 	const local = liveInstance(t, liveProfile("live-non-tui"), "non-tui");
 	Object.assign(local.ctx, { mode: "rpc" });
 	const notify = t.mock.method(local.ctx.ui, "notify");
-	await local.commands.get("gentle:agents")!.handler("", local.ctx);
+	await local.commands.get("nubia:agents")!.handler("", local.ctx);
 	assert.equal(notify.mock.callCount(), 1);
 	assert.equal(notify.mock.calls[0].arguments[1], "warning");
 	assert.deepEqual(local.overlays, []);
 	Object.assign(local.ctx, { hasUI: false });
-	await local.commands.get("gentle:agents")!.handler("", local.ctx);
+	await local.commands.get("nubia:agents")!.handler("", local.ctx);
 	assert.equal(notify.mock.callCount(), 1, "headless invocation adds no notification");
 	assert.deepEqual(local.overlays, []);
 });
@@ -1780,7 +1780,7 @@ test("C1 investigation: the relay mechanism is correct when every guard input is
 // parent decision) -- these only verify each drop explains itself once, in
 // the task's own thread, naming the exact guard that fired.
 async function openTaskThread(commands: ReturnType<typeof fakePi>["commands"], ctx: ExtensionContext, overlays: Overlay[]): Promise<string> {
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 10));
 	const overlay = overlays[0];
 	const text = overlay ? stripAnsi(overlay.render(100).join("\n")) : "";
@@ -3376,7 +3376,7 @@ test("AgentsView production composition observes each pointer event once and acc
 		};
 	});
 	try {
-		const opened = commands.get("gentle:agents")!.handler("", ctx);
+		const opened = commands.get("nubia:agents")!.handler("", ctx);
 		for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 		const overlay = overlays[0];
 		assert.ok(overlay, "the production extension mounted its fullscreen interaction");
@@ -3431,7 +3431,7 @@ test("AgentsView production footer uses rendered bounds and invalidates them bef
 		return subscribeSummary.apply(this, args);
 	});
 	try {
-		const opened = commands.get("gentle:agents")!.handler("", ctx);
+		const opened = commands.get("nubia:agents")!.handler("", ctx);
 		for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 		const overlay = overlays[0];
 		assert.ok(overlay, "the production extension mounted its fullscreen interaction");
@@ -3519,8 +3519,8 @@ test("a task that finishes live stays visible as history, in both scopes, and it
 
 	// Back in the session where it actually finished, it stays listed as
 	// history -- in the current-session view and under "all sessions" too.
-	assert.ok(commands.has("gentle:agents") && shortcuts.has("alt+a"));
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	assert.ok(commands.has("nubia:agents") && shortcuts.has("alt+a"));
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	const overlay = overlays[0];
 	assert.ok(overlay, "the overlay component was created");
@@ -3548,7 +3548,7 @@ test("the overlay confirms a running task once and reports when it finishes duri
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Race", mode: "background" }, undefined, undefined, ctx);
 	await tick();
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	const overlay = overlays[0];
 	assert.ok(overlay, "the overlay component was created");
@@ -3582,7 +3582,7 @@ test("the overlay stops a queued selection immediately without confirmation", as
 	await tick();
 	const queued = await tools.get("subagent_run")!.execute("c2", { agent: "explore", task: "Queued", mode: "background" }, undefined, undefined, ctx);
 	const queuedId = (queued.details.gentleAgents as { taskId: string }).taskId;
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	overlays[0]!.handleInput("s");
 	await tick();
@@ -3609,7 +3609,7 @@ test("the overlay explains that stopping a waiting subagent dismisses its questi
 	await tick();
 	harness.children[0].emit({ type: "extension_ui_request", id: "wait", method: "input", title: "Need input" });
 	await tick();
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	overlays[0]!.handleInput("s");
 	await tick();
@@ -3659,7 +3659,7 @@ test("restored task history cannot enter the live panel or discovery during sync
 	await eventually(() => checked, "restoration callback checked");
 	assert.deepEqual(leaked, [], "summary callback must not publish restored running history");
 	assert.deepEqual(readDiscovery(profile, listPresence(profile).entries[0])?.tasks, []);
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	assert.doesNotMatch(stripAnsi(overlays[0]!.render(80).join("\n")), /Stop selected|Subagent explore/);
 	overlays[0]!.handleInput("s");
@@ -3689,7 +3689,7 @@ test("resuming a session restores its own finished tasks as history, never anoth
 	const { ctx, overlays } = fakeContext();
 	ctx.sessionManager.getSessionId = () => "resumed-session";
 	await fire("session_start", ctx, { reason: "resume" });
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	// The disk history read behind restoreSessionHistory is fire-and-forget,
 	// so poll the overlay's own render output instead of sleeping a guess.
@@ -3707,7 +3707,7 @@ test("resuming a session restores its own finished tasks as history, never anoth
 	freshCtx.sessionManager.getSessionId = () => "brand-new-session";
 	await freshFire("session_start", freshCtx, { reason: "new" });
 	await tick();
-	const freshOpened = freshCommands.get("gentle:agents")!.handler("", freshCtx);
+	const freshOpened = freshCommands.get("nubia:agents")!.handler("", freshCtx);
 	for (let attempt = 0; attempt < 40 && freshOverlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	assert.doesNotMatch(stripAnsi(freshOverlays[0]!.render(100).join("\n")), /explore/, "a brand-new session restores nothing");
 	freshOverlays[0]!.handleInput("\x1b");
@@ -3735,7 +3735,7 @@ test("starting up into an existing session also restores its own finished histor
 		ctx.sessionManager.getSessionId = () => "startup-session";
 		ctx.sessionManager.getEntries = (() => [{ type: "message" }]) as typeof ctx.sessionManager.getEntries;
 		await fire("session_start", ctx, { reason: "startup" });
-		const opened = commands.get("gentle:agents")!.handler("", ctx);
+		const opened = commands.get("nubia:agents")!.handler("", ctx);
 		for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 		// The disk history read behind restoreSessionHistory is fire-and-forget,
 		// so poll the overlay's own render output instead of sleeping a guess.
@@ -3759,7 +3759,7 @@ test("starting up into an existing session also restores its own finished histor
 		// restoreSessionHistory never runs -- nothing to wait for beyond
 		// letting the already-fired session_start handler settle.
 		await tick();
-		const opened = commands.get("gentle:agents")!.handler("", ctx);
+		const opened = commands.get("nubia:agents")!.handler("", ctx);
 		for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 		assert.doesNotMatch(stripAnsi(overlays[0]!.render(100).join("\n")), /explore-startup/, "a startup report with no prior entries restores nothing");
 		overlays[0]!.handleInput("\x1b");
@@ -3813,7 +3813,7 @@ test("the card follows the active session: after /new the earlier session's task
 	await fire("session_start", ctx, { type: "session_start", reason: "new" });
 	assert.deepEqual(widget(), [], "the new session starts with an empty card");
 	assert.match((await tools.get("subagent_list_tasks")!.execute("c2", {}, undefined, undefined, ctx)).content[0].text, /No subagent tasks in this session/);
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	const overlay = overlays[0]!;
 	assert.match(stripAnsi(overlay.render(80)[0]), /this session · 0 active/, "the overlay opens on the active session");
@@ -3848,7 +3848,7 @@ test("the production overlay reads terminal rows at render time without a minimu
 	const overlayTui = { terminal: { get rows() { return rows; } }, requestRender() {} };
 	const { ctx, overlays, customOptions } = fakeContext(fakeTui, async () => true, async () => undefined, overlayTui);
 	await fire("session_start", ctx);
-	const opened = commands.get("gentle:agents")!.handler("", ctx);
+	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	const overlay = overlays[0]!;
 	assert.deepEqual(customOptions[0], { overlay: true, overlayOptions: { width: "100%", maxHeight: "100%", margin: 0, anchor: "center" } });

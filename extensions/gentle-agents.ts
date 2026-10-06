@@ -61,7 +61,7 @@ import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
 // and gentle-ai's delegation rules keep working unchanged.
 
 export const AGENTS_WIDGET_KEY = "gentle-agents";
-export const AGENTS_COMMAND_NAME = "gentle:agents";
+export const AGENTS_COMMAND_NAME = "nubia:agents";
 export const AGENTS_RESULT_TYPE = "gentle-agents.result";
 export const AGENTS_MESSAGE_TYPE = "gentle-agents.message";
 export const AGENTS_ORCHESTRATOR_MESSAGE_TYPE = "gentle-agents.orchestrator-message";

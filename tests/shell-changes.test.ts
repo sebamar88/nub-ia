@@ -108,7 +108,7 @@ test("changesSummary and the widget describe the session at a glance", () => {
 
 	const [line, ...rest] = renderChangesWidget(model, plainTheme, 120);
 	assert.equal(rest.length, 0);
-	assert.match(line, /^✎ 3 files · \+42 −7 · extensions\/gentle-shell\.ts · lib\/shell-bar\.ts · tests\/x\.test\.ts {2,}\/gentle:changes$/);
+	assert.match(line, /^✎ 3 files · \+42 −7 · extensions\/gentle-shell\.ts · lib\/shell-bar\.ts · tests\/x\.test\.ts {2,}\/nubia:changes$/);
 	assert.equal(visibleWidth(line), 120, "the command sits on the right edge");
 });
 
@@ -125,7 +125,7 @@ test("renderChangesWidget colors counts by direction and yields nothing when cle
 	const [line] = renderChangesWidget(model, taggedTheme, 400);
 	assert.match(line, /<accent>✎<\/accent>/);
 	assert.match(line, /<success>\+1<\/success> <error>−2<\/error>/);
-	assert.match(line, /<dim>\/gentle:changes<\/dim>$/);
+	assert.match(line, /<dim>\/nubia:changes<\/dim>$/);
 	assert.deepEqual(renderChangesWidget(emptyChanges(), plainTheme, 120), []);
 });
 
@@ -133,7 +133,7 @@ test("renderChangesWidget drops the file list before truncating on narrow termin
 	const model = changesModel([file("a/very/long/path/one.ts", 1, 0), file("a/very/long/path/two.ts", 1, 0)]);
 	const [line] = renderChangesWidget(model, plainTheme, 40);
 	assert.equal(visibleWidth(line), 40);
-	assert.match(line, /^✎ 2 files · \+2 −0 +\/gentle:changes$/);
+	assert.match(line, /^✎ 2 files · \+2 −0 +\/nubia:changes$/);
 	assert.doesNotMatch(line, /one\.ts/);
 	const [tiny] = renderChangesWidget(model, plainTheme, 20);
 	assert.ok(visibleWidth(tiny) <= 20);
@@ -479,7 +479,7 @@ test("ChangesTracker counts the lines of untracked files, which git numstat leav
 	assert.deepEqual(counted, ["notes.md", "empty.md"]);
 });
 
-// The session-evidence tracker behind /gentle:changes knows roots, never
+// The session-evidence tracker behind /nubia:changes knows roots, never
 // branches. The overlay decorates its trees with each root's own HEAD state,
 // resolved once per root and reported back so the view can repaint; until git
 // answers the tree shows no branch (the view's "detached" fallback), and a

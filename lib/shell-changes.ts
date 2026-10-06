@@ -45,7 +45,7 @@ interface NumstatEntry {
 	deleted: number;
 }
 
-export const CHANGES_COMMAND = "/gentle:changes";
+export const CHANGES_COMMAND = "/nubia:changes";
 const WIDGET_GLYPH = "✎";
 const STATUS_BY_CODE: Record<string, ChangeStatus> = {
 	A: CHANGE_STATUS.ADDED,
@@ -189,7 +189,7 @@ export async function foreignRootBranch(git: GitRunner): Promise<string | undefi
 	return verified.code === 0 ? branch : "no commits yet";
 }
 
-// The session-evidence tracker behind /gentle:changes records roots, never
+// The session-evidence tracker behind /nubia:changes records roots, never
 // branches, so the overlay would label every tree "detached". This resolves
 // each root's own HEAD state once (branch, "no commits yet", undefined for a
 // real detached HEAD, or UNKNOWN_BRANCH when the root could not even be

@@ -1120,7 +1120,7 @@ function installPrompt(
 	return true;
 }
 
-const DOUBLE_ESC_CANCEL_COMMAND_NAME = "gentle:double-esc-cancel";
+const DOUBLE_ESC_CANCEL_COMMAND_NAME = "nubia:double-esc-cancel";
 
 function describeDoubleEscCancelSource(resolution: DoubleEscCancelResolution): string {
 	switch (resolution.source) {
@@ -1161,11 +1161,11 @@ function renderDoubleEscCancelReport(
 
 const CHANGES_WIDGET_KEY = "gentle-shell-changes";
 const HEADER_WIDGET_KEY = "gentle-shell-below-input-header";
-const CHANGES_COMMAND_NAME = "gentle:changes";
+const CHANGES_COMMAND_NAME = "nubia:changes";
 const CHANGES_SHORTCUT_DEFAULT = "alt+g";
 const CHANGES_POLL_DEFAULT_MS = 2000;
 const GIT_TIMEOUT_MS = 5000;
-const COMMANDS_COMMAND_NAME = "gentle:commands";
+const COMMANDS_COMMAND_NAME = "nubia:commands";
 const OVERLAY_HEIGHT_RATIO = 0.8;
 const OVERLAY_MIN_ROWS = 8;
 
@@ -1310,8 +1310,8 @@ async function showChangesOverlay(ctx: ExtensionContext, deps: OverlayDeps): Pro
 async function showCommandPalette(pi: ExtensionAPI, ctx: ExtensionContext, env: NodeJS.ProcessEnv): Promise<void> {
 	if (!ctx.hasUI) return;
 	const groups = buildCommandPaletteGroups(pi.getCommands(), {
-		"gentle:changes": changesShortcut(env),
-		"gentle:agents": agentsViewKey(env),
+		"nubia:changes": changesShortcut(env),
+		"nubia:agents": agentsViewKey(env),
 	});
 	if (groups.length === 0) {
 		ctx.ui.notify("No Gentle commands are registered.", "info");
@@ -1341,7 +1341,7 @@ function showChanges(ctx: ExtensionContext, model: ChangesModel, visible = true,
 	);
 }
 
-const USAGE_COMMAND_NAME = "gentle:usage";
+const USAGE_COMMAND_NAME = "nubia:usage";
 const USAGE_SHORTCUT_DEFAULT = "alt+u";
 
 const USAGE_REFRESH_MS = 5 * 60_000;
@@ -1617,7 +1617,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	// is dropped on session_shutdown.
 	let pendingQueuedText: string | undefined;
 	// Resolved once at startup and cached in memory so the editor never
-	// re-reads the file per keypress. The /gentle:double-esc-cancel command
+	// re-reads the file per keypress. The /nubia:double-esc-cancel command
 	// below is the only place that touches the file, and every invocation
 	// re-syncs this cache from disk first, so status, the no-argument toggle
 	// direction, and the Esc gate always describe the same effective policy
@@ -1867,7 +1867,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			handler: async (ctx) => showCommandPalette(pi, ctx, env),
 		});
 	}
-	pi.registerCommand("gentle:customize", {
+	pi.registerCommand("nubia:customize", {
 		description: "Configure appearance, global Vim prompt editing, session-only YOLO permission and prompt history capture.",
 		handler: async (_args, ctx) => {
 			if (ctx.mode !== "tui" || !ctx.hasUI) {
@@ -2182,7 +2182,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			} finally { close(); }
 		},
 	});
-	pi.registerCommand("gentle:vim", {
+	pi.registerCommand("nubia:vim", {
 		description: "Show or set global Vim prompt editing (status|enable|disable); no argument opens a menu.",
 		handler: async (args, ctx) => {
 			let action = args.trim() || "status";
@@ -2192,7 +2192,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				action = selected;
 			}
 			if (action !== "status" && action !== "enable" && action !== "disable") {
-				ctx.ui.notify("Use /gentle:vim status|enable|disable.", "warning");
+				ctx.ui.notify("Use /nubia:vim status|enable|disable.", "warning");
 				return;
 			}
 			try {
@@ -2206,7 +2206,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			}
 		},
 	});
-	pi.registerCommand("gentle:animations", {
+	pi.registerCommand("nubia:animations", {
 		description: "Show or set global animations; no argument opens a selectable menu (quality|performance|potato, plus status).",
 		// No argument opens a selectable menu when an interactive UI is present;
 		// headless callers and fakes without ui.select keep the status fallback.
@@ -2221,7 +2221,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				action = selected;
 			}
 			if (action !== "status" && action !== "quality" && action !== "performance" && action !== "potato") {
-				ctx.ui.notify("Use /gentle:animations status|quality|performance|potato.", "warning");
+				ctx.ui.notify("Use /nubia:animations status|quality|performance|potato.", "warning");
 				return;
 			}
 			try {
@@ -2236,7 +2236,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			}
 		},
 	});
-	// User-owned, like gentle:background-subagents and gentle:review-mode: the
+	// User-owned, like nubia:background-subagents and nubia:review-mode: the
 	// only writer is this handler, reached only by explicit invocation. Unlike
 	// those two, no argument toggles the effective policy instead of merely
 	// reporting it (see odd/tasks/double-esc-cancel.md).

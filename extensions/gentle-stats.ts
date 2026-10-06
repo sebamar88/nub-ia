@@ -7,7 +7,7 @@ import { withOverlayRepaint } from "../lib/overlay-repaint.ts";
 import { createStatsLoader, currentSessionStats, type StatsLoader } from "../lib/stats-collector.ts";
 import { StatsView } from "../lib/stats-view.ts";
 
-// Gentle Stats: /gentle:stats opens a full-terminal panel over local Pi
+// Gentle Stats: /nubia:stats opens a full-terminal panel over local Pi
 // session history (tokens, cost, models, activity). It only reads the
 // session files Pi already writes; nothing new is persisted.
 //
@@ -17,7 +17,7 @@ import { StatsView } from "../lib/stats-view.ts";
 // ~/.pi/agent stands in. The loader reads an alias of the same root once and
 // counts a session copied into both homes once.
 
-export const STATS_COMMAND_NAME = "gentle:stats";
+export const STATS_COMMAND_NAME = "nubia:stats";
 
 /** Optional shortcut; there is no default key because the common alt+ keys are taken. */
 export function statsViewKey(env: NodeJS.ProcessEnv = process.env): string | undefined {
@@ -25,7 +25,7 @@ export function statsViewKey(env: NodeJS.ProcessEnv = process.env): string | und
 	return !value || value.toLowerCase() === "off" ? undefined : value;
 }
 
-/** The sessions roots /gentle:stats reads: the active home and the user's original Pi home. */
+/** The sessions roots /nubia:stats reads: the active home and the user's original Pi home. */
 export function statsSessionRoots(agentDir: string, env: NodeJS.ProcessEnv = process.env, home: string = homedir()): string[] {
 	const userHome = env[USER_PI_HOME_ENV] || join(home, ".pi", "agent");
 	return [join(agentDir, "sessions"), join(userHome, "sessions")];

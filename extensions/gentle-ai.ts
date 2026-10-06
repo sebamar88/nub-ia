@@ -171,7 +171,7 @@ function packageAssetDiagnosticLines(cwd: string): string[] {
 		const local = localAgentOverrideCount(cwd, owner);
 		const lines = [`${stale > 0 ? "warn" : "pass"}: Global ${label} assets stale: ${stale} file(s)`];
 		if (stale > 0) {
-			lines[0] += ` — run /gentle:install-${owner} --force to refresh managed assets`;
+			lines[0] += ` — run /nubia:install-${owner} --force to refresh managed assets`;
 		}
 		if (overrides > 0) {
 			lines.push(`info: Global ${label} user overrides: ${overrides} file(s); preserved, not package drift`);
@@ -1629,7 +1629,7 @@ async function readGlobalEffectiveModelConfigFromAsync(
  * discoverable agent it omits on inherit, not on whatever was materialized
  * before. Padding the omitted agents with clear entries makes
  * `applyModelConfig` remove their model profiles and frontmatter routing, the
- * same way `/gentle:models` clears an agent set to inherit.
+ * same way `/nubia:models` clears an agent set to inherit.
  */
 async function withOmittedAgentsClearedAsync(
 	cwd: string,
@@ -2222,7 +2222,7 @@ class SddModelPanel implements OverlayComponent {
 	private readonly theme: Theme | undefined;
 	// The profile `u` writes to, named up front so the key never targets a surprise.
 	private readonly profileLabel: string;
-	// Terminal rows, so the card fills the fullscreen overlay like `/gentle:profiles`.
+	// Terminal rows, so the card fills the fullscreen overlay like `/nubia:profiles`.
 	private readonly terminalRows: (() => number) | undefined;
 
 	constructor(
@@ -2726,7 +2726,7 @@ async function showSddModelPanel(
 			),
 		{
 			overlay: true,
-			// Same fullscreen dimensions as the `/gentle:profiles` panel.
+			// Same fullscreen dimensions as the `/nubia:profiles` panel.
 			overlayOptions: {
 				anchor: "center",
 				width: "100%",
@@ -2750,7 +2750,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 	);
 	if (savedConfig.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA cannot open model config because ${savedConfig.path} is invalid JSON or not an object. Fix or remove the file, then run /gentle:models again.`,
+			`Nub-IA cannot open model config because ${savedConfig.path} is invalid JSON or not an object. Fix or remove the file, then run /nubia:models again.`,
 			"warning",
 		);
 		return;
@@ -2862,7 +2862,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 	if (result.type === "save-profile") updateCurrentProfileFromSavedRouting(ctx, pi);
 }
 
-/** The profile `u` in `/gentle:models` writes to, and why it is that one. */
+/** The profile `u` in `/nubia:models` writes to, and why it is that one. */
 interface CurrentProfileTarget {
 	name: string;
 	source: "pinned" | "active";
@@ -2900,7 +2900,7 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 	const read = readProfilesFileResult(path);
 	if (read.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run /gentle:profiles again.`,
+			`Nub-IA saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
 			"warning",
 		);
 		return;
@@ -2916,7 +2916,7 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 		};
 	}
 	if (read.status === "missing") {
-		// The same seed `/gentle:profiles` performs on its first open, so pressing
+		// The same seed `/nubia:profiles` performs on its first open, so pressing
 		// `u` before ever opening that panel lands on the same "current" profile.
 		try {
 			writeProfilesFileSync(path, bootstrapProfilesFile(snapshot));
@@ -2934,7 +2934,7 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 	const target = resolveCurrentProfileTarget(ctx.cwd, read);
 	if (!target) {
 		ctx.ui.notify(
-			"Nub-IA saved the global routing, but no profile is current: none is active and this repository pins none. Apply or create one with /gentle:profiles, then press u here or s there.",
+			"Nub-IA saved the global routing, but no profile is current: none is active and this repository pins none. Apply or create one with /nubia:profiles, then press u here or s there.",
 			"warning",
 		);
 		return;
@@ -3018,7 +3018,7 @@ function profilePinStateLabel(
  * layer and its exact file, an explicit warning for a file that is not a pin named
  * by path (kept separate from a pin naming a profile this store no longer defines),
  * and one sentence that a winning pin outranks the global active profile and every
- * `/gentle:models` write.
+ * `/nubia:models` write.
  */
 function profilePinDetailLines(
 	status: ProfilePinStatus | undefined,
@@ -3035,7 +3035,7 @@ function profilePinDetailLines(
 		lines.push(`              the ${issue.source} pin names "${issue.profile}", which this store does not define; ignoring it (${issue.path}).`);
 	}
 	if (evaluation.winner) {
-		lines.push("              This repository's subagent routing comes from the pin; the globally active profile and /gentle:models writes do not apply here.");
+		lines.push("              This repository's subagent routing comes from the pin; the globally active profile and /nubia:models writes do not apply here.");
 	}
 	return lines;
 }
@@ -3074,7 +3074,7 @@ function followRenamedPin(
 
 /**
  * One sentence naming the profile this repository resolves, for the commands whose
- * writes a pin outranks: `/gentle:models` materializes global routing that a pinned
+ * writes a pin outranks: `/nubia:models` materializes global routing that a pinned
  * repository will not use for its subagents. The launch resolver decides, so the note
  * names exactly what a launch would use.
  */
@@ -3082,7 +3082,7 @@ function profilePinScopeNote(cwd: string): string | undefined {
 	const resolution = resolveProfilePin({ cwd, configHome: gentleAiConfigHome() });
 	if (!resolution) return undefined;
 	return sanitizeTerminalText(
-		`This repository pins profile "${resolution.profile}" (${resolution.source} pin at ${resolution.path}), so its subagent launches resolve that profile instead of the global routing. Change or remove the pin with /gentle:profiles (p or P).`,
+		`This repository pins profile "${resolution.profile}" (${resolution.source} pin at ${resolution.path}), so its subagent launches resolve that profile instead of the global routing. Change or remove the pin with /nubia:profiles (p or P).`,
 	);
 }
 
@@ -4023,7 +4023,7 @@ async function runProfilesPanelAction(
 			}
 			if (namedLayers.length > 0) {
 				ctx.ui.notify(
-					`Profile "${result.name}" is pinned for this repository (${namedLayers.join(" and ")}). Remove the pin first with /gentle:profiles (p removes the clone pin, P removes the declaration), then delete it.`,
+					`Profile "${result.name}" is pinned for this repository (${namedLayers.join(" and ")}). Remove the pin first with /nubia:profiles (p removes the clone pin, P removes the declaration), then delete it.`,
 					"warning",
 				);
 				return file;
@@ -4163,13 +4163,13 @@ async function runProfilesPanelAction(
 	}
 }
 
-/** `/gentle:profiles`: seed or open the store, then loop the panel over one action at a time until it closes. */
+/** `/nubia:profiles`: seed or open the store, then loop the panel over one action at a time until it closes. */
 async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): Promise<void> {
 	const path = profilesFilePath(gentleAiConfigHome());
 	const read = readProfilesFileResult(path);
 	if (read.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run /gentle:profiles again.`,
+			`Nub-IA cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
 			"warning",
 		);
 		return;
@@ -4410,14 +4410,14 @@ function createGentleAiExtensionForTesting(
 			const modelResult = await applySavedModelConfig(ctx);
 			if (ctx.hasUI && modelResult.invalidPath) {
 				ctx.ui.notify(
-					`Nub-IA skipped model config because ${modelResult.invalidPath} is invalid JSON or not an object. Fix or remove the file, then run /gentle:models again.`,
+					`Nub-IA skipped model config because ${modelResult.invalidPath} is invalid JSON or not an object. Fix or remove the file, then run /nubia:models again.`,
 					"warning",
 				);
 				return;
 			}
 			// Routine startup housekeeping (model routing applied, managed assets
-			// refreshed) is silent: the counts are visible in /gentle:models and
-			// /gentle:doctor. Only a failure is surfaced.
+			// refreshed) is silent: the counts are visible in /nubia:models and
+			// /nubia:doctor. Only a failure is surfaced.
 			void installResult;
 		} catch (error) {
 			if (ctx.hasUI) {
@@ -4485,7 +4485,7 @@ function createGentleAiExtensionForTesting(
 
 	for (const owner of ["delegation", "review"] as const) {
 		const label = owner;
-		pi.registerCommand(`gentle:install-${owner}`, {
+		pi.registerCommand(`nubia:install-${owner}`, {
 			description: `Repair or refresh only global Gentle AI ${label} assets.`,
 			handler: async (args, ctx) => {
 				const force = args.includes("--force");
@@ -4498,28 +4498,28 @@ function createGentleAiExtensionForTesting(
 		});
 	}
 
-	pi.registerCommand("gentle:models", {
+	pi.registerCommand("nubia:models", {
 		description: "Configure global per-agent models for Nub-IA agents.",
 		handler: async (_args, ctx) => {
 			await handleModelsCommand(ctx, pi);
 		},
 	});
 
-	pi.registerCommand("gentle:profiles", {
+	pi.registerCommand("nubia:profiles", {
 		description: "Create, switch, and manage global agent-model profiles for Nub-IA agents.",
 		handler: async (_args, ctx) => {
 			await handleProfilesCommand(ctx, pi);
 		},
 	});
 
-	pi.registerCommand("gentle:persona", {
+	pi.registerCommand("nubia:persona", {
 		description: "Switch Nub-IA persona between gentleman and neutral.",
 		handler: async (_args, ctx) => {
 			await handlePersonaCommand(ctx);
 		},
 	});
 
-	pi.registerCommand("gentle:doctor", {
+	pi.registerCommand("nubia:doctor", {
 		description: "Run read-only Gentle AI diagnostics for this Pi workspace.",
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);
@@ -4551,7 +4551,7 @@ function createGentleAiExtensionForTesting(
 	// It matters more here than there, because this policy governs whether
 	// background subagents may be launched at all, so nothing in Pi may write
 	// it. The only writer is this handler, reached only by explicit invocation.
-	pi.registerCommand("gentle:background-subagents", {
+	pi.registerCommand("nubia:background-subagents", {
 		description: "Show or set the managed background-subagents policy; no argument opens a selectable menu (status|enable|disable). Every sub-action is user-initiated only; Pi automation never toggles it.",
 		// No argument opens a selectable menu when an interactive UI is present;
 		// headless callers and fakes without ui.select keep the status fallback.
@@ -4563,7 +4563,7 @@ function createGentleAiExtensionForTesting(
 				subAction = selected;
 			}
 			if (subAction !== "status" && subAction !== "enable" && subAction !== "disable") {
-				ctx.ui.notify(`Unknown /gentle:background-subagents sub-action "${subAction}". Use status, enable, or disable.`, "warning");
+				ctx.ui.notify(`Unknown /nubia:background-subagents sub-action "${subAction}". Use status, enable, or disable.`, "warning");
 				return;
 			}
 			try {
@@ -4579,7 +4579,7 @@ function createGentleAiExtensionForTesting(
 		},
 	});
 
-	pi.registerCommand("gentle:status", {
+	pi.registerCommand("nubia:status", {
 		description: "Show Gentle AI package status for this project.",
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);

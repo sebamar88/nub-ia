@@ -23,7 +23,7 @@ test("Gentle Shell startup never waits for a repository scan",async()=>{
 	const f=fixture();
 	await Promise.race([f.fire("session_start"),new Promise((_,reject)=>setTimeout(()=>reject(new Error("startup blocked by Git inventory")),100))]);
 	assert.equal(f.gitCalls(),0);
-	await f.commands.get("gentle:changes").handler("",f.ctx);
+	await f.commands.get("nubia:changes").handler("",f.ctx);
 	assert.match(f.notices.join("\n"),/captured.*agent|agent.*changes/i);
 	await f.fire("session_shutdown");
 });
@@ -52,7 +52,7 @@ test("the changes overlay labels each session tree with its root's branch instea
 			if(args[0]==="symbolic-ref")return root==="/repo"?{stdout:"feature\n",code:0}:{stdout:"",code:1};
 			return {stdout:"deadbeef\n",code:0};}});
 	for(const fn of handlers.get("session_start")??[])await fn({},ctx);
-	void commands.get("gentle:changes").handler("",ctx);
+	void commands.get("nubia:changes").handler("",ctx);
 	await new Promise(r=>setImmediate(r));
 	assert.ok(view,"the overlay opened");
 	for(let i=0;i<6;i++)await new Promise(r=>setImmediate(r));

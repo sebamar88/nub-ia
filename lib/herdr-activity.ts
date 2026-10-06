@@ -115,7 +115,7 @@ export function metadataArgs(pane: string, summary: string | null, seq: number):
 	const rows = summary?.split("\n") ?? [];
 	const tokens = ["summary", "summary2"].flatMap((token, index) => rows[index]
 		? ["--token", `${token}=${rows[index]}`] : ["--clear-token", token]);
-	return ["pane", "report-metadata", pane, "--source", "gentle:activity", "--agent", "pi",
+	return ["pane", "report-metadata", pane, "--source", "nubia:activity", "--agent", "pi",
 		"--seq", String(seq), "--ttl-ms", "30000", ...tokens];
 }
 

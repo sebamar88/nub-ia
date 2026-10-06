@@ -78,7 +78,7 @@ function fixture(t: test.TestContext, order = "owner-first", env: NodeJS.Process
 	return {
 		pi, ctx, home, events, notices, statuses, widgets, snapshot, controller: () => controller!, renders: () => renders,
 		setSessionId: (id: string) => { sessionId = id; }, view: () => { assert.ok(view); return view; },
-		async command(args: string) { await commands.get("gentle:yolo")!.handler(args, ctx); },
+		async command(args: string) { await commands.get("nubia:yolo")!.handler(args, ctx); },
 		async apply(data: string) {
 			assert.ok(observeActionReady && view, "action-ready observation is enabled");
 			let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -92,7 +92,7 @@ function fixture(t: test.TestContext, order = "owner-first", env: NodeJS.Process
 		},
 		async open() {
 			opened = new Promise<void>(resolve => { ready = resolve; });
-			const result = commands.get("gentle:customize")!.handler("", ctx);
+			const result = commands.get("nubia:customize")!.handler("", ctx);
 			await opened;
 			return { result, close: () => { view?.handleInput("\x1b"); finish?.(); } };
 		},
@@ -138,7 +138,7 @@ for (const order of ["owner-first", "shell-first"]) test(`Editor YOLO menu and s
 
 for (const invalid of [false, true]) test(`absent/invalid owner is unavailable, bounded and cannot activate (invalid: ${invalid})`, async t => {
 	const h = fixture(t, "absent");
-	if (invalid) h.events.on("gentle:yolo:host-ui", data => {
+	if (invalid) h.events.on("nubia:yolo:host-ui", data => {
 		const request = data as { respond(value: unknown): void };
 		request.respond({ enabled: true });
 	});
@@ -235,7 +235,7 @@ test("adapter callbacks fail closed after reset, disposal and context invalidati
 test("late discovery callback is disposed rather than reviving a timed-out interaction", async t => {
 	const h = fixture(t, "absent");
 	let respond!: (value: unknown) => void;
-	h.events.on("gentle:yolo:host-ui", data => { respond = (data as { respond(value: unknown): void }).respond; });
+	h.events.on("nubia:yolo:host-ui", data => { respond = (data as { respond(value: unknown): void }).respond; });
 	assert.equal(await yolo.discoverYoloUiAdapter(h.pi, h.ctx), undefined);
 	let disposed = 0;
 	respond({ read: async () => "ON", toggle: async () => assert.fail("late callback must not act"), observe: () => () => {}, dispose: () => { disposed++; } });

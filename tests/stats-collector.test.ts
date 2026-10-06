@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { aggregateStats, createStatsLoader, currentSessionStats, parseSessionLines, shiftDay, STATS_RANGE, STATS_SCOPE, weekdayOf, type StatsFilter } from "../lib/stats-collector.ts";
 import { SESSION_CHANGE_ENTRY } from "../lib/session-changes.ts";
 
-// The /gentle:stats collector: a streaming loader over Pi's session files and
+// The /nubia:stats collector: a streaming loader over Pi's session files and
 // pure aggregation over the parsed records. Fixtures carry exact numbers so
 // every figure the panel shows is pinned here.
 

@@ -873,7 +873,7 @@ async function register(relativePath) {
 await register("extensions/gentle-agents.ts");
 await register("extensions/gentle-ai.ts");
 for (const name of ["subagent_list_agents", "subagent_run", "orchestrator_session_id", "orchestrator_list", "orchestrator_send_message", "gentle_odd_phase"]) assert.ok(registrations.tools.includes(name), \`missing registered tool: \${name}\`);
-for (const name of ["gentle:agents", "gentle:status", "gentle:doctor"]) assert.ok(registrations.commands.includes(name), \`missing registered command: \${name}\`);
+for (const name of ["nubia:agents", "nubia:status", "nubia:doctor"]) assert.ok(registrations.commands.includes(name), \`missing registered command: \${name}\`);
 assert.ok(registrations.events.includes("session_start"), "expected session_start registration");
 assert.ok(registrations.events.includes("session_shutdown"), "expected session_shutdown registration");
 process.stdout.write(JSON.stringify({ tools: registrations.tools.sort(), commands: registrations.commands.sort(), loader: "Jiti from @earendil-works/pi-coding-agent dependency" }));

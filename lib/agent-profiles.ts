@@ -1,5 +1,5 @@
 // Agent-model profiles: named, switchable snapshots of the global
-// `models.json` routing behind `/gentle:profiles`. The store lives at
+// `models.json` routing behind `/nubia:profiles`. The store lives at
 // `<configHome>/profiles.json` and single-profile exports at
 // `<configHome>/profiles.export.json`. Everything here is pure except the two
 // path helpers and the thin read/write wrappers at the bottom; the extension

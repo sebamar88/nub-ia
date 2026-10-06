@@ -24,7 +24,7 @@ test("complete Gentle AI extension registers and executes YOLO through the actua
 	runner.bindCommandContext();
 	assert.equal(runner.getAllRegisteredTools().some(({ definition }) => definition.name.includes("yolo")), false);
 	assert.equal(runner.getCommand("yolo"), undefined, "bare yolo command is not registered");
-	const command = runner.getCommand("gentle:yolo"); assert.ok(command);
+	const command = runner.getCommand("nubia:yolo"); assert.ok(command);
 	await command.handler("enable", runner.createCommandContext());
 	assert.equal(statuses.get(YOLO_STATUS_KEY), YOLO_STATUS_TEXT);
 	await command.handler("disable", runner.createCommandContext());
@@ -65,7 +65,7 @@ test("SDK-loaded YOLO command resets across actual runner lifecycle dispatch and
 	};
 	let runner = await load();
 	const command = async (args: string) => {
-		const registered = runner.getCommand("gentle:yolo"); assert.ok(registered);
+		const registered = runner.getCommand("nubia:yolo"); assert.ok(registered);
 		await registered.handler(args, runner.createCommandContext());
 	};
 	await runner.emit({ type: "session_start", reason: "startup" });
@@ -125,7 +125,7 @@ for (const shellFirst of [false, true]) test(`SDK loads both extensions on one b
 	// The compatibility SDK omits mode; annotate the transport we explicitly
 	// bound above. All other getters retain real SDK invalidation semantics.
 	if (ctx.mode === undefined) Object.defineProperty(ctx, "mode", { value: "tui" });
-	const command = runner.getCommand("gentle:yolo")!, customize = runner.getCommand("gentle:customize")!;
+	const command = runner.getCommand("nubia:yolo")!, customize = runner.getCommand("nubia:customize")!;
 	assert.ok(command); assert.ok(customize);
 	const menu = customize.handler("", ctx);
 	await ready; assert.ok(view);

@@ -23,25 +23,25 @@ const EXTENSIONS = [
 ];
 
 const EXPECTED_BANNER_COMMANDS = [
-	"gentle:banner",
-	"gentle:toggle-rose",
-	"gentle:toggle-text-logo",
-	"gentle:banner-color",
+	"nubia:banner",
+	"nubia:toggle-rose",
+	"nubia:toggle-text-logo",
+	"nubia:banner-color",
 ];
 
 const EXPECTED_COMMANDS = [
-	"gentle:install-delegation",
-	"gentle:install-review",
-	"gentle:models",
-	"gentle:persona",
-	"gentle:status",
-	"gentle:doctor",
+	"nubia:install-delegation",
+	"nubia:install-review",
+	"nubia:models",
+	"nubia:persona",
+	"nubia:status",
+	"nubia:doctor",
 	"skill-registry:refresh",
 	...EXPECTED_BANNER_COMMANDS,
 ];
 
 const FORBIDDEN_COMPAT_COMMANDS = [
-	"gentle:install-assets",
+	"nubia:install-assets",
 	"gentle-ai:models",
 	"gentleman:models",
 	"gentle-ai:persona",
@@ -263,7 +263,7 @@ async function run() {
 	}
 	// Retired SDD command entry points must not register, regardless of unrelated prompt text.
 	for (const name of [
-		"gentle:install-sdd", "gentle:sdd-preflight", "gentle-sdd-status",
+		"nubia:install-sdd", "nubia:sdd-preflight", "gentle-sdd-status",
 		"gentle-sdd-continue", "gentle-sdd-init", "sdd-init", "sdd-continue",
 		"sdd-status", "gentle-ai:install-sdd", "gentle-ai:sdd-preflight",
 		"gentle-ai:sdd-status", "gentle-ai:sdd-continue",
@@ -393,7 +393,7 @@ async function run() {
 		);
 		const personaCtx = createCtx(promptCwd, true);
 		personaCtx.ui.select = async () => "neutral";
-		await commands.get("gentle:persona").handler("", personaCtx);
+		await commands.get("nubia:persona").handler("", personaCtx);
 		assert.equal(
 			await readFile(join(globalConfigHome, "persona.json"), "utf8"),
 			'{\n  "mode": "neutral"\n}\n',
@@ -711,18 +711,18 @@ async function run() {
 	const bannerCwd = await tempWorkspace();
 	try {
 		const ctx = createCtx(bannerCwd, true);
-		await commands.get("gentle:toggle-rose").handler("", ctx);
+		await commands.get("nubia:toggle-rose").handler("", ctx);
 		let bannerConfig = JSON.parse(await readFile(join(globalConfigHome, "banner.json"), "utf8"));
 		assert.equal(bannerConfig.showRose, false);
 		assert.equal(bannerConfig.showTextLogo, true);
 		assert.equal(bannerConfig.color, "lime");
-		await commands.get("gentle:toggle-text-logo").handler("", ctx);
+		await commands.get("nubia:toggle-text-logo").handler("", ctx);
 		bannerConfig = JSON.parse(await readFile(join(globalConfigHome, "banner.json"), "utf8"));
 		assert.equal(bannerConfig.showTextLogo, false);
-		await commands.get("gentle:banner-color").handler("cyan", ctx);
+		await commands.get("nubia:banner-color").handler("cyan", ctx);
 		bannerConfig = JSON.parse(await readFile(join(globalConfigHome, "banner.json"), "utf8"));
 		assert.equal(bannerConfig.color, "cyan");
-		await commands.get("gentle:banner").handler("", ctx);
+		await commands.get("nubia:banner").handler("", ctx);
 		bannerConfig = JSON.parse(await readFile(join(globalConfigHome, "banner.json"), "utf8"));
 		assert.equal(bannerConfig.showRose, true);
 	} finally {
@@ -732,8 +732,8 @@ async function run() {
 
 	// issue-301: cancelling the color picker must be a no-op — no write,
 	// no notify, and the previously saved color must survive byte/semantically
-	// unchanged. Covers both entry points: /gentle:banner-color picker
-	// (cancelled), and /gentle:banner -> Color row -> nested picker (cancelled).
+	// unchanged. Covers both entry points: /nubia:banner-color picker
+	// (cancelled), and /nubia:banner -> Color row -> nested picker (cancelled).
 	// Also covers an invalid non-empty argument, which must still open the
 	// picker and treat its cancellation as a no-op.
 	const cancelPickerCwd = await tempWorkspace();
@@ -749,30 +749,30 @@ async function run() {
 
 		const cancelCtx = createCtx(cancelPickerCwd, true);
 
-		// (a) /gentle:banner-color picker cancelled: seeded color unchanged, no notify.
+		// (a) /nubia:banner-color picker cancelled: seeded color unchanged, no notify.
 		cancelCtx.ui.notifications.length = 0;
 		cancelCtx.ui.selections.length = 0;
 		cancelCtx.ui.select = async (label, options) => {
 			cancelCtx.ui.selections.push({ label, options });
 			return undefined;
 		};
-		await commands.get("gentle:banner-color").handler("", cancelCtx);
+		await commands.get("nubia:banner-color").handler("", cancelCtx);
 		let afterCancel = await readFile(bannerConfigPath, "utf8");
 		assert.equal(afterCancel, seededJson, "banner-color cancel must not rewrite banner.json");
 		assert.equal(cancelCtx.ui.selections.length, 1, "banner-color cancel must open the picker once");
 		assert.equal(cancelCtx.ui.notifications.length, 0, "banner-color cancel must not notify");
 
-		// (d) invalid non-empty /gentle:banner-color input still opens picker;
+		// (d) invalid non-empty /nubia:banner-color input still opens picker;
 		//     cancelling it is a no-op.
 		cancelCtx.ui.notifications.length = 0;
 		cancelCtx.ui.selections.length = 0;
-		await commands.get("gentle:banner-color").handler("purple", cancelCtx);
+		await commands.get("nubia:banner-color").handler("purple", cancelCtx);
 		afterCancel = await readFile(bannerConfigPath, "utf8");
 		assert.equal(afterCancel, seededJson, "banner-color invalid+cancel must not rewrite banner.json");
 		assert.equal(cancelCtx.ui.selections.length, 1, "invalid banner-color arg must still open the picker");
 		assert.equal(cancelCtx.ui.notifications.length, 0, "banner-color invalid+cancel must not notify");
 
-		// (b) /gentle:banner selects the Color row, then the nested picker is
+		// (b) /nubia:banner selects the Color row, then the nested picker is
 		//     cancelled: seeded color unchanged, no notify. The outer select
 		//     returns the Color row; the nested select returns undefined.
 		cancelCtx.ui.notifications.length = 0;
@@ -785,7 +785,7 @@ async function run() {
 			// Second call: nested color picker -> cancel (undefined).
 			return selectCall === 1 ? options[options.length - 1] : undefined;
 		};
-		await commands.get("gentle:banner").handler("", cancelCtx);
+		await commands.get("nubia:banner").handler("", cancelCtx);
 		afterCancel = await readFile(bannerConfigPath, "utf8");
 		assert.equal(afterCancel, seededJson, "banner Color-row cancel must not rewrite banner.json");
 		assert.equal(cancelCtx.ui.selections.length, 2, "banner Color-row flow must open outer then nested picker");
@@ -808,7 +808,7 @@ async function run() {
 		for (const handler of hooks.get("session_start")) {
 			await handler({ reason: "startup" }, createCtx(noUiCwd, false));
 		}
-		for (const diagnostic of ["gentle:status", "gentle:doctor"]) {
+		for (const diagnostic of ["nubia:status", "nubia:doctor"]) {
 			const ctx = createCtx(noUiCwd, true);
 			await commands.get(diagnostic).handler("", ctx);
 		}
@@ -872,7 +872,7 @@ async function run() {
 		}
 		assert.equal(existsSync(retiredManagedValidatorPath), false, "review retirement still runs at startup");
 		const driftCtx = createCtx(noUiCwd, true);
-		await commands.get("gentle:status").handler("", driftCtx);
+		await commands.get("nubia:status").handler("", driftCtx);
 		assert.doesNotMatch(driftCtx.ui.notifications.at(-1).message, /install-(delegation|review) --force/);
 		assert.equal(
 			await readFile(installedRefuterPath, "utf8"),
@@ -926,7 +926,7 @@ async function run() {
 			await writeFile(join(process.env.GENTLE_PI_CONFIG_HOME, "models.json"),
 				JSON.stringify({ [representatives[owner].replace(/\.md$/, "")]: "test/installer-must-not-apply" }));
 			const ctx = createCtx(fixture, true);
-			const command = commands.get(`gentle:install-${owner}`);
+			const command = commands.get(`nubia:install-${owner}`);
 			assert.ok(command, `missing owner installer: ${owner}`);
 			await command.handler("", ctx);
 			for (const [candidate, name] of Object.entries(representatives)) {
@@ -963,7 +963,7 @@ async function run() {
 			assert.equal(await readFile(selectedPath, "utf8"), userEdit);
 			assert.equal(existsSync(join(agentHome, "subagents.json")), false,
 				"owner installers must not apply model routing");
-			await commands.get("gentle:status").handler("", ctx);
+			await commands.get("nubia:status").handler("", ctx);
 			const label = owner;
 			assert.ok(ctx.ui.notifications.at(-1).message.includes(`Global ${label} user overrides: 1 file(s)`));
 		} finally {
@@ -977,26 +977,26 @@ async function run() {
 	try {
 		process.env.GENTLE_PI_AGENT_HOME = join(repairFixture, "agent-home");
 		const ctx = createCtx(repairFixture, true);
-		for (const diagnostic of ["gentle:status", "gentle:doctor"]) {
+		for (const diagnostic of ["nubia:status", "nubia:doctor"]) {
 			await commands.get(diagnostic).handler("", ctx);
 			const message = ctx.ui.notifications.at(-1).message;
-			assert.match(message, /Global delegation assets stale: [1-9]\d* file\(s\).*\/gentle:install-delegation --force/,
+			assert.match(message, /Global delegation assets stale: [1-9]\d* file\(s\).*\/nubia:install-delegation --force/,
 				`${diagnostic} must provide a repair for missing delegation assets`);
-			assert.match(message, /Global review assets stale: [1-9]\d* file\(s\).*\/gentle:install-review --force/,
+			assert.match(message, /Global review assets stale: [1-9]\d* file\(s\).*\/nubia:install-review --force/,
 				`${diagnostic} must provide a repair for missing review assets`);
 			assert.doesNotMatch(message, /install-sdd --force/);
 		}
-		await commands.get("gentle:install-delegation").handler("", ctx);
-		await commands.get("gentle:install-review").handler("", ctx);
+		await commands.get("nubia:install-delegation").handler("", ctx);
+		await commands.get("nubia:install-review").handler("", ctx);
 		const manifest = JSON.parse(await readFile(join(process.env.GENTLE_PI_AGENT_HOME, "gentle-ai", "managed-assets.json"), "utf8"));
 		for (const key of Object.keys(manifest.assets)) {
 			await rm(join(process.env.GENTLE_PI_AGENT_HOME, key));
 		}
-		for (const diagnostic of ["gentle:status", "gentle:doctor"]) {
+		for (const diagnostic of ["nubia:status", "nubia:doctor"]) {
 			await commands.get(diagnostic).handler("", ctx);
 			const message = ctx.ui.notifications.at(-1).message;
-			assert.match(message, /Global delegation assets stale: [1-9]\d* file\(s\).*\/gentle:install-delegation --force/);
-			assert.match(message, /Global review assets stale: [1-9]\d* file\(s\).*\/gentle:install-review --force/);
+			assert.match(message, /Global delegation assets stale: [1-9]\d* file\(s\).*\/nubia:install-delegation --force/);
+			assert.match(message, /Global review assets stale: [1-9]\d* file\(s\).*\/nubia:install-review --force/);
 			assert.doesNotMatch(message, /install-sdd --force|on demand/,
 				"managed installation evidence must survive missing delegation and review files");
 		}
@@ -1014,20 +1014,20 @@ async function run() {
 		process.env.HOME = staleAssetsCwd;
 		process.env.USERPROFILE = staleAssetsCwd;
 		const ctx = createCtx(staleAssetsCwd, true);
-		await commands.get("gentle:doctor").handler("", ctx);
+		await commands.get("nubia:doctor").handler("", ctx);
 		assert.match(ctx.ui.notifications.at(-1).message, /Nub-IA doctor/);
 		assert.match(ctx.ui.notifications.at(-1).message, /Sensitive-path guard active/);
-		for (const diagnostic of ["gentle:status", "gentle:doctor"]) {
+		for (const diagnostic of ["nubia:status", "nubia:doctor"]) {
 			await commands.get(diagnostic).handler("", ctx);
 			const message = ctx.ui.notifications.at(-1).message;
 			assert.match(message, /Organic Driven Development \(ODD\): active/);
 			assert.doesNotMatch(message, /OpenSpec|openspec\/config\.yaml|SDD/);
 		}
 		pi.setActiveTools([{ name: "engram.mem_save" }]);
-		await commands.get("gentle:doctor").handler("", ctx);
+		await commands.get("nubia:doctor").handler("", ctx);
 		assert.match(ctx.ui.notifications.at(-1).message, /Engram memory tools active/);
 		pi.setActiveTools([{ name: "engram_mem_save" }]);
-		await commands.get("gentle:doctor").handler("", ctx);
+		await commands.get("nubia:doctor").handler("", ctx);
 		assert.match(ctx.ui.notifications.at(-1).message, /Engram memory tools not active in this session/);
 	} finally {
 		pi.setActiveTools(["read", "bash", "edit", "write"]);
@@ -1085,7 +1085,7 @@ async function run() {
 			modelPanelOpened = true;
 			return Promise.resolve({ type: "save", config: {} });
 		};
-		await commands.get("gentle:models").handler("", legacyCtx);
+		await commands.get("nubia:models").handler("", legacyCtx);
 		assert.equal(modelPanelOpened, false);
 		assert.equal(await readFile(globalModelsPath, "utf8"), "{ invalid json");
 		assert.equal(legacyCtx.ui.notifications.at(-1).level, "warning");
@@ -1409,7 +1409,7 @@ async function run() {
 			);
 			assert.ok(
 				initialLines.length === 24,
-				"model panel should fill the 24-row terminal like /gentle:profiles",
+				"model panel should fill the 24-row terminal like /nubia:profiles",
 			);
 			assert.ok(
 				plainInitialLines.some((line) => /↓ \d+ more agent\(s\)/.test(line)),
@@ -1453,7 +1453,7 @@ async function run() {
 			);
 			return Promise.resolve({ type: "cancel" });
 		};
-		await commands.get("gentle:models").handler("", ctx);
+		await commands.get("nubia:models").handler("", ctx);
 
 		await hooks.get("session_start")[0]({ reason: "startup" }, ctx);
 		const legacyAppliedAgent = await readFile(
@@ -1474,7 +1474,7 @@ async function run() {
 					"global-special": { model: "openai/gpt-5-mini", thinking: "low" },
 				},
 			});
-		await commands.get("gentle:models").handler("", ctx);
+		await commands.get("nubia:models").handler("", ctx);
 		assert.doesNotMatch(
 			ctx.ui.notifications.at(-1).message,
 			/[\u001b\u0007]/,
@@ -1491,7 +1491,7 @@ async function run() {
 		assert.equal(
 			existsSync(join(modelsCwd, ".pi", "gentle-ai", "models.json")),
 			false,
-			"/gentle:models must save model routing globally, not per project",
+			"/nubia:models must save model routing globally, not per project",
 		);
 
 		const applyAgent = await readFile(
@@ -1563,7 +1563,7 @@ async function run() {
 				}
 				panel.handleInput("\u0013"); // ctrl+s saves the draft reopened after custom model input
 			});
-		await commands.get("gentle:models").handler("", ctx);
+		await commands.get("nubia:models").handler("", ctx);
 
 		const customSavedConfig = JSON.parse(
 			await readFile(globalModelsPath, "utf8"),
@@ -1585,7 +1585,7 @@ async function run() {
 				}
 				panel.handleInput("\u001b");
 			});
-		await commands.get("gentle:models").handler("", ctx);
+		await commands.get("nubia:models").handler("", ctx);
 		assert.match(
 			ctx.ui.notifications.at(-1).message,
 			/Custom model id must be a single-line/,
@@ -1603,7 +1603,7 @@ async function run() {
 			exportPanelCalls += 1;
 			return Promise.resolve(exportPanelCalls === 1 ? { type: "export", config: {} } : { type: "cancel" });
 		};
-		await commands.get("gentle:models").handler("", ctx);
+		await commands.get("nubia:models").handler("", ctx);
 		const exported = JSON.parse(await readFile(join(globalConfigHome, "models.export.json"), "utf8"));
 		assert.equal(exported.kind, "gentle-pi.agent_model_routing");
 		assert.equal(exported.version, 1);
@@ -1626,7 +1626,7 @@ async function run() {
 			restorePanelCalls += 1;
 			return Promise.resolve(restorePanelCalls === 1 ? { type: "restore", config: {} } : { type: "cancel" });
 		};
-		await commands.get("gentle:models").handler("", ctx);
+		await commands.get("nubia:models").handler("", ctx);
 		const restoredConfig = JSON.parse(await readFile(globalModelsPath, "utf8"));
 		assert.deepEqual(restoredConfig["sdd-apply"], {
 			model: "restore/provider",
@@ -1643,7 +1643,7 @@ async function run() {
 				type: "save",
 				config: { "sdd-apply": { model: "openai/gpt-5", thinking: "max" } },
 			});
-		await commands.get("gentle:models").handler("", ctx);
+		await commands.get("nubia:models").handler("", ctx);
 		const maxSavedConfig = JSON.parse(await readFile(globalModelsPath, "utf8"));
 		assert.equal(maxSavedConfig["sdd-apply"].thinking, "max");
 		const maxSubagents = JSON.parse(
@@ -1670,7 +1670,7 @@ async function run() {
 					return;
 				}
 			});
-		await commands.get("gentle:models").handler("", ctx);
+		await commands.get("nubia:models").handler("", ctx);
 		const pickerMaxConfig = JSON.parse(await readFile(globalModelsPath, "utf8"));
 		assert.equal(pickerMaxConfig["sdd-apply"].thinking, "max");
 	} finally {
