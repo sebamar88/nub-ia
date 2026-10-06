@@ -1690,7 +1690,7 @@ test("technical reference documents the in-process review and no gentle-ai binar
 		assert.ok(reference.includes(clause), `technical reference missing clause: ${clause}`);
 	}
 	assert.doesNotMatch(reference, /New ordinary review uses compact `gentle_review` `start -> finalize -> validate`\./);
-	assert.doesNotMatch(reference, /\/nubia:review-mode|\/nubia:dev-binary|\/nubia:telemetry|review-session-permission/);
+	assert.doesNotMatch(reference, /\/nubia:dev-binary|\/nubia:telemetry|review-session-permission/);
 });
 
 

@@ -119,6 +119,27 @@ import { SelectionEngine } from "../lib/selection-engine.ts";
 import { withOverlayRepaint } from "../lib/overlay-repaint.ts";
 import { readEnv } from "../lib/config-home.ts";
 
+// Status card "Review" block: the last nub_review on record versus the diff a
+// push would deliver. The deliverable hash is a git call, so it is memoised
+// per (session changes count, 10 s) and refreshed in the background; the
+// first paint shows the record without staleness until the hash arrives.
+import { reviewStatusLines } from "../lib/nub-review.ts";
+import { readLastReview, pushDiffHash } from "./nub-ia-review.ts";
+import { resolveReviewGate } from "../lib/review-gate-policy.ts";
+const reviewHashMemo = new Map<string, { key: string; at: number; hash: string | undefined; pending: boolean }>();
+function reviewStatus(cwd: string, changeCount: number): ShellBarModel["review"] {
+	const last = readLastReview(cwd);
+	const memo = reviewHashMemo.get(cwd);
+	const key = `${changeCount}`;
+	if (!memo || memo.key !== key || Date.now() - memo.at > 10_000) {
+		const next = { key, at: Date.now(), hash: memo?.hash, pending: true };
+		reviewHashMemo.set(cwd, next);
+		void pushDiffHash(cwd).then((hash) => { next.hash = hash; next.pending = false; }, () => { next.pending = false; });
+	}
+	return reviewStatusLines(last, reviewHashMemo.get(cwd)?.hash, resolveReviewGate(cwd).mode);
+}
+
+
 // Gentle Shell: the visual layer gentle-pi puts on top of pi. It installs the
 // status bar, the petal prompt, the working-tree changes widget and overlay,
 // the subscription usage view, and the cards Gentle notices are drawn with.
@@ -1726,6 +1747,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			const footerModel = (): ShellBarModel => ({
 				...buildShellBarModel(pi, ctx, footerData, { dirty: tracker.model.files.length, usage: usage.get(ctx.model?.provider ?? ""), profile: deps.activeProfile() }),
 				changes: { files: tracker.model.files.length, added: tracker.model.added, deleted: tracker.model.deleted, notice: tracker.model.notice },
+				review: reviewStatus(ctx.cwd, tracker.model.files.length),
 			});
 			// At narrow fullscreen widths only one status row paints: a top header
 			// suppresses the bottom bar in the layout, and otherwise the bottom bar
@@ -2076,10 +2098,9 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				() => ({ title: `Cards · ${style}`, sample: `${cardStylePreview[style]}${resolveCardStyle(home).malformed ? " · malformed or unreadable file" : ""}` }),
 			);
 			category = "Sections";
-			// `rdd` stays in the stored schema for saved settings/profiles but has no
-			// Status block any more (native review was removed), so it is not offered.
-			for (const key of VISUAL_SECTION_KEYS.filter((section) => section !== "rdd")) add(
-				() => `Section ${key}: ${visual().visibility[key] ? "shown" : "hidden"}`,
+			// `rdd` is the stored key of the Status "Review" block (nub_review).
+			for (const key of VISUAL_SECTION_KEYS) add(
+				() => `Section ${key === "rdd" ? "review" : key}: ${visual().visibility[key] ? "shown" : "hidden"}`,
 				pending,
 				() => updateVisual((settings) => ({ ...settings, visibility: { ...settings.visibility, [key]: !settings.visibility[key] } })),
 				() => {

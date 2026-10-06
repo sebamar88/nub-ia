@@ -18,6 +18,8 @@ export { gaugeTone, renderGauge, type GaugeTone };
 export interface ShellBarModel {
 	profile?: string;
 	changes?: { files: number; added: number; deleted: number; notice?: string };
+	/** Last `nub_review` for the current deliverable diff (Status card "Review" block). */
+	review?: { headline: string; tone: "ok" | "warn" | "bad" | "none"; detail?: string };
 	cwd: string;
 	branch: string | null;
 	dirty: number | undefined;
@@ -225,6 +227,15 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 					: label("No captured changes"),
 				...(changes?.notice ? [theme.fg("warning", sanitizeStatus(changes.notice))] : []),
 				label("/nubia:changes"),
+			],
+		}]),
+		// The `rdd` visibility key is the saved-settings name of this block (it
+		// replaced the native-review block the upstream shipped under that key).
+		...(presentation?.visibility.rdd === false || !model.review ? [] : [{
+			title: "Review",
+			lines: [
+				theme.fg(model.review.tone === "ok" ? "success" : model.review.tone === "bad" ? "error" : model.review.tone === "warn" ? "warning" : ROLE.LABEL, sanitizeStatus(model.review.headline)),
+				...(model.review.detail ? [label(sanitizeStatus(model.review.detail))] : []),
 			],
 		}]),
 		{ title: "Integrations", lines: model.statuses.length

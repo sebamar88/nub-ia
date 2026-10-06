@@ -24,6 +24,7 @@ import { Type } from "typebox";
 import { type AgentDefinition, discoverAgents, loadAgentsConfig, resolveAgentProfile } from "../lib/agents-config.ts";
 import { resolveAgentHomeDirectory } from "../lib/agent-model-resolution.ts";
 import { type CatalogModel, decideRoute, isModelTier, isProviderFailure } from "../lib/model-tier-router.ts";
+import { REVIEW_MODE_ACTIONS, describeReviewGate, resolveReviewGate, writeGlobalReviewGate } from "../lib/review-gate-policy.ts";
 import { loadTierCatalog } from "./nub-ia-router.ts";
 import {
 	type DiffScope,
@@ -93,7 +94,7 @@ function gitRunner(cwd: string): GitRunner {
 }
 
 /** The hash of what `git push` would deliver: the diff from the upstream (or remote default) to HEAD. */
-async function pushDiffHash(cwd: string): Promise<string | undefined> {
+export async function pushDiffHash(cwd: string): Promise<string | undefined> {
 	const git = gitRunner(cwd);
 	const upstream = await git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]);
 	let base = upstream.code === 0 ? upstream.stdout.trim() : undefined;
@@ -264,15 +265,50 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 		},
 	});
 
-	// Push gate: confirm before delivering unreviewed or blocked changes.
+	// /nubia:review-mode — the gate switch (status | enable | strict | disable),
+	// persisted in <configHome>/review-gate.json; user-initiated only.
+	pi.registerCommand("nubia:review-mode", {
+		description: "Show or set the push review gate: status | enable (confirm) | strict (refuse unreviewed pushes) | disable. No argument opens a menu.",
+		handler: async (args, ctx) => {
+			let action = args.trim().length === 0 ? "status" : args.trim();
+			if (args.trim().length === 0 && ctx.hasUI && typeof ctx.ui.select === "function") {
+				const selected = await ctx.ui.select("Review gate", ["status", "enable", "strict", "disable"]);
+				if (!selected) return;
+				action = selected;
+			}
+			if (!ctx.hasUI) return;
+			if (action === "status") {
+				ctx.ui.notify(describeReviewGate(resolveReviewGate(ctx.cwd)), "info");
+				return;
+			}
+			const mode = REVIEW_MODE_ACTIONS[action];
+			if (mode === undefined) {
+				ctx.ui.notify(`Unknown /nubia:review-mode action "${action}". Use status, enable, strict, or disable.`, "warning");
+				return;
+			}
+			try {
+				const path = writeGlobalReviewGate(mode);
+				const after = resolveReviewGate(ctx.cwd);
+				const shadowed = after.source === "project_file" ? ` A project file (${after.projectFile}) still decides here: ${after.mode}.` : "";
+				ctx.ui.notify(`Review gate set to ${mode} in ${path}.${shadowed}`, "info");
+			} catch (error) {
+				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+			}
+		},
+	});
+
+	// Push gate: confirm (or, in strict mode, refuse) before delivering
+	// unreviewed or blocked changes.
 	pi.on("tool_call", async (event, ctx) => {
 		if (event.toolName !== "bash") return;
 		const command = (event.input as { command?: unknown }).command;
 		if (typeof command !== "string" || !isGitPush(command)) return;
-		if (process.env.NUB_IA_REVIEW_GATE === "off") return;
+		const gate = resolveReviewGate(ctx.cwd);
+		if (gate.mode === "off") return;
 		const question = pushGateQuestion(readLastReview(ctx.cwd), await pushDiffHash(ctx.cwd));
 		if (question === undefined) return;
-		if (!ctx.hasUI) return { block: true, reason: `${question} (no UI to confirm; run nub_review or set NUB_IA_REVIEW_GATE=off)` };
+		if (gate.mode === "strict") return { block: true, reason: `${question.replace(/ Push .*\?$/, "")} The review gate is strict: run nub_review until the verdict is APPROVE or WARN, or /nubia:review-mode enable to be asked instead.` };
+		if (!ctx.hasUI) return { block: true, reason: `${question} (no UI to confirm; run nub_review or /nubia:review-mode disable)` };
 		const confirmed = await ctx.ui.confirm("Nub-IA push gate", question);
 		if (!confirmed) return { block: true, reason: "Push cancelled at the Nub-IA review gate." };
 	});

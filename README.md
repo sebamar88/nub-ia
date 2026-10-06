@@ -124,7 +124,8 @@ en JSON; se consolidan en un reporte markdown en `.pi/nub-ia/reviews/<fecha>-<ha
 
 - Herramienta `nub_review` (`scope: auto|staged|working`, o `baseRef` para un rango commiteado) y comando `/nubia:review [staged|working|<ref>]`.
 - Los lentes usan los tiers del router (`review-risk` → `nub-ia/strong`, el resto `nub-ia/balanced`); si un provider falla (503/429), ese lente se reintenta en el siguiente provider.
-- **Gate de push**: antes de un `git push`, si los cambios a entregar no tienen review, el review fue de otro diff, o el veredicto fue BLOCK/INCOMPLETE, pide confirmación (en modo sin UI bloquea con el motivo). `NUB_IA_REVIEW_GATE=off` lo desactiva. Nunca bloquea por sí solo: entregar sigue siendo decisión de quien pushea.
+- **Gate de push**: antes de un `git push`, si los cambios a entregar no tienen review, el review fue de otro diff, o el veredicto fue BLOCK/INCOMPLETE, actúa según `/nubia:review-mode`: `confirm` (default) pide confirmación, `strict` rechaza el push hasta que haya un review APPROVE/WARN del diff, `disable` lo apaga. Se guarda en `~/.pi/nub-ia/review-gate.json`; un `.pi/nub-ia/review-gate.json` en el repo lo fija para el equipo y `NUB_IA_REVIEW_GATE` lo fuerza por sesión.
+- **Status**: el panel muestra el bloque "Review" con el último veredicto, su antigüedad y si el diff cambió desde entonces; se oculta desde `/nubia:customize` (sección review).
 
 ### RTK: menos tokens por comando
 

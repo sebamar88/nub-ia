@@ -23,6 +23,7 @@ export const COMMAND_PALETTE_CATALOG: readonly CommandPaletteCatalogGroup[] = [
 			{ command: "nubia:models", label: "Assign models and effort" },
 			{ command: "nubia:profiles", label: "Agent-model profiles" },
 			{ command: "nubia:persona", label: "Switch persona" },
+			{ command: "nubia:review-mode", label: "Push review gate (confirm | strict | off)" },
 			{ command: "nubia:background-subagents", label: "Background subagents" },
 			{ command: "nubia:double-esc-cancel", label: "Require double Esc to cancel" },
 			{ command: "nubia:customize", label: "Visual customization" },

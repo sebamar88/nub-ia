@@ -232,3 +232,39 @@ export function pushGateQuestion(last: LastReview | undefined, currentHash: stri
 	if (last.verdict === "incomplete") return `The Nub-IA review of these changes was incomplete (a lens failed). Push anyway?`;
 	return undefined;
 }
+
+// --- status card --------------------------------------------------------------
+
+export interface ReviewStatusLines {
+	/** One-line verdict summary, or the "no review" hint. */
+	headline: string;
+	/** "ok" | "warn" | "bad" | "none", for the caller's colouring. */
+	tone: "ok" | "warn" | "bad" | "none";
+	detail?: string;
+}
+
+/**
+ * The Status card "Review" block from the last review on record and the hash
+ * of the current deliverable diff (undefined when unknown/not computed).
+ */
+export function reviewStatusLines(last: LastReview | undefined, currentHash: string | undefined, gateMode: string, now: Date = new Date()): ReviewStatusLines {
+	const gate = `gate: ${gateMode}`;
+	if (last === undefined) return { headline: "No review yet", tone: "none", detail: `nub_review · ${gate}` };
+	const stale = currentHash !== undefined && currentHash !== last.diffHash;
+	const age = describeAge(new Date(last.when), now);
+	const verdict = last.verdict.toUpperCase();
+	if (stale) return { headline: `${verdict} · ${age} · diff changed since`, tone: "warn", detail: `rerun nub_review · ${gate}` };
+	const tone = last.verdict === "approve" ? "ok" : last.verdict === "warn" ? "warn" : "bad";
+	return { headline: `${verdict} · ${age}`, tone, detail: gate };
+}
+
+export function describeAge(when: Date, now: Date): string {
+	const ms = Math.max(0, now.getTime() - when.getTime());
+	const minutes = Math.round(ms / 60_000);
+	if (Number.isNaN(minutes)) return "unknown time";
+	if (minutes < 1) return "just now";
+	if (minutes < 60) return `${minutes} min ago`;
+	const hours = Math.round(minutes / 60);
+	if (hours < 48) return `${hours} h ago`;
+	return `${Math.round(hours / 24)} d ago`;
+}
