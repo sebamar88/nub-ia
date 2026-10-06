@@ -398,8 +398,9 @@ async function run() {
 			await readFile(join(globalConfigHome, "persona.json"), "utf8"),
 			'{\n  "mode": "neutral"\n}\n',
 		);
+		// Writes always land in .pi/nub-ia/; the legacy project file is read as a fallback only.
 		assert.equal(
-			await readFile(join(promptCwd, ".pi", "gentle-ai", "persona.json"), "utf8"),
+			await readFile(join(promptCwd, ".pi", "nub-ia", "persona.json"), "utf8"),
 			'{\n  "mode": "neutral"\n}\n',
 		);
 		assert.match(personaCtx.ui.notifications.at(-1).message, /Global config:/);

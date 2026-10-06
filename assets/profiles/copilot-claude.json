@@ -1,0 +1,47 @@
+{
+  "kind": "gentle-pi.agent_model_profile",
+  "version": 1,
+  "name": "copilot-claude",
+  "config": {
+    "gentle-ai-explore": {
+      "model": "github-copilot/claude-sonnet-5.5",
+      "thinking": "low"
+    },
+    "gentle-ai-verify": {
+      "model": "github-copilot/claude-sonnet-5.5",
+      "thinking": "high"
+    },
+    "gentle-ai-worker": {
+      "model": "github-copilot/claude-sonnet-5.5",
+      "thinking": "medium"
+    },
+    "jd-fix-agent": {
+      "model": "github-copilot/claude-sonnet-5.5",
+      "thinking": "medium"
+    },
+    "jd-judge-a": {
+      "model": "github-copilot/gpt-6-astra",
+      "thinking": "high"
+    },
+    "jd-judge-b": {
+      "model": "github-copilot/claude-opus-5.5",
+      "thinking": "xhigh"
+    },
+    "review-readability": {
+      "model": "github-copilot/claude-sonnet-5.5",
+      "thinking": "medium"
+    },
+    "review-reliability": {
+      "model": "github-copilot/claude-sonnet-5.5",
+      "thinking": "high"
+    },
+    "review-resilience": {
+      "model": "github-copilot/claude-sonnet-5.5",
+      "thinking": "high"
+    },
+    "review-risk": {
+      "model": "github-copilot/claude-opus-5.5",
+      "thinking": "xhigh"
+    }
+  }
+}

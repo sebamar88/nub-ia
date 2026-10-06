@@ -3,10 +3,12 @@ import { EFFORTS, ORCHESTRATOR_AGENT_CLASS, RuntimeMetrics, UNKNOWN_AGENT_CLASS,
 import { CHILD_METRICS_EVENT, CHILD_METRICS_REVOKED, snapshotChildEvent, type ChildLaunchBucket } from "../lib/runtime-metrics-children.ts";
 import { RuntimeMetricsAttempt } from "../lib/runtime-metrics-delivery.ts";
 import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
+import { appendRuntimeMetricRows, runtimeMetricsSinkEnabled } from "../lib/runtime-metrics-sink.ts";
+import { readEnv } from "../lib/config-home.ts";
 
-/** Delivery seam. The in-process collector has no built-in sink (the external
- * gentle-ai binary transport was removed), so without an injected `send` the
- * aggregated rows are simply dropped.
+/** Delivery seam. The default `send` appends rows to a local JSONL file
+ * (lib/runtime-metrics-sink.ts); an injected `send` replaces it. With
+ * NUB_IA_METRICS=off and no injected `send`, rows are dropped.
  */
 export type RuntimeMetricsSend = (rows: ReturnType<RuntimeMetrics["snapshot"]>, cwd: string, deps: {
 	launches?: readonly ChildLaunchBucket[]; env?: NodeJS.ProcessEnv; signal?: AbortSignal; current?: () => boolean;
@@ -18,9 +20,12 @@ export type RuntimeMetricsSend = (rows: ReturnType<RuntimeMetrics["snapshot"]>, 
  * Pi hooks lack request correlation: latency and SDK-zero presence are unknown.
  */
 export default function runtimeMetrics(pi: ExtensionAPI, env = process.env,
-	{ send, now = () => performance.now(), shutdownWaitMs = 1500 }:
+	{ send: injectedSend, now = () => performance.now(), shutdownWaitMs = 1500 }:
 	{ send?: RuntimeMetricsSend; now?: () => number; shutdownWaitMs?: number } = {}): void {
-	const allows = () => env.GENTLE_PI_AGENTS_CHILD !== "1" && runtimeMetricsEnvAllows(env);
+	// Default sink: local JSONL under <configHome>/metrics/ (NUB_IA_METRICS=off disables it).
+	const send: RuntimeMetricsSend | undefined = injectedSend
+		?? (runtimeMetricsSinkEnabled(env) ? async (rows) => appendRuntimeMetricRows(rows, env) : undefined);
+	const allows = () => readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") !== "1" && runtimeMetricsEnvAllows(env);
 	if (!allows()) return;
 	type Selection = Pick<FinalResponse, "selectedModelId" | "selectedProvider" | "effort">;
 	let selection: Selection | undefined;
@@ -113,8 +118,8 @@ export default function runtimeMetrics(pi: ExtensionAPI, env = process.env,
 			submit(owner, [{ kind: "final_assistant_response", responseId: "0",
 				selectedProvider: selected?.selectedProvider ?? "unknown", selectedModelId: selected?.selectedModelId,
 				effort: selected?.effort ?? "unavailable",
-				executor: env.GENTLE_PI_AGENTS_CHILD === undefined ? "orchestrator" : "unknown",
-				agentClass: env.GENTLE_PI_AGENTS_CHILD === undefined ? ORCHESTRATOR_AGENT_CLASS : UNKNOWN_AGENT_CLASS,
+				executor: readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === undefined ? "orchestrator" : "unknown",
+				agentClass: readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === undefined ? ORCHESTRATOR_AGENT_CLASS : UNKNOWN_AGENT_CLASS,
 				observedModelId: message.model, responseModelId: message.responseModel,
 				providerThinkingLevel: EFFORTS.includes(message.providerThinkingLevel as FinalResponse["effort"])
 					? message.providerThinkingLevel as FinalResponse["effort"] : "unavailable",

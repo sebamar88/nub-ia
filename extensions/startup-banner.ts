@@ -7,6 +7,7 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { resolveAnimationPolicy } from "../lib/animation-policy.ts";
 import { PI_SUBCOMMANDS } from "../lib/gentle-shell-launcher.ts";
+import { configReadPath, nubIaConfigHome, readEnv } from "../lib/config-home.ts";
 
 
 export type BannerColor = "lime" | "pink" | "cyan" | "yellow" | "green";
@@ -58,11 +59,15 @@ function rgb(r: number, g: number, b: number, text: string): string {
 }
 
 function gentleAiConfigHome(): string {
-  return process.env.GENTLE_PI_CONFIG_HOME ?? join(os.homedir(), ".pi", "gentle-ai");
+  return nubIaConfigHome(process.env);
 }
 
 function bannerConfigPath(configHome = gentleAiConfigHome()): string {
   return join(configHome, "banner.json");
+}
+
+function bannerReadPath(configHome: string): string {
+  return configReadPath(configHome, "banner.json");
 }
 
 function normalizeBannerConfig(value: unknown): BannerConfig {
@@ -78,7 +83,7 @@ function normalizeBannerConfig(value: unknown): BannerConfig {
 // Modal mutations must not turn an unreadable or malformed existing file into defaults.
 // Legacy banner commands retain their original tolerant read behavior below.
 export async function readBannerConfigForEdit(configHome = gentleAiConfigHome()): Promise<BannerConfig> {
-  const path = bannerConfigPath(configHome);
+  const path = bannerReadPath(configHome);
   let raw: string;
   try {
     raw = await readFile(path, "utf8");
@@ -98,7 +103,7 @@ export async function readBannerConfigForEdit(configHome = gentleAiConfigHome())
 
 export async function readBannerConfig(configHome = gentleAiConfigHome()): Promise<BannerConfig> {
   try {
-    return normalizeBannerConfig(JSON.parse(await readFile(bannerConfigPath(configHome), "utf8")));
+    return normalizeBannerConfig(JSON.parse(await readFile(bannerReadPath(configHome), "utf8")));
   } catch {
     return { ...DEFAULT_BANNER_CONFIG };
   }
@@ -640,7 +645,7 @@ export default function (pi: ExtensionAPI) {
     if (!ctx.hasUI) return;
     // Delegated rpc children report hasUI=true but have no terminal to paint
     // (gentle-shell#1690); do not rely on a piped stdout lacking rows/columns.
-    if (process.env.GENTLE_PI_AGENTS_CHILD === "1") return;
+    if (readEnv(process.env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1") return;
 
     // CLI subcommands such as `pi update` or `pi install` skip the animated intro.
     if (isPiCliSubcommandInvocation(process.argv)) return;

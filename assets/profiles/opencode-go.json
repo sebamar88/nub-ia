@@ -1,0 +1,47 @@
+{
+  "kind": "gentle-pi.agent_model_profile",
+  "version": 1,
+  "name": "opencode-go",
+  "config": {
+    "gentle-ai-explore": {
+      "model": "opencode-go/glm-5.3",
+      "thinking": "low"
+    },
+    "gentle-ai-verify": {
+      "model": "opencode-go/glm-5.3",
+      "thinking": "high"
+    },
+    "gentle-ai-worker": {
+      "model": "opencode-go/glm-5.3",
+      "thinking": "medium"
+    },
+    "jd-fix-agent": {
+      "model": "opencode-go/glm-5.3",
+      "thinking": "medium"
+    },
+    "jd-judge-a": {
+      "model": "opencode-go/deepseek-v4-pro",
+      "thinking": "high"
+    },
+    "jd-judge-b": {
+      "model": "opencode-go/kimi-k3",
+      "thinking": "xhigh"
+    },
+    "review-readability": {
+      "model": "opencode-go/glm-5.3",
+      "thinking": "medium"
+    },
+    "review-reliability": {
+      "model": "opencode-go/glm-5.3",
+      "thinking": "high"
+    },
+    "review-resilience": {
+      "model": "opencode-go/glm-5.3",
+      "thinking": "high"
+    },
+    "review-risk": {
+      "model": "opencode-go/kimi-k3",
+      "thinking": "xhigh"
+    }
+  }
+}

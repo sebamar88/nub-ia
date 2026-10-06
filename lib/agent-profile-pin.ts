@@ -24,7 +24,8 @@
 
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { isValidProfileName, profileRoleEntries, profilesFilePath, readProfilesFileResult, writeJsonFileAtomicallySync } from "./agent-profiles.ts";
+import { projectConfigReadPath } from "./config-home.ts";
+import { isValidProfileName, profileRoleEntries, profilesReadFilePath, readProfilesFileResult, writeJsonFileAtomicallySync } from "./agent-profiles.ts";
 import type { AgentModelConfig } from "./model-routing-authority.ts";
 import { resolveSessionWorktreeWithGit, type WorktreeIdentity, type WorktreeResolver } from "./session-worktree-registry.ts";
 
@@ -113,6 +114,13 @@ export function localProfilePinPath(commonDir: string): string {
 
 export function repoProfileDeclarationPath(worktreeRoot: string): string {
 	return join(worktreeRoot, ".pi", "gentle-ai", "profile.json");
+}
+
+// Where to READ the repository declaration: `.pi/nub-ia/profile.json` first, then
+// the legacy `.pi/gentle-ai/profile.json`. Writers keep using the path above.
+export function repoProfileDeclarationReadPath(worktreeRoot: string): string {
+	const path = projectConfigReadPath(worktreeRoot, "profile.json");
+	return existsSync(path) ? path : repoProfileDeclarationPath(worktreeRoot);
 }
 
 // Fixed key order plus a trailing newline keeps the artifact byte-identical for the
@@ -215,7 +223,7 @@ export function readProfilePinStatus(
 	const identity = gentlePiWorktreeIdentity(cwd, resolveWorktree);
 	if (!identity) return undefined;
 	const localPath = localProfilePinPath(identity.commonDir);
-	const repoPath = repoProfileDeclarationPath(identity.root);
+	const repoPath = repoProfileDeclarationReadPath(identity.root);
 	return {
 		root: identity.root,
 		commonDir: identity.commonDir,
@@ -296,10 +304,10 @@ export function evaluateProfilePin(
 // Admission-only lookup at an explicitly bound non-Git project. Do not create
 // a fake commonDir or change public pin/status semantics outside repositories.
 export function resolveUnversionedProjectProfile(cwd: string, configHome: string): (ProfilePinSelection & { modelProfiles: AgentModelConfig }) | undefined {
-	const path = repoProfileDeclarationPath(cwd);
+	const path = repoProfileDeclarationReadPath(cwd);
 	const pin = readProfilePinResult(path);
 	if (pin.status !== "valid") return undefined;
-	const store = readProfilesFileResult(profilesFilePath(configHome));
+	const store = readProfilesFileResult(profilesReadFilePath(configHome));
 	if (store.status !== "valid" || !hasProfile(store.file.profiles, pin.profile)) return undefined;
 	const config = store.file.profiles[pin.profile];
 	return { source: "repo", profile: pin.profile, path, modelProfiles: Object.fromEntries(profileRoleEntries(config).map(([agent, entry]) => [agent, { ...entry }])) };
@@ -327,7 +335,7 @@ export function resolveProfilePin(
 	const status = readProfilePinStatus(options.cwd, options.resolveWorktree);
 	if (!status) return undefined;
 	if (status.local.status === "missing" && status.repo.status === "missing") return undefined;
-	const store = readProfilesFileResult(profilesFilePath(options.configHome));
+	const store = readProfilesFileResult(profilesReadFilePath(options.configHome));
 	const profiles: Record<string, AgentModelConfig> = store.status === "valid" ? store.file.profiles : {};
 	const evaluation = evaluateProfilePin(status, profiles);
 	const winner = evaluation.winner;

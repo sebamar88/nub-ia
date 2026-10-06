@@ -54,6 +54,7 @@ import { resolveProfilePin, resolveUnversionedProjectProfile } from "../lib/agen
 import { allowedEditSurfaces, inheritAllowedEditSurfaces, isBoundedWriter, isDevelopmentSurface, isGenericBoundedWriter, prepareBoundSessionRepository, rejectUnscopedBoundedWriterDispatch, safeBootstrapDirectory, sessionRepositoryAuthority } from "../lib/bounded-writer-admission.ts";
 import { CHILD_METRICS_EVENT, CHILD_METRICS_REVOKED, childEvent, launchSelection, type LaunchSelection } from "../lib/runtime-metrics-children.ts";
 import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
+import { readEnv } from "../lib/config-home.ts";
 
 // Gentle Agents: subagents as isolated `pi --mode rpc` children, a task
 // store that notifies per task, and a Gentle Shell card above the editor.
@@ -185,8 +186,8 @@ const defaultDeps = (env: NodeJS.ProcessEnv): AgentsDeps => ({
 });
 
 export function agentsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-	if (env.GENTLE_PI_AGENTS_CHILD === "1") return false;
-	const value = env.GENTLE_PI_AGENTS?.trim().toLowerCase();
+	if (readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1") return false;
+	const value = readEnv(env, "NUB_IA_AGENTS", "GENTLE_PI_AGENTS")?.trim().toLowerCase();
 	return !(value === "0" || value === "false" || value === "off");
 }
 
@@ -222,7 +223,7 @@ function messageText(content: unknown): string {
 }
 
 function ownedChildIpc(env: NodeJS.ProcessEnv, candidate: IpcEndpoint | undefined): IpcEndpoint | undefined {
-	if (env.GENTLE_PI_AGENTS_CHILD !== "1" || !env.GENTLE_PI_AGENTS_OWNED_IPC || !candidate || typeof candidate.send !== "function" || typeof candidate.on !== "function") return undefined;
+	if (readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") !== "1" || !readEnv(env, "NUB_IA_AGENTS_OWNED_IPC", "GENTLE_PI_AGENTS_OWNED_IPC") || !candidate || typeof candidate.send !== "function" || typeof candidate.on !== "function") return undefined;
 	return candidate;
 }
 
@@ -371,9 +372,9 @@ export async function answerThroughUi(ui: ExtensionContext["ui"] | undefined, as
 
 export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env, overrides: Partial<AgentsDeps> = {}): void {
 	const childIpc = ownedChildIpc(env, overrides.childIpc ?? (process.send ? process as unknown as IpcEndpoint : undefined));
-	if (env.GENTLE_PI_AGENTS_CHILD === "1") {
+	if (readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1") {
 		// A stale managed-SDD child must never inherit unrestricted ordinary tools.
-		if (env.GENTLE_PI_RESEARCH_TOOLS !== undefined || env.GENTLE_PI_RESEARCH_SELECTION !== undefined || env.GENTLE_PI_RESEARCH_ARTIFACT !== undefined || env.GENTLE_PI_SDD_REMEDIATION_PLAN !== undefined) {
+		if (readEnv(env, "NUB_IA_RESEARCH_TOOLS", "GENTLE_PI_RESEARCH_TOOLS") !== undefined || readEnv(env, "NUB_IA_RESEARCH_SELECTION", "GENTLE_PI_RESEARCH_SELECTION") !== undefined || readEnv(env, "NUB_IA_RESEARCH_ARTIFACT", "GENTLE_PI_RESEARCH_ARTIFACT") !== undefined || readEnv(env, "NUB_IA_SDD_REMEDIATION_PLAN", "GENTLE_PI_SDD_REMEDIATION_PLAN") !== undefined) {
 			pi.on("tool_call", () => ({ block: true, reason: "Retired SDD child launch is not supported." }));
 			return;
 		}
@@ -1361,7 +1362,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 		// An explicit target is validated before any queue or session-dir writes.
 		const parentIdentity = deps.resolveWorktree(parentCwd, parentCwd);
 		if (repositoryRoot !== undefined && workspaceRoot !== undefined) throw new Error("repository_root and workspace_root are mutually exclusive.");
-		if (repositoryRoot !== undefined && (deps.env.GENTLE_PI_AGENTS_CHILD === "1" || ctx.mode !== "tui" || !ctx.hasUI)) throw new Error("Foreign repository launch requires an interactive parent session.");
+		if (repositoryRoot !== undefined && (readEnv(deps.env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1" || ctx.mode !== "tui" || !ctx.hasUI)) throw new Error("Foreign repository launch requires an interactive parent session.");
 		const selectedRoot = repositoryRoot ?? workspaceRoot;
 		// Preserve ordinary non-Git continuation, without admitting any new root.
 		const sameNonGitContinuation = resume !== undefined && repositoryRoot === undefined && selectedRoot === parentCwd && !parentIdentity;

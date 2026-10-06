@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath, readEnv } from "./config-home.ts";
 
 // Prompt history capture is default-off. An explicit GENTLE_PI_HISTORY_CAPTURE
 // value wins, then the Gentle → Customize preference, then off. Any missing,
@@ -30,7 +31,7 @@ export interface HistoryCaptureResolution {
 
 /** Only explicit on/off values override; anything else defers to the preference. */
 export function historyCaptureEnvOverride(env: NodeJS.ProcessEnv = process.env): HistoryCapturePolicy | undefined {
-	const value = env[HISTORY_CAPTURE_ENV]?.trim().toLowerCase();
+	const value = readEnv(env, "NUB_IA_HISTORY_CAPTURE", HISTORY_CAPTURE_ENV)?.trim().toLowerCase();
 	if (value === "1" || value === "true" || value === "on") return "on";
 	if (value === "0" || value === "false" || value === "off") return "off";
 	return undefined;
@@ -46,7 +47,7 @@ export function parseHistoryCaptureFile(raw: string): HistoryCapturePolicy | und
 }
 
 export function resolveHistoryCapturePolicy(options: HistoryCaptureOptions = {}): HistoryCapturePolicyResolution {
-	const globalFile = join(options.gentlePiConfigHome ?? gentlePiConfigHome(), "history-capture.json");
+	const globalFile = configReadPath(options.gentlePiConfigHome ?? gentlePiConfigHome(), "history-capture.json");
 	try {
 		const policy = parseHistoryCaptureFile(readFileSync(globalFile, "utf8"));
 		return { policy: policy ?? "off", source: "global_file", malformed: policy === undefined, globalFile };

@@ -8,6 +8,7 @@
 import { randomUUID } from "node:crypto";
 import { closeSync, constants, existsSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { configReadPath } from "./config-home.ts";
 import {
 	normalizeModelConfig,
 	type AgentModelConfig,
@@ -500,6 +501,16 @@ export type ProfilesFileReadResult =
 
 export function profilesFilePath(configHome: string): string {
 	return join(configHome, "profiles.json");
+}
+
+/** Where to READ the profiles store: nub-ia home first, then the legacy gentle-ai home. */
+export function profilesReadFilePath(configHome: string): string {
+	return configReadPath(configHome, "profiles.json");
+}
+
+/** Where to READ the profiles export: nub-ia home first, then the legacy gentle-ai home. */
+export function profileExportReadPath(configHome: string): string {
+	return configReadPath(configHome, "profiles.export.json");
 }
 
 export function profileExportPath(configHome: string): string {

@@ -3,7 +3,7 @@ import { Editor, decodeKittyPrintable, isKeyRelease, matchesKey, parseKey, trunc
 import { execFile, spawnSync } from "node:child_process";
 import { realpathSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { profilesFilePath, profileRoleEntries, readProfilesFileResult } from "../lib/agent-profiles.ts";
+import { profilesReadFilePath, profileRoleEntries, readProfilesFileResult } from "../lib/agent-profiles.ts";
 import { readSessionProfileBinding } from "../lib/session-profile-binding.ts";
 import { resolveProfilePin } from "../lib/agent-profile-pin.ts";
 import * as os from "node:os";
@@ -117,6 +117,7 @@ import { SessionChanges, SESSION_CHANGE_EVENT } from "../lib/session-changes.ts"
 import { installSessionChangeCapture } from "../lib/session-change-capture.ts";
 import { SelectionEngine } from "../lib/selection-engine.ts";
 import { withOverlayRepaint } from "../lib/overlay-repaint.ts";
+import { readEnv } from "../lib/config-home.ts";
 
 // Gentle Shell: the visual layer gentle-pi puts on top of pi. It installs the
 // status bar, the petal prompt, the working-tree changes widget and overlay,
@@ -165,7 +166,7 @@ export type ActiveProfileReader = (() => string | undefined) & {
 // Unbound reads retain the global file-identity cache, including atomic replacements.
 // Bound reads are snapshots: no filesystem or Git work is done during a frame.
 export function createActiveProfileReader(env: NodeJS.ProcessEnv = process.env): ActiveProfileReader {
-	const path = profilesFilePath(env.GENTLE_PI_CONFIG_HOME ?? join(os.homedir(), ".pi", "gentle-ai"));
+	const configHome = gentlePiConfigHome(env);
 	let fingerprint: string | undefined;
 	let name: string | undefined;
 	let bound = false;
@@ -175,6 +176,7 @@ export function createActiveProfileReader(env: NodeJS.ProcessEnv = process.env):
 	let effective: string | undefined;
 	const global = () => {
 		try {
+			const path = profilesReadFilePath(configHome);
 			const stat = statSync(path, { bigint: true });
 			const next = `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}:${stat.ctimeNs}`;
 			if (next !== fingerprint) {
@@ -205,7 +207,7 @@ export function createActiveProfileReader(env: NodeJS.ProcessEnv = process.env):
 		}
 		const pin = identity && cwd ? resolveProfilePin({
 			cwd,
-			configHome: env.GENTLE_PI_CONFIG_HOME ?? join(os.homedir(), ".pi", "gentle-ai"),
+			configHome,
 			resolveWorktree: () => identity!,
 		}) : undefined;
 		const next = pin ? `${pin.profile} (${pin.source})` : global();
@@ -1216,13 +1218,13 @@ export function openInExternalEditor(host: ExternalEditorHost, path: string, env
 }
 
 export function changesShortcut(env: NodeJS.ProcessEnv = process.env): string | undefined {
-	const value = env.GENTLE_PI_SHELL_CHANGES_KEY?.trim();
+	const value = readEnv(env, "NUB_IA_SHELL_CHANGES_KEY", "GENTLE_PI_SHELL_CHANGES_KEY")?.trim();
 	if (value === undefined) return CHANGES_SHORTCUT_DEFAULT;
 	return value === "" || value.toLowerCase() === "off" ? undefined : value;
 }
 
 export function usageShortcut(env: NodeJS.ProcessEnv = process.env): string | undefined {
-	const value = env.GENTLE_PI_SHELL_USAGE_KEY?.trim();
+	const value = readEnv(env, "NUB_IA_SHELL_USAGE_KEY", "GENTLE_PI_SHELL_USAGE_KEY")?.trim();
 	if (value === undefined) return USAGE_SHORTCUT_DEFAULT;
 	return value === "" || value.toLowerCase() === "off" ? undefined : value;
 }
@@ -1233,14 +1235,14 @@ function positiveMs(value: string | undefined, fallback: number): number {
 }
 
 function changesPollMs(env: NodeJS.ProcessEnv): number {
-	return positiveMs(env.GENTLE_PI_SHELL_CHANGES_POLL_MS, CHANGES_POLL_DEFAULT_MS);
+	return positiveMs(readEnv(env, "NUB_IA_SHELL_CHANGES_POLL_MS", "GENTLE_PI_SHELL_CHANGES_POLL_MS"), CHANGES_POLL_DEFAULT_MS);
 }
 
 // One bounded window per provider refresh: a credential lookup or fetch that
 // never answers must not hold the other providers — or the panel opening on
 // them — past it. Tunable (tests, slow networks); invalid values fall back.
 const USAGE_FETCH_TIMEOUT_DEFAULT_MS = 10_000;
-const usageFetchTimeoutMs = (env: NodeJS.ProcessEnv): number => positiveMs(env.GENTLE_PI_SHELL_USAGE_TIMEOUT_MS, USAGE_FETCH_TIMEOUT_DEFAULT_MS);
+const usageFetchTimeoutMs = (env: NodeJS.ProcessEnv): number => positiveMs(readEnv(env, "NUB_IA_SHELL_USAGE_TIMEOUT_MS", "GENTLE_PI_SHELL_USAGE_TIMEOUT_MS"), USAGE_FETCH_TIMEOUT_DEFAULT_MS);
 
 function changesFingerprint(model: ChangesModel): string {
 	return [model.notice ?? "", ...model.files.map((file) => `${file.path}:${file.status}:${file.added}:${file.deleted}:${file.diffRevision ?? ""}:${file.countsUnavailable ?? ""}`)].join("|");
@@ -1439,7 +1441,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		const pin = resolveProfilePin({ cwd: ctx.cwd, configHome: usageConfigHome, resolveWorktree: deps.resolveWorktree });
 		const config = pin ? pin.modelProfiles : undefined;
 		if (config) return [...profileRoleEntries(config).map(([, entry]) => entry.model)];
-		const store = readProfilesFileResult(profilesFilePath(usageConfigHome));
+		const store = readProfilesFileResult(profilesReadFilePath(usageConfigHome));
 		const active = store.status === "valid" && store.file.active !== undefined ? store.file.profiles[store.file.active] : undefined;
 		return active ? profileRoleEntries(active).map(([, entry]) => entry.model) : [];
 	};

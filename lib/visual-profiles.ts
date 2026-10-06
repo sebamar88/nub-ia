@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { constants as fsConstants, closeSync, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath } from "./config-home.ts";
 import { ANIMATION_POLICY, type AnimationPolicy } from "./animation-policy.ts";
 import { isVisualSettings, normalizeVisualSettings, type VisualSettings } from "./visual-customization-policy.ts";
 import type { BannerConfig } from "../extensions/startup-banner.ts";
@@ -101,7 +102,7 @@ export function parseVisualProfilesFile(raw: string): VisualProfile[] | undefine
 }
 
 export function readVisualProfiles(options: Options = {}): VisualProfilesResolution {
-	const globalFile = join(options.gentlePiConfigHome ?? gentlePiConfigHome(), "visual-profiles.json");
+	const globalFile = configReadPath(options.gentlePiConfigHome ?? gentlePiConfigHome(), "visual-profiles.json");
 	let fd: number | undefined;
 	try {
 		try {

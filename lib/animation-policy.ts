@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath } from "./config-home.ts";
 
 export const ANIMATION_POLICY = { QUALITY: "quality", PERFORMANCE: "performance", POTATO: "potato" } as const;
 export type AnimationPolicy = (typeof ANIMATION_POLICY)[keyof typeof ANIMATION_POLICY];
@@ -26,7 +27,7 @@ export function parseAnimationPolicyFile(raw: string): AnimationPolicy | undefin
 }
 
 export function resolveAnimationPolicy(options: AnimationOptions = {}): AnimationResolution {
-	const globalFile = join(options.gentlePiConfigHome ?? gentlePiConfigHome(), "animations.json");
+	const globalFile = configReadPath(options.gentlePiConfigHome ?? gentlePiConfigHome(), "animations.json");
 	try {
 		const policy = parseAnimationPolicyFile(readFileSync(globalFile, "utf8"));
 		return { policy: policy ?? "quality", source: SOURCE.GLOBAL, malformed: policy === undefined, globalFile };

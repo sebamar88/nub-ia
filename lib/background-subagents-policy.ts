@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath, projectConfigReadPath, readEnv } from "./config-home.ts";
 
 // ---------------------------------------------------------------------------
 // Background subagents policy — project > global > env > default off
@@ -71,10 +72,11 @@ export function parseBackgroundSubagentsPolicyFile(
  * Resolve the background-subagents policy AND the source that decided it.
  *
  * Resolution order (first hit wins, mirroring loadRuntimeGuardrailsConfig):
- *   1. Project file `${cwd}/.pi/gentle-ai/background-subagents.json`
+ *   1. Project file `${cwd}/.pi/nub-ia/background-subagents.json` (legacy `.pi/gentle-ai/` read as fallback)
  *   2. Global file `${configHome}/background-subagents.json`
- *      (configHome honors GENTLE_PI_CONFIG_HOME, default ~/.pi/gentle-ai)
- *   3. Env var GENTLE_PI_BACKGROUND_SUBAGENTS ("on" | "off")
+ *      (configHome honors NUB_IA_CONFIG_HOME / legacy GENTLE_PI_CONFIG_HOME, default ~/.pi/nub-ia,
+ *      falling back to ~/.pi/gentle-ai when the file is absent there)
+ *   3. Env var NUB_IA_BACKGROUND_SUBAGENTS (legacy GENTLE_PI_BACKGROUND_SUBAGENTS) ("on" | "off")
  *   4. Default "off"
  *
  * A present-but-malformed file fails closed to "off" instead of falling
@@ -91,13 +93,13 @@ export function resolveBackgroundSubagentsPolicy(
 	options: LoadBackgroundSubagentsOptions = {},
 ): BackgroundSubagentsResolution {
 	const env = options.env ?? process.env;
-	const envValue = env.GENTLE_PI_BACKGROUND_SUBAGENTS;
+	const envValue = readEnv(env, "NUB_IA_BACKGROUND_SUBAGENTS", "GENTLE_PI_BACKGROUND_SUBAGENTS");
 	let projectFile = "";
 	let globalFile = "";
 	try {
 		const configHome = options.gentlePiConfigHome ?? gentlePiConfigHome();
-		projectFile = join(cwd, ".pi", "gentle-ai", BACKGROUND_SUBAGENTS_FILE);
-		globalFile = join(configHome, BACKGROUND_SUBAGENTS_FILE);
+		projectFile = projectConfigReadPath(cwd, BACKGROUND_SUBAGENTS_FILE);
+		globalFile = configReadPath(configHome, BACKGROUND_SUBAGENTS_FILE, env);
 		const projectFileExists = existsSync(projectFile);
 		const globalFileExists = existsSync(globalFile);
 		const locations = { projectFile, globalFile, projectFileExists, globalFileExists, envValue };

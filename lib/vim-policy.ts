@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath } from "./config-home.ts";
 
 export const VIM_POLICY = { ON: "on", OFF: "off" } as const;
 export type VimPolicy = (typeof VIM_POLICY)[keyof typeof VIM_POLICY];
@@ -24,7 +25,8 @@ export function parseVimPolicyFile(raw: string): VimPolicy | undefined {
 }
 
 export function resolveVimPolicy(options: VimOptions = {}): VimResolution {
-	const globalFile = join(options.gentlePiConfigHome ?? gentlePiConfigHome(), "vim.json");
+	// Reads fall back to the legacy ~/.pi/gentle-ai copy; writes (below) go to the nub-ia home.
+	const globalFile = configReadPath(options.gentlePiConfigHome ?? gentlePiConfigHome(), "vim.json");
 	try {
 		const policy = parseVimPolicyFile(readFileSync(globalFile, "utf8"));
 		return { policy: policy ?? "off", source: "global_file", malformed: policy === undefined, globalFile };

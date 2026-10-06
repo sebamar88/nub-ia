@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath } from "./config-home.ts";
 
 export const VISUAL_SCHEMA = "gentle-pi.visual-customization/v1";
 export const STATUS_PLACEMENT = { AUTO: "auto", RIGHT: "right", BOTTOM: "bottom", HIDDEN: "hidden" } as const;
@@ -82,7 +83,7 @@ export function parseVisualSettingsFile(raw: string): VisualSettings | undefined
 	} catch { return undefined; }
 }
 export function resolveVisualSettings(options: VisualOptions = {}): VisualResolution {
-	const globalFile = join(options.gentlePiConfigHome ?? gentlePiConfigHome(), "visual-customization.json");
+	const globalFile = configReadPath(options.gentlePiConfigHome ?? gentlePiConfigHome(), "visual-customization.json");
 	try {
 		const settings = parseVisualSettingsFile(readFileSync(globalFile, "utf8"));
 		return { settings: settings ?? structuredClone(DEFAULT_VISUAL_SETTINGS), source: "global_file", malformed: settings === undefined, readError: false, globalFile };

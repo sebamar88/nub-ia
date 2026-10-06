@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath } from "./config-home.ts";
 import { CARD_STYLE, type CardStyle } from "./shell-card.ts";
 
 // The conversation card style chosen in Gentle → Customize. A missing file
@@ -32,7 +33,7 @@ export function parseCardStyleFile(raw: string): CardStyle | undefined {
 }
 
 export function resolveCardStyle(options: CardStyleOptions = {}): CardStyleResolution {
-	const globalFile = join(options.gentlePiConfigHome ?? gentlePiConfigHome(), CARD_STYLE_FILE);
+	const globalFile = configReadPath(options.gentlePiConfigHome ?? gentlePiConfigHome(), CARD_STYLE_FILE);
 	try {
 		const style = parseCardStyleFile(readFileSync(globalFile, "utf8"));
 		return { style: style ?? CARD_STYLE.FLOAT, source: "global_file", malformed: style === undefined, globalFile };

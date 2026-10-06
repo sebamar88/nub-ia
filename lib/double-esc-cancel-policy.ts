@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath, readEnv } from "./config-home.ts";
 
 // ---------------------------------------------------------------------------
 // Double-esc-cancel policy — global file > env > default off (issue #1163)
@@ -73,7 +74,7 @@ export function parseDoubleEscCancelPolicyFile(raw: string): DoubleEscCancelPoli
  *
  * Resolution order (first hit wins):
  *   1. Global file `${configHome}/double-esc-cancel.json`
- *      (configHome honors GENTLE_PI_CONFIG_HOME, default ~/.pi/gentle-ai)
+ *      (configHome honors NUB_IA_CONFIG_HOME / legacy GENTLE_PI_CONFIG_HOME, default ~/.pi/nub-ia, legacy ~/.pi/gentle-ai read as fallback)
  *   2. Env var GENTLE_PI_DOUBLE_ESC_CANCEL ("on" | "off")
  *   3. Default "off"
  *
@@ -86,11 +87,11 @@ export function resolveDoubleEscCancelPolicy(
 	options: LoadDoubleEscCancelOptions = {},
 ): DoubleEscCancelResolution {
 	const env = options.env ?? process.env;
-	const envValue = env.GENTLE_PI_DOUBLE_ESC_CANCEL;
+	const envValue = readEnv(env, "NUB_IA_DOUBLE_ESC_CANCEL", "GENTLE_PI_DOUBLE_ESC_CANCEL");
 	let globalFile = "";
 	try {
 		const configHome = options.gentlePiConfigHome ?? gentlePiConfigHome(env);
-		globalFile = join(configHome, DOUBLE_ESC_CANCEL_FILE);
+		globalFile = configReadPath(configHome, DOUBLE_ESC_CANCEL_FILE, env);
 		const globalFileExists = existsSync(globalFile);
 		if (globalFileExists) {
 			let decoded: DoubleEscCancelPolicy | undefined;

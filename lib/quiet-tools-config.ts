@@ -1,8 +1,10 @@
+import { readEnv } from "./config-home.ts";
+
 export const QUIET_TOOLS_ENV = "GENTLE_PI_QUIET_TOOLS";
 export const PI_PRETTY_SUPPRESSED_TOOL_NAMES = ["read", "bash", "ls", "find", "grep"] as const;
 
 export function quietToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-	return env[QUIET_TOOLS_ENV] !== "0";
+	return readEnv(env, "NUB_IA_QUIET_TOOLS", QUIET_TOOLS_ENV) !== "0";
 }
 
 export function mergeDisabledTools(existing: string | undefined, tools: readonly string[]): string {

@@ -1,0 +1,47 @@
+{
+  "kind": "gentle-pi.agent_model_profile",
+  "version": 1,
+  "name": "openai-gpt6",
+  "config": {
+    "gentle-ai-explore": {
+      "model": "openai/gpt-6.1-sol",
+      "thinking": "low"
+    },
+    "gentle-ai-verify": {
+      "model": "openai/gpt-6.1-sol",
+      "thinking": "high"
+    },
+    "gentle-ai-worker": {
+      "model": "openai/gpt-6.1-sol",
+      "thinking": "medium"
+    },
+    "jd-fix-agent": {
+      "model": "openai/gpt-6.1-sol",
+      "thinking": "medium"
+    },
+    "jd-judge-a": {
+      "model": "openai/gpt-6-astra",
+      "thinking": "high"
+    },
+    "jd-judge-b": {
+      "model": "openai/gpt-6-astra",
+      "thinking": "xhigh"
+    },
+    "review-readability": {
+      "model": "openai/gpt-6.1-sol",
+      "thinking": "medium"
+    },
+    "review-reliability": {
+      "model": "openai/gpt-6.1-sol",
+      "thinking": "high"
+    },
+    "review-resilience": {
+      "model": "openai/gpt-6.1-sol",
+      "thinking": "high"
+    },
+    "review-risk": {
+      "model": "openai/gpt-6-astra",
+      "thinking": "xhigh"
+    }
+  }
+}
