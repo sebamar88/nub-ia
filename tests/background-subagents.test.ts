@@ -493,7 +493,7 @@ test("loadBackgroundSubagentsPolicy delegates to the resolver so the two can nev
 //
 // The policy had no user-facing surface at all: it could only be set by
 // hand-writing JSON or exporting an env var, and the deciding source was
-// visible to nobody. The command mirrors /nubia:review-mode — status|enable|
+// visible to nobody. The command offers status|enable|
 // disable, user-initiated only, Pi automation never toggles it.
 // ---------------------------------------------------------------------------
 

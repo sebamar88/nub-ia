@@ -82,7 +82,7 @@ Each SDD work unit should map cleanly to a commit or PR with:
 
 Every ODD task closes with at least one work-unit commit:
 
-- The native review candidate is that commit, or the PR slice it belongs to when review is deferred, evaluated against the previous reviewed boundary.
+- The review candidate (`nub_review`) is that commit, or the PR slice it belongs to when review is deferred, evaluated against the previous reviewed boundary.
 - The running authored line count from work-unit commits feeds the same delivery-strategy vocabulary as SDD.
 - The feature document records the commit identity and, once a delivery strategy applies, the slice boundaries.
 

@@ -363,20 +363,17 @@ test("COMMAND_PALETTE_CATALOG matches the curated command set, in order", () => 
 		"nubia:models",
 		"nubia:profiles",
 		"nubia:persona",
-		"nubia:review-mode",
 		"nubia:background-subagents",
 		"nubia:double-esc-cancel",
 		"nubia:customize",
 		"nubia:animations",
 		"nubia:vim",
-		"nubia:telemetry",
 		"nubia:banner",
 		"nubia:banner-color",
 		"nubia:toggle-rose",
 		"nubia:toggle-text-logo",
-		"nubia:dev-binary",
 	]);
-	assert.deepEqual(byTitle("Session"), ["nubia:yolo", "nubia:changes", "nubia:agents", "nubia:usage", "nubia:review-session-permission"]);
+	assert.deepEqual(byTitle("Session"), ["nubia:yolo", "nubia:changes", "nubia:review", "nubia:agents", "nubia:usage"]);
 	assert.deepEqual(byTitle("Diagnostics"), ["nubia:status", "nubia:doctor"]);
 	assert.equal(byTitle("SDD"), undefined);
 	assert.deepEqual(byTitle("Skills"), ["skill-registry:refresh"]);
@@ -392,7 +389,10 @@ test("retired SDD commands are absent from the palette and extension registratio
 		assert.ok(!source.includes(`registerCommand("${command}"`), `${command} must not be registered`);
 	}
 	assert.match(source, /for \(const owner of \["delegation", "review"\] as const\) \{\s*const label = owner;\s*pi\.registerCommand\(`nubia:install-\$\{owner\}`/);
-	assert.ok(catalogCommands.includes("nubia:review-mode"));
+	assert.ok(catalogCommands.includes("nubia:review"), "the in-process 4R review is reachable from the palette");
+	for (const retiredNative of ["nubia:review-mode", "nubia:review-session-permission", "nubia:dev-binary", "nubia:telemetry"]) {
+		assert.ok(!catalogCommands.includes(retiredNative), `${retiredNative} belonged to the removed gentle-ai binary`);
+	}
 });
 
 test("buildCommandPaletteGroups keeps only registered commands, attaches descriptions and shortcuts, drops empty groups, preserves catalog order", () => {

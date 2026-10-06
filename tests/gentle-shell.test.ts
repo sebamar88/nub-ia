@@ -3051,9 +3051,9 @@ test("customize command updates displayed settings and applies layout immediatel
 	assert.equal(resolveAnimationPolicy({ gentlePiConfigHome: home }).policy, "performance");
 	assert.match(ui.overlayView!.render(90).join("\n"), /Animations: performance.*current/);
 	assert.match(ui.notices.at(-1)!, /Prompt applies now.*banner.*next startup/i);
-	await customizeAction(ui, "Banner rose");
+	await customizeAction(ui, "Banner isologo");
 	assert.equal((await readBannerConfig(home)).showRose, false);
-	assert.match(ui.overlayView!.render(90).join("\n"), /Banner rose: off/);
+	assert.match(ui.overlayView!.render(90).join("\n"), /Banner isologo: off/);
 	assert.match(ui.notices.at(-1)!, /next startup/i);
 	await customizeAction(ui, "Status placement: hidden");
 	assert.equal(resolveVisualSettings({ gentlePiConfigHome: home }).settings.statusPlacement, "hidden");
@@ -3314,7 +3314,7 @@ test("customize never overwrites malformed banner through toggle, color or reset
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
-	for (const action of ["Banner rose", "Banner color: cyan", "Reset visual, banner and animation defaults"]) {
+	for (const action of ["Banner isologo", "Banner color: cyan", "Reset visual, banner and animation defaults"]) {
 		await customizeAction(ui, action);
 		assert.equal(readFileSync(bannerPath, "utf8"), "invalid banner");
 		assert.match(ui.notices.at(-1)!, /malformed.*banner/i);

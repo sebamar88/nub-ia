@@ -1917,7 +1917,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				const [r, g, b] = bannerColors[next.color];
 				return { title: `Banner · ${next.color} (static)`, sample: `${next.showRose ? `\x1b[38;2;${r};${g};${b}m∞\x1b[0m` : "·"}  ${next.showTextLogo ? "nubiral" : "(logo hidden)"}` };
 			};
-			add(() => `Banner rose: ${banner.showRose ? "on" : "off"}`, "Banner saved; applies at next startup.", async () => {
+			add(() => `Banner isologo: ${banner.showRose ? "on" : "off"}`, "Banner saved; applies at next startup.", async () => {
 				const next = { ...await readBannerConfigForEdit(bannerHome) };
 				next.showRose = !next.showRose;
 				await writeBannerConfig(next, bannerHome);
@@ -2076,7 +2076,9 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				() => ({ title: `Cards · ${style}`, sample: `${cardStylePreview[style]}${resolveCardStyle(home).malformed ? " · malformed or unreadable file" : ""}` }),
 			);
 			category = "Sections";
-			for (const key of VISUAL_SECTION_KEYS) add(
+			// `rdd` stays in the stored schema for saved settings/profiles but has no
+			// Status block any more (native review was removed), so it is not offered.
+			for (const key of VISUAL_SECTION_KEYS.filter((section) => section !== "rdd")) add(
 				() => `Section ${key}: ${visual().visibility[key] ? "shown" : "hidden"}`,
 				pending,
 				() => updateVisual((settings) => ({ ...settings, visibility: { ...settings.visibility, [key]: !settings.visibility[key] } })),
@@ -2238,7 +2240,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			}
 		},
 	});
-	// User-owned, like nubia:background-subagents and nubia:review-mode: the
+	// User-owned, like nubia:background-subagents: the
 	// only writer is this handler, reached only by explicit invocation. Unlike
 	// those two, no argument toggles the effective policy instead of merely
 	// reporting it (see odd/tasks/double-esc-cancel.md).

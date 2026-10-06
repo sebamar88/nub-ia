@@ -243,7 +243,7 @@ function addDuration(totals: DurationTotals, value: DurationMeasurement): void {
  * Invalid/rejected IDs are not reserved. A new instance starts a new accounting
  * window with NO cross-instance/lifetime dedupe guarantee. No reset/flush API:
  * window ownership and delivery remain future work. Runtime consumption stays
- * separate from deterministic SDD/RDD counts; no closure attribution or bridge.
+ * no closure attribution or bridge.
  * Snapshots contain only closed dimensions and bounded numeric aggregates.
  */
 export class RuntimeMetrics {

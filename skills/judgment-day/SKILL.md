@@ -55,7 +55,7 @@ WARNING and SUGGESTION candidates become one-time informational rows and never s
 
 ## Fix Boundary
 
-A standalone `jd-fix-agent` dispatch requires no graph-v1 or native review lineage and is accepted only as one standalone agent with this exact Markdown shape. The `## Judgment Day activation` section contains only `User explicitly requested Judgment Day.`. The parent replaces the example ID, frozen ledger hash, row data, and surface with controller-authorized values. The correction batch contains only one round (`1 of 2` or `2 of 2`) and one lowercase SHA-256. The exact frozen finding rows are one JSON object per line, use only the canonical row fields, and exactly match the authorized IDs.
+A standalone `jd-fix-agent` dispatch requires no review lineage and is accepted only as one standalone agent with this exact Markdown shape. The `## Judgment Day activation` section contains only `User explicitly requested Judgment Day.`. The parent replaces the example ID, frozen ledger hash, row data, and surface with controller-authorized values. The correction batch contains only one round (`1 of 2` or `2 of 2`) and one lowercase SHA-256. The exact frozen finding rows are one JSON object per line, use only the canonical row fields, and exactly match the authorized IDs.
 
 ```markdown
 ## Judgment Day activation

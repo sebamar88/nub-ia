@@ -32,7 +32,7 @@ export const DEFAULT_VISUAL_SETTINGS: VisualSettings = {
 	density: DENSITY.COMFORTABLE,
 	visibility: { changes: true, rdd: true, agents: true, todo: true, usageCost: true, modelDetails: true },
 };
-/** Sections row order; `rdd` follows `changes` as the RDD group follows Changes in the Status card. */
+/** Sections row order. `rdd` is retained only so saved settings keep parsing; the Status card no longer has that block and /nubia:customize does not offer it. */
 export const VISUAL_SECTION_KEYS = ["changes", "rdd", "agents", "todo", "usageCost", "modelDetails"] as const satisfies readonly (keyof VisualVisibility)[];
 /** Keys added after v1 shipped: stored settings may omit them together, and they default to shown. */
 const ADDED_SECTION_KEYS: readonly (keyof VisualVisibility)[] = ["rdd"];
