@@ -68,6 +68,8 @@ import {
 	parseProfileExportTextWithDrops,
 	PROFILE_ORCHESTRATOR_KEY,
 	profileExportPath,
+	profileExportReadPath,
+	profilesReadFilePath,
 	profileRoutingRows,
 	profilesFilePath,
 	readProfileOrchestrator,
@@ -108,6 +110,7 @@ import { NativeChoiceList } from "../lib/native-choice-list.ts";
 import { createNativeFullscreenInteraction } from "../lib/native-fullscreen-interaction.ts";
 import { sanitizeTerminalText, stripAnsi } from "../lib/terminal-theme.ts";
 import { registerYoloSessionPolicy, updateYoloPrompt } from "../lib/yolo-session-policy.ts";
+import { configReadPath, projectConfigReadPath, projectConfigWritePath, readEnv, setLegacyHintNotifier } from "../lib/config-home.ts";
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const ASSETS_DIR = join(PACKAGE_ROOT, "assets");
@@ -924,10 +927,10 @@ function parseGuardrailsConfigFile(
  * Load the runtime guardrails config.
  *
  * Resolution order (project overrides global):
- *   1. Check GENTLE_PI_AUTONOMOUS_MODE env var — if "1", forces autonomousMode=true
+ *   1. Check NUB_IA_AUTONOMOUS_MODE (legacy GENTLE_PI_AUTONOMOUS_MODE) env var — if "1", forces autonomousMode=true
  *      and uses default guarded command actions.
  *   2. Read global config from ${gentlePiConfigHome}/runtime-guardrails.json
- *   3. Read project config from ${cwd}/.pi/gentle-ai/runtime-guardrails.json
+ *   3. Read project config from ${cwd}/.pi/nub-ia/runtime-guardrails.json (legacy .pi/gentle-ai/ read as fallback)
  *      (project values are merged on top of global)
  *   4. Any parse/read error anywhere → fail safe (return SAFE_GUARDRAILS_CONFIG)
  */
@@ -937,13 +940,13 @@ function loadRuntimeGuardrailsConfig(
 ): RuntimeGuardrailsConfig {
 	try {
 		// Env var override: forces autonomous mode with default actions
-		if (process.env.GENTLE_PI_AUTONOMOUS_MODE === "1") {
+		if (readEnv(process.env, "NUB_IA_AUTONOMOUS_MODE", "GENTLE_PI_AUTONOMOUS_MODE") === "1") {
 			return { autonomousMode: true, guardedCommands: {} };
 		}
 
 		const configHome = options.gentlePiConfigHome ?? gentleAiConfigHome();
-		const globalConfigPath = join(configHome, "runtime-guardrails.json");
-		const projectConfigPath = join(cwd, ".pi", "gentle-ai", "runtime-guardrails.json");
+		const globalConfigPath = configReadPath(configHome, "runtime-guardrails.json");
+		const projectConfigPath = projectConfigReadPath(cwd, "runtime-guardrails.json");
 
 		let merged: RuntimeGuardrailsConfig = { autonomousMode: false, guardedCommands: {} };
 
@@ -1193,7 +1196,7 @@ function isOrdinaryYoloPush(command: string, evaluation: GuardEvaluation): boole
 /** Preserve explicitly configured confirmations even when legacy env/autonomy resolution ignores them. */
 function yoloPushConfiguredRestriction(cwd: string, options: LoadGuardrailsOptions = {}): GuardAction | undefined {
 	let restriction: GuardAction | undefined;
-	for (const path of [join(options.gentlePiConfigHome ?? gentleAiConfigHome(), "runtime-guardrails.json"), join(cwd, ".pi", "gentle-ai", "runtime-guardrails.json")]) {
+	for (const path of [configReadPath(options.gentlePiConfigHome ?? gentleAiConfigHome(), "runtime-guardrails.json"), projectConfigReadPath(cwd, "runtime-guardrails.json")]) {
 		try {
 			if (!existsSync(path)) continue;
 			const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
@@ -1308,19 +1311,36 @@ function modelExportPath(_cwd: string): string {
 	return join(gentleAiConfigHome(), "models.export.json");
 }
 
+// READ paths fall back to the legacy gentle-ai home; the functions above are the WRITE targets.
+function modelConfigReadPath(_cwd: string): string {
+	return configReadPath(gentleAiConfigHome(), "models.json");
+}
+
+function modelExportReadPath(_cwd: string): string {
+	return configReadPath(gentleAiConfigHome(), "models.export.json");
+}
+
 const MODEL_EXPORT_KIND = "gentle-pi.agent_model_routing";
 const MODEL_EXPORT_VERSION = 1;
 
 function legacyProjectModelConfigPath(cwd: string): string {
-	return join(cwd, ".pi", "gentle-ai", "models.json");
+	return projectConfigReadPath(cwd, "models.json");
 }
 
 function projectPersonaConfigPath(cwd: string): string {
-	return join(cwd, ".pi", "gentle-ai", "persona.json");
+	return projectConfigWritePath(cwd, "persona.json");
+}
+
+function projectPersonaConfigReadPath(cwd: string): string {
+	return projectConfigReadPath(cwd, "persona.json");
 }
 
 function personaConfigPath(_cwd: string): string {
 	return join(gentleAiConfigHome(), "persona.json");
+}
+
+function personaConfigReadPath(_cwd: string): string {
+	return configReadPath(gentleAiConfigHome(), "persona.json");
 }
 
 function readPersonaFile(path: string): PersonaMode | undefined {
@@ -1336,8 +1356,8 @@ function readPersonaFile(path: string): PersonaMode | undefined {
 
 function readPersonaMode(cwd: string): PersonaMode {
 	return (
-		readPersonaFile(projectPersonaConfigPath(cwd)) ??
-		readPersonaFile(personaConfigPath(cwd)) ??
+		readPersonaFile(projectPersonaConfigReadPath(cwd)) ??
+		readPersonaFile(personaConfigReadPath(cwd)) ??
 		"gentleman"
 	);
 }
@@ -1345,7 +1365,7 @@ function readPersonaMode(cwd: string): PersonaMode {
 function writePersonaMode(cwd: string, mode: PersonaMode): string[] {
 	const paths = [personaConfigPath(cwd)];
 	const projectPath = projectPersonaConfigPath(cwd);
-	if (existsSync(projectPath)) paths.push(projectPath);
+	if (existsSync(projectPersonaConfigReadPath(cwd))) paths.push(projectPath);
 	for (const path of paths) {
 		mkdirSync(dirname(path), { recursive: true });
 		writeFileSync(path, `${JSON.stringify({ mode }, null, 2)}\n`);
@@ -1355,7 +1375,7 @@ function writePersonaMode(cwd: string, mode: PersonaMode): string[] {
 
 function readSavedModelConfig(cwd: string): ModelConfigFileResult {
 	const projectPath = legacyProjectModelConfigPath(cwd);
-	const result = readModelRoutingAuthority(modelConfigPath(cwd), projectPath);
+	const result = readModelRoutingAuthority(modelConfigReadPath(cwd), projectPath);
 	return result.status === "invalid" && result.path === projectPath
 		? { status: "valid", config: {} }
 		: result;
@@ -1365,7 +1385,7 @@ async function readSavedModelConfigAsync(
 	cwd: string,
 ): Promise<ModelConfigFileResult> {
 	const projectPath = legacyProjectModelConfigPath(cwd);
-	const result = await readModelRoutingAuthorityAsync(modelConfigPath(cwd), projectPath);
+	const result = await readModelRoutingAuthorityAsync(modelConfigReadPath(cwd), projectPath);
 	return result.status === "invalid" && result.path === projectPath
 		? { status: "valid", config: {} }
 		: result;
@@ -1405,7 +1425,7 @@ function parseModelExport(value: unknown): AgentModelConfig | undefined {
 
 async function exportSavedModelConfig(ctx: ExtensionContext): Promise<number> {
 	const saved = await readModelRoutingAuthorityAsync(
-		modelConfigPath(ctx.cwd),
+		modelConfigReadPath(ctx.cwd),
 		legacyProjectModelConfigPath(ctx.cwd),
 	);
 	if (saved.status === "invalid") throw new Error(`Invalid model config: ${saved.path}`);
@@ -1421,7 +1441,7 @@ async function exportSavedModelConfig(ctx: ExtensionContext): Promise<number> {
 
 async function readModelExport(ctx: ExtensionContext): Promise<AgentModelConfig | undefined> {
 	try {
-		return parseModelExport(JSON.parse(await readFile(modelExportPath(ctx.cwd), "utf8")));
+		return parseModelExport(JSON.parse(await readFile(modelExportReadPath(ctx.cwd), "utf8")));
 	} catch {
 		return undefined;
 	}
@@ -2127,7 +2147,7 @@ export async function applySavedModelConfig(
 	applyConfig: typeof applyModelConfigAsync = applyModelConfigAsync,
 ): Promise<{ updated: number; skipped: number; invalidPath?: string }> {
 	const result = await readModelRoutingAuthorityAsync(
-		modelConfigPath(ctx.cwd),
+		modelConfigReadPath(ctx.cwd),
 		legacyProjectModelConfigPath(ctx.cwd),
 	);
 	if (result.status === "invalid") {
@@ -2745,7 +2765,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 	const pinNote = profilePinScopeNote(ctx.cwd);
 	if (pinNote) ctx.ui.notify(pinNote, "info");
 	const savedConfig = await readModelRoutingAuthorityAsync(
-		modelConfigPath(ctx.cwd),
+		modelConfigReadPath(ctx.cwd),
 		legacyProjectModelConfigPath(ctx.cwd),
 	);
 	if (savedConfig.status === "invalid") {
@@ -2875,7 +2895,7 @@ interface CurrentProfileTarget {
  */
 function resolveCurrentProfileTarget(
 	cwd: string,
-	store: ProfilesFileReadResult = readProfilesFileResult(profilesFilePath(gentleAiConfigHome())),
+	store: ProfilesFileReadResult = readProfilesFileResult(profilesReadFilePath(gentleAiConfigHome())),
 ): CurrentProfileTarget | undefined {
 	const pin = resolveProfilePin({ cwd, configHome: gentleAiConfigHome() });
 	if (pin) return { name: pin.profile, source: "pinned" };
@@ -2897,7 +2917,7 @@ function describeCurrentProfileTarget(target: CurrentProfileTarget | undefined):
  */
 function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: ExtensionAPI): void {
 	const path = profilesFilePath(gentleAiConfigHome());
-	const read = readProfilesFileResult(path);
+	const read = readProfilesFileResult(profilesReadFilePath(gentleAiConfigHome()));
 	if (read.status === "invalid") {
 		ctx.ui.notify(
 			`Nub-IA saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
@@ -2955,6 +2975,18 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 		].join("\n"),
 		"info",
 	);
+}
+
+/** Names of the preset profiles shipped in assets/profiles/*.json. */
+function listPackagedProfilePresets(): string[] {
+	try {
+		return readdirSync(join(ASSETS_DIR, "profiles"))
+			.filter((entry) => entry.endsWith(".json"))
+			.map((entry) => entry.slice(0, -".json".length))
+			.sort((left, right) => left.localeCompare(right));
+	} catch {
+		return [];
+	}
 }
 
 type ProfilesPanelResult =
@@ -3364,7 +3396,7 @@ class ProfilesPanel implements OverlayComponent {
 
 	private renderFooterRow(width: number): string {
 		const hints =
-			"enter use in this session · a set as global default · c create · s snapshot · d duplicate · r rename · x delete · e export · i import · p pin · P share · j/k line · ctrl+j/k page · esc close";
+			"enter use in this session · a set as global default · c create · s snapshot · d duplicate · r rename · x delete · e export · i import (file or preset) · p pin · P share · j/k line · ctrl+j/k page · esc close";
 		const text = this.feedback ?? hints;
 		return [
 			this.renderText("│", "border"),
@@ -3659,7 +3691,7 @@ async function runProfilesPanelAction(
 			// routing is read from the same authority every other consumer uses; an
 			// unreadable config is tolerated as empty, exactly like readModelConfigAsync.
 			const savedRouting = await readModelRoutingAuthorityAsync(
-				modelConfigPath(ctx.cwd),
+				modelConfigReadPath(ctx.cwd),
 				legacyProjectModelConfigPath(ctx.cwd),
 			);
 			// The apply pads omitted discoverable agents with clear entries, so the
@@ -4115,7 +4147,15 @@ async function runProfilesPanelAction(
 			return file;
 		}
 		case "import": {
-			const importPath = profileExportPath(gentleAiConfigHome());
+			let importPath = profileExportReadPath(gentleAiConfigHome());
+			// A packaged preset (assets/profiles/*.json) can be imported by name instead of the export file.
+			const presets = listPackagedProfilePresets();
+			if (presets.length > 0 && typeof ctx.ui.select === "function") {
+				const exportChoice = "Exported file (profiles.export.json)";
+				const choice = await ctx.ui.select("Import profile", [exportChoice, ...presets.map((preset) => `Preset: ${preset}`)]);
+				if (choice === undefined) return file;
+				if (choice !== exportChoice) importPath = join(ASSETS_DIR, "profiles", `${choice.slice("Preset: ".length)}.json`);
+			}
 			let text: string;
 			try {
 				text = await readFile(importPath, "utf8");
@@ -4166,7 +4206,7 @@ async function runProfilesPanelAction(
 /** `/nubia:profiles`: seed or open the store, then loop the panel over one action at a time until it closes. */
 async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): Promise<void> {
 	const path = profilesFilePath(gentleAiConfigHome());
-	const read = readProfilesFileResult(path);
+	const read = readProfilesFileResult(profilesReadFilePath(gentleAiConfigHome()));
 	if (read.status === "invalid") {
 		ctx.ui.notify(
 			`Nub-IA cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
@@ -4397,10 +4437,12 @@ function createGentleAiExtensionForTesting(
 
 	pi.on("session_start", async (_event, ctx) => {
 		yolo.reset(ctx);
+		// Route the one-time "legacy config read" hint through the UI instead of raw stderr.
+		if (ctx.hasUI) setLegacyHintNotifier((message) => { try { ctx.ui.notify(message, "info"); } catch { /* stale context */ } });
 		// A delegated child runs in the parent's resolved worktree. Asset
 		// install and model config belong to the parent session and write
 		// shared state, so only the parent performs them.
-		if (permissionEnvironment.GENTLE_PI_AGENTS_CHILD !== "1") await startParentSession(ctx);
+		if (readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") !== "1") await startParentSession(ctx);
 	});
 
 	const startParentSession = async (ctx: ExtensionContext): Promise<void> => {
@@ -4433,7 +4475,7 @@ function createGentleAiExtensionForTesting(
 
 	pi.on("before_agent_start", async (event, ctx) => {
 		const isNamedAgent = isNamedAgentStartEvent(event);
-		const isChildSession = permissionEnvironment.GENTLE_PI_AGENTS_CHILD === "1";
+		const isChildSession = readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1";
 		const isPrimarySession = !isNamedAgent && !isChildSession;
 		const subagentDepthKey = subagentDepthSessionKey(ctx, subagentDepthFallbackKey);
 		if (isNamedAgent || isChildSession) {
@@ -4476,7 +4518,7 @@ function createGentleAiExtensionForTesting(
 		if (!isRecord(event.input) || typeof event.input.command !== "string") {
 			return undefined;
 		}
-		if (permissionEnvironment.GENTLE_PI_AGENTS_CHILD === "1") {
+		if (readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1") {
 			const childDenied = blockChildDestructiveCommand(event.input.command);
 			if (childDenied) return childDenied;
 		}
@@ -4584,7 +4626,7 @@ function createGentleAiExtensionForTesting(
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);
 			const savedConfig = await readModelRoutingAuthorityAsync(
-				modelConfigPath(ctx.cwd),
+				modelConfigReadPath(ctx.cwd),
 				legacyProjectModelConfigPath(ctx.cwd),
 			);
 			ctx.ui.notify(
@@ -4593,7 +4635,7 @@ function createGentleAiExtensionForTesting(
 					`Persona: ${readPersonaMode(ctx.cwd)}`,
 					...assetLines,
 					"Organic Driven Development (ODD): active",
-					`Global model config: ${existsSync(modelConfigPath(ctx.cwd)) ? "present" : "missing"}`,
+					`Global model config: ${existsSync(modelConfigReadPath(ctx.cwd)) ? "present" : "missing"}`,
 					`Saved model routing: ${savedConfig.status}${savedConfig.status === "invalid" ? ` (${savedConfig.path})` : ""}`,
 					...(savedConfig.status === "invalid" ? [] : describeModelConfig(ctx.cwd, savedConfig.status === "valid" ? savedConfig.config : {})),
 				].join("\n"),

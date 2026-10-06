@@ -1,0 +1,47 @@
+{
+  "kind": "gentle-pi.agent_model_profile",
+  "version": 1,
+  "name": "bedrock-claude",
+  "config": {
+    "gentle-ai-explore": {
+      "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
+      "thinking": "low"
+    },
+    "gentle-ai-verify": {
+      "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
+      "thinking": "high"
+    },
+    "gentle-ai-worker": {
+      "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
+      "thinking": "medium"
+    },
+    "jd-fix-agent": {
+      "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
+      "thinking": "medium"
+    },
+    "jd-judge-a": {
+      "model": "amazon-bedrock/us.anthropic.claude-fable-5-1",
+      "thinking": "high"
+    },
+    "jd-judge-b": {
+      "model": "amazon-bedrock/us.anthropic.claude-opus-5-5",
+      "thinking": "xhigh"
+    },
+    "review-readability": {
+      "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
+      "thinking": "medium"
+    },
+    "review-reliability": {
+      "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
+      "thinking": "high"
+    },
+    "review-resilience": {
+      "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
+      "thinking": "high"
+    },
+    "review-risk": {
+      "model": "amazon-bedrock/us.anthropic.claude-opus-5-5",
+      "thinking": "xhigh"
+    }
+  }
+}

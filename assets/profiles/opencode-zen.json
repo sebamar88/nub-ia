@@ -1,0 +1,47 @@
+{
+  "kind": "gentle-pi.agent_model_profile",
+  "version": 1,
+  "name": "opencode-zen",
+  "config": {
+    "gentle-ai-explore": {
+      "model": "opencode/claude-sonnet-5-5",
+      "thinking": "low"
+    },
+    "gentle-ai-verify": {
+      "model": "opencode/claude-sonnet-5-5",
+      "thinking": "high"
+    },
+    "gentle-ai-worker": {
+      "model": "opencode/claude-sonnet-5-5",
+      "thinking": "medium"
+    },
+    "jd-fix-agent": {
+      "model": "opencode/claude-sonnet-5-5",
+      "thinking": "medium"
+    },
+    "jd-judge-a": {
+      "model": "opencode/claude-fable-5-1",
+      "thinking": "high"
+    },
+    "jd-judge-b": {
+      "model": "opencode/claude-opus-5-5",
+      "thinking": "xhigh"
+    },
+    "review-readability": {
+      "model": "opencode/claude-sonnet-5-5",
+      "thinking": "medium"
+    },
+    "review-reliability": {
+      "model": "opencode/claude-sonnet-5-5",
+      "thinking": "high"
+    },
+    "review-resilience": {
+      "model": "opencode/claude-sonnet-5-5",
+      "thinking": "high"
+    },
+    "review-risk": {
+      "model": "opencode/claude-opus-5-5",
+      "thinking": "xhigh"
+    }
+  }
+}

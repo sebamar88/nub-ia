@@ -6,10 +6,16 @@ import { createNativeFullscreenInteraction } from "../lib/native-fullscreen-inte
 import { withOverlayRepaint } from "../lib/overlay-repaint.ts";
 import { createStatsLoader, currentSessionStats, type StatsLoader } from "../lib/stats-collector.ts";
 import { StatsView } from "../lib/stats-view.ts";
+import { readEnv } from "../lib/config-home.ts";
 
 // Gentle Stats: /nubia:stats opens a full-terminal panel over local Pi
 // session history (tokens, cost, models, activity). It only reads the
 // session files Pi already writes; nothing new is persisted.
+//
+// Runtime metrics rows (model/usage aggregates) are appended locally by
+// extensions/runtime-metrics.ts to <config home>/metrics/runtime-<YYYY-MM>.jsonl
+// (default ~/.pi/nub-ia/metrics/); see lib/runtime-metrics-sink.ts. This panel
+// does not read them; NUB_IA_METRICS=off disables the sink.
 //
 // History spans two homes: the active one (Gentle Shell's isolated home) and
 // the user's regular Pi home, which the launcher records before isolating.
@@ -21,7 +27,7 @@ export const STATS_COMMAND_NAME = "nubia:stats";
 
 /** Optional shortcut; there is no default key because the common alt+ keys are taken. */
 export function statsViewKey(env: NodeJS.ProcessEnv = process.env): string | undefined {
-	const value = env.GENTLE_PI_STATS_VIEW_KEY?.trim();
+	const value = readEnv(env, "NUB_IA_STATS_VIEW_KEY", "GENTLE_PI_STATS_VIEW_KEY")?.trim();
 	return !value || value.toLowerCase() === "off" ? undefined : value;
 }
 

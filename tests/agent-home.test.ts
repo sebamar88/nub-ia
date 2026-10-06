@@ -16,8 +16,10 @@ function isolatedHome(t: test.TestContext): string {
 	const previousHome = process.env.HOME;
 	const previousUserProfile = process.env.USERPROFILE;
 	const previousConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-	// Clear the higher-priority config override as well as isolating both OS homes.
+	const previousNubIaConfigHome = process.env.NUB_IA_CONFIG_HOME;
+	// Clear the config overrides as well as isolating both OS homes.
 	delete process.env.GENTLE_PI_CONFIG_HOME;
+	delete process.env.NUB_IA_CONFIG_HOME;
 	process.env.HOME = home;
 	process.env.USERPROFILE = home;
 	t.after(() => {
@@ -27,20 +29,28 @@ function isolatedHome(t: test.TestContext): string {
 		else process.env.USERPROFILE = previousUserProfile;
 		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
 		else process.env.GENTLE_PI_CONFIG_HOME = previousConfigHome;
+		if (previousNubIaConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousNubIaConfigHome;
 		rmSync(home, { recursive: true, force: true });
 	});
 	return home;
 }
 
-test("gentlePiConfigHome honours GENTLE_PI_CONFIG_HOME and otherwise falls back to ~/.pi/gentle-ai", (t) => {
+test("gentlePiConfigHome honours the overrides and otherwise falls back to ~/.pi/nub-ia", (t) => {
 	const home = isolatedHome(t);
 	assert.equal(gentlePiConfigHome({ GENTLE_PI_CONFIG_HOME: "/custom/gentle-ai" }), "/custom/gentle-ai");
-	assert.equal(gentlePiConfigHome({ GENTLE_PI_CONFIG_HOME: "" }), join(homedir(), ".pi", "gentle-ai"));
-	assert.equal(gentlePiConfigHome({}), join(homedir(), ".pi", "gentle-ai"));
-	assert.equal(gentlePiConfigHome(), join(homedir(), ".pi", "gentle-ai"));
+	assert.equal(gentlePiConfigHome({ NUB_IA_CONFIG_HOME: "/custom/nub-ia" }), "/custom/nub-ia");
+	assert.equal(
+		gentlePiConfigHome({ NUB_IA_CONFIG_HOME: "/custom/nub-ia", GENTLE_PI_CONFIG_HOME: "/custom/gentle-ai" }),
+		"/custom/nub-ia",
+		"NUB_IA_CONFIG_HOME outranks the legacy variable",
+	);
+	assert.equal(gentlePiConfigHome({ GENTLE_PI_CONFIG_HOME: "" }), join(homedir(), ".pi", "nub-ia"));
+	assert.equal(gentlePiConfigHome({}), join(homedir(), ".pi", "nub-ia"));
+	assert.equal(gentlePiConfigHome(), join(homedir(), ".pi", "nub-ia"));
 	assert.equal(
 		join(gentlePiConfigHome(), "profiles.json"),
-		join(home, ".pi", "gentle-ai", "profiles.json"),
+		join(home, ".pi", "nub-ia", "profiles.json"),
 		"the store path is derived from the config home, not from the agent home",
 	);
 });
@@ -54,7 +64,7 @@ test("the isolated home restores defined and undefined config overrides", async 
 			await t.test(`inherited override: ${inherited === undefined ? "unset" : "set"}`, (child) => {
 				const home = isolatedHome(child);
 				assert.equal(process.env.GENTLE_PI_CONFIG_HOME, undefined);
-				assert.equal(gentlePiConfigHome(), join(home, ".pi", "gentle-ai"));
+				assert.equal(gentlePiConfigHome(), join(home, ".pi", "nub-ia"));
 			});
 			assert.equal(process.env.GENTLE_PI_CONFIG_HOME, inherited);
 		}
@@ -70,6 +80,6 @@ test("the config home ignores the Pi agent-home overrides", (t) => {
 	// Reusing that resolver here would point the profiles store at the agent home.
 	assert.equal(
 		gentlePiConfigHome({ PI_CODING_AGENT_DIR: "/pi/agent", GENTLE_PI_AGENT_HOME: "/gentle/agent" }),
-		join(home, ".pi", "gentle-ai"),
+		join(home, ".pi", "nub-ia"),
 	);
 });

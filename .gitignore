@@ -18,9 +18,9 @@ auth.json
 
 # Local Pi runtime state
 .pi/*
-!.pi/gentle-ai/
-.pi/gentle-ai/*
-!.pi/gentle-ai/runtime-guardrails.json
+!.pi/nub-ia/
+.pi/nub-ia/*
+!.pi/nub-ia/runtime-guardrails.json
 .pi-lens/
 .atl/
 .gentle-ai/

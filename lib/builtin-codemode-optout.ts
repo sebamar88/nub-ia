@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { gentlePiConfigHome } from "./agent-home.ts";
+import { configReadPath } from "./config-home.ts";
 
 // gentle-pi replaces Pi's replaceable builtin codemode with its compact
 // renderer (lib/codemode-renderer.ts), and Pi warns at every startup when a
@@ -84,7 +85,8 @@ function readIfExists(path: string): string | undefined {
 
 function readDeclined(configHome: string): string[] {
 	try {
-		const value: unknown = JSON.parse(readIfExists(builtinCodemodeOptOutStatePath(configHome)) ?? "null");
+		// A decline remembered under the legacy ~/.pi/gentle-ai home still counts.
+		const value: unknown = JSON.parse(readIfExists(configReadPath(configHome, "builtin-codemode-optout.json")) ?? "null");
 		if (typeof value !== "object" || value === null || (value as { schema?: unknown }).schema !== BUILTIN_CODEMODE_OPTOUT_SCHEMA) return [];
 		const declined = (value as { declined?: unknown }).declined;
 		return Array.isArray(declined) ? declined.filter((path): path is string => typeof path === "string") : [];

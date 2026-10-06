@@ -1,0 +1,47 @@
+{
+  "kind": "gentle-pi.agent_model_profile",
+  "version": 1,
+  "name": "nvidia",
+  "config": {
+    "gentle-ai-explore": {
+      "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+      "thinking": "low"
+    },
+    "gentle-ai-verify": {
+      "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+      "thinking": "high"
+    },
+    "gentle-ai-worker": {
+      "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+      "thinking": "medium"
+    },
+    "jd-fix-agent": {
+      "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+      "thinking": "medium"
+    },
+    "jd-judge-a": {
+      "model": "nvidia/nvidia/nemotron-3-ultra-550b-a55b",
+      "thinking": "high"
+    },
+    "jd-judge-b": {
+      "model": "nvidia/moonshotai/kimi-k3",
+      "thinking": "xhigh"
+    },
+    "review-readability": {
+      "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+      "thinking": "medium"
+    },
+    "review-reliability": {
+      "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+      "thinking": "high"
+    },
+    "review-resilience": {
+      "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+      "thinking": "high"
+    },
+    "review-risk": {
+      "model": "nvidia/moonshotai/kimi-k3",
+      "thinking": "xhigh"
+    }
+  }
+}

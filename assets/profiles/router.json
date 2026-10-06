@@ -1,0 +1,47 @@
+{
+  "kind": "gentle-pi.agent_model_profile",
+  "version": 1,
+  "name": "router",
+  "config": {
+    "gentle-ai-explore": {
+      "model": "nub-ia/balanced",
+      "thinking": "low"
+    },
+    "gentle-ai-verify": {
+      "model": "nub-ia/balanced",
+      "thinking": "high"
+    },
+    "gentle-ai-worker": {
+      "model": "nub-ia/balanced",
+      "thinking": "medium"
+    },
+    "jd-fix-agent": {
+      "model": "nub-ia/balanced",
+      "thinking": "medium"
+    },
+    "jd-judge-a": {
+      "model": "nub-ia/strong-alt",
+      "thinking": "high"
+    },
+    "jd-judge-b": {
+      "model": "nub-ia/strong",
+      "thinking": "xhigh"
+    },
+    "review-readability": {
+      "model": "nub-ia/balanced",
+      "thinking": "medium"
+    },
+    "review-reliability": {
+      "model": "nub-ia/balanced",
+      "thinking": "high"
+    },
+    "review-resilience": {
+      "model": "nub-ia/balanced",
+      "thinking": "high"
+    },
+    "review-risk": {
+      "model": "nub-ia/strong",
+      "thinking": "xhigh"
+    }
+  }
+}
