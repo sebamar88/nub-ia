@@ -8,31 +8,45 @@ y la configuración del equipo. No es una distribución oficial de gentle-shell 
 
 ## Instalación
 
-Requisitos: Node >= 22.19, pnpm 11, y `pi` (`@earendil-works/pi-coding-agent` >= 0.99.1) instalado o disponible en PATH.
+Requisitos: git con una clave SSH autorizada en GitHub para este repo (es privado), Node >= 22.19 y `pi`
+(`@earendil-works/pi-coding-agent`; el instalador lo instala con npm si falta). pnpm se usa vía corepack/npx si no está.
 
-Camino principal (Pi gestiona y actualiza el paquete; su `postinstall` descarga el binario rtk pinneado):
-
-```bash
-pi install git:github.com/sebamar88/nub-ia
-node ~/.pi/agent/git/github.com/sebamar88/nub-ia/bin/nub-ia.mjs   # primera ejecución: provisiona ~/.nub-ia/agent
-# o, para tener el comando `nub-ia` en PATH:
-cd ~/.pi/agent/git/github.com/sebamar88/nub-ia && pnpm link --global
-```
-
-Alternativa para desarrollo (clon propio):
+**Linux / macOS**
 
 ```bash
-git clone https://github.com/sebamar88/nub-ia.git
-cd nub-ia
-pnpm install          # el postinstall descarga el binario rtk pinneado
-pnpm link --global    # expone el comando `nub-ia`
-nub-ia                # primera ejecución: provisiona ~/.nub-ia/agent automáticamente
+curl -fsSL https://raw.githubusercontent.com/sebamar88/nub-ia/main/install.sh | sh
 ```
 
-`pi install git:` clona el repo y corre `npm install` dentro (verificado en el gestor de paquetes de Pi), así que el
-`postinstall` se ejecuta. Si falla (sin red, scripts deshabilitados) o un `pi update` limpia `.rtk/`, cada arranque de
-`nub-ia` detecta que falta `.rtk/<versión>/rtk` y lo instala una vez (aviso por stderr, nunca bloquea el arranque;
-`GENTLE_PI_SKIP_RTK_INSTALL=1` lo desactiva).
+**Windows (PowerShell)**
+
+```powershell
+irm https://raw.githubusercontent.com/sebamar88/nub-ia/main/install.ps1 | iex
+```
+
+El instalador clona el repo por SSH en `~/.nub-ia/app` (Windows: `%LOCALAPPDATA%\nub-ia\app`), instala las dependencias
+(el `postinstall` descarga el binario `rtk` pinneado y verificado), y deja el comando `nub-ia` en `~/.local/bin`
+(Windows: `%LOCALAPPDATA%\nub-ia\bin`, agregado al PATH del usuario). Es idempotente y nunca pide sudo/elevación.
+Variables: `NUB_IA_DIR`, `NUB_IA_BIN`, `NUB_IA_REPO` (p. ej. un alias SSH), `NUB_IA_BRANCH`.
+
+Como el repo es privado, `raw.githubusercontent.com` también pide autenticación: si el `curl`/`irm` devuelve 404, cloná
+el repo y ejecutá `sh install.sh` / `.\install.ps1` desde el clon (hace lo mismo).
+
+Después:
+
+```bash
+nub-ia            # primera ejecución: provisiona ~/.nub-ia/agent (tema, modelo, ponytail) y recuerda hacer /login
+nub-ia --link     # alternativa: reutilizar tu ~/.pi/agent con sus logins y sesiones
+nub-ia update     # actualiza el checkout (git pull + deps) y luego los paquetes del home
+```
+
+Si preferís no tener el launcher: el paquete también funciona cargado en `pi` a secas (`pi -e ~/.nub-ia/app/extensions`
+o declarándolo en `settings.json`); perdés el home aislado, el tema por defecto y el auto-setup.
+
+Alternativa para desarrollo (clon propio): `git clone git@github.com:sebamar88/nub-ia.git && cd nub-ia && pnpm install &&
+pnpm link --global`.
+
+Si falta `.rtk/<versión>/rtk` (descarga fallida, sin red), cada arranque de `nub-ia` lo reinstala una vez (aviso por
+stderr, nunca bloquea; `GENTLE_PI_SKIP_RTK_INSTALL=1` lo desactiva).
 
 Tras el primer provisionado (y con `nub-ia setup`) se imprime un recordatorio de login: iniciá sesión en al menos un
 proveedor dentro del shell (`/login github-copilot`, `/login openai`, `/login opencode`, `/login nvidia`,
