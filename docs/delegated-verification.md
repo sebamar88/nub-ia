@@ -1,22 +1,22 @@
-# Delegated verification
+# Verificación delegada
 
-How the Nub-IA orchestrator decides who verifies a bounded writer's work. The rule itself lives once, in `assets/orchestrator-verification.md`; this page is the human-readable summary.
+Cómo decide el orquestador de Nub-IA quién verifica el trabajo de un writer acotado. La regla vive una sola vez en `assets/orchestrator-verification.md`; esta página es el resumen legible.
 
-## The writer's report
+## El reporte del writer
 
-The bounded writer runs the exact commands the parent lists under `## Verification`, in the foreground, and reports each as `<command>: <observed result>`. That report is the verification of record for the writer's own change. `## Known environmental failures` lists exact test names or command lines that already fail on the base: they are reported as evidence, not as a blocker, while any other failing required command still forces `status: partial`.
+El writer acotado ejecuta, en primer plano, los comandos exactos que el padre lista bajo `## Verification` y reporta cada uno como `<comando>: <resultado observado>`. Ese reporte es la verificación de registro del cambio del propio writer. `## Known environmental failures` lista nombres de tests o líneas de comando exactas que ya fallan en la base: se reportan como evidencia y no como bloqueo, mientras que cualquier otro comando requerido que falle obliga a `status: partial`.
 
-## Independent verification
+## Verificación independiente
 
-A separate `gentle-ai-verify` run (or the native `Agent` fallback, with the same read-only task and the exact parent-authorized commands) is added when:
+Se suma una corrida separada de `gentle-ai-verify` (o el fallback nativo `Agent`, con la misma tarea de solo lectura y los comandos exactos autorizados por el padre) cuando:
 
-- the change touches a Task Size high-risk item (data or irreversible effects, security, changing a consumed contract, concurrency, delivery or environment, or no test would catch a regression);
-- the writer reports `partial` or `blocked`;
-- the check is expensive or external (E2E runs, installs) and the parent wants a cheaper profile; or
-- the writer is a small model (mini or low effort) and the change is medium risk.
+- el cambio toca un ítem de riesgo alto de Task Size (datos o efectos irreversibles, seguridad, cambio de un contrato consumido, concurrencia, entrega o entorno, o ningún test detectaría una regresión);
+- el writer reporta `partial` o `blocked`;
+- el chequeo es caro o externo (E2E, instalaciones) y el padre quiere un perfil más barato; o
+- el writer es un modelo chico (mini o esfuerzo bajo) y el cambio es de riesgo medio.
 
-The parent spot check (re-running one reported command before delivery) stays required in every case.
+El spot check del padre (volver a ejecutar un comando reportado antes de entregar) sigue siendo obligatorio en todos los casos.
 
-## Review before delivery
+## Review antes de entregar
 
-Before delivery of a non-trivial change, the orchestrator runs the `nub_review` tool over the diff and addresses its BLOCKER/CRITICAL findings. The push gate asks for confirmation when changes were not reviewed or were blocked. A code review is not a substitute for applicable functional checks: tests, builds, and functional verification such as browser checks for UI changes still run when applicable.
+Antes de entregar un cambio no trivial, el orquestador corre la herramienta `nub_review` sobre el diff y atiende sus hallazgos BLOCKER/CRITICAL. El gate de push pide confirmación cuando los cambios no fueron revisados o quedaron bloqueados. Un code review no reemplaza los checks funcionales aplicables: tests, builds y verificaciones como las de navegador para cambios de UI se siguen corriendo cuando corresponde.

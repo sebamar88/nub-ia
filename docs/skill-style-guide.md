@@ -1,42 +1,33 @@
-# Skill Style Guide
+# Guía de estilo de skills
 
-This guide is the normative style contract for LLM-first skills shipped with or created inside `gentle-pi` projects.
+Esta guía es el contrato de estilo normativo para las skills LLM-first que trae Nub-IA o que se crean dentro de sus proyectos.
 
-## Purpose
+## Propósito
 
-A skill is a runtime instruction contract for an LLM. It should make future agent behavior more reliable by encoding reusable workflow rules, decision gates, and output expectations.
+Una skill es un contrato de instrucciones de runtime para un LLM. Debe volver más confiable el comportamiento futuro del agente codificando reglas de workflow reutilizables, compuertas de decisión y expectativas de salida. No es un tutorial, un artículo, un README ni una checklist genérica para humanos.
 
-A skill is not a tutorial, article, README, or generic checklist for humans.
+## Cuándo crear una skill
 
-## When to create a skill
+Creá o actualizá una skill cuando:
 
-Create or update a skill when:
+- un workflow o convención se reutiliza entre sesiones;
+- las restricciones del proyecto difieren de las buenas prácticas genéricas;
+- un árbol de decisión ayuda al agente a elegir con seguridad;
+- plantillas, esquemas o referencias locales mejoran la repetibilidad;
+- los agentes siguen omitiendo la misma instrucción sin un contrato explícito.
 
-- a workflow or convention is reused across sessions;
-- project-specific constraints differ from generic best practices;
-- a decision tree helps the agent choose safely;
-- templates, schemas, or local references improve repeatability;
-- agents keep missing the same instruction without an explicit runtime contract.
+No crees una skill para tareas puntuales, documentación genérica, reglas que pertenecen a tests, linters o código ejecutable, ni contexto amplio sin reglas de ejecución concretas.
 
-Do not create a skill for:
-
-- one-off tasks;
-- generic documentation;
-- rules that belong in tests, linters, or executable code;
-- broad background context without concrete execution rules.
-
-## Required structure
-
-Use this directory shape:
+## Estructura requerida
 
 ```text
 skills/{skill-name}/
 ├── SKILL.md
-├── assets/       # optional: templates, schemas, examples, fixtures
-└── references/   # optional: longer local docs or rationale
+├── assets/       # opcional: plantillas, esquemas, ejemplos, fixtures
+└── references/   # opcional: docs locales más largas o fundamentos
 ```
 
-`SKILL.md` must use this section order:
+`SKILL.md` debe usar este orden de secciones (los nombres se mantienen en inglés porque los lee el runtime):
 
 1. `Activation Contract`
 2. `Hard Rules`
@@ -45,16 +36,14 @@ skills/{skill-name}/
 5. `Output Contract`
 6. `References`
 
-Omit optional supporting directories when they are not needed.
+Omití los directorios opcionales cuando no hacen falta.
 
 ## Frontmatter
-
-Use YAML frontmatter with this shape:
 
 ```yaml
 ---
 name: {kebab-case-skill-name}
-description: "Trigger: {phrases users or agents will say}. {What this skill does}."
+description: "Trigger: {frases que dirán usuarios o agentes}. {Qué hace esta skill}."
 license: Apache-2.0
 metadata:
   author: gentleman-programming
@@ -62,28 +51,23 @@ metadata:
 ---
 ```
 
-Rules:
+- `name` en kebab-case y coincidente con el directorio de la skill, salvo una razón deliberada de compatibilidad.
+- `description` en una sola línea física, entre comillas, segura para YAML y rica en triggers; las palabras de activación esenciales van primero.
+- No agregues una sección `Keywords`. Conservá `license` y `metadata` salvo que el proyecto tenga una convención local más fuerte.
 
-- `name` must be kebab-case and match the skill directory unless there is a deliberate compatibility reason.
-- `description` must be one physical line, quoted, YAML-safe, and trigger-rich.
-- Put essential trigger words first in `description`.
-- Do not add a `Keywords` section.
-- Preserve license and metadata unless the project has a stronger local convention.
+## Reglas de escritura
 
-## Writing rules
+- Escribí instrucciones imperativas de runtime, no prosa explicativa.
+- Mantené `SKILL.md` conciso: objetivo de 180–450 tokens, máximo recomendado 700, máximo duro 1000.
+- Preferí viñetas y tablas de decisión compactas a párrafos.
+- Indicá cuándo activar la skill y cuándo no.
+- Al mejorar una skill existente, preservá la intención del autor.
+- No inventes políticas de dominio, triggers ni restricciones: preguntá o marcá la ambigüedad.
+- Mové ejemplos largos, esquemas, plantillas generadas y fundamentos a `assets/` o `references/`, y referenciá solo archivos locales que viajen con el proyecto.
 
-- Write imperative runtime instructions, not explanatory prose.
-- Keep `SKILL.md` concise: target 180–450 tokens, recommended max 700, hard max 1000.
-- Prefer bullets and compact decision tables over paragraphs.
-- State when to activate the skill and when not to activate it.
-- Preserve author intent when improving an existing skill.
-- Do not invent domain policies, triggers, or constraints. Ask or mark ambiguity instead.
-- Move long examples, schemas, generated templates, and background rationale to `assets/` or `references/`.
-- References must point to local files that ship with the project or package.
+## Compuertas de decisión
 
-## Decision gates
-
-Use a table when choices matter:
+Usá una tabla cuando las opciones importan:
 
 ```markdown
 | Situation | Action |
@@ -93,24 +77,18 @@ Use a table when choices matter:
 | Long examples needed | Move them to `assets/` |
 ```
 
-Decision gates should prevent unsafe overreach, duplicate skills, and unnecessary ceremony.
+Deben prevenir el exceso inseguro, las skills duplicadas y la ceremonia innecesaria.
 
-## Output contract
+## Contrato de salida
 
-Every skill should tell the agent what to return. Good output contracts include:
+Toda skill debe decirle al agente qué devolver: archivos creados o modificados, comandos o verificaciones ejecutados, si hace falta refrescar el registro, ambigüedades sin resolver y riesgos residuales.
 
-- files created or modified;
-- commands or verification run;
-- registry refresh needed;
-- unresolved ambiguities;
-- residual risks.
+## Registro de skills
 
-## Registry expectations
-
-After creating, removing, moving, or renaming project skills, refresh the skill registry when available:
+Tras crear, eliminar, mover o renombrar skills de un proyecto, refrescá el registro cuando esté disponible:
 
 ```text
 /skill-registry:refresh
 ```
 
-The registry is an index. `SKILL.md` remains the source of truth.
+El registro es un índice: `SKILL.md` sigue siendo la fuente de verdad.

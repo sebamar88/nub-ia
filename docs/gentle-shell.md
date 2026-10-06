@@ -1,238 +1,128 @@
-# Gentle Shell reference
+# La shell de Nub-IA
 
-Gentle Shell is the `gentle-shell` coding-agent workspace built for Pi, not a theme. The `gentle-pi` package integrates the shell bar, workspace changes, provider usage where Pi exposes it, and native agent orchestration views into a Pi session. Start with the [README](../README.md#features) for the product overview.
+La shell de Nub-IA es el espacio de trabajo de coding-agent del equipo de Nubiral sobre Pi; no es solo un tema. El paquete integra la barra superior/inferior, el rail de estado, el panel de cambios, el consumo de suscripciones y las vistas de orquestación de subagentes en una sesión de Pi. Para el panorama general empezá por el [README](../README.md); para operar el paquete, por la [referencia técnica](readme-reference.md).
 
-For development, use [ODD and feature recovery](readme-reference.md#organic-driven-development). TDD follows configured mode, and native review remains a separate user-owned choice.
+Para desarrollar usá [ODD y recuperación de features](readme-reference.md#organic-driven-development) (Organic Driven Development). El TDD sigue el modo configurado, y antes de entregar corre el review 4R `nub_review`.
 
-Source map: [shell extension](../extensions/gentle-shell.ts), [shell bar](../lib/shell-bar.ts), [changes model](../lib/shell-changes.ts), [changes view](../lib/shell-changes-view.ts), [usage model](../lib/shell-usage.ts), [usage view](../lib/shell-usage-view.ts), [agents extension](../extensions/gentle-agents.ts), and [agent runner](../lib/agents-runner.ts).
+Mapa de fuentes: [extensión de la shell](../extensions/gentle-shell.ts), [barra](../lib/shell-bar.ts), [modelo de cambios](../lib/shell-changes.ts), [vista de cambios](../lib/shell-changes-view.ts), [uso](../lib/shell-usage.ts), [extensión de agentes](../extensions/gentle-agents.ts) y [runner de agentes](../lib/agents-runner.ts).
 
-## v2.6.0 workspace updates
+## Requisitos
 
-The [v2.6.0 release](https://github.com/Gentleman-Programming/gentle-pi/releases/tag/v2.6.0) makes the workspace state more durable and inspectable:
+The current package requires Pi 0.99.1 or newer and Node >=22.19.0. Development tests resolve Pi through the open `>=1.0.0` development range. The private Vim editor adapter admits only the audited Pi `0.99.1`, `0.99.2`, and `1.0.0` releases; any other release keeps ordinary prompt editing until its editor is audited. Nub-IA no actualiza tu Pi instalado. Los procesos hijo deben emitir `agent_settled`.
 
-- Registered worktrees survive reloads. `/nubia:changes` groups each dirty root and presents status, line counts, and lazy diffs without conflating identical paths from different worktrees.
-- Fullscreen pointer navigation and the responsive sidebar keep changes, agents, and TODO usable at changing terminal widths; cached frames avoid redrawing inactive sidebar content while live status still updates.
-- The Agents List and Details views preserve the orchestrator/session hierarchy and completion, abort, and lost-exit history. Parent-child queries and notifications have an explicit handoff path, while model, effort, and usage stay observable per task.
-- Named `/nubia:profiles` atomically route the orchestrator separately from packaged and review roles; see the [technical reference](readme-reference.md#agent-model-profiles) for the profile model.
+`GENTLE_PI_SHELL=0` conserva el footer y el editor nativos de Pi.
 
-The source checkout prepares `gentle-pi` `4.0.0` with a package-local Gentle AI `v4.0.0` pin; this does not imply that the package release has been published.
+## Layout en fullscreen
 
-## Shell interactions and runtime behavior
-
-Gentle Shell is the Pi workspace experience provided by the `gentle-pi` package. It follows the Gentle themes: one border language, rose for whatever is alive.
-
-### Fullscreen layout
-
-At 140 columns or wider, fullscreen defaults to a live header over a transcript-and-rail split, both driven by [`lib/shell-sidebar-layout.ts`](../lib/shell-sidebar-layout.ts):
+Con 140 columnas o más, fullscreen muestra un header en vivo sobre una división transcript + rail (`lib/shell-sidebar-layout.ts`):
 
 ```text
-✿ Gentle Shell ⟡ ~/work/gentle-pi main ⟡ gpt-5.5 · medium · team              ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub
+∞ Nub-IA ⟡ ~/work/nub-ia main ⟡ nub-ia/balanced · medium · team        ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub
 ```
 
-- The header carries live session data: session identity on the left (brand, cwd, branch, dirty count, model · effort · profile) and the two live counters right-aligned (the context gauge and session cost). It never shows the working/thinking state or extension statuses — those stay in the prompt indicator and the Status surface. When the terminal is too narrow for everything, segments give way in a fixed order — profile, then effort, then the whole cwd/branch/dirty group — before the counters are touched; below that, only the brand survives, and below that the header renders nothing.
-- The right rail scrolls **Status → Changes → TODO**. Cards cache their rendered content until their own digest or an explicit invalidation changes. `neon` keeps the rounded border and accent title; `float` uses a tone background, a full-height `▎` accent, one-column transparent margins, painted padding above and below, and a blank painted separator between heading and body. Warning/error/success panels retain their tone colors.
-- The Status card carries Project (cwd, branch, session name, active profile), Changes, and Integrations (other extensions' statuses); its live digest detects changes without requiring an event. Model, effort, context, cost, and the per-model usage table live in the header instead — the header ticks every frame, so duplicating them in a card would just make that card repaint every frame too.
-- Gentle Agents is not part of the rail in any mode: its one card stays above the editor, where it already lived, with fixed right-aligned columns for `model · effort`, tokens, cost, and elapsed, each sized to the widest value among the shown tasks — so the numbers line up vertically even when one row's values are much shorter than another's. A queued task fills only the elapsed column with the word `queued`, leaving the other columns blank rather than overwriting the row.
-- The sidebar reuses its last frame until something it paints changes, so silent frames stay cheap; a per-section cache means one card's changing digest (or the header's) never forces an unrelated card to redraw.
-- Header placement is configurable. Above input, the float header has a full-width background, painted padding above and below its content, and a transparent `▔` bottom edge. Below input, the float footer groups captured Changes (when present), header data, and locally owned integration statuses under one upper edge; it never duplicates statuses owned by the rail.
-- Below 140 columns, fullscreen has no sidebar. A configured top header owns the narrow status surface; otherwise the bottom bar owns it, unless Status is hidden. Regular mode keeps the compact one-line bottom bar and the above-editor Agents widget, without a fullscreen header or sidebar.
+- **Header:** identidad de la sesión a la izquierda (marca, cwd, rama, cantidad de modificados, modelo · esfuerzo · perfil) y dos contadores a la derecha (gauge de contexto y costo). No muestra el estado working/thinking. Si no entra, se degradan primero perfil, luego esfuerzo, luego el grupo cwd/rama/dirty; debajo de eso solo queda la marca.
+- **Rail derecho:** desplaza **Status → Changes → TODO**. Las cards cachean su render hasta que cambia su digest.
+- **Status:** Project (cwd, rama, nombre de sesión, perfil activo), Changes e Integrations (estados de otras extensiones).
+- **Agents** no está en el rail: su card queda sobre el editor, con columnas fijas alineadas a la derecha (`modelo · esfuerzo`, tokens, costo, tiempo); una tarea encolada completa solo la columna de tiempo con `queued`.
+- Debajo de 140 columnas no hay sidebar: un header superior configurado se encarga del estado; si no, la barra inferior. El modo regular conserva la barra compacta de una línea y el widget de Agents sobre el editor.
 
-The regular-mode compact bar replaces pi's three-line footer with a single line of segments:
+La barra compacta reemplaza el footer de tres líneas de Pi:
 
 ```text
-✿ gentle shell ⟡ ~/work/gentle-pi main ⟡ gpt-5.5 · medium ⟡ ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub ⟡ MCP: 3 servers enabled        Release notes
+∞ nub-ia ⟡ ~/work/nub-ia main ⟡ balanced · medium ⟡ ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub
 ```
 
-- Context is a gauge, not a number. It turns amber at 80% and red at 95%; after compaction it shows `?%` until the next response.
-- Cost carries `sub` when the active model runs on a subscription login.
-- Statuses other extensions publish through `setStatus` are appended as trailing segments; the session name sits at the right edge.
-- On narrow terminals the session name is dropped first, then trailing segments, before the line is truncated.
+- El contexto es un gauge: ámbar al 80 %, rojo al 95 %; tras una compactación muestra `?%` hasta la próxima respuesta.
+- El costo lleva `sub` si el modelo corre con login de suscripción.
+- Los estados que publican otras extensiones con `setStatus` se agregan como segmentos finales. En terminales angostas se descarta primero el nombre de sesión y luego los segmentos.
 
-The prompt follows the selected card style. `neon` keeps pi's editor in its rounded frame:
+El prompt sigue el estilo de card elegido (`neon` enmarca el editor con borde redondeado; `float` lo pinta con fondo tonal y una barra `▎`). El indicador muestra `waiting for input`, `working` o `queued` según el estado. Si otra extensión ya instaló un editor propio, la shell no lo toca.
 
-```text
-╭─ ✿ working ──────────────────────────────────────────╮
-│ type, or / for commands                              │
-╰──────────────────────────────────────────────────────╯
-```
+## Panel de cambios (`/nubia:changes`, `alt+g`)
 
-- `float` paints the prompt with the card's quieter `toolSuccessBg`, one-column transparent margins and a full-height `▎` accent in the editor's current frame/mode color. The painted top row contains the petal and working state; editable rows have an interior inset and painted bottom padding replaces the bottom rule. Cursor, selection, autocomplete and mouse geometry remain native.
-- The petal is still with a `waiting for input` label in float while pi waits, spins with a `working` label while the agent works, and turns amber with a `queued` label when messages are waiting behind the current turn. In float it lives inside the painted top row; in neon it lives in the top rule. Pi's own "Working" row above the editor is hidden.
-- The empty-editor typing hint appears only while the editor is empty; Esc/queued hints remain inside the painted top row even with a nonempty float draft. Widths below 10 columns or a missing/unusable background keep the complete neon prompt path.
-- If another extension already installed a custom editor, Gentle Shell leaves it alone.
-
-Changes shows **captured write/edit operations from this agent session and its owned subagents**. It does not scan the repository on startup, read all untracked files, or poll live files in the background. Fullscreen, the sidebar, and mouse interaction are unchanged.
+Changes muestra **las operaciones write/edit capturadas de esta sesión y de sus subagentes**. No escanea el repo al iniciar, no lee archivos sin trackear y no hace polling de archivos vivos.
 
 ```text
 ✎ 3 files · +42 −7 · extensions/gentle-shell.ts, lib/shell-bar.ts, tests/x.test.ts · /nubia:changes
 ```
 
-### What appears in Changes
+- Un worktree aparece recién tras una mutación exitosa capturada. Leer, abrir un directorio o lanzar un hijo no cuenta.
+- Los diffs comparan el contenido visto antes de la primera operación del agente con su último resultado, no con HEAD. Ediciones externas rompen la continuidad y el archivo se marca **diff unavailable**.
+- **La cobertura es deliberadamente limitada a las herramientas write/edit.** Shell, herramientas de mutación custom, salidas fallidas o hijos sin la extensión de captura no generan diff; una fila ausente no significa repo limpio.
+- Límites: se lee solo el target, hasta 64 KiB y 2.000 líneas; binarios y archivos enormes muestran "unavailable". Se retienen hasta 256 operaciones y 4 MiB por sesión (al llegar al límite hay advertencia).
+- Las capturas se guardan en la sesión (`gentle-pi.session-change/v1`) y se restauran solo para el mismo UUID de sesión; `--no-session` no persiste.
+- Visor de dos paneles: worktrees en acordeón a la izquierda, diff a la derecha. `j`/`k` o flechas navegan; `ctrl+j/k` o PgUp/PgDn desplazan el diff; `o`/Enter abre el archivo real en `$VISUAL`/`$EDITOR`; `esc`/`q` cierra. En fullscreen el click selecciona y la rueda desplaza.
+- `GENTLE_PI_SHELL_CHANGES_KEY` cambia el atajo (`off` lo deshabilita); `GENTLE_PI_SHELL_CHANGES_POLL_MS` ajusta solo el refresco del overlay abierto.
 
-- A worktree appears only after a captured successful mutation. Reading a file, opening a directory, registering a worktree, or launching a child is not mutation evidence.
-- Diffs compare the content observed before the agent's first captured operation with its latest captured result, not with HEAD. Consecutive agent edits combine; an agent revert removes its net change.
-- Edits from your editor or other sessions do not update these captured diffs. If an external or unobserved edit breaks continuity before the next agent operation on the same file, the file is marked **diff unavailable**, rather than mixing ownership.
-- Ordinary attribution accepts only worktrees in the coordinating session's Git clone. A separately authorized foreign child can contribute target-bound Changes without registering its repository as a same-clone worktree. Child evidence requires an owned, successfully spawned task, paired successful write/edit events, and matching canonical target and live grant; model claims alone are not evidence.
-- A changed file's worktree is resolved from its own directory upward (`git rev-parse --show-toplevel` starting there, never from an ancestor's cwd), so a repository nested inside another — a project scaffolded inside a personal workspace clone, say — is always attributed to its own, inner repository, never the outer one.
-- When changes span more than one worktree, each tree header shows that root's own branch name, `no commits yet` for an unborn branch, or `detached` only for a real detached HEAD. The label is read from Git's HEAD once per root while the overlay is open (`symbolic-ref` and `rev-parse --verify`); the overlay still never runs `status`, `diff` or a worktree scan on your behalf.
-- **Coverage is deliberately limited to write/edit tools.** Shell commands, custom mutation tools, failed/interrupted outcomes and children without the capture extension provide no attributed diff. A missing row does not mean the repository is clean or that no other changes occurred.
+## Paleta de comandos (`/nubia:commands`, `alt+k`)
 
-### Bounds and session lifetime
+Menú curado y agrupado (Configuration, Session, Diagnostics, Skills), no un listado crudo: un comando aparece solo si está en el set curado y registrado. La búsqueda filtra por etiqueta, nombre y descripción; Enter ejecuta como si lo hubieras tipeado. `GENTLE_PI_COMMANDS_KEY` cambia el atajo. Para usar `ctrl+p` hay que liberar antes `app.model.cycleForward` en `~/.pi/agent/keybindings.json`.
 
-Capture reads only the named target, up to 64 KiB and 2,000 text lines. Binary, oversized, nonregular and unverifiable snapshots show unavailable counts, never fabricated zero-count proof. At most 256 operation identities and 4 MiB of serialized evidence are retained per session; reaching the limit produces a warning.
+## Uso de suscripciones (`/nubia:usage`)
 
-Snapshots are stored locally in Pi custom entries (`gentle-pi.session-change/v1`), including bounded before/after source text. Exit/resume and reload restore captures only for the exact same session UUID. New sessions and forks do not inherit attribution from another UUID. Ephemeral `--no-session` runs do not persist after exit. Capturing remains active in headless children and when the visual shell is disabled.
-
-The separate `session_worktree_register` tool still registers canonical same-clone roots for coordination, but registration alone never adds files to Changes. Existing `gentle-pi.session-worktree/v1` entries do not establish file-level attribution.
-
-### Browse captured diffs
-
-`/nubia:changes` or `alt+g` opens the two-pane viewer. Worktrees are accordion groups on the left; selecting a file displays its captured diff on the right.
-
-- `j`/`k` or arrows navigate. On a group, Enter, Space or Right expands it; Left returns to its parent or collapses it. `ctrl+j/k` or Page Up/Down scroll the diff; Escape or `q` closes.
-- Fullscreen left-click selects files; mouse wheels scroll the file list and diff independently. Hovering an unselected row (worktree or file, in either pane's list) paints it in the same shared hover role every clickable surface in the shell uses; it never opens or selects the file, and never overrides the already-selected row's own role.
-- Opening, pressing `r`, and the overlay's refresh cadence consult only the captured session model. They never rescan Git or load the current file contents. Same-line-count edits invalidate the diff preview by content revision.
-- On a file, `o` or Enter opens the actual current file in `$VISUAL` or `$EDITOR`, with its worktree as cwd. Edits made there are external and are not attributed to the agent.
-- `GENTLE_PI_SHELL_CHANGES_KEY` rebinds the shortcut; `off` disables it. `GENTLE_PI_SHELL_CHANGES_POLL_MS` controls only the open overlay's in-memory refresh. `GENTLE_PI_SHELL_CHANGES_WATCH_MS` no longer enables filesystem polling.
-- No captured changes means no widget and an informational notice; it does not assert that the working tree is clean.
-
-### Command palette
-
-`/nubia:commands` or `alt+k` opens a curated, grouped command menu, OpenCode-style — not a raw listing of every registered extension command. Entries are grouped under Configuration, Session, Diagnostics, and Skills, each shown by a human label with its shortcut hint where it has one; a command only appears when it is both in the curated set and actually registered. The Search row filters by label, by the underlying command name, and by description; arrows or `ctrl+j`/`ctrl+k` move, enter runs the highlighted entry exactly as if its command had been typed, escape closes. `GENTLE_PI_COMMANDS_KEY` rebinds the shortcut; `off` disables it. Built-in Pi commands are not listed. The default is `alt+k`, not `ctrl+k`, because Pi reserves `ctrl+k` for the editor's delete-to-line-end action.
-
-To use `ctrl+p` like OpenCode, rebind Pi's `app.model.cycleForward` in `~/.pi/agent/keybindings.json` (Pi reserves that action, so an extension cannot take `ctrl+p` while it holds it) and set `GENTLE_PI_COMMANDS_KEY=ctrl+p`.
-
-Subscription usage shows in the bar after the cost, and `/nubia:usage` opens a panel with one row per window of every provider: the limit name, its meter, its percentage and, when that window reports one, its reset, all on one line. Codex, Claude and NaN all read the same way. In fullscreen mode, clicking the header's `usage` segment opens this same panel. The panel's own footer hints (`r refresh`, `esc close`) are clickable too, not just keyboard shortcuts, and hovering either one paints it in the shell's shared hover role while a refresh already in flight ignores a repeated click. The panel opens immediately: it draws whatever snapshots the store already holds and says `refreshing…` while the open refresh runs underneath it, repainting as answers land.
+El bar muestra el consumo de la suscripción activa después del costo, y `/nubia:usage` abre un panel con una fila por ventana de cada provider (límite, medidor, porcentaje, reset). `r` refresca (clickeable, igual que `esc`).
 
 ```text
-✿ gentle shell ⟡ … ⟡ $9.49 sub ⟡ codex 5h ▰▰▰▰▰▱▱▱ 62% · week 31%
+∞ codex 5h ▰▰▰▰▰▱▱▱ 62% · week 31%
 ```
 
-The panel rows a provider reports its windows with:
+- Codex: endpoint de uso de la cuenta con el token OAuth que Pi ya tiene (al iniciar, cada 5 minutos como máximo tras un turno y con `r`). Claude Pro/Max: headers de rate-limit de cada respuesta. Otros providers pueden registrar una fuente con el evento `gentle-pi:usage-source/v1` en `pi.events`.
+- Se refresca cada provider que la sesión usa (el del modelo activo y los del perfil de routing vigente). Solo se guardan el nombre del plan y las ventanas; los demás datos de la cuenta se descartan. Los gauges viran a ámbar al 80 % y rojo al 95 %.
+- `GENTLE_PI_SHELL_USAGE_KEY` define un atajo; `GENTLE_PI_SHELL_USAGE_TIMEOUT_MS` el timeout.
+
+## Estadísticas (`/nubia:stats`)
+
+Panel a pantalla completa sobre tu historial local de uso, leído de los archivos de sesión que Pi ya escribe (home activo + `~/.pi/agent/sessions`; una sesión presente en ambos cuenta una vez).
+
+- **Overview:** heatmap semanal (hasta 52 semanas), modelo favorito, tokens totales, sesiones, sesión más larga, días activos, rachas, desglose input/output/cache y costo. **Models:** tokens, costo, mensajes y porcentaje por modelo. **Session:** modelo, costo, tiempo, tokens y líneas agregadas/quitadas que capturó Changes.
+- `Tab`/`shift+Tab`, `←`/`→` o `1`/`2`/`3` cambian de pestaña; `r` alterna todo el tiempo / 7 días / 30 días; `s` todos los proyectos / solo el actual; `q`/`esc` cierra.
+- Solo se leen las sesiones de nivel superior (los subagentes no cuentan). No hay atajo por defecto: definí `GENTLE_PI_STATS_VIEW_KEY` (por ejemplo `alt+t`).
+
+## Estilo de cards
+
+`/nubia:customize` → **Cards** elige el estilo de las cards de conversación y del chrome de la shell; se aplica al instante y se guarda en `card-style.json` del config home (`float` por defecto; no forma parte de los perfiles visuales).
+
+| Estilo | Aspecto |
+| --- | --- |
+| `neon` | Card con borde redondeado y título de acento. |
+| `float` (default) | Panel sin borde sobre el fondo tonal de la herramienta (éxito/info, pendiente, error), con barra `▎` del color del tono, márgenes de una columna y filas en blanco arriba, abajo y entre título y cuerpo. |
+
+Un tema sin fondo de herramienta, o una card de menos de 10 columnas, cae a `neon`. Las tool cards silenciosas (`read`, `bash`, `grep`, `find`, `ls`, `edit`, `write`) muestran su nombre real; colapsadas muestran hasta tres filas de vista previa y se expanden con la tecla indicada en la regla superior. `GENTLE_PI_QUIET_TOOLS=0` deja la presentación de Pi intacta. **Bash:** `quiet-tools` deja la ejecución y la UI de bash a Pi, respetando `shellPath` y prefijos configurados. No habilites a la vez `pi-tool-cards` y `quiet-tools`: Pi rechaza registros duplicados de `read`, `edit` y `write`.
+
+`codemode` usa la misma card **Code**: colapsada muestra hasta ocho llamadas hijas en orden, con estado y duración disponibles; los argumentos y el JavaScript quedan fuera. Los controles de terminal se quitan del texto mostrado (protección contra spoofing, **no** redacción de secretos).
+
+## Herramientas interactivas nativas
+
+- **`ask_user_question`** — de una a cuatro preguntas estructuradas en un cuestionario (2–4 opciones, multi-select, descripciones y previews), como diálogos reales de la TUI.
+- **`ask_user_choice`** — una pregunta de selección única, con respuesta libre opcional.
+- **`todo`** — seguimiento de plan con la card Todos (abajo).
+- **`nub_review`** — review 4R en proceso (`/nubia:review`) con gate de push.
+- Compañeros opcionales (se instalan aparte): `gentle-engram` (memoria persistente), `pi-web-access`, `pi-lens`, `pi-intercom`.
+
+## Agents (`/nubia:agents`, `alt+a`)
+
+Las herramientas `subagent_*` y la card de Agents reemplazan al paquete de terceros `pi-subagents-j0k3r` (mientras siga instalado, las herramientas quedan sin registrar y se avisa al iniciar). Los agentes son markdown en `~/.pi/agent/agents/`, `~/.pi/agent/subagents/`, `<cwd>/.pi/agents/` y `<cwd>/.pi/subagents/`; `GENTLE_PI_AGENT_HOME` y luego `PI_CODING_AGENT_DIR` eligen el perfil de agentes.
 
 ```text
-✿ nan · updated just now
-  deepseek-v4-flash ▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱  26% · resets in 12d 17h
-  glm5.3-flash      ▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱  11% · resets in 12d 17h
+╭─ ❀ Agents · 1 active · 1 done ─────────────────────────── 1m24s ╮
+│ ✓  gentle-ai-explore  map footer sources   balanced ·  34k ·  $0.27 · 25s │
+│ ◐  gentle-ai-worker   write shell footer   balanced · 120k · $12.50 · 41s │
+╰────────────────────────────────────────────────────────────────────────────╯
 ```
 
-- For Codex, usage comes from the same account usage endpoint the Codex CLI reads, using the OAuth token pi already holds. It is fetched at session start, at most every 5 minutes after a turn, and on `r` in the panel. Rate-limit headers on SSE responses are picked up too. The same refresh covers every provider the session targets: the active model's own provider plus every provider the active profile's subagent routing names — a repository pin decides which profile that is, falling back to the global active profile when no pin applies. Each provider keeps its own 5-minute window, its own stale-source guard, and its own last good snapshot. Providers refresh concurrently, each inside its own bounded window (default 10s, `GENTLE_PI_SHELL_USAGE_TIMEOUT_MS`): the abort signal reaches the underlying fetch — composed with the caller's own signal when it carries one, never replacing it — a provider that outlives its window wears the generic failure note, and whatever it answers afterwards is discarded — a late answer never replaces what the timeout settled, exactly like the stale-source guard above.
-- A routing entry names its provider with a qualified ref (`provider/model`); a bare model id is resolved through the model registry only when exactly one provider carries that id, and is left untargeted rather than guessed when none or several do. The targeted scope is resolved when a refresh runs — at session start, on each turn's throttled refresh, on `r` or reopening the panel, and when a usage source registers — so a profile switch is picked up by the next refresh rather than live per render.
-- For Claude Pro/Max, usage arrives in the rate-limit headers of every response, so the 5h and weekly windows appear after the first turn.
-- For NaN Cloud, usage comes from the quota endpoint the official dashboard reads, with the same API key pi already holds. Each metered model reports one allowance for the billing period, and that window carries no label: the model id names it in the bar and the reset text says what it is in the panel. A model that also reports a rolling window shows that one labeled next to it (`4h`), which today's payload does not send; percentages are tokens used over the allowance, exactly as the dashboard draws them, and the allowance is the full-period cap (`fullCap`) whenever the model reports a positive one, because `cap` alone is the prorated allowance of the period in progress. It is fetched under the same 5-minute rule as Codex, counted per provider so a switch fetches the provider it switched to, refuses redirects so the bearer cannot be replayed to another origin, and keeps no cached copy. The endpoint sits outside NaN's published OpenAPI, so the parser reads it defensively: a model that reports no allowance is skipped, as the dashboard skips it, while a metered model whose usage cannot be read fails the whole read, so a partial payload never replaces a complete snapshot with a cheaper-looking one. A session that already has a snapshot keeps the last valid one through a malformed payload or a failed fetch, and the pending note appears only while there is nothing to draw.
-- Extensions can register a usage source for their own provider: gentle-shell has no built-in knowledge of it, but treats it exactly like Codex or NaN once registered. Emit `gentle-pi:usage-source/v1` on `pi.events` with `{ schema: "gentle-pi.usage-source/v1", provider, pendingNote?, fetch(apiKey, fetchFn, now) }`, where `fetch` resolves a `ProviderUsage` the same shape the built-in providers produce, or `undefined` when there is nothing to show yet. A malformed payload, a `fetch` that isn't a function, a provider id outside the safe id pattern, or a `fetch` call that throws or rejects is ignored rather than crashing the shell. The `fetchFn` a source receives is bounded the same way: once the provider's window expires it aborts, and a later resolution is discarded. Re-registering the same provider replaces its source, so emitting again at every `session_start` is safe and keeps load order irrelevant. Once registered, the provider shows `pendingNote` (or the same "no usage yet · r to fetch" default the built-ins use) until its first fetch, and a registration that arrives after the session already started, for any targeted provider (the session's own or a subagent route of the active profile), triggers one immediate refresh of that provider instead of waiting for the next turn or the 5-minute window. Example, using a neutral provider id:
+- Cada subagente es un proceso hijo `pi --mode rpc`: la terminal nunca ejecuta su trabajo; el host aplica deltas a un hilo acotado por tarea. La pregunta de un hijo en modo task llega como un diálogo normal de Pi; la de un hijo en background se descarta. No hay timeout total automático.
+- Los hijos (`GENTLE_PI_AGENTS_CHILD=1`) cargan los mismos archivos de contexto que el padre, menos los bloques administrados que los atan al orquestador (lista en `lib/child-context-files.ts`).
+- `subagent_run.workspace_root` elige el worktree principal o uno enlazado del mismo clon; `repository_root` elige un repo Git independiente y requiere que un padre interactivo otorgue ese clon. El trabajo en background necesita un padre interactivo/RPC y se rechaza en `pi -p`.
+- Un hijo puede usar `subagent_parent_message`: una notificación, o `kind: "query"` que espera una única `subagent_reply` correlacionada hasta 30 segundos (máximo cuatro pendientes por hijo).
+- La card muestra solo las tareas de la sesión activa (filas terminadas: un minuto, tres como máximo; ocupa hasta un cuarto de la terminal y el resto se pliega en `… N more · alt+a to view`).
+- **Overlay** (`/nubia:agents` o `alt+a`): con 60+ columnas, vista dividida grupos/tareas junto al hilo semántico (`F` lo expande); con 12–59, click en un subagente para ver su hilo. Controles: **Follow** (`f`), **Open session** (`o`, escribe un transcript markdown para `$EDITOR`), **Stop** (`s`, solo tareas propias activas), **Scope** (`a`: hijos directos de esta sesión o todos los orquestadores abiertos). `Escape` retrocede un nivel.
+- El historial queda en `~/.pi/agent/gentle-agents/tasks/` (un JSON por tarea, últimas 200) y las sesiones hijas en `~/.pi/agent/gentle-agents/sessions/`. `alt+s` confirma detener las tareas activas o encoladas propias.
+- Teclas: `GENTLE_PI_AGENTS_KEY` (colapsar la card, `ctrl+shift+a`), `GENTLE_PI_AGENTS_VIEW_KEY`, `GENTLE_PI_AGENTS_STOP_KEY`; `GENTLE_PI_AGENTS_PI` cambia el comando de Pi de los hijos; `GENTLE_PI_AGENTS=0` desactiva herramientas y card.
+- El esquema de actividad para hosts RPC está en [gentle-agents-activity.md](gentle-agents-activity.md).
 
-  ```ts
-  pi.events.emit("gentle-pi:usage-source/v1", {
-    schema: "gentle-pi.usage-source/v1",
-    provider: "acme-cloud",
-    fetch: async (apiKey, fetchFn, now) => {
-      if (!apiKey) return undefined;
-      const response = await fetchFn("https://acme.example/usage", { headers: { Authorization: `Bearer ${apiKey}` } });
-      if (!response.ok) return undefined;
-      return { provider: "acme-cloud", plan: "Acme · 42 credits", limits: [], fetchedAt: now };
-    },
-  });
-  ```
-- The bar names the subscription it shows (`codex`, `claude`, a NaN model) and always follows the active model. A provider with per-model allowances draws the session model's own meter, falling back to its family and then to the account total, never to whichever model the payload happens to list first — and that holds for a payload that reports a single metered model too, because one allowance is still per-model data rather than a reason to echo the first entry. The panel puts the active provider first, marked with the petal, and says why it has no data when it does not: API-key providers have no subscription windows, Claude reports after the first response, Codex and NaN wait for a fetch. It draws exactly the targeted providers, in scope order — a targeted provider with no snapshot explains itself, and one whose latest refresh settled without a snapshot wears a generic nonsecret "fetch failed · r to retry" note: beside its retained snapshot when it has one, or in place of the pending note when it has none. The note tracks actual failures only — a refresh still in flight never reads as failed, Claude (headers-only) is never dressed up as one, and the next successful refresh clears it. A provider recorded under a previous profile's routing is not current scope after a profile switch. A provider without per-model allowances keeps its single aggregate line in the sidebar, unchanged.
-- A provider with per-model allowances is ordered by family on both surfaces: a family stays together, the family that consumes most comes first, and the models inside it follow the same rule, most used first. There are no `total` rows anywhere — an aggregate nobody can act on only costs space — so the account and family totals survive only as the bar's fallback name when the session model holds no allowance of its own (`nan total`). An allowance row leaves the window label empty and prints `name meter percent`, while a labeled sub-window (`4h`) keeps its column, and the reset a window reports rides that same line after a `·`; a window without one ends at its percentage, never on a dangling separator. The sidebar's Usage group prints those same rows in that same order, so the breakdown does not require opening the panel, and stops at the percentage: the reset dates stay in the panel. A row whose windows all round to `0%` is dropped from that group — an allowance nobody has touched yet tells the reader nothing the missing row does not — and the same rule retires the aggregate line of a provider without raw allowances once every window it shows sits at `0%`; the bar and the panel keep printing it, so a zeroed subscription is still verifiable there.
-- Only the plan name and the windows are kept; account details in the payload are discarded.
-- Gauges turn amber at 80% and red at 95%, like the context gauge.
+## Todo
 
-Gentle notices follow the selected card style. In `neon`, informational cards use the rounded frame in the theme's border role and an accent title; warning, error, and success cards use their own tone colors. In `float`, notices use the tone-background panel described below. The following example shows `neon`:
-
-```text
-╭─ ✿ Gentle AI · review preflight ─────────────────────────────────────╮
-│ Receipt-driven development is enabled, and this worktree holds an    │
-│ unreviewed candidate (target sha256:…). First determine whether the  │
-│ user explicitly left this exact target unreviewed. If yes, do not    │
-╰──────────────────────────────────────────────────────────────────────╯
-```
-
-- Quiet tools use the selected card style with their actual name in the heading (`read`, `bash`, `grep`, `find`, `ls`, `edit`, `write`); bash keeps its command visible. Collapsed results show up to three physical preview rows, including search/list entries or changed diff lines alongside useful totals. Expand with the configured key shown in the top rule for complete available output and image handling.
-- Subagents draw their own card; see Gentle Agents below.
-
-### Card style
-
-Pick the conversation-card and shell-chrome style in `/nubia:customize` → **Cards**. A successful save immediately redraws conversation cards, Agents, TODO, Status, header/footer and prompt — no other state change or reload is needed. The choice is saved in `card-style.json` in the Gentle Pi config home; it is not part of visual profiles or visual reset. If saving fails, the live style stays unchanged.
-
-| Style | Look |
-|-------|------|
-| `neon` | The outlined rounded card shown above. |
-| `float` (default) | A borderless panel on the tone's tool background (success/info, pending, error), with a tone-colored `▎` accent bar, a one-column margin on each side, a blank row above the heading and at the bottom, and a blank row between the heading and the body. |
-
-```text
- ▎
- ▎ ⌖ find *.md in .                                  ctrl+o to expand
- ▎
- ▎ README.md
- ▎
-```
-
-- `float` applies to tool, Code and 🌹 cards, Agent result and stale cards, the review preflight reminder, the dev-binary notice, and the Agents, Todos and Status panels. The prompt and fullscreen header/footer use their specialized float chrome described above. The regular-mode one-line Status bar is unchanged.
-- A theme without a tool background, or a card narrower than 10 columns, falls back to `neon`. A malformed `card-style.json` reads as `float` and the panel refuses to overwrite it.
-
-### Compact Code card
-
-With quiet tools enabled, `codemode` uses the same rounded **Code** card. The collapsed view shows up to eight observed child calls in their original order, including repeats, with Pi's actual status and available nonnegative duration. Additional calls and failures are counted. Error payloads have a separate two-row preview even when their child falls outside the first eight; final output has a three-row physical budget, and a full-output locator remains visible when available.
-
-- JavaScript and child arguments stay out of the collapsed preview. Expand with the configured key shown in the top rule for the actual script, all observed children, complete available error/output text, image fallback and full-output locator.
-- Host failure/partial flags and observed child failures retain their existing semantic colors; no generic `finished` heading, inferred children, progress percentage, or aggregate duration is added. Pi's final status/wall-time header stays in expanded output rather than displacing useful collapsed content. Child success does not promise rollback or overall success.
-- Missing metadata is reported honestly. Terminal controls are stripped from displayed text; this is terminal-spoofing protection, **not secret redaction**. Both collapsed previews and expanded content can contain sensitive data.
-- Only presentation changes: upstream execution, schema, loadout, exposure and inactive-by-default behavior stay intact. `GENTLE_PI_QUIET_TOOLS=0` leaves the upstream presentation alone and does not change tool activation.
-
-### Native interactive tools
-
-Gentle Shell ships its own interactive tools instead of depending on third-party extensions; the built-ins replace `npm:pi-subagents-j0k3r` and `npm:@juicesharp/rpiv-todo` (see Gentle Agents and Gentle Todo below for the removal steps).
-
-- **`ask_user_question`** — one to four structured questions in a single questionnaire, each with two to four options, multi-select, per-option descriptions and previews — rendered as real TUI dialogs, usable in the live session.
-- **`ask_user_choice`** — one exactly representable single-select question, with an opt-in free-text response.
-- **`todo`** — plan tracking with the Gentle Todo card (see Gentle Todo below).
-- **`nub_review`** — the in-process 4R review (`/nub:review`), with a push gate.
-- **Optional companions** (separately installed, never bundled): `gentle-engram` for persistent memory, `pi-web-access` for web access when a task needs it and your policy allows it, `pi-lens` for additional inspection surfaces, `pi-intercom` for cross-session communication where your Pi setup supports it, and `@juicesharp/rpiv-ask-user-question` for interactive choice support where a separately installed extension fits your setup. These are companions, not hidden prerequisites or a claim that every Pi installation has every capability; persistent memory is **not** bundled with `gentle-pi`.
-
-### Gentle Agents
-
-The current package requires Pi 0.99.1 or newer and Node >=22.19.0. Development tests resolve Pi through the open `>=1.0.0` development range. The private Vim editor adapter admits only the audited Pi `0.99.1`, `0.99.2`, and `1.0.0` releases; any other release keeps ordinary prompt editing until its editor is audited. Use the latest Pi release; gentle-pi does not update your installed Pi automatically. Children, including any `GENTLE_PI_AGENTS_PI` override, must emit `agent_settled`: `agent_end` records a run's output but is not completion because retries or queued continuations may follow.
-
-The `subagent_*` tools and the agents card replace the third-party subagents package (remove `npm:pi-subagents-j0k3r` from your pi packages; while it is still installed the tools stay unregistered and a warning says so at startup). Agent definitions and settings are the ones you already have: markdown agents in `~/.pi/agent/agents/`, `~/.pi/agent/subagents/`, `<cwd>/.pi/agents/`, `<cwd>/.pi/subagents/` (project beats global, `subagents/` beats `agents/`), and `subagents.json` at the global and project level (`default_model`, `default_effort`, `default_mode`, `model_profiles`, `stall_timeout_ms`, `tool_stall_timeout_ms`, `max_concurrency`, `history_max_tasks`).
-
-Agent paths follow `GENTLE_PI_AGENT_HOME`, then `PI_CODING_AGENT_DIR`, then `~/.pi/agent` for definitions, config, history, child sessions, and transcripts. These overrides select the agent profile; they do not sandbox project or shared global resources.
-
-```text
-╭─ ❀ Agents · 1 active · 1 done ─────────────────────────────── 1m24s ╮
-│ ✓  gentle-ai-explore  map footer sources   gpt-5.6-terra ·  34k ·  $0.27 · 25s │
-│ ◐  gentle-ai-worker   write shell footer   gpt-5.6-terra · 120k · $12.50 · 41s │
-╰──────────────────────────────────────────────────────────────────────────────────╯
-```
-
-The card is above the editor in every mode, including fullscreen — it is not one of the sidebar's cards. Each metadata field (`model · effort`, tokens, cost, elapsed) gets its own fixed, right-aligned column sized to the widest value among the shown tasks, so the numbers line up vertically even when one row's values are much shorter than another's; a queued task fills only the elapsed column with the word `queued`, leaving the rest of the row blank rather than overwriting it. When the card is too narrow for every column, it degrades one column at a time and the same way for every row: the task text goes first, then the `model · effort` label, then tokens, then cost; elapsed is the last column standing, since it is the one value the reader cannot rebuild from anything else on screen.
-
-Every subagent is its own `pi --mode rpc` child process, so the terminal never runs subagent work: the host reads JSON lines, applies each one as a small delta to a bounded per-task thread, and notifies only the listeners of that task. A task-mode child's question (`ctx.ui.select`, `confirm`, `input`, `editor`) reaches you as an ordinary pi dialog; a background child's question is dismissed. Subagents have no automatic total execution timeout: a long-running child remains live while it continues emitting RPC events. A silent child still times out through the configurable `stall_timeout_ms` watchdog (default four minutes). An announced tool call that is still running is live work, not silence, so it is bounded by `tool_stall_timeout_ms` instead (default 30 minutes, never below `stall_timeout_ms`). Closing pi stops the children that are still running.
-
-Delegated children (`GENTLE_PI_AGENTS_CHILD=1`) load the same context files as their parent, minus the gentle-ai managed blocks that bind themselves to the orchestrator, such as `orchestrator` and `agent-routing` (the full list lives in [`lib/child-context-files.ts`](../lib/child-context-files.ts)). Every other managed block (for example `codegraph-guidance`, `engram-protocol`, or `remote-authorization` nested inside `agent-routing`) and all unmanaged project text reach the child unchanged. A marker counts only when it is alone on its line outside fenced code; if a file's markers are unbalanced, mismatched, or ambiguous, that file is passed through unfiltered. Gentle Agents launches every child with `--extension` pointing at the packaged `extensions/child-context.ts`, because a child does not load the gentle-pi package on its own in the isolated Gentle Shell home; if that file is missing, the child starts without it and keeps today's unfiltered context. The extension registers only a `before_agent_start` hook and does nothing outside a child session, so primary sessions always receive their context files as-is.
-
-- `subagent_list_agents`, `subagent_run` (`agent`, `task`, `label?`, `context?`, `workspace_root?` or `repository_root?`, `mode?` task or background), `subagent_status`, `subagent_result`, `subagent_list_tasks`, `subagent_reply` (one current-session reply to a live child query), `subagent_cancel`, `subagent_send_message` (steer a running child), `subagent_continue` (resume a finished task in its own session).
-- `orchestrator_session_id`, `orchestrator_list`, and `orchestrator_send_message` provide local-profile session notifications. List results advertise IDs only and reachability remains unknown. Sending selects the sole advertised peer or asks the user to choose; outbound messages require explicit interactive human consent before dispatch (Allow once, Allow for this session, or Deny), and fail closed if interactive UI or its selector is unavailable, even after a session grant. Each send requires a caller-supplied reason with at least 8 characters after trimming and at most 512 UTF-8 bytes. The consent preview visibly escapes controls and Unicode line separators; the delivered message remains unchanged. A successful ACK means the peer accepted the notification for delivery, not that it read or completed work. This is notification-and-ACK transport only: it has no cross-session queries, offline queue, retries, broadcasts, or read/completion guarantees. On Unix, presence records remain in the profile's private transport directory while socket endpoints use a private, profile-hashed directory below the canonical system temporary directory, keeping endpoint length independent of the profile path and at most 100 encoded bytes. The shared system temporary parent is only validated (current-user-owned without group/other write, or root/current-user-owned, world-writable, and sticky); it is never claimed, permissioned, or cleaned up by gentle-pi. On POSIX, the transport uses private Unix-domain sockets; on Windows, it uses private named pipes scoped by the current account SID, served by a package-local PowerShell helper (`runtime/windows-session-transport.ps1`): the transport selects that fixed helper, and availability and delivery depend on the helper's bounded startup and pipe checks. Notification and ACK limits remain bounded across platforms.
-- `subagent_run.workspace_root` selects the parent's main worktree or an existing linked worktree in the parent's Git clone only. Validation happens before queueing; the child runs at that canonical root. Successful OS spawn registers it in the originating parent's same-clone registry, including delayed queued launches; failed spawns do not register.
-- Alternatively, `subagent_run.repository_root` selects an explicit canonical root of an independent Git repository; the two root selectors cannot be combined. A direct interactive parent must grant that clone before queue or child session-directory writes. The grant belongs to the live parent session and canonical Git common directory: subsequent launches there can reuse it, but denial, cancellation, lost UI, reload, or changed session/repository identity fails closed. Print, RPC, and child callers cannot request a foreign target; foreign remediation launches are unsupported. Task and background launches still obey their ordinary mode restrictions. Queued tasks revalidate immediately before spawn; `subagent_continue` retains the target cwd and revalidates the grant rather than prompting to restore a lost one. Status and task details expose the cwd. Foreign children never enter the same-clone registry or its footer/widget counts. A delegation grant is not permission to review, commit, push, or deliver in the target repository.
-- Background work requires a live interactive/RPC parent. Both `subagent_run` and `subagent_continue` reject background mode in `pi -p` before creating or spawning a task: the parent exits before it can receive a later result. Use task mode for bounded print-mode work.
-- A background task's result comes back to the model as a `gentle-agents.result` message and starts a new turn when the agent is idle; the model never polls. Its **Agent result** card uses the success color when the task completed and the error color otherwise. Collapsed, it previews up to three non-blank rows of the answer or error, leaving out the `Subagent … (task …) <outcome>.` bookkeeping line the model reads; older results without that line preview their full text. Expanded, it shows the complete message, header included. A result held past the stale window becomes a transcript-only **Stale agent result** card in the warning color: it previews up to three rows of its warning and never shows an answer it does not have (use `subagent_result` for that).
-- A configured child can call `subagent_parent_message` with bounded, well-formed Unicode text. Notifications retain their existing admission semantics. A `kind: "query"` waits for one strictly correlated `subagent_reply` for at most 30 seconds; each child has at most four pending queries, and disconnect, timeout, stop, and send failure settle each request once. The current parent session alone can reply. The first admitted task-mode query ends the original tool response while its child keeps running; its eventual non-cancelled completion returns once as a follow-up only if that same session is still active. Channel closure prevents later sends and automatic retry is not provided. Peer transport, offline delivery, retries, and broadcasts are unsupported.
-- The card shows the active session's tasks only: after `/new` or `/resume` the earlier session's tasks leave it and come back with their session. Finished rows stay for one minute (three at most), and the card spends at most a quarter of the terminal (three to eight rows) on tasks; beyond that the rest fold into one `… N more · alt+a to view` line so the editor never leaves the screen. Questions and running work keep their rows first.
-- `/nubia:agents` or `alt+a` opens a full-terminal overlay. At 60+ columns, the split view shows groups/tasks beside the retained semantic thread; uppercase `F` or **Fullscreen** expands that thread. At 12–59 columns, click a current subagent directly to inspect its thread; in All sessions, first select its orchestrator. `Enter`/`Tab` also enter a narrow selection. **Back** or `Escape` returns one level, closing only at the root; **Close** or `q` closes globally without cancelling children. Selection and manual thread scrolling survive Back and resize.
-- Mouse controls take priority over keyboard hints: **Follow** (`f`), **Open session** (`o`), **Stop** (`s`, legacy `c`, owned active tasks only), and **Scope** (`a`). A compact footer's `>` cycles through actions. Scope switches between this session's direct active children and all open orchestrators, including idle ones. Open writes a markdown transcript for `$EDITOR`, not a resumed child session. `j`/`k` move through lists or scroll an expanded thread; `ctrl+j`/`ctrl+k` and Page Down/Up page the thread. In Pi fullscreen mode, the wheel scrolls the viewport under the pointer; regular terminal mode does not capture mouse input. Below 12 columns or three rows, only a bounded Close cell remains; zero-sized terminals render nothing.
-- The thread displays all retained Text, Thinking, Note, and Tool content without an additional presentation cap; existing store limits and truncation markers still apply. Only the selected task is subscribed while the overlay is open.
-- Thread entries are presented as labeled Text, Thinking, Note, or Tool blocks; tool blocks show their status and nonempty output.
-- Current scope has no orchestrator wrapper. Its own session's finished subagents stay listed as history after the active ones — newest ended first — with their terminal glyph, elapsed frozen at completion, and their thread inspectable; a finished row is never cancellable. The header reads `N active · M finished`. History is capped at 200 finished tasks per session (oldest dropped); resuming a session (`session_start` with reason `resume`) restores that session's own finished tasks from disk automatically, a brand-new session starts empty, and All sessions discovers open Pi instances sharing the same agent profile, even across repositories — it does not infer open sessions from retained tasks and stays presence-only (no cross-session history browsing). Directory headings support left/right and mouse expansion, and cannot stop or open a task. Peer children and their retained threads are read-only: no local stop, editor-open, or continuation routing, and no import into the local task store.
-- Presence refresh is paged while the overlay is open. Graceful shutdown withdraws an instance; after abrupt closure its last heartbeat may remain visible for up to 15 seconds plus the time to complete the next directory refresh. A recent heartbeat is a heuristic, not proof that a process is alive. Same-profile, same-user processes share retained activity text; this is not an authorization channel.
-- `alt+s` confirms stopping the current active or queued subagents owned by the current process. `GENTLE_PI_AGENTS_STOP_KEY` rebinds it; `off` disables it.
-- Finished tasks are written to `~/.pi/agent/gentle-agents/tasks/` (one JSON per task, newest `history_max_tasks` kept, default 200) and come back on demand for `subagent_result` and `subagent_continue`; an id looked up this way from an unrelated session never enters the overlay or becomes cancellable. Child sessions live under `~/.pi/agent/gentle-agents/sessions/`.
-- `ctrl+shift+a` collapses the card to its first row (`GENTLE_PI_AGENTS_KEY`), `GENTLE_PI_AGENTS_VIEW_KEY` rebinds the overlay, `GENTLE_PI_AGENTS_PI` overrides the pi command used for children, and `GENTLE_PI_AGENTS=0` disables the tools and the card.
-
-### Gentle Todo
-
-The `todo` tool and its card replace the third-party todo extension (remove `npm:@juicesharp/rpiv-todo` from your pi packages; sessions written by it replay into the new card).
+La herramienta `todo` y su card reemplazan a `npm:@juicesharp/rpiv-todo` (las sesiones escritas por él se reproducen en la nueva card).
 
 ```text
 ╭─ ❀ Todos · 1 of 3 ──────────────────────────────────────╮
@@ -242,47 +132,17 @@ The `todo` tool and its card replace the third-party todo extension (remove `npm
 ╰─────────────────────────────────────────────────────────╯
 ```
 
-Three things keep the list current, which a static tool description cannot:
+`write` reemplaza la lista entera en una llamada (`add`, `update`, `clear` y `list` quedan para movimientos sueltos); el system prompt de cada turno lleva las tareas abiertas y las reglas (in_progress antes de empezar, done al terminar); una lista que pasa dos turnos sin tocarse se pone ámbar con `stale · N turns`. Una lista terminada queda en pantalla durante el turno en que terminó. `ctrl+shift+t` colapsa la card a la tarea en curso (`GENTLE_PI_TODO_KEY` lo cambia, `off` lo deshabilita); `GENTLE_PI_TODO=0` desactiva herramienta y card.
 
-- `write` replaces the whole list in one call, so the model rewrites the plan instead of patching it; `add`, `update`, `clear`, and `list` remain for single moves.
-- Every turn's system prompt carries the open tasks and the rules: in_progress before starting, done right after finishing, update before ending the turn.
-- A list that goes two turns untouched while tasks stay open turns amber with `stale · N turns`, and the prompt says so, so the model brings it up to date.
+## Personalización
 
-A finished list stays on screen for the turn it finished in and clears at the next. `ctrl+shift+t` collapses the card to the task in progress (`GENTLE_PI_TODO_KEY` rebinds it, `off` disables it); `GENTLE_PI_TODO=0` disables the tool and the card.
+- **`/nubia:customize`** — apariencia (cards, header/footer), edición Vim, permiso YOLO de sesión y captura del historial de prompts. Ver [yolo-mode.md](yolo-mode.md) y [prompt-history.md](prompt-history.md).
+- **Banner de inicio.** `/nubia:banner` abre la configuración del banner (isologo de Nubiral + wordmark `nubiral`); `/nubia:toggle-rose` y `/nubia:toggle-text-logo` muestran/ocultan cada parte de la obra de arte (ambas habilitadas por defecto); `/nubia:banner-color` elige la paleta: `lime` (default), `pink`, `cyan`, `yellow` o `green`. Se guarda en `banner.json` del config home; los cambios aplican en la próxima sesión o con `/reload`.
+- **Animaciones.** `/nubia:animations [status|quality|performance|potato]`, política global en `animations.json` (`quality` por defecto). Pi es dueño del repaint de la cola; el banner en curso conserva su política.
+- **Vim.** `/nubia:vim enable|disable|status` activa la edición modal del prompt (apagada por defecto). Subconjunto acotado de Vim; `/` en NORMAL va a los slash commands de Pi. Tabla de teclas y límites de versión en la [referencia](readme-reference.md#vim-prompt-editing).
+- **Doble Esc.** `/nubia:double-esc-cancel [status|enable|disable]` exige un segundo Esc para abortar un turno en marcha (`esc again to cancel`); con el prompt inactivo y un borrador, dos Esc seguidos (500 ms) lo limpian y queda recuperable con la flecha arriba. Es una preferencia del usuario, nunca la cambia la automatización.
+- El config home es `NUB_IA_CONFIG_HOME` (alias heredado `GENTLE_PI_CONFIG_HOME`) o, por defecto, `~/.pi/nub-ia`; los archivos que solo existan en `~/.pi/gentle-ai` se siguen leyendo.
 
-### Gentle Stats
+## Proveedores tipo bridge
 
-`/nubia:stats` opens a full-terminal panel over your local usage history, read from the session files Pi already writes. It combines the active home's `sessions` directory with your regular Pi home's (`~/.pi/agent/sessions`, or the custom `PI_CODING_AGENT_DIR` that `gentle-shell` recorded as `GENTLE_SHELL_USER_PI_HOME` before isolating). The same directory reached twice counts once, and a session present in both homes counts once (the copy with more usage records, then the most recent one). Nothing new is stored. Subscription limits stay in `/nubia:usage`.
-
-```text
-╭─ ✿ Stats ─────────────────────────────────────── [×] ─╮
-│ [Overview]  Models   Session                 │
-│     May Jun       Jul     Aug       Sep      │
-│ Mon · · · · · · · · · · · · · · · · · · · █  │
-│     · · · · · · · · · · · · · · · ▓ · · · ░  │
-│     Less · ░ ▒ ▓ █ More                      │
-│ Favorite model  claude-opus-5-5              │
-│ Total tokens    2.8k                         │
-│ ✿ That's ~0.5% of the tokens in Don Quixote. │
-```
-
-- **Overview**: a weekday-by-week heatmap (up to 52 weeks for all time), favorite model, total tokens, sessions, longest session, active days, longest and current streak, most active day, the input/output/cache breakdown, and cost.
-- **Models**: tokens, cost, messages, and share per model, with a share bar.
-- **Session**: the live session's model, cost, wall time since its first entry, tokens, and the lines added and removed that Gentle Changes captured.
-- `Tab`/`shift+Tab`, `←`/`→`, or `1`/`2`/`3` switch tabs; `r` cycles all time, last 7 days, and last 30 days; `s` toggles all projects and the current project (sessions started in this cwd); `q` or `esc` closes. Header tabs, `[× Close]`, and the footer hints are clickable.
-- The heatmap shades come from the active theme's `accent` and `borderMuted` roles, so every Gentle theme recolors it.
-- Only top-level session files are read: subagent runs are not included, and the panel says so. The first opening scans every file; later openings reread only files that changed.
-- There is no default shortcut. Set `GENTLE_PI_STATS_VIEW_KEY` (for example `alt+t`) to bind one; `off` or empty leaves it unbound.
-
-### Bridge providers
-
-Idle Claude Bridge continuation uses the normal user-prompt lifecycle so prompt preparation and tool declarations are retained. Gentle Agents hides only its exact, uniquely generated reserved wake in Pi's interactive transcript; child result and query cards remain visible. Native providers keep their hidden `display: false` custom wake.
-
-The reserved identity is stored once per session as a non-context custom entry and reconstructed on reload/resume, including identities on abandoned branches. It is session-owned: switching sessions releases the previous identity. Ordinary text quoting the old notification, prefixes, substrings, and whitespace variations is not hidden. Pi's transformer exposes no author/message ID, so an exact copy of the current reserved identity is indistinguishable from its generated wake.
-
-This is **TUI-only suppression**: the generated user-role message remains in session history, model context, and RPC. It does not fix the SDK's idle custom-message lifecycle. Older runtimes without the Markdown transformer API, or failed identity persistence, retain visible continuation and emit a warning rather than dropping the wake. Existing unreserved wakes are not retroactively hidden.
-
-The Gentle AI harness (ODD workflow, identity, review contract) and the open-tasks block are appended to `before_agent_start`'s `systemPromptOptions.appendSystemPrompt` instead of being returned as a replacement `systemPrompt` (gentle-shell#1485). Provider bridges such as `pi-claude-bridge` forward only those structured sections after their own preset and drop a returned `systemPrompt`, so this route reaches every provider, bridged or not.
-
-Set `GENTLE_PI_SHELL=0` to keep pi's built-in footer and editor.
-
+La continuación de un Claude Bridge inactivo usa el ciclo normal de prompt de usuario. La card de Agents oculta solo el "wake" reservado y único en el transcript interactivo de Pi (supresión solo de TUI: el mensaje sigue en el historial y el contexto). El harness (flujo ODD, identidad, contrato de review) y el bloque de tareas abiertas se agregan a `systemPromptOptions.appendSystemPrompt` en lugar de reemplazar el `systemPrompt`, para que llegue a cualquier provider, bridged o no.
