@@ -10,13 +10,33 @@ y la configuración del equipo. No es una distribución oficial de gentle-shell 
 
 Requisitos: Node >= 22.19, pnpm 11, y `pi` (`@earendil-works/pi-coding-agent` >= 0.99.1) instalado o disponible en PATH.
 
+Camino principal (Pi gestiona y actualiza el paquete; su `postinstall` descarga el binario rtk pinneado):
+
 ```bash
-git clone <URL-DEL-REPO> nub-ia
+pi install git:github.com/NUBIRAL_ORG/nub-ia
+node ~/.pi/agent/git/github.com/NUBIRAL_ORG/nub-ia/bin/nub-ia.mjs   # primera ejecución: provisiona ~/.nub-ia/agent
+# o, para tener el comando `nub-ia` en PATH:
+cd ~/.pi/agent/git/github.com/NUBIRAL_ORG/nub-ia && pnpm link --global
+```
+
+Alternativa para desarrollo (clon propio):
+
+```bash
+git clone https://github.com/NUBIRAL_ORG/nub-ia.git
 cd nub-ia
 pnpm install          # el postinstall descarga el binario rtk pinneado
 pnpm link --global    # expone el comando `nub-ia`
 nub-ia                # primera ejecución: provisiona ~/.nub-ia/agent automáticamente
 ```
+
+`pi install git:` clona el repo y corre `npm install` dentro (verificado en el gestor de paquetes de Pi), así que el
+`postinstall` se ejecuta. Si falla (sin red, scripts deshabilitados) o un `pi update` limpia `.rtk/`, cada arranque de
+`nub-ia` detecta que falta `.rtk/<versión>/rtk` y lo instala una vez (aviso por stderr, nunca bloquea el arranque;
+`GENTLE_PI_SKIP_RTK_INSTALL=1` lo desactiva).
+
+Tras el primer provisionado (y con `nub-ia setup`) se imprime un recordatorio de login: iniciá sesión en al menos un
+proveedor dentro del shell (`/login github-copilot`, `/login openai`, `/login opencode`, `/login nvidia`,
+`/login llama.cpp`; Amazon Bedrock usa tus credenciales `AWS_*`).
 
 Para reutilizar tu home de pi existente (sesiones, logins) en lugar del home aislado:
 
@@ -102,7 +122,7 @@ paralelo y en proceso** sobre el diff actual, sin binarios externos. Cada lente 
 en JSON; se consolidan en un reporte markdown en `.pi/nub-ia/reviews/<fecha>-<hash>.md` con veredicto
 `APPROVE | WARN | BLOCK | INCOMPLETE`.
 
-- Herramienta `nub_review` (`scope: auto|staged|working`, o `baseRef` para un rango commiteado) y comando `/nub:review [staged|working|<ref>]`.
+- Herramienta `nub_review` (`scope: auto|staged|working`, o `baseRef` para un rango commiteado) y comando `/nubia:review [staged|working|<ref>]`.
 - Los lentes usan los tiers del router (`review-risk` → `nub-ia/strong`, el resto `nub-ia/balanced`); si un provider falla (503/429), ese lente se reintenta en el siguiente provider.
 - **Gate de push**: antes de un `git push`, si los cambios a entregar no tienen review, el review fue de otro diff, o el veredicto fue BLOCK/INCOMPLETE, pide confirmación (en modo sin UI bloquea con el motivo). `NUB_IA_REVIEW_GATE=off` lo desactiva. Nunca bloquea por sí solo: entregar sigue siendo decisión de quien pushea.
 
@@ -158,3 +178,8 @@ Documentación detallada heredada del upstream: [referencia técnica](docs/readm
 El código se distribuye bajo la [licencia MIT](LICENSE) del proyecto original.
 `gentle-shell`, `gentle-pi` y sus logos son marcas de Alan Buscaglia (ver [`docs/UPSTREAM-TRADEMARKS.md`](docs/UPSTREAM-TRADEMARKS.md));
 este fork usa nombre y branding propios conforme a esa política. `Nubiral` y su logo pertenecen a Nubiral.
+
+## Antes de publicar
+
+`NUBIRAL_ORG` es un placeholder: cuando exista el repo del equipo, reemplazalo con
+`sed -i 's/NUBIRAL_ORG/<org>/g' package.json README.md`.

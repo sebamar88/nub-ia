@@ -1,7 +1,7 @@
 // Nub-IA review: in-process 4R code review and a push gate, replacing the
 // gentle-ai native review (RDD) binary with a Pi-only extension.
 //
-// `nub_review` (tool) and `/nub:review` (command) take the current diff
+// `nub_review` (tool) and `/nubia:review` (command) take the current diff
 // (staged, working tree, or base..HEAD), hand it to the four packaged lens
 // agents in parallel (assets/agents/review-*.md; their `model:` is a nub-ia
 // tier, so every teammate's provider works), consolidate the JSON findings
@@ -237,7 +237,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 	pi.registerTool({
 		name: "nub_review",
 		label: "Nub-IA review",
-		description: "Run the Nub-IA 4R code review (risk, reliability, resilience, readability) over the current diff in parallel and write a consolidated report under .pi/nub-ia/reviews/. Returns the verdict and top findings. Run it before pushing; the push gate asks for confirmation when the changes were not reviewed or were blocked.",
+		description: "Run the Nub-IA 4R code review (risk, reliability, resilience, readability) over the current diff in parallel and write a consolidated report under .pi/nub-ia/reviews/. Returns the verdict and top findings. Also available to the user as /nubia:review. Run it before pushing; the push gate asks for confirmation when the changes were not reviewed or were blocked.",
 		parameters: Type.Object({
 			scope: Type.Optional(Type.Union([Type.Literal("auto"), Type.Literal("staged"), Type.Literal("working")], { description: "auto (default): staged changes if any, else the working tree vs HEAD." })),
 			baseRef: Type.Optional(Type.String({ description: "Review the committed range <baseRef>...HEAD instead (for example main or origin/main)." })),
@@ -251,7 +251,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 		},
 	});
 
-	pi.registerCommand("nub:review", {
+	pi.registerCommand("nubia:review", {
 		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>).",
 		handler: async (args, ctx) => {
 			const arg = args.trim();

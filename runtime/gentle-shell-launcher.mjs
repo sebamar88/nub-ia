@@ -198,7 +198,7 @@ function linkDir(env                                    , homedir        )      
 
 // The isolated home replaces PI_CODING_AGENT_DIR for the whole session, so the
 // user's own Pi home travels in this variable for read-only features such as
-// /gentle:stats. An inherited value wins: a nub-ia launched from inside
+// /nubia:stats. An inherited value wins: a nub-ia launched from inside
 // a Nub-IA session sees the outer isolated home as PI_CODING_AGENT_DIR.
 export const USER_PI_HOME_ENV = "GENTLE_SHELL_USER_PI_HOME";
 

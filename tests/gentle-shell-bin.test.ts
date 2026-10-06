@@ -70,7 +70,7 @@ function standaloneLauncher(t: test.TestContext) {
 	writeFileSync(join(root, "bin", "nub-ia.mjs"), readFileSync(binPath));
 	writeFileSync(join(root, "package.json"), readFileSync(join(packageRoot, "package.json")));
 	for (const dir of ["runtime", "scripts"]) symlinkSync(join(packageRoot, dir), join(root, dir), "junction");
-	const env = { HOME: f.home, USERPROFILE: f.home, PATH: `${root}${delimiter}${dirname(process.execPath)}`, GENTLE_SHELL_NO_AUTO_SETUP: "1" };
+	const env = { HOME: f.home, USERPROFILE: f.home, PATH: `${root}${delimiter}${dirname(process.execPath)}`, GENTLE_SHELL_NO_AUTO_SETUP: "1", GENTLE_PI_SKIP_RTK_INSTALL: "1" };
 	return { ...f, root, env, launcher: join(root, "bin", "nub-ia.mjs") };
 }
 
@@ -132,6 +132,8 @@ function fixture(t: test.TestContext) {
 		GENTLE_SHELL_HOME: gentleShellHome,
 		GENTLE_SHELL_PI: piScript,
 		GENTLE_SHELL_NO_AUTO_SETUP: "1",
+		// Never download rtk from a test; the self-heal has its own tests.
+		GENTLE_PI_SKIP_RTK_INSTALL: "1",
 		// Team companion packages are exercised by their own tests below; every
 		// other setup test keeps a deterministic install sequence.
 		GENTLE_SHELL_TEAM_PACKAGES: "",
@@ -2142,4 +2144,44 @@ test("on a TTY without colors the nub-ia line has no ANSI styling", { skip: !has
 	writeHandoffPiScript(piScript);
 	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript, PTY_NO_COLOR: "1" }, ["--link"]);
 	assert.ok(out.endsWith(`${PI_HINT}To resume in nub-ia: nub-ia --link --session abc\r\n`), JSON.stringify(out));
+});
+
+// --- rtk self-heal and provider hint -----------------------------------------
+
+test("launch installs a missing rtk once through the installer and only warns on failure", (t) => {
+	const f = standaloneLauncher(t);
+	writePiScript(join(f.root, "pi"), "0.99.2");
+	const installer = join(f.root, "fake-rtk-installer.mjs");
+	const marker = join(f.root, "installer-ran");
+	writeFileSync(installer, `import { writeFileSync } from "node:fs";\nexport async function installRtk({ root }) { writeFileSync(${JSON.stringify(marker)}, root); }\n`);
+	const env = { ...f.env, GENTLE_PI_SKIP_RTK_INSTALL: "", GENTLE_SHELL_RTK_INSTALLER: installer };
+	const result = spawnSync(process.execPath, [f.launcher, "--home", join(f.root, "h")], { env, encoding: "utf8" });
+	assert.equal(result.status, 0, result.stderr);
+	assert.match(result.stderr, /nub-ia: rtk v[\d.]+ is missing; installing it once/);
+	assert.equal(readFileSync(marker, "utf8"), f.root);
+
+	writeFileSync(installer, "export async function installRtk() { throw new Error('offline'); }\n");
+	const failed = spawnSync(process.execPath, [f.launcher, "--home", join(f.root, "h")], { env, encoding: "utf8" });
+	assert.equal(failed.status, 0, failed.stderr);
+	assert.match(failed.stderr, /could not install rtk \(offline\); continuing without it/);
+});
+
+test("GENTLE_PI_SKIP_RTK_INSTALL=1 suppresses the rtk self-heal", (t) => {
+	const f = standaloneLauncher(t);
+	writePiScript(join(f.root, "pi"), "0.99.2");
+	const result = spawnSync(process.execPath, [f.launcher, "--home", join(f.root, "h")], { env: { ...f.env, GENTLE_SHELL_RTK_INSTALLER: join(f.root, "missing.mjs") }, encoding: "utf8" });
+	assert.equal(result.status, 0, result.stderr);
+	assert.doesNotMatch(result.stderr, /rtk/);
+});
+
+test("nub-ia setup prints the provider sign-in hint, but --dry-run does not", (t) => {
+	const f = fixture(t);
+	const env = provisioning(f);
+	const result = run(env, ["setup"]);
+	assert.equal(result.status, 0, result.stderr);
+	assert.match(result.stderr, /sign in to at least one provider inside the shell/);
+	assert.match(result.stderr, /\/login github-copilot/);
+	assert.match(result.stderr, /Amazon Bedrock uses your AWS_\* credentials/);
+	const dry = run(env, ["setup", "--dry-run"]);
+	assert.doesNotMatch(dry.stderr, /sign in to at least one provider/);
 });

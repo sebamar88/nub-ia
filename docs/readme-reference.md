@@ -313,6 +313,8 @@ If none resolve, `gentle-shell` exits 1 naming all three options. Once a runtime
 | `GENTLE_SHELL_HOME` | Overrides the isolated home directory (default `~/.gentle-shell/agent`). |
 | `PI_CODING_AGENT_DIR` | Read to resolve the `--link` home; also set on the pi child process to the effective home. |
 | `GENTLE_PI_AGENT_HOME` | Set on the pi child process to the effective home; gentle-pi's own home resolution reads it back. |
+| `GENTLE_PI_SKIP_RTK_INSTALL` | Set to `1` to skip the package-local rtk install, both in `postinstall` and in the on-launch self-heal (`nub-ia` installs `.rtk/<version>/rtk` once when it is missing). |
+| `GENTLE_SHELL_RTK_INSTALLER` | Test/development only: path to a module exporting `installRtk` that replaces the real rtk installer in the on-launch self-heal. |
 | `GENTLE_SHELL_NO_AUTO_SETUP` | Set to `1` to skip automatic first-run provisioning (see "First run in an isolated or custom home" below). |
 
 ### Loading the package

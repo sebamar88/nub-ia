@@ -24,7 +24,7 @@ import {
 import { constants as osConstants, homedir, tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve as resolvePath } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
 	buildPiInvocation,
 	checkPiVersion,
@@ -62,6 +62,51 @@ import {
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+
+const RTK_SELF_HEAL_TIMEOUT_MS = 60 * 1000;
+
+// Self-heal for the pinned rtk binary: the package postinstall may have been
+// skipped or failed (offline, ignored scripts, `git clean` on a Pi update), so
+// every launch checks <packageRoot>/.rtk/<version>/rtk and installs it once if
+// missing. Best effort only: a stderr notice, never a failure, never a block
+// longer than RTK_SELF_HEAL_TIMEOUT_MS. GENTLE_PI_SKIP_RTK_INSTALL=1 opts out;
+// GENTLE_SHELL_RTK_INSTALLER (test/development only) names a replacement
+// installer module exporting `installRtk`.
+async function ensureRtkInstalled() {
+	if (process.env.GENTLE_PI_SKIP_RTK_INSTALL === "1") return;
+	let timer;
+	try {
+		const real = await import("../scripts/rtk-installer.mjs");
+		if (existsSync(real.packageLocalRtkPath(packageRoot))) return;
+		const override = process.env.GENTLE_SHELL_RTK_INSTALLER;
+		const installer = override ? await import(pathToFileURL(resolvePath(override)).href) : real;
+		process.stderr.write(`nub-ia: rtk v${real.RTK_VERSION} is missing; installing it once (set GENTLE_PI_SKIP_RTK_INSTALL=1 to skip)\n`);
+		await Promise.race([
+			installer.installRtk({ root: packageRoot }),
+			new Promise((_, reject) => {
+				timer = setTimeout(() => reject(new Error("timed out")), RTK_SELF_HEAL_TIMEOUT_MS);
+				timer.unref();
+			}),
+		]);
+	} catch (error) {
+		process.stderr.write(`nub-ia: could not install rtk (${error instanceof Error ? error.message : String(error)}); continuing without it\n`);
+	} finally {
+		if (timer !== undefined) clearTimeout(timer);
+	}
+}
+
+// Static hint (no detection): which providers Nub-IA routes through.
+function printProviderHint() {
+	process.stderr.write(
+		[
+			"nub-ia: sign in to at least one provider inside the shell:",
+			"  /login github-copilot · /login openai (ChatGPT/Codex subscription)",
+			"  /login opencode · /login nvidia · /login llama.cpp",
+			"  Amazon Bedrock uses your AWS_* credentials",
+			"",
+		].join("\n"),
+	);
+}
 
 function fail(message, code) {
 	process.stderr.write(`${message}\n`);
@@ -687,6 +732,7 @@ async function handleSetupCommand(commandArgs, home, runtime) {
 
 	const result = await runSetupFlow(home, runtime, { dryRun, stdio: "inherit" });
 	if (!result.ok && result.message !== undefined) process.stderr.write(`${result.message}\n`);
+	if (result.ok && !dryRun) printProviderHint();
 	process.exit(result.exitCode);
 }
 
@@ -896,6 +942,7 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 		}
 
 		writeRawConfig(configPath, recordProvisioned(readRawConfig(configPath), homeKey, gentlePiVersion, new Date().toISOString()));
+		printProviderHint();
 		return undefined;
 	} finally {
 		releaseSetupLock(lockPath);
@@ -941,6 +988,8 @@ async function main() {
 		process.stdout.write(`${describeVersion({ gentlePiVersion: ownPackageVersion(), piVersion: versionCheck.version, home })}\n`);
 		process.exit(0);
 	}
+
+	await ensureRtkInstalled();
 
 	// Home-ownership signal for auto-provisioning (S9, homeIsForeign): must be
 	// read before the isolated-home bootstrap below creates and seeds a
