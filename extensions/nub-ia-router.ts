@@ -97,6 +97,10 @@ export default function registerNubIaRouter(pi: ExtensionAPI): void {
 					failed: request.failed ? { model: toCatalogModel(request.failed.model), errorMessage: errorMessageOf(request.failed.message) } : undefined,
 					state: request.state,
 				});
+				if (process.env.NUB_IA_ROUTER_DEBUG) {
+					const available = availableModels(ctx);
+					console.error(`[nub-ia-router] ${tier} reason=${request.reason} previous=${request.previous ? `${request.previous.model.provider}/${request.previous.model.id}` : "-"} failed=${request.failed ? `${request.failed.model.provider}/${request.failed.model.id}` : "-"} providers=${[...new Set(available.map((m) => m.provider))].join(",")} → ${decision.why}`);
+				}
 				if (!decision.model) {
 					throw new Error(`nub-ia/${tier}: no provider with credentials offers a model for this tier. Run /login, or edit ${PACKAGED_CATALOG_PATH}.`);
 				}

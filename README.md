@@ -96,6 +96,17 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 `GENTLE_SHELL_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
 instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail`.
 
+### Review 4R propio (`nub_review`)
+
+`extensions/nub-ia-review.ts` corre los cuatro revisores del paquete (risk, reliability, resilience, readability) **en
+paralelo y en proceso** sobre el diff actual, sin binarios externos. Cada lente recibe el mismo diff y devuelve hallazgos
+en JSON; se consolidan en un reporte markdown en `.pi/nub-ia/reviews/<fecha>-<hash>.md` con veredicto
+`APPROVE | WARN | BLOCK | INCOMPLETE`.
+
+- Herramienta `nub_review` (`scope: auto|staged|working`, o `baseRef` para un rango commiteado) y comando `/nub:review [staged|working|<ref>]`.
+- Los lentes usan los tiers del router (`review-risk` → `nub-ia/strong`, el resto `nub-ia/balanced`); si un provider falla (503/429), ese lente se reintenta en el siguiente provider.
+- **Gate de push**: antes de un `git push`, si los cambios a entregar no tienen review, el review fue de otro diff, o el veredicto fue BLOCK/INCOMPLETE, pide confirmación (en modo sin UI bloquea con el motivo). `NUB_IA_REVIEW_GATE=off` lo desactiva. Nunca bloquea por sí solo: entregar sigue siendo decisión de quien pushea.
+
 ### RTK: menos tokens por comando
 
 `extensions/rtk-rewrite.ts` reescribe cada comando de la herramienta `bash` con [`rtk rewrite`](https://github.com/rtk-ai/rtk)
@@ -115,6 +126,7 @@ la descarga; `RTK_DISABLED=1` apaga la reescritura en una sesión. No hace falta
 - Banner de inicio: isologo de Nubiral y wordmark `nubiral` (trazados en braille / bloques desde `assets/brand/nubiral-isologo.png` con `scripts/trace-brand.mjs`) en lugar de la rosa, wordmark `nubiral` en lugar de `Gentle Shell`, paleta `lime` por defecto.
 - Tema por defecto `Nub-IA` (los temas `Gentle*` siguen disponibles).
 - Home aislado en `~/.nub-ia/` (config en `~/.nub-ia/config.json`).
+- Review 4R en proceso con gate de push (`extensions/nub-ia-review.ts`, `lib/nub-review.ts`).
 - Reescritura de comandos con RTK (`extensions/rtk-rewrite.ts`) con binario pinneado incluido (`scripts/rtk-installer.mjs`).
 - Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).
 - Workflow de publicación a npm eliminado.

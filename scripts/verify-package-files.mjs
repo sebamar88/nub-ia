@@ -41,6 +41,8 @@ const requiredPaths = [
   "extensions/gentle-ai.ts",
   "extensions/nub-ia-router.ts",
   "extensions/rtk-rewrite.ts",
+  "extensions/nub-ia-review.ts",
+  "lib/nub-review.ts",
   "scripts/rtk-installer.mjs",
   "scripts/install-rtk.mjs",
   "lib/model-tier-router.ts",

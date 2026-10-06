@@ -984,8 +984,8 @@ test("first forced sync migrates untouched v0.13 assets, preserves routing, and 
 		);
 
 		const userEditedMigration = migrated.replace(
-			"Run this selected lens exactly once against the supplied `initial_review_tree`.",
-			"Run this selected lens exactly once against the supplied `initial_review_tree` with a user-authored note.",
+			"You receive one unified diff.",
+			"You receive one unified diff (user-authored note).",
 		);
 		assert.notEqual(userEditedMigration, migrated, "the fixture must exercise post-migration drift");
 		writeFileSync(installedReviewRisk, userEditedMigration);
@@ -1030,7 +1030,7 @@ test("first forced sync migrates untouched v0.14 review contracts and preserves 
 		assert.notEqual(migrated, routedLegacySource);
 		assert.match(migrated, /^model: private\/v014-model$/m);
 		assert.match(migrated, /^thinking: high$/m);
-		assert.match(migrated, /initial_review_tree/);
+		assert.match(migrated, /You receive one unified diff/);
 		assert.doesNotMatch(migrated, /Full 4R runs at most two complete sweeps per lens/);
 		const currentPackageSource = readFileSync(
 			join(PACKAGE_ROOT, "assets", "agents", REVIEW_RISK_FILE),

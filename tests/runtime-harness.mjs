@@ -1026,8 +1026,8 @@ async function run() {
 			join(globalAgentHome, "agents", "review-risk.md"),
 			"utf8",
 		);
-		assert.match(installedRiskSource, /exactly once against the supplied `initial_review_tree`/);
-		assert.match(installedRiskSource, /cannot authorize transitions, fixes, receipts, gates, or delivery/);
+		assert.match(installedRiskSource, /You are \*\*R1 Risk\*\*, a read-only code reviewer for the Nub-IA 4R review/);
+		assert.match(installedRiskSource, /^model: nub-ia\/strong$/m, "the packaged lens routes through the strong tier");
 		const managedAssetsManifestPath = join(globalAgentHome, "gentle-ai", "managed-assets.json");
 		const managedAssetsManifest = JSON.parse(
 			await readFile(managedAssetsManifestPath, "utf8"),
