@@ -1,13 +1,13 @@
-# Runtime metrics
+# Métricas de runtime
 
-Nub-IA aggregates runtime usage (tokens, durations, model and agent class) in process in
-`lib/runtime-metrics.ts` and `extensions/runtime-metrics.ts`. The external `gentle-ai`
-binary that used to receive these events was removed, so nothing leaves the machine:
-without an injected `send` callback the aggregated rows are dropped.
+Nub-IA agrega en proceso métricas de uso del runtime (tokens, duraciones, modelo y clase de agente) en `lib/runtime-metrics.ts` y `extensions/runtime-metrics.ts`, y las escribe **solo en un archivo local**:
 
-- Opt-outs are honored regardless: `DO_NOT_TRACK`, `CI`, `GITHUB_ACTIONS`, and
-  `GENTLE_AI_TELEMETRY=0` disable collection entirely (`lib/runtime-metrics-policy.ts`).
-- Delegated children report through the parent (`lib/runtime-metrics-children.ts`); they never
-  send independently.
-- Rows are event-local, never cumulative session totals, and an occupied attempt slot discards
-  the event instead of queueing it. The row schema is `lib/runtime-metrics-schema.json`.
+```text
+~/.pi/nub-ia/metrics/runtime-<YYYY-MM>.jsonl
+```
+
+Un archivo por mes, una fila JSON por línea. Los datos no salen de tu máquina: nada se envía a ningún servicio.
+
+- **Apagado:** `NUB_IA_METRICS=off` desactiva la escritura por completo.
+- Los hijos delegados reportan a través del padre (`lib/runtime-metrics-children.ts`); nunca escriben por su cuenta.
+- Las filas son locales al evento, nunca totales acumulados de la sesión, y un slot de intento ocupado descarta el evento en lugar de encolarlo. El esquema de fila está en `lib/runtime-metrics-schema.json`.

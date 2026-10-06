@@ -1,3 +1,6 @@
+> **Nota:** este es el README archivado de gentle-shell (upstream), conservado solo como referencia histórica.
+> La documentación vigente de Nub-IA está en [readme-reference.md](readme-reference.md) y [gentle-shell.md](gentle-shell.md).
+
 <a id="top"></a>
 
 <div align="center">

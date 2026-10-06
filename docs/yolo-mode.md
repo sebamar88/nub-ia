@@ -1,86 +1,62 @@
-# Session-only YOLO permission
+# Permiso YOLO de sesión
 
-> 🚀 **Full speed, destructive actions still ask.** YOLO lets the agent implement, commit, push and open PRs within the already authorized task without asking each time, which suits long autonomous runs. Destructive operations still require fresh confirmation.
+> 🚀 **Máxima velocidad, las acciones destructivas siguen preguntando.** YOLO deja que el agente implemente, commitee, pushee y abra PRs dentro de la tarea ya autorizada sin pedir permiso cada vez, útil para corridas largas y autónomas. Las operaciones destructivas siguen exigiendo confirmación nueva.
 
-Use `/nubia:yolo enable` in the interactive primary Pi TUI to stop repeated permission questions for ordinary work **within your already authorized task**. YOLO defaults **OFF**. The active status and a separate editor widget both say **🚀 YOLO ON 🔥 — destructive confirmations remain**, even when Gentle Shell hides its status layout.
+Usá `/nubia:yolo enable` en la TUI primaria e interactiva de Pi para dejar de recibir preguntas de permiso repetidas en el trabajo ordinario **dentro de la tarea que ya autorizaste**. YOLO está **APAGADO** por defecto. El estado activo y un widget propio junto al editor indican **🚀 YOLO ON 🔥 — destructive confirmations remain**.
 
-| Command | Effect |
+| Comando | Efecto |
 | --- | --- |
-| `/nubia:yolo enable` | Activate for this live session and Git clone. |
-| `/nubia:yolo disable` | Revoke immediately and clear the indicators. |
-| `/nubia:yolo status` | Show the current state without activating. |
-| `/nubia:yolo` | Open a menu titled **🚀 Gentle YOLO 🔥 — full speed, destructive actions still ask (current: ON\|OFF)** with `enable`, `disable` and `status`. Cancelling changes nothing. Without an interactive menu UI it behaves like `status`. |
+| `/nubia:yolo enable` | Activa para esta sesión en vivo y este clon de Git. |
+| `/nubia:yolo disable` | Revoca al instante y limpia los indicadores. |
+| `/nubia:yolo status` | Muestra el estado sin activar. |
+| `/nubia:yolo` | Abre un menú con `enable`, `disable` y `status`; cancelar no cambia nada. Sin UI de menú se comporta como `status`. |
 
-Invalid arguments leave state unchanged.
+Los argumentos inválidos no cambian el estado. La activación falla cerrada si no hay un clon de Git identificable, TUI interactiva o identidad de sesión viva. No existe variable de entorno, configuración persistida ni herramienta invocable por el modelo para activar YOLO.
 
-The Session command palette also includes YOLO. Activation fails closed without an identifiable Git clone, interactive TUI or live session identity. There is no YOLO environment variable, persisted configuration or model-callable activation tool.
+**Desde el menú:** `/nubia:customize` → **Editor** → **YOLO: OFF · session only** (Enter o Espacio alterna). Navegar, la vista previa y Escape nunca otorgan permiso. A diferencia de Vim, este control no escribe ninguna preferencia global, perfil visual ni guardrail; reload o reemplazo de sesión lo resetea.
 
-## Configuration menu path
+## Qué autoriza la activación
 
-1. Open `/nubia:customize` → **Editor**.
-2. Select **YOLO: OFF · session only**, immediately after the Vim enable/disable rows.
-3. Press **Enter** or **Space** to toggle the same permission as `/nubia:yolo`. The row updates to **YOLO: ON · session only**; slash changes and revocation also update an open menu.
+Permiso humano permanente para implementación ordinaria ya acotada, checks, commits, pushes sin force y creación de PRs. Su instrucción de sistema (solo mientras está activo) matiza las cláusulas por defecto de confirmar commit/push/PR y le pide al agente tomar decisiones de implementación ordinarias y reversibles sin entrevistas innecesarias.
 
-Navigation, the read-only preview and Escape never grant permission. The preview reminds you that ordinary scoped commits/push/PR are covered, destructive confirmations remain, reload resets the grant. **UNAVAILABLE** means the live primary owner or eligible session/clone cannot be used; selecting it cannot activate YOLO.
+Solo un `git push` simple puede saltear la confirmación rutinaria del guard de shell (se aceptan remote/ref simples y `-u`/`--set-upstream`). Los comandos compuestos, wrappers, opciones que cambian el repositorio u otras opciones de push conservan el comportamiento normal. Antes se evalúa el comando completo, incluidas las guardas de pérdida de datos. Las confirmaciones o bloqueos explícitos de push en cualquiera de las dos capas de configuración siguen siendo restricciones. YOLO nunca cambia el `autonomousMode` persistente.
 
-Unlike Vim, this control does not write a global/repository preference, visual profile, prompt-history preference or guardrail setting. Closing the menu removes its observers and cancels unfinished menu activation; it does not revoke an already completed activation. Reload or session replacement invalidates old menu callbacks and resets the permission.
+## Qué sigue requiriendo una decisión
 
-## What activation authorizes
+- Las operaciones destructivas conservan confirmación nueva o denegación: SQL DROP/TRUNCATE, borrados amplios, remoción recursiva, Git destructivo y otras operaciones guardadas no se eximen. Las confirmaciones/bloqueos configurados y la protección de rutas sensibles siguen.
+- Las restricciones humanas explícitas, la política del repositorio, la confianza del proyecto y el alcance autorizado siguen rigiendo. Ampliar el alcance, divulgar información sensible y decisiones de producto genuinamente abiertas requieren una decisión humana.
+- Los destinos o credenciales ambiguos quedan sin resolver: YOLO no inventa un remoto, destino de deploy, cuenta ni credencial, ni autoriza descubrir o reutilizar credenciales ambientales.
+- Las herramientas `ask_user` y las opciones opacas nunca se responden automáticamente. Los hijos conservan solo su alcance delegado: no activan ni heredan YOLO.
 
-YOLO supplies standing human permission for ordinary already-scoped implementation, checks, commits, non-force pushes and PR creation. Its active-only system instruction qualifies the default commit/push/PR confirmation clauses; it also tells the primary agent to make ordinary reversible implementation choices without needless interviews.
+## Vida útil y límites
 
-Only a single plain `git push` can skip the shell guard's routine default confirmation. Simple remote/ref arguments and `-u`/`--set-upstream` are eligible. Compound commands, wrappers, repository-changing options and other push options conservatively retain normal guard behavior. Full command evaluation, including the recognized data-loss guards, runs first. Explicit push confirmations or blocks in either configuration layer remain restrictions, including when legacy persistent autonomy or its environment override would ignore them. YOLO never changes persistent `autonomousMode`.
+El permiso vive en memoria de la instancia de la extensión, atado a la sesión viva y a la identidad del directorio común de Git (los worktrees del mismo clon pueden conservarlo). Sesiones nuevas, reanudadas, forkeadas, reemplazadas, el cierre, **reload** y reiniciar el proceso lo resetean a OFF. Ninguna entrada de sesión restaura un grant.
 
-## What still requires a decision
+Esto es orientación de permisos y defensa en profundidad del guard de shell, **no un sandbox**: la detección cubre solo formas de comando reconocidas; scripts, herramientas custom y prompt injection pueden evadir la guía. Si necesitás contención real usá aislamiento del SO/contenedor y credenciales de alcance mínimo.
 
-- Destructive operations retain fresh confirmations or hard denial: recognized SQL DROP/TRUNCATE and broad deletion, recursive removal, destructive Git and other guarded operations are not waived. Explicit configured confirmations/blocks and sensitive-path protection remain.
-- Current explicit human restrictions, repository policy, project trust and authorized scope still apply. Scope expansion, privacy-sensitive disclosure and genuinely unresolved consequential product choices require a human decision.
-- Ambiguous destinations or credentials remain unresolved. YOLO does not invent a remote, deployment destination, account or credential, nor authorize discovery or reuse of ambient credentials.
-- `ask_user` tools, maintenance/recovery authorization and opaque-token choices are never automatically answered.
+## Frontera de pérdida de datos reconocida
 
-Children retain only their bounded delegated scope. They cannot activate or inherit YOLO, and receive no independent delivery permission.
+Los comandos destructivos reconocidos de bases de datos y de filesystem amplio requieren **confirmación nueva del primario** y están **bloqueados en los hijos del paquete**, independientemente de YOLO y del modo autónomo.
 
-## Lifetime and limits
+| Forma reconocida | Sesión primaria | Hijo delegado |
+| --- | --- | --- |
+| SQL `DROP TABLE/DATABASE/SCHEMA/INDEX/VIEW`, `TRUNCATE [TABLE]` | Confirmación nueva | Bloqueo |
+| SQL `DELETE FROM` sin `WHERE`, o con `WHERE 1=1` / `WHERE TRUE` final | Confirmación nueva | Bloqueo |
+| `rm` recursivo, `find -delete`, `find -exec/-execdir` destructivo y `xargs` reconocidos | Confirmación nueva | Bloqueo |
+| `rm` recursivo sobre `/`, `/*`, `.`, `..`, home o sus descendientes | Bloqueo duro | Bloqueo |
+| Git force push, hard reset, clean forzado | Bloqueo duro | Bloqueo |
+| Borrado forzado de rama, reset/clean/restore/rebase, checkout con `--` o force, stash drop/clear | Política primaria existente | Bloqueo |
 
-Permission is in memory in the extension instance, bound to the exact live SessionManager, session ID and canonical Git common-directory identity. Sibling worktrees in one clone may retain it; an unrelated clone or session identity cannot. Scope loss revokes rather than hiding permission until you return.
+El reconocimiento de SQL se limita a argumentos literales pasados a `psql`, `mysql`, `mariadb` o `sqlite3`, pipelines literales de `echo`/`printf` hacia esos clientes y heredocs simples. El reconocimiento sigue separadores simples, pipelines y grupos entre paréntesis; entiende rutas de ejecutables, asignaciones iniciales, wrappers comunes (`env`, `sudo`, `command`, `exec`, `nohup`, `timeout`, `xargs`) y payloads literales de `sh/bash/zsh/dash -c` (hasta cinco niveles). Cada operación reconocida de un comando compuesto participa. Builds, tests, SQL de solo lectura, borrados literales acotados por predicado, `git status/log` y pushes simples no cambian.
 
-New, resumed, forked or replaced sessions, shutdown/quit, **reload** and process restart reset YOLO to OFF. Re-activate explicitly after reload. No session entry restores a grant.
+**Precedencia:** 1) los hard deny ganan en todo el comando; 2) los bloqueos explícitos configurados ganan antes que la confirmación por pérdida de datos (YOLO respeta además las restricciones explícitas de push); 3) la pérdida de datos reconocida siempre pide confirmación nueva, aunque el modo autónomo o una acción de entrega la permitan; 4) sin UI, cancelación, respuesta no verdadera o error de diálogo nunca autorizan. La aprobación no se cachea.
 
-This is permission guidance and shell-guard defense in depth, **not a sandbox or an all-tools safety guarantee**. Detection only covers recognized command forms; scripts, custom tools and prompt injection can bypass semantic guidance. Tools and extensions retain the operating-system permissions of the process. Trusted SDK callers can invoke command handlers and supply interactive contexts; the human command path is not an OS security boundary against those callers. Use OS/container isolation and narrowly scoped credentials when you need an actual containment boundary.
+Los hijos reciben la entrada liviana `child-safety.ts` junto a `child-context.ts`; registra algo solo con `GENTLE_PI_AGENTS_CHILD=1`.
 
-## Recognized data-loss boundary
+### Limitaciones de la detección
 
-Recognized destructive database and broad filesystem commands require **fresh primary confirmation** and are **blocked in package-owned children**, independently of YOLO and existing autonomous-mode configuration.
+- Es reconocimiento léxico determinístico, **no** evaluación de shell ni de SQL: alias, funciones, comandos armados dinámicamente, expansiones en payloads entrecomillados, flags de wrapper inusuales, heredocs complejos y wrappers muy anidados pueden evadirlo.
+- No se inspeccionan scripts, migraciones, archivos SQL redirigidos, programas de intérpretes (Python/Node), payloads codificados ni ejecución remota. Un `WHERE` no prueba impacto acotado.
+- Solo las llamadas a la herramienta `bash` llegan a esta frontera; la ejecución directa de procesos, los comandos de shell del usuario, MCP y otras herramientas no están cubiertos. Faltar o sobreescribir la ruta de la extensión hija elimina la frontera liviana: una instalación válida debe incluir la entrada de seguridad.
 
-| Recognized executable form | Primary session | Delegated child |
-|---|---|---|
-| SQL `DROP TABLE/DATABASE/SCHEMA/INDEX/VIEW`, `TRUNCATE [TABLE]` | Fresh confirmation | Block |
-| SQL `DELETE FROM` without `WHERE`, or a trailing literal `WHERE 1=1` / `WHERE TRUE` | Fresh confirmation | Block |
-| Recursive `rm` (`-r`, `-R`, combined short flags, `--recursive`), `find -delete`, recognized destructive `find -exec/-execdir` and `xargs` invocations | Fresh confirmation | Block |
-| Recursive `rm` targeting `/`, `/*`, `.`, `..`, home or home descendants | Hard block | Block |
-| Git force push, hard reset, forced clean | Hard block | Block |
-| Git forced branch deletion, reset/clean/restore/rebase, checkout with `--` or force, stash drop/clear | Existing primary policy remains | Block |
-
-SQL recognition is limited to literal arguments passed to `psql`, `mysql`, `mariadb`, or `sqlite3`, literal `echo`/`printf` pipelines into those clients, and simple named heredocs. SQL string literals and comments are excluded from the new SQL recognition; printing or searching destructive prose alone does not trigger it.
-
-Command recognition follows simple shell separators, pipelines and parenthesized command groups. It handles executable paths, leading assignments, common `env`, `sudo`, `command`, `exec`, `nohup`, `timeout` and `xargs` wrappers, and literal `sh/bash/zsh/dash -c` payloads (up to five recognition levels). Every recognized operation in a compound command participates; an earlier allowed delivery action cannot hide later data loss.
-
-Ordinary builds, tests, read-only SQL, predicate-bounded literal deletes, Git status/log and plain pushes are unchanged by the shared data-loss classifier. A build command that explicitly includes recursive deletion is still guarded.
-
-### Approval and precedence
-
-1. Existing hard denies and newly recognized hard-deny forms win across the command.
-2. Explicit configured blocks retain their existing semantics and win before data-loss confirmation. Active YOLO additionally honors explicit push restrictions in either configuration layer.
-3. Recognized database/filesystem data loss always requires fresh confirmation, even when autonomous mode or a matched delivery action is configured to allow.
-4. No UI, cancellation, a non-true answer or a dialog error cannot authorize execution. Approval is not cached; permission and Herdr blocker lifecycle events remain balanced.
-
-Children receive the lightweight `child-safety.ts` entry alongside `child-context.ts`; they do not need the full primary extension. The safety entry registers nothing outside `GENTLE_PI_AGENTS_CHILD=1`, preventing duplicate primary prompts during package auto-discovery. If the full primary extension is explicitly loaded in a child, its destructive-command path also blocks instead of prompting.
-
-### Detection limitations
-
-- This is deterministic lexical recognition, **not** shell or SQL evaluation. Aliases, functions, dynamically assembled commands, variable/command expansion inside quoted payloads, unusual wrapper flags, complex heredocs and deeply nested wrappers can evade recognition. Simple recursive removal of a variable target is guarded, but its expanded target cannot reliably be identified as a hard-deny path.
-- Scripts, migration files, redirected SQL files, arbitrary interpreter programs (Python/Node/etc.), encoded payloads and remote execution are not inspected. Non-recursive wildcard deletion, file truncation, other database clients and nontrivial tautological SQL predicates are not comprehensively classified. A `WHERE` clause is not proof of bounded impact.
-- Only `bash` tool calls reach this data-loss boundary, including nested calls dispatched through Pi's tool-event pipeline. Direct process execution, user shell commands, MCP tools and other tools are not covered by these hooks.
-- The older primary regex safeguards remain authoritative and may be more conservative about text than the shared recognizer. Missing or explicitly overridden child extension paths remove the lightweight boundary; a valid package installation must include the safety entry.
-
-Keep task authorization, explicit user restrictions, sensitive-path protection and safer execution plans in force. The destructive guard itself does not grant delivery or remote-operation authority, activate YOLO, or auto-answer any modal.
+Mantené vigentes la autorización de la tarea, las restricciones explícitas, la protección de rutas sensibles y los planes de ejecución más seguros. El guard destructivo no otorga autoridad de entrega u operación remota, no activa YOLO ni responde modales por sí solo.
