@@ -36,7 +36,9 @@ if ([int]$v[0] -lt 22 -or ([int]$v[0] -eq 22 -and [int]$v[1] -lt 19)) { throw "N
 # Package manager preference: pnpm (direct, or through corepack/npx), then npm.
 # Used both for pi below and for this package's dependencies.
 $env:COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"   # corepack must not ask "Do you want to continue?" in a piped install
-$Pm = if (Have pnpm) { @("pnpm") } elseif (Have corepack) { @("corepack", "pnpm") } elseif (Have npx) { @("npx", "--yes", "pnpm@11") } else { @("npm") }
+# [string[]] is required: PowerShell unwraps a one-element @("pnpm") returned
+# from `if` into the plain string "pnpm", whose [0] is the letter "p".
+[string[]]$Pm = if (Have pnpm) { @("pnpm") } elseif (Have corepack) { @("corepack", "pnpm") } elseif (Have npx) { @("npx", "--yes", "pnpm@11") } else { @("npm") }
 # $Pm[0] is the executable, the rest are its leading arguments (none for
 # plain pnpm/npm). Never slice with [1..N]: on a one-element array PowerShell
 # indexes backwards instead of returning an empty list.
