@@ -29,18 +29,54 @@ fi
 BRANCH="${NUB_IA_BRANCH:-main}"
 APP="${NUB_IA_DIR:-$HOME/.nub-ia/app}"
 BIN="${NUB_IA_BIN:-$HOME/.local/bin}"
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0   # corepack must not ask "Do you want to continue?" in a piped install
 
 say() { printf 'nub-ia installer: %s\n' "$*" >&2; }
 die() { say "$*"; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# Appends `export VAR=dir` + PATH line to the user's shell rc once, so new
+# shells see it. Never fails the install; the current session already has
+# the directory exported by the caller.
+persist_path() {
+	dir="$1"; var="${2:-}"
+	for rc in "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.profile"; do
+		[ -f "$rc" ] || continue
+		grep -q "nub-ia installer" "$rc" 2>/dev/null && grep -q "$dir" "$rc" 2>/dev/null && continue
+		{
+			printf '\n# nub-ia installer\n'
+			[ -n "$var" ] && printf 'export %s="%s"\n' "$var" "$dir"
+			printf 'case ":$PATH:" in *":%s:"*) ;; *) export PATH="%s:$PATH";; esac\n' "$dir" "$dir"
+		} >> "$rc" 2>/dev/null || true
+	done
+}
+
 have git || die "git is required (https://git-scm.com)."
 have node || die "Node.js >= 22.19 is required (https://nodejs.org)."
 node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(a>22||(a===22&&b>=19)?0:1)' \
 	|| die "Node.js $(node --version) is too old; Nub-IA needs >= 22.19."
+# Package manager preference: pnpm (direct, or through corepack/npx), then npm.
+# Used both for pi below and for this package's dependencies.
+if have pnpm; then PM="pnpm"
+elif have corepack; then PM="corepack pnpm"
+elif have npx; then PM="npx --yes pnpm@11"
+else PM="npm"; fi
+
 if ! have pi; then
-	say "pi (the Pi coding agent) is not on PATH. Installing it globally with npm…"
-	npm install -g @earendil-works/pi-coding-agent || die "could not install pi; install it manually: npm install -g @earendil-works/pi-coding-agent"
+	say "pi (the Pi coding agent) is not on PATH. Installing it globally with ${PM%% *}…"
+	if [ "$PM" = "npm" ]; then
+		npm install -g @earendil-works/pi-coding-agent || die "could not install pi; install it manually: npm install -g @earendil-works/pi-coding-agent"
+	else
+		# pnpm refuses global installs until its bin dir is on PATH. Point it at
+		# the standard location for this session and persist it the way
+		# `pnpm setup` does, so `pi` resolves now and in new shells.
+		PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"; export PNPM_HOME
+		case ":$PATH:" in *":$PNPM_HOME:"*) ;; *) PATH="$PNPM_HOME:$PATH"; export PATH;; esac
+		mkdir -p "$PNPM_HOME"
+		# Tell pnpm explicitly where its global bin dir is (a user config may point elsewhere).
+		$PM add -g --config.global-bin-dir="$PNPM_HOME" @earendil-works/pi-coding-agent || die "could not install pi; try: pnpm setup && pnpm add -g @earendil-works/pi-coding-agent"
+		persist_path "$PNPM_HOME" PNPM_HOME
+	fi
 fi
 
 if [ -d "$APP/.git" ]; then
@@ -60,12 +96,10 @@ else
 fi
 
 say "installing dependencies (this downloads the pinned rtk binary)"
-if have pnpm; then
-	(cd "$APP" && pnpm install --frozen-lockfile)
-elif have corepack; then
-	(cd "$APP" && corepack pnpm install --frozen-lockfile)
+if [ "$PM" = "npm" ]; then
+	(cd "$APP" && npm install)
 else
-	(cd "$APP" && npx --yes pnpm@11 install --frozen-lockfile)
+	(cd "$APP" && $PM install --frozen-lockfile)
 fi
 
 mkdir -p "$BIN"
@@ -80,7 +114,7 @@ chmod 0755 "$WRAPPER"
 say "installed: $WRAPPER"
 case ":$PATH:" in
 	*":$BIN:"*) ;;
-	*) say "add $BIN to your PATH, e.g.:  echo 'export PATH=\"$BIN:\$PATH\"' >> ~/.bashrc  (or ~/.zshrc)";;
+	*) persist_path "$BIN"; say "added $BIN to your shell rc; open a new terminal (or run: export PATH=\"$BIN:\$PATH\") to use nub-ia";;
 esac
 say "run: nub-ia          (first launch provisions ~/.nub-ia/agent; then /login your providers)"
 say "update later with: nub-ia update   (or rerun this installer)"
