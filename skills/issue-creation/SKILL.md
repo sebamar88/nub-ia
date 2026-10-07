@@ -1,5 +1,5 @@
 ---
-name: gentle-ai-issue-creation
+name: nubia-issue-creation
 description: "Create and triage GitHub issues from repository evidence. Trigger: issue creation, bug reports, feature requests, or issue approval."
 license: Apache-2.0
 metadata:

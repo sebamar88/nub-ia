@@ -21,7 +21,7 @@ async function collectTextFiles(dir: string): Promise<string[]> {
 const SPANISH_ARTIFACT_COPY = [/\bhacelo\b/i, /\bSoy Nub-IA\b/i];
 
 test("ordinary startup does not load the retired SDD preflight API", async () => {
-	const extension = await readFile(join(ROOT, "extensions/gentle-ai.ts"), "utf8");
+	const extension = await readFile(join(ROOT, "extensions/nubia-harness.ts"), "utf8");
 	assert.doesNotMatch(extension, /\b(?:ensureSddPreflight|getSddPreflightPreferences|isSddPreflightTrigger|renderSddPreflightPrompt|isParentConfirmedSddPreflightContext)\b/);
 });
 

@@ -3,7 +3,7 @@ import { stripAnsi } from "./terminal-theme.ts";
 
 // Command palette: a pure, curated, grouped overlay component for
 // `/nubia:commands` and its `alt+k` shortcut (see
-// extensions/gentle-shell.ts). It only knows about plain groups of items
+// extensions/nubia-shell.ts). It only knows about plain groups of items
 // (command + label, plus an optional description used for ranking and an
 // optional shortcut hint), never about the Pi extension API, so it can be
 // fully exercised without a running agent session. The curated catalog
@@ -35,7 +35,7 @@ export interface CommandPaletteTheme {
 // stays a local copy on purpose: the shared lib/terminal-theme.ts version
 // deletes control characters, but this palette escapes them into a visible
 // "\xNN" form instead (same regex as the local copy in
-// extensions/gentle-agents.ts), so a stray control byte in a label,
+// extensions/nubia-agents.ts), so a stray control byte in a label,
 // shortcut, or description is never silently dropped.
 function sanitizeTerminalText(value: string): string {
 	return value.replace(/[\x00-\x08\x0B-\x1F\x7F-\x9F]/g, (control) => `\\x${control.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`);
@@ -348,7 +348,7 @@ export class CommandPalette {
  * delete-to-line-end, so an extension shortcut on it is skipped); an empty
  * value or "off" (case-insensitive) disables the shortcut; anything else is
  * used as-is (trimmed). Same shape as changesShortcut in
- * extensions/gentle-shell.ts.
+ * extensions/nubia-shell.ts.
  */
 export function commandsKey(env: NodeJS.ProcessEnv = process.env): string | undefined {
 	const value = env.GENTLE_PI_COMMANDS_KEY?.trim();

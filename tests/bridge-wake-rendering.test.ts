@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createAgentSession, ModelRuntime, DefaultResourceLoader, SettingsManager, SessionManager } from "@earendil-works/pi-coding-agent";
-import gentleAgents from "../extensions/gentle-agents.ts";
+import gentleAgents from "../extensions/nubia-agents.ts";
 
 // Resolve from the installed SDK entry, never from a vendored runtime copy.
 const sdk = import.meta.resolve("@earendil-works/pi-coding-agent");

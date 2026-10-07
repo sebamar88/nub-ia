@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createAssistantMessageEventStream, getCurrentSystemPrompt, getCurrentTools, type AssistantMessage, type TranscriptContext } from "@earendil-works/pi-ai";
 import { createAgentSession, DefaultResourceLoader, ModelRuntime, SettingsManager, SessionManager } from "@earendil-works/pi-coding-agent";
-import gentleAgents, { type SessionTransportFactory } from "../extensions/gentle-agents.ts";
+import gentleAgents, { type SessionTransportFactory } from "../extensions/nubia-agents.ts";
 import { fakeChild, type FakeChild } from "./agents-fake-child.ts";
 
 const sdk = import.meta.resolve("@earendil-works/pi-coding-agent");

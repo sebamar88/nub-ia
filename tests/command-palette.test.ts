@@ -384,7 +384,7 @@ test("retired SDD commands are absent from the palette and extension registratio
 	const retired = ["nubia:sdd-preflight", "gentle-sdd-status", "gentle-sdd-continue", "gentle-sdd-init", "nubia:install-sdd"];
 	const catalogCommands = COMMAND_PALETTE_CATALOG.flatMap((group) => group.items.map((item) => item.command));
 	assert.equal(existsSync(new URL("../extensions/sdd-init.ts", import.meta.url)), false, "retired init extension must stay absent");
-	const source = readFileSync(new URL("../extensions/gentle-ai.ts", import.meta.url), "utf8");
+	const source = readFileSync(new URL("../extensions/nubia-harness.ts", import.meta.url), "utf8");
 	for (const command of retired) {
 		assert.ok(!catalogCommands.includes(command), `${command} must not appear in the palette`);
 		assert.ok(!source.includes(`registerCommand("${command}"`), `${command} must not be registered`);

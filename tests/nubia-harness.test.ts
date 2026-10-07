@@ -11,7 +11,7 @@ import type {
 	Theme,
 	ToolCallEventResult,
 } from "@earendil-works/pi-coding-agent";
-import { __testing, applyModelConfig, createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { __testing, applyModelConfig, createGentleAiExtension } from "../extensions/nubia-harness.ts";
 import { PROFILES_KIND, PROFILES_VERSION, readProfilesFileResult } from "../lib/agent-profiles.ts";
 import { bindSessionProfile, readSessionProfileBinding, resetSessionProfileBindingsForTesting } from "../lib/session-profile-binding.ts";
 import type { AgentRoutingEntry, ThinkingLevel } from "../lib/model-routing-authority.ts";
@@ -19,7 +19,7 @@ type LiveSession = Pick<ExtensionAPI, "setModel" | "setThinkingLevel" | "getThin
 import { PROFILE_PIN_KIND, PROFILE_PIN_VERSION, setProfilePinWorktreeResolverForTesting, writeProfilePinSync } from "../lib/agent-profile-pin.ts";
 import { installPackageAssets } from "../lib/agent-assets.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
-import { cardBody } from "./gentle-card-text.ts";
+import { cardBody } from "./nubia-card-text.ts";
 
 initTheme("dark");
 
@@ -449,7 +449,7 @@ test("retired SDD startup flag is not registered or imported", () => {
 	} as unknown as ExtensionAPI;
 	createGentleAiExtension({})(pi);
 	assert.ok(!flags.includes("gentle-sdd-change"));
-	const source = readFileSync(new URL("../extensions/gentle-ai.ts", import.meta.url), "utf8");
+	const source = readFileSync(new URL("../extensions/nubia-harness.ts", import.meta.url), "utf8");
 	assert.doesNotMatch(source, /from ["']\.\.\/lib\/sdd-preflight\.ts["']/);
 });
 

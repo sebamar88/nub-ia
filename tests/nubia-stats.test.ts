@@ -4,7 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { stripAnsi } from "../lib/terminal-theme.ts";
-import gentleStats, { STATS_COMMAND_NAME, statsSessionRoots, statsViewKey } from "../extensions/gentle-stats.ts";
+import gentleStats, { STATS_COMMAND_NAME, statsSessionRoots, statsViewKey } from "../extensions/nubia-stats.ts";
 
 // /nubia:stats wiring: the command (and optional shortcut) opens the stats
 // panel as a full-terminal overlay, loads sessions after it opens, closes

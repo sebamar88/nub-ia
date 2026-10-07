@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { createEventBus, initTheme, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { getThemeByName } from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import gentleShell from "../extensions/gentle-shell.ts";
+import gentleShell from "../extensions/nubia-shell.ts";
 import * as yolo from "../lib/yolo-session-policy.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 import { VisualCustomizeView } from "../lib/visual-customize-view.ts";

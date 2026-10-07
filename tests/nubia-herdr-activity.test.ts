@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createHerdrActivityExtension } from "../extensions/gentle-herdr-activity.ts";
+import { createHerdrActivityExtension } from "../extensions/nubia-herdr-activity.ts";
 import { oddPhaseRegistry } from "../lib/odd-phase.ts";
 import { metadataArgs } from "../lib/herdr-activity.ts";
 

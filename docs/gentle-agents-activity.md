@@ -2,7 +2,7 @@
 
 Un host RPC interactivo (un cliente que ejecuta `pi --mode rpc`, como la app de escritorio) recibe el estado vivo de los subagentes como un documento JSON acotado por ventana de coalescencia, para dibujar una vista de helpers por chat sin hacer polling de `subagent_status`. Esta página también resume las herramientas de descubrimiento entre orquestadores del mismo perfil.
 
-Fuentes: [publisher](../lib/agents-rpc-publisher.ts), [cableado](../extensions/gentle-agents.ts), [store](../lib/agents-protocol.ts), [búsqueda de trabajo](../lib/orchestrator-work-search.ts).
+Fuentes: [publisher](../lib/agents-rpc-publisher.ts), [cableado](../extensions/nubia-agents.ts), [store](../lib/agents-protocol.ts), [búsqueda de trabajo](../lib/orchestrator-work-search.ts).
 
 ## Descubrimiento entre orquestadores del mismo perfil
 

@@ -4,11 +4,24 @@ import { truncateToWidth } from "@earendil-works/pi-tui";
 import * as os from "node:os";
 import { execFile } from "node:child_process";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveAnimationPolicy } from "../lib/animation-policy.ts";
-import { PI_SUBCOMMANDS } from "../lib/gentle-shell-launcher.ts";
+import { PI_SUBCOMMANDS } from "../lib/nubia-launcher.ts";
 import { configReadPath, nubIaConfigHome, readEnv } from "../lib/config-home.ts";
 
+
+/** Version line for the VER row: this package's version plus the Pi runtime's. */
+export function versionLabel(piVersion: string = VERSION, packageJsonUrl: URL = new URL("../package.json", import.meta.url)): string {
+	let pkgVersion = "";
+	try {
+		const parsed = JSON.parse(readFileSync(packageJsonUrl, "utf8")) as { version?: unknown };
+		if (typeof parsed.version === "string") pkgVersion = parsed.version;
+	} catch {
+		// Unreadable package.json: fall back to the Pi version only.
+	}
+	return pkgVersion ? `nub-ia ${pkgVersion} · pi ${piVersion}` : `pi ${piVersion}`;
+}
 
 export type BannerColor = "lime" | "pink" | "cyan" | "yellow" | "green";
 export interface BannerConfig {
@@ -908,7 +921,7 @@ export default function (pi: ExtensionAPI) {
                 ["PLUGINS:", `${packagesCount} package(s)`],
                 ["SKILLS:", `${skills.length} loaded`],
                 ["EXTENSIONS:", `${extensionsCount} active`],
-                ["VER:", `v${VERSION}`],
+                ["VER:", versionLabel()],
                 ["TOOLS:", `${customTools.length} custom`],
               ];
               const narrowLabelW = Math.max(...narrowRows.map(([l]) => l.length));
@@ -947,7 +960,7 @@ export default function (pi: ExtensionAPI) {
                   "TOOLS:",
                   `${customTools.length} custom`,
                 );
-                addWideRow("VER:", `v${VERSION}`, "", "");
+                addWideRow("VER:", versionLabel(), "", "");
               } else {
                 addNarrowRow("GIT:", gitBranch);
                 addNarrowRow("PATH:", ctx.cwd);
@@ -956,7 +969,7 @@ export default function (pi: ExtensionAPI) {
                 addNarrowRow("AGENTS:", `${backgroundAgentsCount} agents`);
                 addNarrowRow("SKILLS:", `${skills.length} loaded`);
                 addNarrowRow("EXTENSIONS:", `${extensionsCount} active`);
-                addNarrowRow("VER:", `v${VERSION}`);
+                addNarrowRow("VER:", versionLabel());
                 addNarrowRow("TOOLS:", `${customTools.length} custom`);
               }
 

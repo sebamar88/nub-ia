@@ -270,8 +270,8 @@ Common intent hints, not hard routing:
 | -------------------------- | -------------------------------------- |
 | PR review / GitHub PR URL  | project review skill, then `pr-review` |
 | Post-ready review comments | `comment-writer`                       |
-| Create/open/prepare PR     | `gentle-ai-branch-pr`                  |
-| Split/stack/large PR       | `gentle-ai-chained-pr`                 |
+| Create/open/prepare PR     | `nubia-branch-pr`                  |
+| Split/stack/large PR       | `nubia-chained-pr`                 |
 
 Keep this lightweight: loading a skill should improve the immediate task, not force extra ceremony.
 
@@ -284,7 +284,7 @@ Keep this lightweight: loading a skill should improve the immediate task, not fo
 
 ## 4R Review Triggers
 
-The extension (`extensions/gentle-ai.ts`) gates `bash` tool calls that look like git/gh workflow events. Gate semantics:
+The extension (`extensions/nubia-harness.ts`) gates `bash` tool calls that look like git/gh workflow events. Gate semantics:
 
 - **pre-commit** (`git commit`): advisory only. The extension notifies the user to consider running `review-readability` but does NOT block. No orchestrator action needed.
 - **pre-push** (`git push`): advisory only. Same as pre-commit — notify, do not block.
@@ -292,7 +292,7 @@ The extension (`extensions/gentle-ai.ts`) gates `bash` tool calls that look like
   - Changed paths match hot globs: `**/auth/**`, `**/update/**`, `**/security/**`, `**/payments/**`
   - Diff exceeds 400 changed lines (added + deleted)
   - When blocked, the reason names all four agents to run first.
-- **post-sdd-phase** (design, apply): **strong gate** for the packaged `gentle-ai-judgment-day` skill. Handled separately by SDD phase orchestration, not this diff-based hook.
+- **post-sdd-phase** (design, apply): **strong gate** for the packaged `nubia-judgment-day` skill. Handled separately by SDD phase orchestration, not this diff-based hook.
 
 When the extension blocks a `gh pr create` command, the orchestrator must launch the `4r-review` chain (or run the four agents individually) and wait for their reports before the user retries the PR command.
 

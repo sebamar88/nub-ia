@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { isOddPhase, oddPhaseLabel, oddPhaseRegistry, ODD_PHASES, OddPhaseRegistry } from "../lib/odd-phase.ts";
-import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
 
 // Bounded ODD phase signal for the Gentle prompt's working label: inferred
 // from observed tool activity (lib/odd-phase-inference.ts) and refined by

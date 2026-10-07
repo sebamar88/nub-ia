@@ -1,7 +1,7 @@
 // Bounded ODD phase signal for the Gentle prompt's working label. There is
 // no Pi runtime event for ODD phases, so the label comes from two sources:
 // phases inferred deterministically from the primary session's tool activity
-// (lib/odd-phase-inference.ts, wired in extensions/gentle-shell.ts) and
+// (lib/odd-phase-inference.ts, wired in extensions/nubia-shell.ts) and
 // explicit reports by the orchestrator through gentle_odd_phase, which
 // refine it with phases tools cannot show (see
 // assets/orchestrator-tracking.md). Never inferred from assistant prose;

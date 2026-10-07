@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { FIXED_WINDOWS_POWERSHELL, WindowsActiveSessionClient, WindowsActiveSessionListener, WindowsSessionPresenceRegistry, WindowsSessionRegistryPhaseSequence, type WindowsSessionRegistryPhaseEvent, parseWindowsHostFrame } from "../lib/windows-session-transport.ts";
-import { createDefaultSessionTransport } from "../extensions/gentle-agents.ts";
+import { createDefaultSessionTransport } from "../extensions/nubia-agents.ts";
 import { ActiveSessionClientError, FrameDecoder, encodeNotificationFrame, type AckFrame } from "../lib/agents-session-transport.ts";
 import { decidePackedRunnerEntrypoint, deriveWindowsStartupTimingPathDelta, validateWindowsStartupTimingMachinePaths, WINDOWS_STARTUP_TIMING_WINDOWS_PATH_KEYS } from "../scripts/test-packed-runner.mjs";
 

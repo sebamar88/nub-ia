@@ -102,13 +102,13 @@ test("changesModel sorts files by path and totals the counts", () => {
 });
 
 test("changesSummary and the widget describe the session at a glance", () => {
-	const model = changesModel([file("extensions/gentle-shell.ts", 31, 0, CHANGE_STATUS.ADDED), file("lib/shell-bar.ts", 9, 7), file("tests/x.test.ts", 2, 0)]);
+	const model = changesModel([file("extensions/nubia-shell.ts", 31, 0, CHANGE_STATUS.ADDED), file("lib/shell-bar.ts", 9, 7), file("tests/x.test.ts", 2, 0)]);
 	assert.equal(changesSummary(model), "3 files · +42 −7");
 	assert.equal(changesSummary(changesModel([file("a.ts", 1, 0)])), "1 file · +1 −0");
 
 	const [line, ...rest] = renderChangesWidget(model, plainTheme, 120);
 	assert.equal(rest.length, 0);
-	assert.match(line, /^✎ 3 files · \+42 −7 · extensions\/gentle-shell\.ts · lib\/shell-bar\.ts · tests\/x\.test\.ts {2,}\/nubia:changes$/);
+	assert.match(line, /^✎ 3 files · \+42 −7 · extensions\/nubia-shell\.ts · lib\/shell-bar\.ts · tests\/x\.test\.ts {2,}\/nubia:changes$/);
 	assert.equal(visibleWidth(line), 120, "the command sits on the right edge");
 });
 

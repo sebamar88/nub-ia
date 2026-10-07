@@ -50,8 +50,8 @@ test("public SDK publishes, consults, pages, withdraws and replaces isolated own
 		mayOwnLeaf = true;
 		const sdk = await import("@earendil-works/pi-coding-agent");
 		const ai = await import("@earendil-works/pi-ai");
-		const { default: gentleAgents } = await import("../extensions/gentle-agents.ts");
-		const { default: gentleShell } = await import("../extensions/gentle-shell.ts");
+		const { default: gentleAgents } = await import("../extensions/nubia-agents.ts");
+		const { default: gentleShell } = await import("../extensions/nubia-shell.ts");
 		const { resolveSessionWorktreeWithGit } = await import("../lib/session-worktree-registry.ts");
 		const { ORCHESTRATOR_STATE_ENTRY } = await import("../lib/orchestrator-state.ts");
 		assert.equal(sdk.getAgentDir(), profile);

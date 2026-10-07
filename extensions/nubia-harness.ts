@@ -213,7 +213,7 @@ function localAgentOverrideCount(cwd: string, owner: PackageAssetOwner): number 
 // The pure resolver (parseBackgroundSubagentsPolicyFile,
 // resolveBackgroundSubagentsPolicy, loadBackgroundSubagentsPolicy, and their
 // types/constants) lives in lib/background-subagents-policy.ts so the
-// runtime side (extensions/gentle-agents.ts) can read the effective policy
+// runtime side (extensions/nubia-agents.ts) can read the effective policy
 // without importing the pi extension surface. Everything below this point
 // (capability probing, report rendering, the global-file writer) stays here
 // because it is specific to this extension's UI-facing surface.
@@ -574,7 +574,7 @@ function renderBackgroundSubagentsStatusLine(
 
 // gentle-shell#1731 T27: `pi -p` and `pi --mode json` run one prompt and then
 // dispose the runtime, so background results can never arrive. Mirrors
-// isSingleShotMode in extensions/gentle-agents.ts, which rejects the launch.
+// isSingleShotMode in extensions/nubia-agents.ts, which rejects the launch.
 function isSingleShotHostMode(mode: string | undefined): boolean {
 	return mode === "print" || mode === "json";
 }

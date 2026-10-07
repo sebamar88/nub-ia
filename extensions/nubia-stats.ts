@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { getAgentDir, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { USER_PI_HOME_ENV } from "../lib/gentle-shell-launcher.ts";
+import { USER_PI_HOME_ENV } from "../lib/nubia-launcher.ts";
 import { createNativeFullscreenInteraction } from "../lib/native-fullscreen-interaction.ts";
 import { withOverlayRepaint } from "../lib/overlay-repaint.ts";
 import { createStatsLoader, currentSessionStats, type StatsLoader } from "../lib/stats-collector.ts";

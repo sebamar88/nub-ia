@@ -16,8 +16,8 @@ async function proveLazyDiscovery(): Promise<void> {
 	const shim = join(cwd, "extensions.ts");
 	const source = (name: string) => JSON.stringify(new URL(`../extensions/${name}.ts`, import.meta.url).href);
 	writeFileSync(shim, `
-import { createGentleAiExtension } from ${source("gentle-ai")};
-import gentleAgents from ${source("gentle-agents")};
+import { createGentleAiExtension } from ${source("nubia-harness")};
+import gentleAgents from ${source("nubia-agents")};
 export default function (pi) {
   createGentleAiExtension({ processEnv: {} })(pi);
   gentleAgents(pi);

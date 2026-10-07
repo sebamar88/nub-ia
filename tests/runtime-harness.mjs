@@ -13,9 +13,9 @@ import { stripAnsi } from "../lib/terminal-theme.ts";
 import { canonicalHash } from "../lib/canonical-hash.ts";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const { createGentleAiExtension } = await import(pathToFileURL(join(ROOT, "extensions/gentle-ai.ts")).href);
+const { createGentleAiExtension } = await import(pathToFileURL(join(ROOT, "extensions/nubia-harness.ts")).href);
 const EXTENSIONS = [
-	"extensions/gentle-ai.ts",
+	"extensions/nubia-harness.ts",
 	"extensions/nan-provider.ts",
 	"extensions/quiet-tools.ts",
 	"extensions/skill-registry.ts",
@@ -218,7 +218,7 @@ async function loadExtensions(pi, fixtureDependencies) {
 	for (const [index, rel] of EXTENSIONS.entries()) {
 		const mod = await import(`${pathToFileURL(join(ROOT, rel)).href}?runtime-harness=${index}`);
 		assert.equal(typeof mod.default, "function", `${rel} must export a default function`);
-		if (rel === "extensions/gentle-ai.ts") createGentleAiExtension(fixtureDependencies)(pi);
+		if (rel === "extensions/nubia-harness.ts") createGentleAiExtension(fixtureDependencies)(pi);
 		else mod.default(pi);
 	}
 }
@@ -345,7 +345,7 @@ async function run() {
 		assert.match(promptAppended, /Nub-IA/);
 		assert.match(promptAppended, /Organic Driven Development/);
 		assert.doesNotMatch(promptAppended, /## SDD Research Capabilities/);
-		assert.doesNotMatch(await readFile(join(ROOT, "extensions", "gentle-ai.ts"), "utf8"), /readCommandSddStatus/);
+		assert.doesNotMatch(await readFile(join(ROOT, "extensions", "nubia-harness.ts"), "utf8"), /readCommandSddStatus/);
 		assert.match(promptAppended + delegationDetail, /do not pass the `model` parameter by default/);
 		assert.doesNotMatch(promptAppended, /Every Agent tool call MUST include `model`/);
 		assert.ok(
@@ -459,7 +459,7 @@ async function run() {
 
 		const scopedWriterDispatch = {
 			agent: "gentle-ai-worker",
-			task: "Implement the requested change.\n\n## Allowed edit surfaces\nextensions/gentle-ai.ts\ntests/runtime-harness.mjs",
+			task: "Implement the requested change.\n\n## Allowed edit surfaces\nextensions/nubia-harness.ts\ntests/runtime-harness.mjs",
 			mode: "task",
 		};
 		assert.equal(
@@ -484,7 +484,7 @@ async function run() {
 			"a writer may dispatch when context carries narrow task-scoped repository-relative paths",
 		);
 
-		const canonicalFrozenFindingRow = '{"id":"JD-A-001","lens":"judgment-day","location":"extensions/gentle-ai.ts:1","severity":"CRITICAL","status_at_freeze":"open","evidence_class":"deterministic","evidence_claim":"The frozen finding has concrete user impact."}';
+		const canonicalFrozenFindingRow = '{"id":"JD-A-001","lens":"judgment-day","location":"extensions/nubia-harness.ts:1","severity":"CRITICAL","status_at_freeze":"open","evidence_class":"deterministic","evidence_claim":"The frozen finding has concrete user impact."}';
 		const canonicalFrozenFindingRows = [JSON.parse(canonicalFrozenFindingRow)];
 		const canonicalFrozenLedgerHash = canonicalHash(canonicalFrozenFindingRows);
 		const canonicalJdFixTask = [
@@ -504,7 +504,7 @@ async function run() {
 			canonicalFrozenFindingRow,
 			"",
 			"## Allowed edit surfaces",
-			"extensions/gentle-ai.ts",
+			"extensions/nubia-harness.ts",
 			"tests/runtime-harness.mjs",
 		].join("\n");
 		const orderedFrozenFindingRows = [
@@ -518,7 +518,7 @@ async function run() {
 			.replace(canonicalFrozenFindingRow, reversedFrozenFindingRows.map((row) => JSON.stringify(row)).join("\n"));
 		const incorrectFrozenLedgerHash = `${canonicalFrozenLedgerHash.slice(0, -1)}${canonicalFrozenLedgerHash.endsWith("0") ? "1" : "0"}`;
 		for (const [label, input] of [
-			["missing activation", { agent: "jd-fix-agent", task: "## Allowed edit surfaces\nextensions/gentle-ai.ts", mode: "task" }],
+			["missing activation", { agent: "jd-fix-agent", task: "## Allowed edit surfaces\nextensions/nubia-harness.ts", mode: "task" }],
 			["duplicate activation", { agent: "jd-fix-agent", task: `${canonicalJdFixTask}\n\n## Judgment Day activation\nUser explicitly requested Judgment Day.`, mode: "task" }],
 			["missing severe IDs", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("## Exact authorized severe IDs\n- `JD-A-001`\n", ""), mode: "task" }],
 			["duplicate severe ID bindings", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("- `JD-A-001`", "- `JD-A-001`\n- `JD-A-001`"), mode: "task" }],
@@ -544,8 +544,8 @@ async function run() {
 			["non-open frozen row", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("\"status_at_freeze\":\"open\"", "\"status_at_freeze\":\"closed\""), mode: "task" }],
 			["non-severe frozen row", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("\"severity\":\"CRITICAL\"", "\"severity\":\"WARNING\""), mode: "task" }],
 			["empty frozen evidence", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("\"evidence_claim\":\"The frozen finding has concrete user impact.\"", "\"evidence_claim\":\"\""), mode: "task" }],
-			["missing edit surface", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("## Allowed edit surfaces\nextensions/gentle-ai.ts\ntests/runtime-harness.mjs", ""), mode: "task" }],
-			["invalid edit surface", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("## Allowed edit surfaces\nextensions/gentle-ai.ts", "## Allowed edit surfaces\n."), mode: "task" }],
+			["missing edit surface", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("## Allowed edit surfaces\nextensions/nubia-harness.ts\ntests/runtime-harness.mjs", ""), mode: "task" }],
+			["invalid edit surface", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("## Allowed edit surfaces\nextensions/nubia-harness.ts", "## Allowed edit surfaces\n."), mode: "task" }],
 			["mixed", { agent: ["jd-fix-agent", "gentle-ai-worker"], task: canonicalJdFixTask, mode: "task" }],
 			["agent array", { agent: ["jd-fix-agent"], task: canonicalJdFixTask, mode: "task" }],
 			["agents array", { agents: ["jd-fix-agent"], task: canonicalJdFixTask, mode: "task" }],
@@ -570,7 +570,7 @@ async function run() {
 				"valid scope followed by a repository-root scope",
 				{
 					agent: "gentle-ai-worker",
-					task: "## Allowed edit surfaces\nextensions/gentle-ai.ts\n\n## Allowed edit surfaces\n.",
+					task: "## Allowed edit surfaces\nextensions/nubia-harness.ts\n\n## Allowed edit surfaces\n.",
 					mode: "task",
 				},
 			],
@@ -578,7 +578,7 @@ async function run() {
 				"valid task scope plus invalid context scope",
 				{
 					agent: "gentle-ai-worker",
-					task: "## Allowed edit surfaces\nextensions/gentle-ai.ts",
+					task: "## Allowed edit surfaces\nextensions/nubia-harness.ts",
 					context: "## Allowed edit surfaces\n.",
 					mode: "task",
 				},
@@ -587,7 +587,7 @@ async function run() {
 				"conflicting valid task and context scopes",
 				{
 					agent: "gentle-ai-worker",
-					task: "## Allowed edit surfaces\nextensions/gentle-ai.ts",
+					task: "## Allowed edit surfaces\nextensions/nubia-harness.ts",
 					context: "## Allowed edit surfaces\ntests/runtime-harness.mjs",
 					mode: "task",
 				},
@@ -602,7 +602,7 @@ async function run() {
 					toolName: "subagent_run",
 					input: {
 						agent: "gentle-ai-worker",
-						task: "## Allowed edit surfaces\nextensions/gentle-ai.ts\ntests/runtime-harness.mjs\n\n## Allowed edit surfaces\n- `tests/runtime-harness.mjs`\n- `extensions/gentle-ai.ts`",
+						task: "## Allowed edit surfaces\nextensions/nubia-harness.ts\ntests/runtime-harness.mjs\n\n## Allowed edit surfaces\n- `tests/runtime-harness.mjs`\n- `extensions/nubia-harness.ts`",
 						mode: "task",
 					},
 				},

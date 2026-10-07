@@ -743,7 +743,7 @@ export interface LooseExtensionFs {
 
 // scripts/build-runtime-modules.mjs rewrites every occurrence of a dot, the
 // letters ts, and an immediately following closing quote (single or double)
-// to end in mjs instead, when it generates runtime/gentle-shell-launcher.mjs
+// to end in mjs instead, when it generates runtime/nubia-launcher.mjs
 // — a plain `.replace(/\.ts(["'])/g, ...)` that cannot tell an import
 // specifier from an ordinary string literal. Any other string ending the
 // same way — a dot, the letters ts, and a closing quote right after — would

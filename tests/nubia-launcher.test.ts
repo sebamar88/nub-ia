@@ -40,7 +40,7 @@ import {
 	type ParsedLauncherArgs,
 	type RawLauncherConfig,
 	type ResolvedHome,
-} from "../lib/gentle-shell-launcher.ts";
+} from "../lib/nubia-launcher.ts";
 
 const packageRoot = join(fileURLToPath(import.meta.url), "..", "..");
 

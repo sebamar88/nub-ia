@@ -70,7 +70,7 @@ test("T13: budgets hold and the pinned human-control line is untouched", () => {
 test("T13: the always-on harness narrows conditional intent and gates Close on pending tasks", () => {
 	// The harness ODD steps are injected on every request, including the small
 	// path that never loads the tracking module, so the narrowing must live there too.
-	const harness = read("extensions/gentle-ai.ts");
+	const harness = read("extensions/nubia-harness.ts");
 	assert.ok(
 		harness.includes("Ambiguous or conditional change intent (unclear whether a change is authorized at all) gets one clarification; stop and wait."),
 		"harness Authorize step must narrow conditional intent",

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { __testing } from "../extensions/gentle-ai.ts";
+import { __testing } from "../extensions/nubia-harness.ts";
 
 // gentle-shell#1731 T23 (G1 audit L48): port the gentle-ai Native Checking
 // Contract bounded stop. Partial, blocked, unavailable, or exhausted proof

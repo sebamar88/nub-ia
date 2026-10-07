@@ -10,7 +10,7 @@
 // extensions/resume-hint.ts writes a ResumeHandoff on session_shutdown, and
 // bin/nub-ia.mjs prints the planResumeHint line after pi exits.
 import { basename, dirname, isAbsolute, join, resolve as resolvePath } from "node:path";
-import { shellQuote } from "./gentle-shell-launcher.ts";
+import { shellQuote } from "./nubia-launcher.ts";
 
 export const RESUME_HANDOFF_ENV = "GENTLE_SHELL_RESUME_HANDOFF";
 

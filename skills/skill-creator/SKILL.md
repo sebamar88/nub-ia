@@ -1,5 +1,5 @@
 ---
-name: gentle-ai-skill-creator
+name: nubia-skill-creator
 description: "Trigger: /skill-creation, skill creation, skill creator, create skill, new skill. Create LLM-first skills with valid frontmatter."
 license: Apache-2.0
 metadata:

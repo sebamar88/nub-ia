@@ -4,8 +4,8 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
-import gentleTodo from "../extensions/gentle-todo.ts";
+import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import gentleTodo from "../extensions/nubia-todo.ts";
 
 // gentle-shell#1485: pi-claude-bridge forwards only the structured
 // systemPromptOptions parts of before_agent_start (contextFiles, skills,

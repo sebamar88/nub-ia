@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 import resumeHint, { resetResumeHintState } from "../extensions/resume-hint.ts";
-import { RESUME_HANDOFF_ENV, parseResumeHandoff } from "../lib/gentle-shell-resume-hint.ts";
+import { RESUME_HANDOFF_ENV, parseResumeHandoff } from "../lib/nubia-resume-hint.ts";
 
 const ID = "01a0e0a0-6d7b-7314-89c1-537d47bbf4f3";
 

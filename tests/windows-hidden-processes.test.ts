@@ -128,7 +128,7 @@ test("owned public adapters pass windowsHide at every mapped Node child-process 
 });
 
 test("external editor remains the explicit interactive exemption", async () => {
-	const shell = await import("../extensions/gentle-shell.ts");
+	const shell = await import("../extensions/nubia-shell.ts");
 	let received: Options | undefined;
 	const host = { stop() {}, start() {}, requestRender() {} };
 	assert.equal(shell.openInExternalEditor(host, "editor.txt", { EDITOR: "fixture-editor" }, ((_command: string, _args: readonly string[], options: Options) => {

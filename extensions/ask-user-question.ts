@@ -35,7 +35,7 @@ interface QuestionnaireToolResult {
  * Invalid-parameter result. `AgentToolResult` has no `isError` field, so this
  * follows the repository convention for rejected tool input: a leading error
  * sentence in `content` plus a machine-readable payload in `details`
- * (`extensions/gentle-todo.ts` returns `Error: ...` with `details.error`).
+ * (`extensions/nubia-todo.ts` returns `Error: ...` with `details.error`).
  */
 function invalidQuestionnaireResult(error: QuestionnaireError): QuestionnaireToolResult {
 	return {

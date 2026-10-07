@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CustomEditor } from "@earendil-works/pi-coding-agent";
-import { GentlePromptEditor } from "../extensions/gentle-shell.ts";
+import { GentlePromptEditor } from "../extensions/nubia-shell.ts";
 import { SelectionEngine } from "../lib/selection-engine.ts";
 import { decodePrintableKey } from "../lib/pi-tui-keys.ts";
 import { CURSOR_MARKER, visibleWidth, type TuiMouseEvent } from "@earendil-works/pi-tui";

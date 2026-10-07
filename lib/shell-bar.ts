@@ -439,7 +439,7 @@ export function renderShellBottomOnlyBar(model: ShellBarModel, theme: ShellBarTh
 
 // The rule row painted directly under the header bar: one full-width horizontal
 // line in the same theme role as the editor frame (PROMPT_FRAME_ROLE in
-// extensions/gentle-shell.ts), so the status row and the prompt read as one
+// extensions/nubia-shell.ts), so the status row and the prompt read as one
 // panel. It exists only while the fullscreen sidebar is active — when the
 // sidebar is not shown the header rail never renders and the rule goes away
 // with it.

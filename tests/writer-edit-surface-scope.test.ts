@@ -7,7 +7,7 @@ import type {
 	ExtensionAPI,
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
 
 // ---------------------------------------------------------------------------
 // Bounded writer edit-surface scope guard (issue #484).

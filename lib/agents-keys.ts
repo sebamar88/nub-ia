@@ -1,6 +1,6 @@
 // Shortcut helpers for the Gentle Agents view. Pure (no Pi API), so both
-// extensions/gentle-agents.ts (which owns the view) and other extensions
-// that only need the key mapping (extensions/gentle-shell.ts, for the
+// extensions/nubia-agents.ts (which owns the view) and other extensions
+// that only need the key mapping (extensions/nubia-shell.ts, for the
 // command palette's shortcut hints) can depend on it without importing one
 // another.
 

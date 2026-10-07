@@ -14,7 +14,7 @@ import {
 	planResumeHint,
 	resumeHandoffFromSession,
 	serializeResumeHandoff,
-} from "../lib/gentle-shell-resume-hint.ts";
+} from "../lib/nubia-resume-hint.ts";
 
 const ID = "01a0e0a0-6d7b-7314-89c1-537d47bbf4f3";
 const AGENT_DIR = resolve("/home/u/.nub-ia/agent");

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync }
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { applySavedModelConfig, readModelConfig, readModelConfigAsync } from "../extensions/gentle-ai.ts";
+import { applySavedModelConfig, readModelConfig, readModelConfigAsync } from "../extensions/nubia-harness.ts";
 
 test("model routing authority normalizes and preserves sync/async source status", async (t) => {
 	const loaded = await import("../lib/model-routing-authority.ts").then(

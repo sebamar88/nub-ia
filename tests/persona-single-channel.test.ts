@@ -2,21 +2,21 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { __testing } from "../extensions/gentle-ai.ts";
+import { __testing } from "../extensions/nubia-harness.ts";
 import { readDelegationDetail } from "./support/orchestrator-modules.ts";
 
 // ---------------------------------------------------------------------------
 // persona-single-channel migration test
 //
-// Freezes the pre-change wrapper (gentle-ai.ts) and orchestrator.md text as
+// Freezes the pre-change wrapper (nubia-harness.ts) and orchestrator.md text as
 // verbatim string-literal fixtures (from HEAD, BEFORE this change), then
 // proves the union survives in the LIVE post-change combined injection
 // (`__testing.buildGentlePrompt(persona)`, which calls `getOrchestratorPrompt()`
 // internally and reads `assets/orchestrator.md` from disk, memoized for the
-// lifetime of the process — see gentle-ai.ts:118-133).
+// lifetime of the process — see nubia-harness.ts:118-133).
 //
 // DO NOT edit the PRE_* fixtures to make this test pass — they document the
-// pre-change reality. Only the canonical block (gentle-ai.ts / orchestrator.md)
+// pre-change reality. Only the canonical block (nubia-harness.ts / orchestrator.md)
 // or the extraction/assertions below may change.
 // ---------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ function readOrchestratorMdRaw(): string {
 // PRE_* fixtures — frozen verbatim from HEAD before this change
 // ---------------------------------------------------------------------------
 
-/** gentle-ai.ts :179-184 — wrapper Identity contract block, pre-change (438 B). */
+/** nubia-harness.ts :179-184 — wrapper Identity contract block, pre-change (438 B). */
 const PRE_WRAPPER_IDENTITY_BLOCK = `Identity contract:
 - If the user asks who or what you are, answer as el Gentleman, not as a generic assistant.
 - Say you are a Pi-specific coding-agent harness with senior architect persona.
@@ -41,7 +41,7 @@ const PRE_WRAPPER_IDENTITY_BLOCK = `Identity contract:
 - Do not claim portability outside the Pi runtime.
 `;
 
-/** gentle-ai.ts :173-198 — full wrapper static template, pre-change, rendered for "gentleman". */
+/** nubia-harness.ts :173-198 — full wrapper static template, pre-change, rendered for "gentleman". */
 const PRE_WRAPPER_GENTLEMAN = `## el Gentleman Identity and Harness
 
 Current persona mode: gentleman
@@ -69,7 +69,7 @@ Harness principles:
 - Protect the human reviewer: avoid oversized changes, surface review workload risk, and ask before turning one task into a large multi-area change.
 - Never claim persistent memory is available because of this package. Memory is provided by separate packages or MCP tools when installed and callable.`;
 
-/** gentle-ai.ts :173-198 — full wrapper static template, pre-change, rendered for "neutral". */
+/** nubia-harness.ts :173-198 — full wrapper static template, pre-change, rendered for "neutral". */
 const PRE_WRAPPER_NEUTRAL = `## el Gentleman Identity and Harness
 
 Current persona mode: neutral
@@ -142,7 +142,7 @@ Exceptions:
 // text"), frozen here so the apply commit and this test move together.
 // ---------------------------------------------------------------------------
 
-/** design.md "Wrapper Identity contract" — replaces gentle-ai.ts :179-184 (817 B). */
+/** design.md "Wrapper Identity contract" — replaces nubia-harness.ts :179-184 (817 B). */
 const POST_WRAPPER_IDENTITY_BLOCK = `Identity contract:
 - When the user asks who or what you are, answer as el Gentleman, not as a generic assistant, and never introduce yourself as only "your assistant" or "the default assistant". Convey this meaning, translated into the user's language: "I am el Gentleman: a Pi-specific coding-agent harness for controlled development, with a senior architect persona. I work with SDD/OpenSpec when the task justifies it, coordinate subagents, use phase artifacts, run commands, and edit files. I am not a generic chatbot."
 - Follow the currently selected persona mode.
@@ -209,7 +209,7 @@ test("fixture integrity: PRE byte counts match design.md judge-measured figures"
 	assert.equal(
 		Buffer.byteLength(PRE_WRAPPER_IDENTITY_BLOCK),
 		PRE_WRAPPER_BYTES,
-		"PRE_WRAPPER_IDENTITY_BLOCK must equal the judge-measured 438 B (gentle-ai.ts:179-184)",
+		"PRE_WRAPPER_IDENTITY_BLOCK must equal the judge-measured 438 B (nubia-harness.ts:179-184)",
 	);
 	assert.equal(
 		Buffer.byteLength(PRE_ORCH_IDENTITY),

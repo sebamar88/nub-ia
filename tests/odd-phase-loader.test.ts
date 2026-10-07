@@ -24,8 +24,8 @@ test("a child process cannot overwrite the primary process phase even with the s
 test("separate extension loaders share only the active session's ODD phase and redraw", async () => {
 	const aiLoader = createJiti(import.meta.url, { moduleCache: false });
 	const shellLoader = createJiti(import.meta.url, { moduleCache: false });
-	const { createGentleAiExtension } = await aiLoader.import<typeof import("../extensions/gentle-ai.ts")>("../extensions/gentle-ai.ts");
-	const { default: shell } = await shellLoader.import<typeof import("../extensions/gentle-shell.ts")>("../extensions/gentle-shell.ts");
+	const { createGentleAiExtension } = await aiLoader.import<typeof import("../extensions/nubia-harness.ts")>("../extensions/nubia-harness.ts");
+	const { default: shell } = await shellLoader.import<typeof import("../extensions/nubia-shell.ts")>("../extensions/nubia-shell.ts");
 	const aiRegistry = (await aiLoader.import<typeof import("../lib/odd-phase.ts")>("../lib/odd-phase.ts")).oddPhaseRegistry;
 	const shellRegistry = (await shellLoader.import<typeof import("../lib/odd-phase.ts")>("../lib/odd-phase.ts")).oddPhaseRegistry;
 	const tools = new Map<string, {
@@ -149,8 +149,8 @@ test("separate extension loaders share only the active session's ODD phase and r
 test("tool activity in the primary session drives the working label across extension loaders", async () => {
 	const aiLoader = createJiti(import.meta.url, { moduleCache: false });
 	const shellLoader = createJiti(import.meta.url, { moduleCache: false });
-	const { createGentleAiExtension } = await aiLoader.import<typeof import("../extensions/gentle-ai.ts")>("../extensions/gentle-ai.ts");
-	const { default: shell } = await shellLoader.import<typeof import("../extensions/gentle-shell.ts")>("../extensions/gentle-shell.ts");
+	const { createGentleAiExtension } = await aiLoader.import<typeof import("../extensions/nubia-harness.ts")>("../extensions/nubia-harness.ts");
+	const { default: shell } = await shellLoader.import<typeof import("../extensions/nubia-shell.ts")>("../extensions/nubia-shell.ts");
 	const registry = (await aiLoader.import<typeof import("../lib/odd-phase.ts")>("../lib/odd-phase.ts")).oddPhaseRegistry;
 	const tools = new Map<string, { execute: (...args: unknown[]) => Promise<unknown> }>();
 	const handlers = new Map<string, Array<(event: unknown, ctx: unknown) => unknown>>();

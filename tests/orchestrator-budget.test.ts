@@ -52,7 +52,7 @@ function copyRequiredLazyAssets(destination: string): void {
 
 const representativeProductionAssetsDir = mkdtempSync(join(tmpdir(), "gp-b-"));
 copyRequiredLazyAssets(representativeProductionAssetsDir);
-const { __testing } = await import("../extensions/gentle-ai.ts");
+const { __testing } = await import("../extensions/nubia-harness.ts");
 
 // A controlled long assets root proves the parent prompt remains within the
 // canonical budget independently of the checkout or installed-package path.

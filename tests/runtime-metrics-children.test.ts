@@ -27,7 +27,7 @@ const event = (taskId = "local-task") => childEvent("local-session", taskId, lau
 test("installed package definitions retain classification after the actual routing transform", () => {
 	// The installer copies packaged agent assets verbatim on first install.
 	// Isolate the real pure routing writer; do not run an installer or read user agents.
-	const source = readFileSync(new URL("../extensions/gentle-ai.ts", import.meta.url), "utf8");
+	const source = readFileSync(new URL("../extensions/nubia-harness.ts", import.meta.url), "utf8");
 	const transform = source.match(/function updateFrontmatterRouting\([\s\S]*?\n\}/)?.[0];
 	assert.ok(transform);
 	const route = runInNewContext(`(${stripTypeScriptTypes(transform)})`);

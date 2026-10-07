@@ -404,7 +404,7 @@ test("createRpcActivityPublisher stop unsubscribes everything and publishes exac
 // `parentSessionId` is a value captured at construction, not a live getter.
 // Honoring a mid-process session switch (a resumed/new/forked session) is
 // the caller's job: stop the old publisher and construct a new one scoped
-// to the new session id, exactly as `extensions/gentle-agents.ts` does on
+// to the new session id, exactly as `extensions/nubia-agents.ts` does on
 // every `session_start`. This locks in that only the newly scoped publisher
 // ever sees the other session's tasks.
 test("createRpcActivityPublisher recreated with a new parentSessionId after a session switch publishes only the new session's tasks", () => {

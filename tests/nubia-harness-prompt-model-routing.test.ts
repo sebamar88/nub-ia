@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after, before } from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension, __testing } from "../extensions/gentle-ai.ts";
+import { createGentleAiExtension, __testing } from "../extensions/nubia-harness.ts";
 
 // gentle-shell#1731 T24 (L49): the cost reason is off, so the harness no
 // longer injects the orchestrator/worker "Model routing" price ratio, even

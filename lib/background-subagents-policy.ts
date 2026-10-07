@@ -6,8 +6,8 @@ import { configReadPath, projectConfigReadPath, readEnv } from "./config-home.ts
 // ---------------------------------------------------------------------------
 // Background subagents policy — project > global > env > default off
 //
-// Pure resolver, extracted from extensions/gentle-ai.ts so the runtime side
-// (extensions/gentle-agents.ts) can read the effective policy without
+// Pure resolver, extracted from extensions/nubia-harness.ts so the runtime side
+// (extensions/nubia-agents.ts) can read the effective policy without
 // importing the pi extension surface. No pi imports belong in this file.
 // ---------------------------------------------------------------------------
 

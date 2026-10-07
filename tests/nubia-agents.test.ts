@@ -14,7 +14,7 @@ import { generateUnifiedPatch, type ExtensionAPI, type ExtensionContext } from "
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
 import { visibleWidth, type TUI, type TuiMouseEvent } from "@earendil-works/pi-tui";
 import { sidebarState } from "../lib/shell-sidebar.ts";
-import gentleAgents, { agentRuntimePaths, agentsCollapseKey, agentsEnabled, agentsStopKey, agentsViewKey, agentResultPreview, answerThroughUi, childContextExtensionPaths, completionText, createDefaultSessionTransport, legacySubagentsInstalled, PARENT_WAKE_GRACE_MS, type AgentsDeps, type SessionTransportFactory } from "../extensions/gentle-agents.ts";
+import gentleAgents, { agentRuntimePaths, agentsCollapseKey, agentsEnabled, agentsStopKey, agentsViewKey, agentResultPreview, answerThroughUi, childContextExtensionPaths, completionText, createDefaultSessionTransport, legacySubagentsInstalled, PARENT_WAKE_GRACE_MS, type AgentsDeps, type SessionTransportFactory } from "../extensions/nubia-agents.ts";
 import { ActiveSessionClient, ActiveSessionListener, SessionPresenceRegistry } from "../lib/agents-session-transport.ts";
 import { WindowsActiveSessionClient, WindowsActiveSessionListener } from "../lib/windows-session-transport.ts";
 import { historyDir, loadHistory, saveTask } from "../lib/agents-history.ts";
@@ -1679,7 +1679,7 @@ async function childSessionEditEvidence(root: string, relPath: string, toolCallI
 // child and parent sides (not the trivial path-echoing stub the other
 // fixtures in this file use), a real child tool_call/tool_result pair
 // producing the session-change evidence, and the real onSuccessfulMutation
-// guard chain in extensions/gentle-agents.ts, round-tripped through actual
+// guard chain in extensions/nubia-agents.ts, round-tripped through actual
 // JSON serialization the same way agents-fake-child.ts's emit() does for
 // every other test here. With every guard input constructed faithfully, the
 // relay fires correctly: parentSessionId/ownedTaskIds, root === childRoot,
@@ -1688,7 +1688,7 @@ async function childSessionEditEvidence(root: string, relPath: string, toolCallI
 //
 // The one drop this file could reproduce was a test-harness gap, not a
 // product bug: SessionWorktreeRegistry.start() is never called for this
-// extension's own registry (registryFor() in extensions/gentle-agents.ts),
+// extension's own registry (registryFor() in extensions/nubia-agents.ts),
 // so worktrees.roots() is empty until some subagent's onLaunch callback
 // registers a root on the real child process's "spawn" event. In production
 // that event always fires before any tool call can complete, so the root is

@@ -1,5 +1,5 @@
 ---
-name: gentle-ai
+name: nubia
 description: "Use the Nub-IA harness discipline for Pi work: clarify first, track ODD work, use applicable test-first development by default, delegate when useful, and protect review workload."
 ---
 

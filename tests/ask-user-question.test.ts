@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import askUserQuestion, { askMultiSelect } from "../extensions/ask-user-question.ts";
-import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
 
 /** Plain theme fake: identity styling keeps rendered assertions readable. */
 interface Theme {

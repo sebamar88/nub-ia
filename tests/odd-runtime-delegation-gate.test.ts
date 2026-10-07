@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
 
 test("a second direct file is not refused based on session write history", async () => {
 	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-odd-direct-"));

@@ -24,7 +24,7 @@ import test from "node:test";
 // Integration tests for the thin bin/nub-ia.mjs entry: they run the real
 // file via spawnSync with an isolated HOME and a fake pi script standing in for
 // the real @earendil-works/pi-coding-agent runtime, so the launcher's own logic
-// (already covered at the unit level in tests/gentle-shell-launcher.test.ts)
+// (already covered at the unit level in tests/nubia-launcher.test.ts)
 // gets exercised end-to-end through real argv, env, and child-process wiring.
 
 const binUrl = new URL("../bin/nub-ia.mjs", import.meta.url);
@@ -32,10 +32,10 @@ const binPath = fileURLToPath(binUrl);
 const packageRoot = dirname(dirname(binPath));
 
 test("Herdr activity is discoverable through the isolated launcher package", async () => {
-	const { buildPiInvocation } = await import("../lib/gentle-shell-launcher.ts");
+	const { buildPiInvocation } = await import("../lib/nubia-launcher.ts");
 	const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
 	assert.ok(manifest.pi.extensions.includes("./extensions"));
-	assert.ok(existsSync(join(packageRoot, "extensions", "gentle-herdr-activity.ts")));
+	assert.ok(existsSync(join(packageRoot, "extensions", "nubia-herdr-activity.ts")));
 	for (const takeOver of [false, true]) {
 		const invocation = buildPiInvocation({
 			runtime: { kind: "path", command: "fake-pi", args: [] },
@@ -1971,7 +1971,7 @@ test("--link take-over treats a file named `extensions` as not a loose extension
 	assert.deepEqual(payload.args, ["--no-extensions", "-e", packageRoot]);
 });
 
-// --- resume-hint handoff (lib/gentle-shell-resume-hint.ts) ----------------------
+// --- resume-hint handoff (lib/nubia-resume-hint.ts) ----------------------
 
 // A stand-in pi that writes a resume handoff like extensions/resume-hint.ts
 // does, prints pi's own exit hint, and exits with the given code.

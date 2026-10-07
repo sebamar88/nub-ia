@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { __testing } from "../extensions/gentle-ai.ts";
+import { __testing } from "../extensions/nubia-harness.ts";
 import { readDelegationDetail } from "./support/orchestrator-modules.ts";
 
 // These are instruction-delivery contracts, not proof of autonomous model adherence.
@@ -10,7 +10,7 @@ const read = (path: string) => readFileSync(join(import.meta.dirname, "..", path
 const core = read("assets/orchestrator.md");
 const delegation = readDelegationDetail();
 const memory = read("assets/orchestrator-memory.md");
-const wrapper = read("extensions/gentle-ai.ts");
+const wrapper = read("extensions/nubia-harness.ts");
 
 function containsAll(text: string, clauses: readonly string[]): void {
 	for (const clause of clauses) assert.ok(text.includes(clause), `missing contract: ${clause}`);
@@ -252,7 +252,7 @@ test("ODD defaults to applicable test-first without chat or TUI activation", () 
 	const worker = read("assets/agents/gentle-ai-worker.md");
 	const verify = read("assets/agents/gentle-ai-verify.md");
 	const support = read("assets/support/strict-tdd.md") + read("assets/support/strict-tdd-verify.md");
-	const skill = read("skills/gentle-ai/SKILL.md");
+	const skill = read("skills/nubia/SKILL.md");
 	for (const text of [core, delegation, worker, verify, support, skill, wrapper]) {
 		containsAll(text, ["applicable", "RED", "GREEN"]);
 		assert.doesNotMatch(text, /(?:configured TDD mode|Strict TDD Mode is enabled|explicit user choice|test presence does not enable it|tests existing does not activate it)/i);
@@ -340,7 +340,7 @@ test("evidence-budget numbers agree across routing surfaces and retired triggers
 	const surfaces: Record<string, string> = {
 		"assets/orchestrator.md": core,
 		"assets/orchestrator-delegation.md": delegation,
-		"skills/gentle-ai/SKILL.md": read("skills/gentle-ai/SKILL.md"),
+		"skills/nubia/SKILL.md": read("skills/nubia/SKILL.md"),
 	};
 	for (const [path, text] of Object.entries(surfaces)) {
 		containsAll(text, [
@@ -394,7 +394,7 @@ test("ODD protocol is always-on in the rendered system prompt and runs by defaul
 
 	assert.ok(
 		wrapper.includes("Organic Driven Development (ODD) is the predefined workflow for every request"),
-		"missing contract: extensions/gentle-ai.ts harness principle",
+		"missing contract: extensions/nubia-harness.ts harness principle",
 	);
 	// The parent owns the injected identity; its migration is outside this suite's edit surface.
 	assert.ok(

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { __testing } from "../extensions/gentle-ai.ts";
+import { __testing } from "../extensions/nubia-harness.ts";
 import { readDelegationDetail } from "./support/orchestrator-modules.ts";
 
 // gentle-shell#1494: task size is decided by understanding, risk, and whether
@@ -15,8 +15,8 @@ const read = (relative: string): string => readFileSync(join(REPO_ROOT, relative
 
 const core = read("assets/orchestrator.md");
 const delegation = readDelegationDetail();
-const skill = read("skills/gentle-ai/SKILL.md");
-const extension = read("extensions/gentle-ai.ts");
+const skill = read("skills/nubia/SKILL.md");
+const extension = read("extensions/nubia-harness.ts");
 
 function sectionOf(text: string, heading: string): string {
 	const start = text.indexOf(heading);

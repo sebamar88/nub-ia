@@ -631,7 +631,7 @@ async function testHookedPackedRunner() {
 	assert.equal(existsSync(join(installDirectory, ".pi", "settings.json")), false);
 	const packageRoot = join(installDirectory, "node_modules", "nub-ia");
 	assert.ok(existsSync(join(packageRoot, "scripts", "install-tui-mode-setting.mjs")));
-	for (const bundled of ["bin/nub-ia.mjs", "assets/nub-ia-logo.png", "scripts/rtk-installer.mjs", "scripts/install-rtk.mjs", "extensions/nub-ia-review.ts", "runtime/gentle-shell-launcher.mjs"]) {
+	for (const bundled of ["bin/nub-ia.mjs", "assets/nub-ia-logo.png", "scripts/rtk-installer.mjs", "scripts/install-rtk.mjs", "extensions/nub-ia-review.ts", "runtime/nubia-launcher.mjs"]) {
 		assert.ok(existsSync(join(packageRoot, bundled)), `packed package is missing ${bundled}`);
 	}
 	const help = execFileSync(process.execPath, [join(packageRoot, "bin", "nub-ia.mjs"), "--help"], { encoding: "utf8", env: isolatedEnv });
@@ -779,8 +779,8 @@ const HASHED_PACKED_ASSETS = [
 	{ ownedCheckId: "asset-runtime-windows-session-transport-owned", hashCheckId: "asset-runtime-windows-session-transport-hash", relativePath: "runtime/windows-session-transport.ps1" },
 	{ ownedCheckId: "asset-lib-windows-session-transport-owned", hashCheckId: "asset-lib-windows-session-transport-hash", relativePath: "lib/windows-session-transport.ts" },
 	{ ownedCheckId: "asset-lib-agents-session-transport-owned", hashCheckId: "asset-lib-agents-session-transport-hash", relativePath: "lib/agents-session-transport.ts" },
-	{ ownedCheckId: "asset-extension-gentle-agents-owned", hashCheckId: "asset-extension-gentle-agents-hash", relativePath: "extensions/gentle-agents.ts" },
-	{ ownedCheckId: "asset-extension-gentle-ai-owned", hashCheckId: "asset-extension-gentle-ai-hash", relativePath: "extensions/gentle-ai.ts" },
+	{ ownedCheckId: "asset-extension-gentle-agents-owned", hashCheckId: "asset-extension-gentle-agents-hash", relativePath: "extensions/nubia-agents.ts" },
+	{ ownedCheckId: "asset-extension-gentle-ai-owned", hashCheckId: "asset-extension-gentle-ai-hash", relativePath: "extensions/nubia-harness.ts" },
 	{ ownedCheckId: "asset-installer-tui-mode-setting-owned", hashCheckId: "asset-installer-tui-mode-setting-hash", relativePath: "scripts/install-tui-mode-setting.mjs" },
 ];
 
@@ -875,8 +875,8 @@ async function register(relativePath) {
   assert.equal(typeof factory, "function", \`missing default extension factory: \${relativePath}\`);
   await factory(pi);
 }
-await register("extensions/gentle-agents.ts");
-await register("extensions/gentle-ai.ts");
+await register("extensions/nubia-agents.ts");
+await register("extensions/nubia-harness.ts");
 for (const name of ["subagent_list_agents", "subagent_run", "orchestrator_session_id", "orchestrator_list", "orchestrator_send_message", "gentle_odd_phase"]) assert.ok(registrations.tools.includes(name), \`missing registered tool: \${name}\`);
 for (const name of ["nubia:agents", "nubia:status", "nubia:doctor"]) assert.ok(registrations.commands.includes(name), \`missing registered command: \${name}\`);
 assert.ok(registrations.events.includes("session_start"), "expected session_start registration");
@@ -1191,8 +1191,8 @@ try {
   const { createJiti } = await within(load(import(pathToFileURL(${JSON.stringify(jitiStaticEntry)}).href)), 30000);
   assert.equal(typeof createJiti, "function", "Jiti static export is unavailable");
   const jiti = createJiti(pathToFileURL(${JSON.stringify(consumerPackageJson)}).href, { moduleCache: false });
-  const agentsExtensionPath = join(${JSON.stringify(packageRoot)}, "extensions", "gentle-agents.ts");
-  const gentleAiExtensionPath = join(${JSON.stringify(packageRoot)}, "extensions", "gentle-ai.ts");
+  const agentsExtensionPath = join(${JSON.stringify(packageRoot)}, "extensions", "nubia-agents.ts");
+  const gentleAiExtensionPath = join(${JSON.stringify(packageRoot)}, "extensions", "nubia-harness.ts");
   checkpoint("agents-module-load", "agents-module-import");
   const { createDefaultSessionTransport } = await within(load(jiti.import(pathToFileURL(agentsExtensionPath).href)), 30000);
   checkpoint("agents-module-load", "agents-module-export");

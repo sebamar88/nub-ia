@@ -5,12 +5,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { visibleWidth, type Component } from "@earendil-works/pi-tui";
 import { getThemeByName } from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
-import gentleShell from "../extensions/gentle-shell.ts";
+import gentleShell from "../extensions/nubia-shell.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 import { createEventBus, createExtensionRuntime, ExtensionRunner, SessionManager, type ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import { loadExtensionFromFactory } from "../node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/loader.js";
 import { discoverYoloUiAdapter, registerYoloSessionPolicy, YOLO_STATUS_KEY, YOLO_STATUS_TEXT } from "../lib/yolo-session-policy.ts";
-import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
 
 test("complete Gentle AI extension registers and executes YOLO through the actual SDK loader", async () => {
 	const cwd = process.cwd();

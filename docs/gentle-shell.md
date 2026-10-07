@@ -4,7 +4,7 @@ La shell de Nub-IA es el espacio de trabajo de coding-agent del equipo de Nubira
 
 Para desarrollar usá [ODD y recuperación de features](readme-reference.md#organic-driven-development) (Organic Driven Development). El TDD sigue el modo configurado, y antes de entregar corre el review 4R `nub_review`.
 
-Mapa de fuentes: [extensión de la shell](../extensions/gentle-shell.ts), [barra](../lib/shell-bar.ts), [modelo de cambios](../lib/shell-changes.ts), [vista de cambios](../lib/shell-changes-view.ts), [uso](../lib/shell-usage.ts), [extensión de agentes](../extensions/gentle-agents.ts) y [runner de agentes](../lib/agents-runner.ts).
+Mapa de fuentes: [extensión de la shell](../extensions/nubia-shell.ts), [barra](../lib/shell-bar.ts), [modelo de cambios](../lib/shell-changes.ts), [vista de cambios](../lib/shell-changes-view.ts), [uso](../lib/shell-usage.ts), [extensión de agentes](../extensions/nubia-agents.ts) y [runner de agentes](../lib/agents-runner.ts).
 
 ## Requisitos
 
@@ -43,7 +43,7 @@ El prompt sigue el estilo de card elegido (`neon` enmarca el editor con borde re
 Changes muestra **las operaciones write/edit capturadas de esta sesión y de sus subagentes**. No escanea el repo al iniciar, no lee archivos sin trackear y no hace polling de archivos vivos.
 
 ```text
-✎ 3 files · +42 −7 · extensions/gentle-shell.ts, lib/shell-bar.ts, tests/x.test.ts · /nubia:changes
+✎ 3 files · +42 −7 · extensions/nubia-shell.ts, lib/shell-bar.ts, tests/x.test.ts · /nubia:changes
 ```
 
 - Un worktree aparece recién tras una mutación exitosa capturada. Leer, abrir un directorio o lanzar un hijo no cuenta.

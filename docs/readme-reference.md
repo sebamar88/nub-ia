@@ -30,7 +30,7 @@ pnpm link --global    # expone el comando `nub-ia`
 nub-ia                # primera ejecución: provisiona ~/.nub-ia/agent
 ```
 
-El comando `nub-ia` (`bin/nub-ia.mjs`, envoltorio de `lib/gentle-shell-launcher.ts`) abre Pi con el paquete cargado sin tocar tu instalación de Pi.
+El comando `nub-ia` (`bin/nub-ia.mjs`, envoltorio de `lib/nubia-launcher.ts`) abre Pi con el paquete cargado sin tocar tu instalación de Pi.
 
 ```text
 nub-ia [opciones] [-- pi-args...]
@@ -271,11 +271,13 @@ El `postinstall` (`scripts/install-rtk.mjs`) descarga la release pinneada para t
 
 ## Paquetes del equipo y skills
 
-`nub-ia setup` (y el primer arranque automático) instala los paquetes de `TEAM_PACKAGE_SOURCES` (`lib/gentle-shell-launcher.ts`). Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail) (`npm:@dietrichgebert/ponytail`; modo "senior perezoso": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`, `/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. `GENTLE_SHELL_TEAM_PACKAGES="npm:a,git:github.com/x/y"` reemplaza la lista (vacío = ninguno).
+`nub-ia setup` (y el primer arranque automático) instala los paquetes de `TEAM_PACKAGE_SOURCES` (`lib/nubia-launcher.ts`). Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail) (`npm:@dietrichgebert/ponytail`; modo "senior perezoso": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`, `/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. `GENTLE_SHELL_TEAM_PACKAGES="npm:a,git:github.com/x/y"` reemplaza la lista (vacío = ninguno).
 
 El paquete trae skills de entrega y review bajo `skills/`: `branch-pr`, `chained-pr`, `work-unit-commits`, `cognitive-doc-design`, `comment-writer`, `issue-creation`, `judgment-day`, `skill-creator`, `skill-improver` y `skill-registry`. `/skill-registry:refresh` regenera `.atl/skill-registry.md`, un índice (el `SKILL.md` es la fuente de verdad).
 
-Compatibilidad: el paquete conserva las carpetas de skills existentes (`skills/branch-pr`, `skills/cognitive-doc-design`, `skills/comment-writer`, `skills/judgment-day`, `skills/skill-creator`, `skills/skill-registry` y `skills/work-unit-commits`) pero sus nombres de frontmatter exportados llevan prefijo para no colisionar con skills del usuario. Treat former package names such as `branch-pr`, `cognitive-doc-design`, `comment-writer`, `judgment-day`, `skill-creator`, `skill-registry`, and `work-unit-commits` as legacy aliases in prose; runtime skill selection should use `gentle-ai-branch-pr`, `gentle-ai-cognitive-doc-design`, `gentle-ai-comment-writer`, `gentle-ai-judgment-day`, `gentle-ai-skill-creator`, `gentle-ai-skill-registry`, and `gentle-ai-work-unit-commits`.
+Compatibilidad: el paquete conserva las carpetas de skills existentes (`skills/branch-pr`, `skills/cognitive-doc-design`, `skills/comment-writer`, `skills/judgment-day`, `skills/skill-creator`, `skills/skill-registry` y `skills/work-unit-commits`) pero sus nombres de frontmatter exportados llevan prefijo para no colisionar con skills del usuario. Treat former package names such as `branch-pr`, `cognitive-doc-design`, `comment-writer`, `judgment-day`, `skill-creator`, `skill-registry`, and `work-unit-commits` as legacy aliases in prose; runtime skill selection should use `nubia-branch-pr`, `nubia-cognitive-doc-design`, `nubia-comment-writer`, `nubia-judgment-day`, `nubia-skill-creator`, `nubia-skill-registry`, and `nubia-work-unit-commits`.
+
+Legacy names `gentle-ai` and `gentle-ai-<x>` (e.g. `gentle-ai-judgment-day`) were renamed to `nubia` and `nubia-<x>`; treat any `gentle-ai*` skill reference found in user repos as an alias of the matching `nubia*` skill.
 
 ## Variables de entorno
 

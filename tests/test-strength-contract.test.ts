@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { __testing } from "../extensions/gentle-ai.ts";
+import { __testing } from "../extensions/nubia-harness.ts";
 
 // gentle-shell#1731 T26 (L54): in the final bench blind review of x2, the
 // Gentle Shell inline solutions ranked below Codex on tests: they skipped the

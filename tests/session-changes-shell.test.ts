@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import shell from "../extensions/gentle-shell.ts";
+import shell from "../extensions/nubia-shell.ts";
 import { SESSION_CHANGE_ENTRY, SESSION_CHANGE_EVENT } from "../lib/session-changes.ts";
 
 function fixture(entries: any[] = []) {

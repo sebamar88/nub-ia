@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { createChildSafetyExtension } from "../extensions/child-safety.ts";
-import { createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
 
 type Handler = (event: { toolName: string; input: { command: string } }, ctx: ExtensionContext) => unknown;
 function harness(child: boolean, primary = false) {

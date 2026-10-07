@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { __testing } from "../extensions/gentle-ai.ts";
+import { __testing } from "../extensions/nubia-harness.ts";
 
 // These tests assert that the composed main-agent prompt (built by buildGentlePrompt)
 // does not encourage Rioplatense voseo in neutral mode, and does include the expected

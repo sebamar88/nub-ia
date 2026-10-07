@@ -14,7 +14,7 @@ import type {
 	ExtensionAPI,
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { __testing, createGentleAiExtension } from "../extensions/gentle-ai.ts";
+import { __testing, createGentleAiExtension } from "../extensions/nubia-harness.ts";
 
 // ---------------------------------------------------------------------------
 // Background subagents policy (issue #256).

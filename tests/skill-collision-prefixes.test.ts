@@ -12,19 +12,19 @@ function readSkillName(dir: string): string | undefined {
 }
 
 const PREFIXED_NAMES: Record<string, string> = {
-	"branch-pr": "gentle-ai-branch-pr",
-	"chained-pr": "gentle-ai-chained-pr",
-	"cognitive-doc-design": "gentle-ai-cognitive-doc-design",
-	"comment-writer": "gentle-ai-comment-writer",
-	"issue-creation": "gentle-ai-issue-creation",
-	"judgment-day": "gentle-ai-judgment-day",
-	"skill-creator": "gentle-ai-skill-creator",
-	"skill-improver": "gentle-ai-skill-improver",
-	"skill-registry": "gentle-ai-skill-registry",
-	"work-unit-commits": "gentle-ai-work-unit-commits",
+	"branch-pr": "nubia-branch-pr",
+	"chained-pr": "nubia-chained-pr",
+	"cognitive-doc-design": "nubia-cognitive-doc-design",
+	"comment-writer": "nubia-comment-writer",
+	"issue-creation": "nubia-issue-creation",
+	"judgment-day": "nubia-judgment-day",
+	"skill-creator": "nubia-skill-creator",
+	"skill-improver": "nubia-skill-improver",
+	"skill-registry": "nubia-skill-registry",
+	"work-unit-commits": "nubia-work-unit-commits",
 };
 
-const UNPREFIXED_DIRS = ["gentle-ai"];
+const UNPREFIXED_DIRS = ["nubia"];
 
 for (const [dir, expectedName] of Object.entries(PREFIXED_NAMES)) {
 	test(`skills/${dir}/SKILL.md frontmatter name is prefixed`, () => {
@@ -35,9 +35,9 @@ for (const [dir, expectedName] of Object.entries(PREFIXED_NAMES)) {
 test("technical reference documents legacy skill-name compatibility aliases", () => {
 	const readme = readFileSync(join(repoRoot, "docs", "readme-reference.md"), "utf8");
 	for (const [legacyName, prefixedName] of [
-		["branch-pr", "gentle-ai-branch-pr"],
-		["judgment-day", "gentle-ai-judgment-day"],
-		["skill-creator", "gentle-ai-skill-creator"],
+		["branch-pr", "nubia-branch-pr"],
+		["judgment-day", "nubia-judgment-day"],
+		["skill-creator", "nubia-skill-creator"],
 	] as const) {
 		assert.match(readme, new RegExp(`former package names such as[\\s\\S]*${legacyName}`));
 		assert.match(readme, new RegExp(`runtime skill selection should use[\\s\\S]*${prefixedName}`));

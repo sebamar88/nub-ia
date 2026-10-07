@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Thin process/fs/exec glue around lib/gentle-shell-launcher.ts (built to
-// runtime/gentle-shell-launcher.mjs). All decision logic — argv parsing, home
+// Thin process/fs/exec glue around lib/nubia-launcher.ts (built to
+// runtime/nubia-launcher.mjs). All decision logic — argv parsing, home
 // resolution, pi resolution order, the version gate, and the pi invocation —
 // lives in that pure, unit-tested module; this file only wires it to the real
 // process, filesystem, and child process.
@@ -51,14 +51,14 @@ import {
 	resolvePiRuntime,
 	restoreJsonField,
 	shellQuote,
-} from "../runtime/gentle-shell-launcher.mjs";
+} from "../runtime/nubia-launcher.mjs";
 import {
 	parseResumeHandoff,
 	planResumeHint,
 	RESUME_HANDOFF_DIR_PREFIX,
 	RESUME_HANDOFF_ENV,
 	RESUME_HANDOFF_FILE,
-} from "../runtime/gentle-shell-resume-hint.mjs";
+} from "../runtime/nubia-resume-hint.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -264,7 +264,7 @@ function managedHerdrExtensionArgs(home, args) {
 	return [];
 }
 
-// Real-fs adapter for discoverLooseExtensionEntries (lib/gentle-shell-launcher.ts):
+// Real-fs adapter for discoverLooseExtensionEntries (lib/nubia-launcher.ts):
 // statSync-based isFile/isDirectory (not readdirSync's Dirent, which uses
 // lstat and so would treat a symlinked file or directory as neither) so a
 // symlinked loose extension resolves the same way pi's own fs.existsSync-based
@@ -343,7 +343,7 @@ function resolveConfigPath() {
 }
 
 // Raw config.json as a plain object (see RawLauncherConfig in
-// lib/gentle-shell-launcher.ts): unlike parseLauncherConfig, this preserves
+// lib/nubia-launcher.ts): unlike parseLauncherConfig, this preserves
 // every key, so a write (home persistence, or the provisioning marker below)
 // never drops a key it does not itself understand.
 function readRawConfig(configPath) {
@@ -553,7 +553,7 @@ function readParsableJsonText(path) {
 // the install's own theme win. When the original truly declared a theme
 // (either that bootstrap default, or the user's own earlier choice),
 // whatever the install changed it to afterward is restored via the pure
-// restoreJsonField (lib/gentle-shell-launcher.ts). When the original had no
+// restoreJsonField (lib/nubia-launcher.ts). When the original had no
 // theme at all, there is nothing to restore, so DEFAULT_THEME_NAME is forced
 // instead via forceJsonFieldIfAbsentInOriginal, so a home still ends up
 // themed. Unlike the persona/state restores above, this is not a shared file
@@ -612,7 +612,7 @@ const BUILTIN_CODEMODE_EXTENSION = "builtin:codemode";
 // (`+`, `-`, `!`, or bare), which is the user's own decision. Keeps every
 // other key and entry in place, plus the text's own indentation and trailing
 // newline (same detection as detectJsonFormatting in
-// lib/gentle-shell-launcher.ts).
+// lib/nubia-launcher.ts).
 function withBuiltinExtensionExcluded(settingsText, builtin) {
 	let settings;
 	try {
@@ -686,7 +686,7 @@ async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
 	}
 }
 
-// Installs the team companion packages (lib/gentle-shell-launcher.ts
+// Installs the team companion packages (lib/nubia-launcher.ts
 // TEAM_PACKAGE_SOURCES) the home does not declare yet, via the resolved pi
 // runtime's own `install`, after the conflict cleanup so settings.json is
 
@@ -1256,7 +1256,7 @@ async function main() {
 	});
 }
 
-// Private temp dir for the resume-hint handoff (lib/gentle-shell-resume-hint.ts).
+// Private temp dir for the resume-hint handoff (lib/nubia-resume-hint.ts).
 // Best effort: if it cannot be created, only pi's own hint is printed.
 function createResumeHandoff() {
 	let dir;

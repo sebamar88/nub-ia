@@ -1,5 +1,5 @@
 ---
-name: gentle-ai-cognitive-doc-design
+name: nubia-cognitive-doc-design
 description: "Design docs that reduce cognitive load. Trigger: writing guides, READMEs, RFCs, onboarding, architecture, or review-facing docs."
 license: Apache-2.0
 metadata:

@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import ts from "typescript";
 import { fileURLToPath } from "node:url";
-import { applyModelConfig } from "../extensions/gentle-ai.ts";
+import { applyModelConfig } from "../extensions/nubia-harness.ts";
 import { resolveGentlePiAgentHome } from "../lib/agent-home.ts";
 import { getPackageAssetOwner, installPackageAssets, type PackageAssetOwner } from "../lib/agent-assets.ts";
 import { AUDITED_PI_EDITOR_VERSIONS } from "../lib/vim-editor-adapter.ts";
@@ -233,7 +233,7 @@ test("package verification excludes the retired init extension while retaining O
 	assert.equal(existsSync(join(PACKAGE_ROOT, "extensions", "sdd-init.ts")), false);
 	assert.doesNotMatch(verifier, /^\s*"extensions\/sdd-init\.ts",?$/m);
 	assert.match(verifier, /existsSync\(join\(root, "extensions\/sdd-init\.ts"\)\)/);
-	for (const resource of ["extensions/gentle-ai.ts", "extensions/skill-registry.ts", "assets/orchestrator.md", "assets/orchestrator-delegation.md", "assets/agents/gentle-ai-worker.md", "assets/agents/review-risk.md", "assets/chains/4r-review.chain.md"]) {
+	for (const resource of ["extensions/nubia-harness.ts", "extensions/skill-registry.ts", "assets/orchestrator.md", "assets/orchestrator-delegation.md", "assets/agents/gentle-ai-worker.md", "assets/agents/review-risk.md", "assets/chains/4r-review.chain.md"]) {
 		assert.ok(verifier.includes(`"${resource}"`), `${resource} must remain required`);
 	}
 });
@@ -252,7 +252,7 @@ test("package verification requires the runtime boundary and no longer names the
 
 
 test("Pi delivery relay is absent from the packaged extension", () => {
-	const extension = readFileSync(join(PACKAGE_ROOT, "extensions", "gentle-ai.ts"), "utf8");
+	const extension = readFileSync(join(PACKAGE_ROOT, "extensions", "nubia-harness.ts"), "utf8");
 
 	assert.doesNotMatch(extension, /review-publication-gate/);
 });
@@ -1668,7 +1668,7 @@ test("Nub-IA package manifest declares the fork identity and release version", (
 	assert.match(verifier, /assets\/migrations\/managed-assets-v0\.13\.json/);
 	assert.match(verifier, /assets\/migrations\/managed-assets-v0\.14\.json/);
 
-	const runtime = readFileSync(join(PACKAGE_ROOT, "extensions", "gentle-ai.ts"), "utf8");
+	const runtime = readFileSync(join(PACKAGE_ROOT, "extensions", "nubia-harness.ts"), "utf8");
 	assert.doesNotMatch(runtime, /execFileSync\("git", \["(?:commit|push|tag)"/);
 	assert.doesNotMatch(runtime, /execFileSync\("(?:npm|pnpm)", \["publish"/);
 });

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { __testing } from "../extensions/gentle-ai.ts";
+import { __testing } from "../extensions/nubia-harness.ts";
 import { readDelegationDetail } from "./support/orchestrator-modules.ts";
 
 // gentle-shell#1731: the delegated writer fires on named reasons (parallelism,
@@ -18,7 +18,7 @@ const core = read("assets/orchestrator.md");
 const delegation = readDelegationDetail();
 const writer = read("assets/orchestrator-writer.md");
 const verification = read("assets/orchestrator-verification.md");
-const skill = read("skills/gentle-ai/SKILL.md");
+const skill = read("skills/nubia/SKILL.md");
 
 function lineStarting(text: string, prefix: string): string {
 	const line = text.split("\n").find((entry) => entry.startsWith(prefix));
@@ -302,7 +302,7 @@ test("T9/AC2: the parallelism reason launches every unit together in background 
 // so the single-writer wording relaxes to disjoint surfaces or isolated worktrees.
 test("AC6: parallel writers need disjoint Allowed edit surfaces (runtime-enforced) or isolated worktrees", () => {
 	const rule = "arallel writers only with disjoint Allowed edit surfaces (runtime-enforced) or isolated worktrees";
-	const harness = read("extensions/gentle-ai.ts");
+	const harness = read("extensions/nubia-harness.ts");
 	const docs = read("docs/readme-reference.md");
 	assert.ok(core.includes(`- P${rule}.`), "core Safety must carry the relaxed writer rule");
 	assert.ok(harness.includes(`- P${rule}.`), "harness principles must carry the relaxed writer rule");

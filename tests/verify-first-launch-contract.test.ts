@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { __testing } from "../extensions/gentle-ai.ts";
+import { __testing } from "../extensions/nubia-harness.ts";
 
 // gentle-shell#1731 T16 (S5; L33-L34): in the after3 bench (B x4/x5) the first
 // verify launch ran no probes because the handoff said only "read-only" and

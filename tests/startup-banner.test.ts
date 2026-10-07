@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import startup, { isPiCliSubcommandInvocation, readGitBranch } from "../extensions/startup-banner.ts";
+import startup, { isPiCliSubcommandInvocation, readGitBranch, versionLabel } from "../extensions/startup-banner.ts";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { stripAnsi } from "../lib/terminal-theme.ts";
@@ -408,4 +408,13 @@ test("delegated children never paint the startup banner", async (t) => {
 	await start!({}, { hasUI: true, cwd: "/fixture", ui: { setHeader: () => { headers++; } } });
 	t.mock.timers.tick(50);
 	assert.equal(headers, 0);
+});
+
+test("versionLabel shows this package version and the pi version", () => {
+	const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
+	assert.equal(versionLabel("9.8.7"), `nub-ia ${pkg.version} · pi 9.8.7`);
+});
+
+test("versionLabel falls back to the pi version when package.json is unreadable", () => {
+	assert.equal(versionLabel("9.8.7", new URL("file:///nonexistent/package.json")), "pi 9.8.7");
 });

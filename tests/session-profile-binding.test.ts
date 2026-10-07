@@ -94,8 +94,8 @@ test("session bindings from one process never leak into a fresh map state", () =
 //
 // Pi loads every extension entrypoint with its own Jiti instance and
 // `moduleCache: false`, so each entrypoint re-evaluates `lib/` modules and a
-// module-local store would give the panel (gentle-ai.ts) one Map while the
-// launch, usage, and status readers (gentle-agents.ts, gentle-shell.ts) hold
+// module-local store would give the panel (nubia-harness.ts) one Map while the
+// launch, usage, and status readers (nubia-agents.ts, nubia-shell.ts) hold
 // their own empty copies. These tests reproduce that isolation the same way
 // the loader creates it: a second import of the module under a distinct URL is
 // a separate module record in the same process, standing in for a second

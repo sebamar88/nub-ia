@@ -26,7 +26,7 @@ test("optional research stays output-only and delegates to a general worker", ()
 });
 
 test("applicability, fallback and honest evidence flow through ODD actors", () => {
-	const wrapper = read("extensions/gentle-ai.ts");
+	const wrapper = read("extensions/nubia-harness.ts");
 	const delegation = readDelegationDetail();
 	const support = read("assets/support/strict-tdd.md");
 	const worker = read("assets/agents/gentle-ai-worker.md");
@@ -64,5 +64,5 @@ test("retired SDD routes and assets are absent while ODD entry and generic worke
 		"assets/chains/sdd-plan.chain.md",
 		"assets/chains/sdd-verify.chain.md",
 	]) assert.equal(existsSync(new URL(`../${path}`, import.meta.url)), false, path);
-	assert.doesNotMatch(core + delegation + read("extensions/gentle-ai.ts"), /(?:\/sdd-(?:init|explore|status|apply|verify|archive)|sdd-full\.chain|sdd-orchestrator-workflow\.md)/);
+	assert.doesNotMatch(core + delegation + read("extensions/nubia-harness.ts"), /(?:\/sdd-(?:init|explore|status|apply|verify|archive)|sdd-full\.chain|sdd-orchestrator-workflow\.md)/);
 });
