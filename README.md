@@ -2,6 +2,8 @@
 
 Shell de coding-agent para el equipo de Nubiral, construida sobre [Pi](https://pi.dev).
 
+![Nub-IA en Windows Terminal: banner con el isologo de Nubiral, barra superior con modelo y contexto, y el panel Status con Review y ponytail](docs/assets/brand/nub-ia-shell.png)
+
 Nub-IA es un fork de [gentle-shell](https://github.com/Gentleman-Programming/gentle-shell) (paquete `gentle-pi`, MIT).
 Mantiene su harness ODD (subagentes enfocados, evidencia TDD, review 4R en proceso, skills) con la identidad visual
 y la configuración del equipo. No es una distribución oficial de gentle-shell ni está afiliada a sus autores.
