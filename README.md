@@ -8,8 +8,9 @@ y la configuración del equipo. No es una distribución oficial de gentle-shell 
 
 ## Instalación
 
-Requisitos: git, Node >= 22.19 y `pi` (`@earendil-works/pi-coding-agent`; el instalador lo instala con npm si falta).
-pnpm se usa vía corepack/npx si no está.
+Requisitos: git y Node >= 22.19. Lo demás lo resuelve el instalador: usa pnpm (directo, o vía corepack/npx; npm solo
+como último recurso) tanto para instalar `pi` (`@earendil-works/pi-coding-agent`) si falta como para las dependencias,
+y deja `PNPM_HOME` y los directorios de binarios en el PATH del usuario (en Linux/macOS, en tu `.bashrc`/`.zshrc`/`.profile`).
 
 **Linux / macOS**
 
@@ -74,24 +75,41 @@ nub-ia [selectores de home] setup [--dry-run]
 nub-ia install npm:<pkg> | remove <source> | list | update | config | auth <cmd>
 ```
 
-`nub-ia --help` muestra la referencia completa. Dentro de la sesión:
+`nub-ia update` actualiza primero el checkout del paquete (`git pull --ff-only` + dependencias, cuando lo instaló
+`install.sh`/`install.ps1`; `NUB_IA_NO_SELF_UPDATE=1` lo omite) y después los paquetes del home. `nub-ia --help` muestra la
+referencia completa. Dentro de la sesión (`/nubia:commands` lista todo):
 
-- `/nubia:banner`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo`, `/nubia:banner-color` — configuran el banner de inicio
-  (marca Nubiral + wordmark; paleta por defecto `lime`).
-- El tema por defecto es `Nub-IA` (`themes/Nub-IA.json`); se cambia desde `/settings`.
+| Comando | Qué hace |
+| --- | --- |
+| `/nubia:review [staged\|working\|<ref>]` | Review 4R del diff (también la herramienta `nub_review`). |
+| `/nubia:review-mode` | Gate de push: `status`, `enable` (confirmar), `strict` (rechazar sin review), `disable`. |
+| `/nubia:models`, `/nubia:profiles` | Modelos por agente y perfiles (tecla `i` importa un preset de `assets/profiles/`). |
+| `/nubia:persona`, `/nubia:yolo`, `/nubia:background-subagents` | Persona del asistente, modo YOLO, subagentes en segundo plano. |
+| `/nubia:banner`, `/nubia:banner-color`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo` | Banner de inicio (isologo + wordmark, paleta `lime`). |
+| `/nubia:customize`, `/nubia:animations`, `/nubia:vim`, `/nubia:double-esc-cancel` | Apariencia y comportamiento de la shell. |
+| `/nubia:changes`, `/nubia:agents`, `/nubia:usage`, `/nubia:stats`, `/nubia:status`, `/nubia:doctor` | Paneles de estado y diagnóstico. |
+
+El tema por defecto es `Nub-IA` (`themes/Nub-IA.json`); se cambia desde `/settings`.
 
 ### Variables de entorno
 
-Se conservan los nombres del upstream para no romper la compatibilidad interna:
+Las nuevas se llaman `NUB_IA_*`; las heredadas `GENTLE_SHELL_*`/`GENTLE_PI_*` siguen funcionando (el launcher las pasa a
+los procesos hijos) y un alias `NUB_IA_*` siempre tiene prioridad.
 
 | Variable | Uso |
 | --- | --- |
 | `GENTLE_SHELL_HOME` | Directorio del home aislado (default `~/.nub-ia/agent`). |
 | `GENTLE_SHELL_PI` | Ruta al ejecutable `pi` a usar. |
 | `GENTLE_SHELL_NO_AUTO_SETUP=1` | No provisionar el home automáticamente en el primer arranque. |
-| `GENTLE_PI_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` en el postinstall. |
+| `GENTLE_SHELL_TEAM_PACKAGES` | Paquetes Pi que `setup` instala (default: la lista del paquete; vacío = ninguno). |
+| `NUB_IA_CONFIG_HOME` | Config global (default `~/.pi/nub-ia`; lo que solo exista en `~/.pi/gentle-ai` se sigue leyendo). |
+| `NUB_IA_REVIEW_GATE` | `confirm` \| `strict` \| `off` para la sesión (los archivos de política tienen prioridad). |
+| `NUB_IA_METRICS=off` | Desactiva el sink local de métricas (`~/.pi/nub-ia/metrics/runtime-<AAAA-MM>.jsonl`). |
+| `NUB_IA_NO_SELF_UPDATE=1` | `nub-ia update` no actualiza el checkout del paquete. |
+| `GENTLE_PI_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` (postinstall y auto-reparación al arrancar). |
 | `GENTLE_SHELL_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |
 | `RTK_DISABLED=1` | Apagar la reescritura de comandos con rtk en la sesión. |
+| `NUB_IA_ROUTER_DEBUG=1` | Traza en stderr de las decisiones del router y del review. |
 
 ### Guardrails de comandos
 
@@ -131,10 +149,10 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 
 `nub-ia setup` (y el primer arranque automático) instala en el home los paquetes Pi de
 `TEAM_PACKAGE_SOURCES` en `lib/gentle-shell-launcher.ts`. Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail)
-(`npm:@dietrichgebert/ponytail`, modo "lazy senior dev": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`,
+(`npm:@dietrichgebert/ponytail@4.13.0`, pinneado a propósito; modo "lazy senior dev": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`,
 `/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. Para agregar otro, sumá su source a la tabla;
 `GENTLE_SHELL_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
-instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail`.
+instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail@4.13.0`.
 
 ### Review 4R propio (`nub_review`)
 
@@ -143,7 +161,7 @@ paralelo y en proceso** sobre el diff actual, sin binarios externos. Cada lente 
 en JSON; se consolidan en un reporte markdown en `.pi/nub-ia/reviews/<fecha>-<hash>.md` con veredicto
 `APPROVE | WARN | BLOCK | INCOMPLETE`.
 
-- Herramienta `nub_review` (`scope: auto|staged|working`, o `baseRef` para un rango commiteado) y comando `/nubia:review [staged|working|<ref>]`.
+- Herramienta `nub_review` (`scope: auto|staged|working`, o `baseRef` para un rango commiteado) y comando `/nubia:review [staged|working|<ref>]`. `auto` revisa lo mismo que juzga el gate: con el árbol limpio y commits sin pushear, `upstream...HEAD`; si no, lo staged o el working tree.
 - Los lentes usan los tiers del router (`review-risk` → `nub-ia/strong`, el resto `nub-ia/balanced`); si un provider falla (503/429), ese lente se reintenta en el siguiente provider.
 - **Gate de push**: antes de un `git push`, si los cambios a entregar no tienen review, el review fue de otro diff, o el veredicto fue BLOCK/INCOMPLETE, actúa según `/nubia:review-mode`: `confirm` (default) pide confirmación, `strict` rechaza el push hasta que haya un review APPROVE/WARN del diff, `disable` lo apaga. Se guarda en `~/.pi/nub-ia/review-gate.json`; un `.pi/nub-ia/review-gate.json` en el repo lo fija para el equipo y `NUB_IA_REVIEW_GATE` lo fuerza por sesión.
 - **Status**: el panel muestra el bloque "Review" con el último veredicto, su antigüedad y si el diff cambió desde entonces; se oculta desde `/nubia:customize` (sección review).
@@ -197,12 +215,17 @@ git merge upstream/main
 ## Desarrollo
 
 ```bash
-pnpm test                       # suite completa
+pnpm test                       # suite completa (unit + runtime harness)
 pnpm run typecheck
 pnpm run build:runtime-modules  # regenerar runtime/ tras tocar lib/*.ts del launcher
+pnpm run test:packed-package    # empaqueta e instala en un proyecto temporal
+pnpm run install:rtk            # (re)descarga el binario rtk pinneado
+node scripts/trace-brand.mjs isologo|wordmark   # regenera el arte del banner desde assets/brand/
 ```
 
-Documentación detallada heredada del upstream: [referencia técnica](docs/readme-reference.md), incluida la sección de [Organic Driven Development](docs/readme-reference.md#organic-driven-development), y [`docs/UPSTREAM-README.md`](docs/UPSTREAM-README.md).
+Documentación: [referencia técnica](docs/readme-reference.md) (incluye [Organic Driven Development](docs/readme-reference.md#organic-driven-development)),
+[la shell](docs/gentle-shell.md), [actividad de agentes](docs/gentle-agents-activity.md), [YOLO](docs/yolo-mode.md),
+[métricas](docs/telemetry.md). El README original de gentle-shell queda archivado en [`docs/UPSTREAM-README.md`](docs/UPSTREAM-README.md).
 
 ## Licencia y marcas
 
