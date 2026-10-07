@@ -37,7 +37,18 @@ if ([int]$v[0] -lt 22 -or ([int]$v[0] -eq 22 -and [int]$v[1] -lt 19)) { throw "N
 # Used both for pi below and for this package's dependencies.
 $env:COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"   # corepack must not ask "Do you want to continue?" in a piped install
 $Pm = if (Have pnpm) { @("pnpm") } elseif (Have corepack) { @("corepack", "pnpm") } elseif (Have npx) { @("npx", "--yes", "pnpm@11") } else { @("npm") }
-function RunPm { param([string[]]$PmArgs) & $Pm[0] @($Pm[1..($Pm.Length - 1)] + $PmArgs); return $LASTEXITCODE }
+# $Pm[0] is the executable, the rest are its leading arguments (none for
+# plain pnpm/npm). Never slice with [1..N]: on a one-element array PowerShell
+# indexes backwards instead of returning an empty list.
+function RunPm {
+	param([string[]]$PmArgs)
+	$exe = $Pm[0]
+	[string[]]$all = @()
+	for ($i = 1; $i -lt $Pm.Length; $i++) { $all += $Pm[$i] }
+	foreach ($a in $PmArgs) { $all += $a }
+	& $exe @all
+	return $LASTEXITCODE
+}
 
 if (-not (Have pi)) {
 	Say "pi is not on PATH. Installing it globally with $($Pm[0])..."
