@@ -129,3 +129,12 @@ test("baseRef cannot smuggle git options (CWE-88): refused before git, and --end
 		assert.ok(args.slice(marker + 1).every((token) => !token.startsWith("--") || token === "HEAD"), `revisions follow the marker: ${args.join(" ")}`);
 	}
 });
+
+test("parseLensOutputDetailed counts malformed entries instead of hiding them", async () => {
+	const { parseLensOutputDetailed, buildReport } = await import("../lib/nub-review.ts");
+	const parsed = parseLensOutputDetailed("review-risk", '{"findings":[{"severity":"HIGH","claim":"x"},{"severity":"WARNING","claim":"ok","location":"a:1"},"junk"]}');
+	assert.equal(parsed.findings.length, 1);
+	assert.equal(parsed.dropped, 2);
+	const report = buildReport({ scope: { kind: "staged" }, diff: DIFF, lenses: [{ lens: "review-risk", model: "m", findings: parsed.findings, dropped: parsed.dropped }] });
+	assert.match(report.markdown, /risk \(m, 2 malformed dropped\)/);
+});

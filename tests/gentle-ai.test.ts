@@ -691,7 +691,7 @@ test("guarded command confirmation emits a generic correlated permission lifecyc
 			requestId: deniedRequestId,
 			state: "waiting",
 			source: "tool_call",
-			message: "Gentle AI safety policy requires confirmation for this tool call.",
+			message: "Nub-IA safety policy requires confirmation for this tool call.",
 			toolName: "bash",
 		});
 		assert.equal(Object.keys(emitted[0].data).includes("command"), false);
@@ -701,7 +701,7 @@ test("guarded command confirmation emits a generic correlated permission lifecyc
 		resolveConfirmation(false);
 		assert.deepEqual(await denied, {
 			block: true,
-			reason: "Gentle AI safety policy blocked the command because it was not confirmed.",
+			reason: "Nub-IA safety policy blocked the command because it was not confirmed.",
 		});
 		assert.deepEqual(emitted[2], {
 			channel: "pi-permission-system:permission-request",
@@ -709,7 +709,7 @@ test("guarded command confirmation emits a generic correlated permission lifecyc
 				requestId: deniedRequestId,
 				state: "denied",
 				source: "tool_call",
-				message: "Gentle AI safety policy requires confirmation for this tool call.",
+				message: "Nub-IA safety policy requires confirmation for this tool call.",
 				toolName: "bash",
 			},
 		});
@@ -819,7 +819,7 @@ test("concurrent guarded confirmations coalesce the Herdr lifecycle per extensio
 		first.confirmations[0]!(false);
 		assert.deepEqual(await firstRequest, {
 			block: true,
-			reason: "Gentle AI safety policy blocked the command because it was not confirmed.",
+			reason: "Nub-IA safety policy blocked the command because it was not confirmed.",
 		});
 		assert.deepEqual(first.emitted.map(({ channel, data }) => ({ channel, state: data.state, active: data.active })), [
 			{ channel: "pi-permission-system:permission-request", state: "waiting", active: undefined },
@@ -1128,7 +1128,7 @@ test("permission lifecycle is inactive for unguarded and headless commands", asy
 			ui: { confirm },
 		} as ExtensionContext), {
 			block: true,
-			reason: "Gentle AI safety policy requires interactive confirmation before this command.",
+			reason: "Nub-IA safety policy requires interactive confirmation before this command.",
 		});
 		assert.equal(confirmations, 0);
 		assert.deepEqual(emitted, []);
@@ -1177,7 +1177,7 @@ test("bash tool_call confirms a late guarded npm publish and denies on non-appro
 		assert.deepEqual(result, {
 			block: true,
 			reason:
-				"Gentle AI safety policy blocked the command because it was not confirmed.",
+				"Nub-IA safety policy blocked the command because it was not confirmed.",
 		});
 	} finally {
 		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
@@ -1221,7 +1221,7 @@ test("bash tool_call confirms every compound action and centers a long git -C pu
 		} as ExtensionContext);
 		assert.deepEqual(result, {
 			block: true,
-			reason: "Gentle AI safety policy blocked the command because it was not confirmed.",
+			reason: "Nub-IA safety policy blocked the command because it was not confirmed.",
 		});
 	} finally {
 		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;

@@ -7,7 +7,7 @@ Detail modules, each loaded only when its mechanism fires (small tasks load none
 - `orchestrator-tracking.md` — large-task ODD tracking: authorization and progress, research depth, checks, phase signaling, `nub_review` before delivery, delivery strategy.
 - `orchestrator-verification.md` — the Verification rule, native risk tiers, writer verification contract.
 - `orchestrator-writer.md` — allowed edit surfaces and Judgment Day fix dispatch.
-- `orchestrator-prompts.md` — lossless blocking-prompt relays and Gentle AI provider defect handoff.
+- `orchestrator-prompts.md` — lossless blocking-prompt relays.
 
 ### Language Domain Contract
 

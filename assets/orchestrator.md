@@ -62,7 +62,7 @@ Mandatory Delegation Triggers — each mechanism turns on only by its own trigge
 
 {{GENTLE_PI_BACKGROUND_POLICY}}; rules: delegation background-subagents block.
 
-Per-action table, Work Routing Ladder, Canonical Workflows: `orchestrator-delegation.md`; blocking-prompt relays and provider defects: `orchestrator-prompts.md`.
+Per-action table, Work Routing Ladder, Canonical Workflows: `orchestrator-delegation.md`; blocking-prompt relays: `orchestrator-prompts.md`.
 
 ## Memory Contract
 

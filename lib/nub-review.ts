@@ -31,6 +31,8 @@ export interface LensResult {
 	/** Set when the lens could not be run or its answer could not be parsed. */
 	error?: string;
 	rawExcerpt?: string;
+	/** Entries the lens returned that were not valid findings (unknown severity, empty claim). */
+	dropped?: number;
 }
 
 export type Verdict = "approve" | "warn" | "block" | "incomplete";
@@ -132,18 +134,23 @@ function isSeverity(value: unknown): value is Severity {
 	return typeof value === "string" && (SEVERITIES as readonly string[]).includes(value);
 }
 
-/** Parses a lens answer; malformed entries are dropped, a malformed envelope throws. */
+/** Parses a lens answer; malformed entries are dropped and counted, a malformed envelope throws. */
 export function parseLensOutput(lens: ReviewLens, text: string): Finding[] {
+	return parseLensOutputDetailed(lens, text).findings;
+}
+
+export function parseLensOutputDetailed(lens: ReviewLens, text: string): { findings: Finding[]; dropped: number } {
 	const parsed = extractJsonObject(text);
 	if (typeof parsed !== "object" || parsed === null || !Array.isArray((parsed as { findings?: unknown }).findings)) {
 		throw new Error("lens output lacks a findings array");
 	}
 	const findings: Finding[] = [];
+	let dropped = 0;
 	for (const entry of (parsed as { findings: unknown[] }).findings) {
-		if (typeof entry !== "object" || entry === null) continue;
+		if (typeof entry !== "object" || entry === null) { dropped += 1; continue; }
 		const record = entry as Record<string, unknown>;
 		const severity = typeof record.severity === "string" ? record.severity.toUpperCase() : undefined;
-		if (!isSeverity(severity) || typeof record.claim !== "string" || record.claim.trim() === "") continue;
+		if (!isSeverity(severity) || typeof record.claim !== "string" || record.claim.trim() === "") { dropped += 1; continue; }
 		findings.push({
 			lens,
 			severity,
@@ -153,7 +160,7 @@ export function parseLensOutput(lens: ReviewLens, text: string): Finding[] {
 			...(typeof record.suggestion === "string" && record.suggestion.trim() !== "" ? { suggestion: record.suggestion.trim() } : {}),
 		});
 	}
-	return findings;
+	return { findings, dropped };
 }
 
 // --- consolidation ----------------------------------------------------------
@@ -186,7 +193,7 @@ export function buildReport(input: { scope: DiffScope; diff: string; lenses: Len
 		`- Verdict: **${VERDICT_LABEL[verdict]}**`,
 		`- Diff: ${diffHash} · ${when}`,
 		`- Findings: ${counts.length === 0 ? "none" : counts.map(([severity, count]) => `${count} ${severity}`).join(", ")}`,
-		`- Lenses: ${input.lenses.map((lens) => `${lens.lens.replace("review-", "")} (${lens.model}${lens.error ? ", failed" : ""})`).join(", ")}`,
+		`- Lenses: ${input.lenses.map((lens) => `${lens.lens.replace("review-", "")} (${lens.model}${lens.error ? ", failed" : ""}${lens.dropped ? `, ${lens.dropped} malformed dropped` : ""})`).join(", ")}`,
 		"",
 	];
 	for (const severity of SEVERITIES) {
@@ -238,12 +245,16 @@ export function isGitPush(command: string): boolean {
  * is the question to confirm. `currentHash` is the hash of the diff the push
  * would deliver (base..HEAD), `last` the most recent review on record.
  */
-export function pushGateQuestion(last: LastReview | undefined, currentHash: string | undefined): string | undefined {
-	if (currentHash === undefined) return undefined; // nothing to deliver, or not a repository
-	if (last === undefined) return "No Nub-IA review on record for these changes. Push anyway? (run nub_review first to review them)";
-	if (last.diffHash !== currentHash) return `The last Nub-IA review (${last.verdict}, ${last.when}) covered a different diff. Push the unreviewed changes anyway?`;
-	if (last.verdict === "block") return `The Nub-IA review of these changes found BLOCKER/CRITICAL findings (${last.reportPath}). Push anyway?`;
-	if (last.verdict === "incomplete") return `The Nub-IA review of these changes was incomplete (a lens failed). Push anyway?`;
+export function pushGateQuestion(last: LastReview | undefined, currentHash: string | undefined, mode: "confirm" | "strict" = "confirm"): string | undefined {
+	if (currentHash === undefined) {
+		// Nothing deliverable could be computed: no upstream/origin, or an empty
+		// range. Confirm mode stays quiet; strict mode cannot verify and refuses.
+		return mode === "strict" ? "Cannot determine what this push would deliver (no upstream or origin/HEAD to compare against); set the tracking branch first (git branch -u origin/<branch>) so the range can be reviewed." : undefined;
+	}
+	if (last === undefined) return "No Nub-IA review on record for the changes this push delivers.";
+	if (last.diffHash !== currentHash) return `The last Nub-IA review (${last.verdict}, ${last.when}) covered a different diff than this push delivers.`;
+	if (last.verdict === "block") return `The Nub-IA review of these changes found BLOCKER/CRITICAL findings (${last.reportPath}).`;
+	if (last.verdict === "incomplete") return `The Nub-IA review of these changes was incomplete (a lens failed).`;
 	return undefined;
 }
 

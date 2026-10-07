@@ -49,15 +49,29 @@ function readCatalogFile(path: string): TierCatalog | undefined {
 	}
 }
 
+const warnedProjectCatalogs = new Set<string>();
+
 /**
  * The effective catalog: a repository override at `.pi/nub-ia/model-tiers.json`
  * wins over the packaged default, so one team repo can pin a different policy.
+ * Because that is repository content, its use is announced once per path.
  */
-export function loadTierCatalog(cwd: string): TierCatalog {
-	return readCatalogFile(join(cwd, ".pi", "nub-ia", "model-tiers.json")) ?? readCatalogFile(PACKAGED_CATALOG_PATH) ?? EMPTY_CATALOG;
+export function loadTierCatalog(cwd: string, warn: (message: string) => void = (message) => console.warn(message)): TierCatalog {
+	const projectPath = join(cwd, ".pi", "nub-ia", "model-tiers.json");
+	const project = readCatalogFile(projectPath);
+	if (project) {
+		// Repository content decides which provider receives prompts and code
+		// (only providers the user holds credentials for, but still): say so once.
+		if (!warnedProjectCatalogs.has(projectPath)) {
+			warnedProjectCatalogs.add(projectPath);
+			warn(`nub-ia: model routing for this repository comes from ${projectPath} (it overrides the packaged catalog)`);
+		}
+		return project;
+	}
+	return readCatalogFile(PACKAGED_CATALOG_PATH) ?? EMPTY_CATALOG;
 }
 
-function toCatalogModel(model: { provider: string; id: string; api?: string; reasoning?: boolean; cost?: { input?: number; output?: number } }): CatalogModel {
+export function toCatalogModel(model: { provider: string; id: string; api?: string; reasoning?: boolean; cost?: { input?: number; output?: number } }): CatalogModel {
 	return { provider: model.provider, id: model.id, api: model.api, reasoning: model.reasoning, cost: model.cost };
 }
 

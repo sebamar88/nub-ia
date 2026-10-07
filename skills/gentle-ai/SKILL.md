@@ -1,6 +1,6 @@
 ---
 name: gentle-ai
-description: "Use Gentle AI harness discipline for Pi work: clarify first, track ODD work, use applicable test-first development by default, delegate when useful, and protect review workload."
+description: "Use the Nub-IA harness discipline for Pi work: clarify first, track ODD work, use applicable test-first development by default, delegate when useful, and protect review workload."
 ---
 
 # Nub-IA Harness

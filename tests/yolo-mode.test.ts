@@ -176,7 +176,7 @@ test("session loss and shutdown (including reload) revoke visible state", async 
 test("active YOLO waives only ordinary push after full destructive/guard evaluation", async () => {
 	const h = harness();
 	const call = (command: string) => h.emit("tool_call", { toolName: "bash", input: { command } });
-	assert.deepEqual(await call("git push origin main"), { block: true, reason: "Gentle AI safety policy blocked the command because it was not confirmed." });
+	assert.deepEqual(await call("git push origin main"), { block: true, reason: "Nub-IA safety policy blocked the command because it was not confirmed." });
 	await h.command("enable");
 	assert.equal(await call("git push origin main"), undefined);
 	assert.equal(h.confirmations(), 1);

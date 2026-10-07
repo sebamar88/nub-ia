@@ -87,9 +87,13 @@ export function resolveReviewGate(cwd: string, options: ResolveReviewGateOptions
 
 	// Repository content can only raise the bar.
 	const project = readModeFile(projectFile);
-	if (project.present) {
-		if (project.malformed) return { mode: STRICTNESS[user.mode] >= STRICTNESS.confirm ? user.mode : "confirm", source: "project_file", malformed: true, projectFile, globalFile };
-		if (STRICTNESS[project.mode!] > STRICTNESS[user.mode]) return { mode: project.mode!, source: "project_file", malformed: false, projectFile, globalFile };
+	if (project.present && project.mode === undefined) {
+		// Malformed: fail closed to at least confirm, attributed to the file.
+		const mode: ReviewGateMode = user.mode === "off" ? "confirm" : user.mode;
+		return { mode, source: "project_file", malformed: true, projectFile, globalFile };
+	}
+	if (project.present && project.mode !== undefined && STRICTNESS[project.mode] > STRICTNESS[user.mode]) {
+		return { mode: project.mode, source: "project_file", malformed: false, projectFile, globalFile };
 	}
 	return { ...user, projectFile, globalFile };
 }

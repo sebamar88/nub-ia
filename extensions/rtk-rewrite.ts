@@ -100,12 +100,9 @@ export function isSafeRewrite(original: string, rewritten: string): boolean {
 	const base = normalize(original);
 	const next = normalize(rewritten);
 	if (next === base) return true;
-	// rtk may add its own flags immediately after the subcommand head
-	// (e.g. `rtk git log --oneline` → `rtk git log --oneline -n 20` is NOT
-	// accepted: only removals/insertions of tokens starting with "-" and no
-	// new words are tolerated).
-	// rtk may add plain flags (`-n 20`, `--stat`) but never new words, paths,
-	// or flag values with paths (no slashes or colons in an added value).
+	// Beyond the rtk prefix, the rewrite may only add or drop plain flags
+	// (`-n 20`, `--stat`): never new words, and never a flag value that looks
+	// like a path (no slashes or colons), so `--output=/etc/x` is refused.
 	const isFlagLike = (token: string) => /^-[A-Za-z0-9-]+(=[A-Za-z0-9._-]*)?$/.test(token) || /^[0-9]+$/.test(token);
 	const words = (text: string) => text.split(" ").filter((token) => token.length > 0 && !isFlagLike(token));
 	const added = next.split(" ").filter((token) => token.length > 0 && !base.split(" ").includes(token));

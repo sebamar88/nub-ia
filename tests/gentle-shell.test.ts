@@ -4999,7 +4999,7 @@ test("/nubia:commands shows only curated, registered commands, grouped, by their
 	assert.doesNotMatch(rendered, /\bSDD\b/, "the SDD group has no registered commands and must not appear");
 	assert.match(rendered, /Assign models and effort/);
 	assert.match(rendered, /Browse captured changes/);
-	assert.match(rendered, /Gentle AI status/);
+	assert.match(rendered, /Nub-IA status/);
 	assert.match(rendered, /Refresh skill registry/);
 	assert.doesNotMatch(rendered, /nubia:models|nubia:changes|nubia:status|skill-registry:refresh/, "raw command names must not leak; only labels are shown");
 	assert.doesNotMatch(rendered, /nubia:not-in-catalog/);

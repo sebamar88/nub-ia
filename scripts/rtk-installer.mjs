@@ -5,7 +5,8 @@
 // SHA-256 against the digest pinned below (copied from the release's
 // checksums.txt), extracts the single `rtk` executable into
 // `<package>/.rtk/<version>/`, and reports the binary path. Idempotent: an
-// existing binary whose SHA-256 matches the pinned executable digest is kept.
+// existing binary whose SHA-256 matches the recorded executable digest is kept
+// (or, on platforms without a recorded digest yet, any non-empty binary).
 //
 // Run by `postinstall` (scripts/install-rtk.mjs) so every Nub-IA install ships
 // rtk without a separate step; extensions/rtk-rewrite.ts prefers this copy
@@ -29,6 +30,19 @@ export const RTK_RELEASE_BASE_URL = `https://github.com/rtk-ai/rtk/releases/down
 const MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
 const REQUEST_TIMEOUT_MS = 30_000;
+
+// Digest of the extracted executable per platform, computed from the pinned
+// archives (run the installer once, paste the printed digest). An existing
+// binary that does not match is replaced; `undefined` means not yet recorded
+// for that platform, in which case the archive digest alone protects the
+// download and a present binary is re-verified by size only.
+export const RTK_BINARY_SHA256 = Object.freeze({
+	"linux-x64": "b947215511bfd8f5f6eb12c6b6d4a9f70b72e9ce37442cfa4df2352b033cd0ea",
+	"linux-arm64": undefined,
+	"darwin-x64": undefined,
+	"darwin-arm64": undefined,
+	"win32-x64": undefined,
+});
 
 // Archive digests from the release's checksums.txt (v0.51.0).
 export const RTK_ASSETS = Object.freeze({
@@ -137,7 +151,14 @@ export async function installRtk({ root = packageRoot(), platform = process.plat
 
 	if (existsSync(binaryPath)) {
 		const info = await stat(binaryPath);
-		if (info.isFile() && info.size > 0) return { installed: false, binaryPath, sha256: await sha256File(binaryPath) };
+		if (info.isFile() && info.size > 0) {
+			const sha256 = await sha256File(binaryPath);
+			const expected = RTK_BINARY_SHA256[key];
+			// A recorded digest is authoritative: a mismatch (corruption, a
+			// tampered or stale copy) falls through to a fresh verified download.
+			if (expected === undefined || sha256 === expected) return { installed: false, binaryPath, sha256 };
+			await rm(binaryPath, { force: true });
+		}
 	}
 
 	const scratch = await mkdtemp(join(tmpdir(), "nub-ia-rtk-"));

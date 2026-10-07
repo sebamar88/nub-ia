@@ -387,7 +387,7 @@ export function missingPiMessage()         {
 	return [
 		"No pi runtime could be found. Pick one of:",
 		"  - Set GENTLE_SHELL_PI to the path of a pi executable.",
-		"  - Install @earendil-works/pi-coding-agent next to gentle-pi (it ships as an optional peer dependency).",
+		"  - Install @earendil-works/pi-coding-agent next to nub-ia (it ships as an optional peer dependency).",
 		"  - Install pi and make sure it is on your PATH.",
 	].join("\n");
 }

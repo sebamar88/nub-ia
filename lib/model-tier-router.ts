@@ -48,9 +48,12 @@ export function physicalModels(models: readonly CatalogModel[]): CatalogModel[] 
 }
 
 /** Numeric sequence of a model id, for "newest version first" ordering. */
+/** Numbers at or above this are release date stamps (20251001), not version parts. */
+const DATE_STAMP_MIN = 10_000;
+
 export function versionKey(id: string): number[] {
-	// Drop date stamps such as 20251001 so "haiku-4-5-20251001-v1:0" compares as [4, 5, 1, 0].
-	return (id.match(/\d+/g) ?? []).map(Number).filter((n) => n < 10000);
+	// "haiku-4-5-20251001-v1:0" compares as [4, 5, 1, 0].
+	return (id.match(/\d+/g) ?? []).map(Number).filter((n) => n < DATE_STAMP_MIN);
 }
 
 function compareVersionDesc(a: string, b: string): number {

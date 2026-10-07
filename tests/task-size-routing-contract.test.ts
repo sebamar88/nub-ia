@@ -209,7 +209,7 @@ test("T6: each delegation module carries its own clauses and names the modules i
 			"## Parallel review protocol (gentle-shell#1731)",
 		],
 		"orchestrator-writer.md": ["#### Allowed edit surfaces (MANDATORY)", "#### Judgment Day fix dispatch"],
-		"orchestrator-prompts.md": ["### Lossless Blocking Prompts (MANDATORY)", "#### Gentle AI Provider Defect Handoff (MANDATORY)"],
+		"orchestrator-prompts.md": ["### Lossless Blocking Prompts (MANDATORY)"],
 	};
 	for (const [file, clauses] of Object.entries(placement)) {
 		const text = read(`assets/${file}`);

@@ -1114,7 +1114,7 @@ function evaluateSensitivePathTool(
 	if (!sensitivePath) return undefined;
 	return {
 		block: true,
-		reason: `Gentle AI safety policy blocked access to sensitive path: ${sanitizeTerminalText(sensitivePath)}. Ask the user for an explicit safer plan.`,
+		reason: `Nub-IA safety policy blocked access to sensitive path: ${sanitizeTerminalText(sensitivePath)}. Ask the user for an explicit safer plan.`,
 	};
 }
 
@@ -1233,7 +1233,7 @@ async function confirmCommand(
 		return {
 			block: true,
 			reason:
-				"Gentle AI safety policy blocked a destructive shell command. Ask the user for an explicit safer plan.",
+				"Nub-IA safety policy blocked a destructive shell command. Ask the user for an explicit safer plan.",
 		};
 	}
 
@@ -1250,7 +1250,7 @@ async function confirmCommand(
 		return {
 			block: true,
 			reason:
-				"Gentle AI safety policy requires interactive confirmation before this command.",
+				"Nub-IA safety policy requires interactive confirmation before this command.",
 		};
 	}
 	const title = evaluation.dataLoss
@@ -1265,7 +1265,7 @@ async function confirmCommand(
 			requestId,
 			state,
 			source: "tool_call",
-			message: "Gentle AI safety policy requires confirmation for this tool call.",
+			message: "Nub-IA safety policy requires confirmation for this tool call.",
 			toolName: "bash",
 		});
 	};
@@ -1291,7 +1291,7 @@ async function confirmCommand(
 	return {
 		block: true,
 		reason:
-			"Gentle AI safety policy blocked the command because it was not confirmed.",
+			"Nub-IA safety policy blocked the command because it was not confirmed.",
 	};
 }
 
@@ -4528,12 +4528,12 @@ function createGentleAiExtensionForTesting(
 	for (const owner of ["delegation", "review"] as const) {
 		const label = owner;
 		pi.registerCommand(`nubia:install-${owner}`, {
-			description: `Repair or refresh only global Gentle AI ${label} assets.`,
+			description: `Repair or refresh only the global Nub-IA ${label} assets.`,
 			handler: async (args, ctx) => {
 				const force = args.includes("--force");
 				const result = installPackageAssets(ctx.cwd, force, [owner]);
 				ctx.ui.notify(
-					`Global Gentle AI ${label} assets installed: ${result.agents} agent(s), ${result.chains} chain(s), ${result.support} support file(s), ${result.skipped} already present.`,
+					`Global Nub-IA ${label} assets installed: ${result.agents} agent(s), ${result.chains} chain(s), ${result.support} support file(s), ${result.skipped} already present.`,
 					"info",
 				);
 			},
@@ -4562,7 +4562,7 @@ function createGentleAiExtensionForTesting(
 	});
 
 	pi.registerCommand("nubia:doctor", {
-		description: "Run read-only Gentle AI diagnostics for this Pi workspace.",
+		description: "Run read-only Nub-IA diagnostics for this Pi workspace.",
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);
 			const skillRegistryPresent = existsSync(
@@ -4622,7 +4622,7 @@ function createGentleAiExtensionForTesting(
 	});
 
 	pi.registerCommand("nubia:status", {
-		description: "Show Gentle AI package status for this project.",
+		description: "Show Nub-IA package status for this project.",
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);
 			const savedConfig = await readModelRoutingAuthorityAsync(

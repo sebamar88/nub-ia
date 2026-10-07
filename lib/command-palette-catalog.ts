@@ -48,7 +48,7 @@ export const COMMAND_PALETTE_CATALOG: readonly CommandPaletteCatalogGroup[] = [
 	{
 		title: "Diagnostics",
 		items: [
-			{ command: "nubia:status", label: "Gentle AI status" },
+			{ command: "nubia:status", label: "Nub-IA status" },
 			{ command: "nubia:doctor", label: "Doctor" },
 		],
 	},

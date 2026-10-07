@@ -70,3 +70,9 @@ test("reviewStatusLines renders the Status block for every state", () => {
 	assert.equal(describeAge(new Date("2026-10-06T09:00:00Z"), now), "3 h ago");
 	assert.equal(describeAge(new Date("2026-10-01T12:00:00Z"), now), "5 d ago");
 });
+
+test("strict mode refuses when the deliverable diff cannot be determined; confirm stays quiet", async () => {
+	const { pushGateQuestion } = await import("../lib/nub-review.ts");
+	assert.equal(pushGateQuestion(undefined, undefined, "confirm"), undefined);
+	assert.match(pushGateQuestion(undefined, undefined, "strict")!, /Cannot determine what this push would deliver/);
+});

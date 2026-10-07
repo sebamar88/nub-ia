@@ -112,7 +112,7 @@ test("rankPaletteGroups drops a group with no matching item, and never reorders 
 	const groups: CommandPaletteGroup[] = [
 		{ title: "Configuration", items: [{ command: "nubia:models", label: "Assign models and effort" }, { command: "nubia:profiles", label: "Agent-model profiles" }] },
 		{ title: "Session", items: [{ command: "nubia:usage", label: "Subscription usage" }] },
-		{ title: "Diagnostics", items: [{ command: "nubia:status", label: "Gentle AI status" }] },
+		{ title: "Diagnostics", items: [{ command: "nubia:status", label: "Nub-IA status" }] },
 	];
 	const ranked = rankPaletteGroups(groups, "model");
 	assert.deepEqual(ranked.map((g) => g.title), ["Configuration"]);
