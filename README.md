@@ -35,6 +35,9 @@ El instalador clona el repo en `~/.nub-ia/app` (Windows: `%LOCALAPPDATA%\nub-ia\
 
 Otras variables: `NUB_IA_DIR`, `NUB_IA_BIN`, `NUB_IA_BRANCH`.
 
+`raw.githubusercontent.com` cachea 5 minutos: si acabás de publicar un cambio en el instalador y `irm`/`curl` te sirve el
+viejo, agregá un parámetro al URL (`install.ps1?x=$(Get-Random)` / `install.sh?x=$RANDOM`).
+
 Con el repo público también sirve Pi directamente: `pi install git:github.com/sebamar88/nub-ia` (Pi clona, corre el
 `postinstall` y actualiza con `pi update`; no crea el comando `nub-ia`: lanzá `node ~/.pi/agent/git/github.com/sebamar88/nub-ia/bin/nub-ia.mjs`
 o usá `pi` a secas con el paquete cargado).
