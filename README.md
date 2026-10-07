@@ -66,6 +66,26 @@ Para reutilizar tu home de pi existente (sesiones, logins) en lugar del home ais
 nub-ia --link
 ```
 
+### Actualizar / desinstalar
+
+Actualizar: `nub-ia update`, o volver a correr el instalador (idempotente: `git pull`, dependencias y wrapper regenerado).
+
+Desinstalar por completo (nada queda en otro lado):
+
+```bash
+# Linux / macOS: app + home aislado, wrapper, config (models, perfiles, gate, métricas)
+rm -r ~/.nub-ia ~/.local/bin/nub-ia ~/.pi/nub-ia
+# y quitar el bloque "# nub-ia installer" de ~/.bashrc / ~/.zshrc / ~/.profile
+```
+
+```powershell
+# Windows
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\nub-ia", "$env:USERPROFILE\.nub-ia", "$env:USERPROFILE\.pi\nub-ia"
+# y quitar %LOCALAPPDATA%\nub-ia\bin del PATH de usuario
+```
+
+`pi` queda instalado (es independiente); se quita con `pnpm remove -g @earendil-works/pi-coding-agent` (o `npm uninstall -g`).
+
 ## Uso
 
 ```
