@@ -105,8 +105,8 @@ Las herramientas `subagent_*` y la card de Agents reemplazan al paquete de terce
 
 ```text
 ╭─ ❀ Agents · 1 active · 1 done ─────────────────────────── 1m24s ╮
-│ ✓  gentle-ai-explore  map footer sources   balanced ·  34k ·  $0.27 · 25s │
-│ ◐  gentle-ai-worker   write shell footer   balanced · 120k · $12.50 · 41s │
+│ ✓  nubia-explore  map footer sources   balanced ·  34k ·  $0.27 · 25s │
+│ ◐  nubia-worker   write shell footer   balanced · 120k · $12.50 · 41s │
 ╰────────────────────────────────────────────────────────────────────────────╯
 ```
 

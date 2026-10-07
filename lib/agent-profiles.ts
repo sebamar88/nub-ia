@@ -8,6 +8,7 @@
 import { randomUUID } from "node:crypto";
 import { closeSync, constants, existsSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { migrateAgentKeys } from "./agent-name-migration.ts";
 import { configReadPath } from "./config-home.ts";
 import {
 	normalizeModelConfig,
@@ -138,12 +139,13 @@ export function normalizeProfilesFile(value: unknown): NormalizedProfilesFile | 
 			drops.droppedProfiles.push(name);
 			continue;
 		}
-		const config = normalizeModelConfig(rawConfig);
+		const migratedConfig = isRecord(rawConfig) ? migrateAgentKeys(rawConfig).record : rawConfig;
+		const config = normalizeModelConfig(migratedConfig);
 		if (!config) {
 			drops.droppedProfiles.push(name);
 			continue;
 		}
-		for (const agent of Object.keys(isRecord(rawConfig) ? rawConfig : {})) {
+		for (const agent of Object.keys(isRecord(migratedConfig) ? migratedConfig : {})) {
 			if (!hasOwn(config, agent)) drops.droppedAgents.push({ profile: name, agent });
 		}
 		profiles[name] = config;

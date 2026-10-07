@@ -44,51 +44,51 @@ const orchestrator = { provider: "anthropic", id: "fable" };
 
 test("the effective worker model comes from the global subagent profile", () => {
 	const f = fixture("global-profile");
-	f.writeAgent("gentle-ai-worker");
-	f.writeSubagents({ model_profiles: { "gentle-ai-worker": { model: "anthropic/opus" } } });
+	f.writeAgent("nubia-worker");
+	f.writeSubagents({ model_profiles: { "nubia-worker": { model: "anthropic/opus" } } });
 	assert.deepEqual(
-		resolveEffectiveAgentModel("gentle-ai-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator }),
-		{ agent: "gentle-ai-worker", model: { provider: "anthropic", id: "opus" }, inherited: false },
+		resolveEffectiveAgentModel("nubia-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator }),
+		{ agent: "nubia-worker", model: { provider: "anthropic", id: "opus" }, inherited: false },
 	);
 });
 
 test("a repository profile pin replaces global routing for the effective worker model", () => {
 	const f = fixture("pinned-profile");
-	f.writeAgent("gentle-ai-worker");
-	f.writeSubagents({ model_profiles: { "gentle-ai-worker": { model: "anthropic/opus" } } });
-	f.writePinnedProfile({ cheap: { "gentle-ai-worker": { model: "openai/mini" } } }, "cheap");
+	f.writeAgent("nubia-worker");
+	f.writeSubagents({ model_profiles: { "nubia-worker": { model: "anthropic/opus" } } });
+	f.writePinnedProfile({ cheap: { "nubia-worker": { model: "openai/mini" } } }, "cheap");
 	assert.deepEqual(
-		resolveEffectiveAgentModel("gentle-ai-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator })?.model,
+		resolveEffectiveAgentModel("nubia-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator })?.model,
 		{ provider: "openai", id: "mini" },
 	);
 });
 
 test("the agent definition model applies when no profile routes the agent", () => {
 	const f = fixture("definition-model");
-	f.writeAgent("gentle-ai-worker", "openai/defined");
+	f.writeAgent("nubia-worker", "openai/defined");
 	assert.deepEqual(
-		resolveEffectiveAgentModel("gentle-ai-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator })?.model,
+		resolveEffectiveAgentModel("nubia-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator })?.model,
 		{ provider: "openai", id: "defined" },
 	);
 });
 
 test("an unrouted agent inherits the fallback session model", () => {
 	const f = fixture("inherit");
-	f.writeAgent("gentle-ai-worker");
+	f.writeAgent("nubia-worker");
 	assert.deepEqual(
-		resolveEffectiveAgentModel("gentle-ai-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator }),
-		{ agent: "gentle-ai-worker", model: orchestrator, inherited: true },
+		resolveEffectiveAgentModel("nubia-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator }),
+		{ agent: "nubia-worker", model: orchestrator, inherited: true },
 	);
 	assert.deepEqual(
-		resolveEffectiveAgentModel("gentle-ai-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree }),
-		{ agent: "gentle-ai-worker", model: undefined, inherited: true },
+		resolveEffectiveAgentModel("nubia-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree }),
+		{ agent: "nubia-worker", model: undefined, inherited: true },
 	);
 });
 
 test("an undiscovered agent resolves to undefined", () => {
 	const f = fixture("missing-agent");
 	assert.equal(
-		resolveEffectiveAgentModel("gentle-ai-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator }),
+		resolveEffectiveAgentModel("nubia-worker", { roots: f.roots, pinCwd: f.cwd, configHome: f.configHome, resolveWorktree: f.resolveWorktree, fallback: orchestrator }),
 		undefined,
 	);
 });

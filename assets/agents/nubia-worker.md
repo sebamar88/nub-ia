@@ -1,5 +1,5 @@
 ---
-name: gentle-ai-worker
+name: nubia-worker
 description: Scoped package-owned implementation writer for bounded ODD work. Edits code, runs focused tests, and returns review-ready evidence without committing.
 model: nub-ia/balanced
 thinking: medium

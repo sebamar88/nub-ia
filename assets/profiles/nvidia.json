@@ -3,15 +3,15 @@
   "version": 1,
   "name": "nvidia",
   "config": {
-    "gentle-ai-explore": {
+    "nubia-explore": {
       "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
       "thinking": "low"
     },
-    "gentle-ai-verify": {
+    "nubia-verify": {
       "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
       "thinking": "high"
     },
-    "gentle-ai-worker": {
+    "nubia-worker": {
       "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
       "thinking": "medium"
     },

@@ -1,4 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { legacyAgentNameFor, migrateAgentKeys } from "./agent-name-migration.ts";
 import { basename, join } from "node:path";
 import { THINKING_LEVELS as ROUTING_THINKING_LEVELS, type AgentModelConfig, type ThinkingLevel as RoutingThinkingLevel } from "./model-routing-authority.ts";
 
@@ -242,7 +243,7 @@ function positiveInteger(value: unknown, fallback: number): number {
 function parseProfiles(value: unknown): Record<string, ModelProfile> {
 	const profiles: Record<string, ModelProfile> = {};
 	if (!value || typeof value !== "object") return profiles;
-	for (const [name, raw] of Object.entries(value as Record<string, unknown>)) {
+	for (const [name, raw] of Object.entries(migrateAgentKeys(value as Record<string, unknown>).record)) {
 		if (!raw || typeof raw !== "object") continue;
 		const entry = raw as Record<string, unknown>;
 		const thinking = parseThinking(entry.effort ?? entry.thinking);
@@ -317,7 +318,8 @@ function pick<T>(candidates: Array<[T | undefined, ProfileSource]>): [T | undefi
 }
 
 export function resolveAgentProfile(agent: AgentDefinition, config: AgentsConfig): ResolvedProfile {
-	const profile = config.modelProfiles[agent.name];
+	const legacyName = legacyAgentNameFor(agent.name);
+	const profile = config.modelProfiles[agent.name] ?? (legacyName === undefined ? undefined : config.modelProfiles[legacyName]);
 	const [model, modelSource] = pick<ModelRef>([
 		[profile?.model, PROFILE_SOURCE.PROFILE],
 		[agent.model, PROFILE_SOURCE.DEFINITION],

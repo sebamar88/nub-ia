@@ -8,7 +8,7 @@ import { parseAgentDefinition, type AgentDefinition } from "../lib/agents-config
 import { normalizeRpcEvent, TASK_EVENT } from "../lib/agents-protocol.ts";
 import { ChildComposition, childEvent, classifyBuiltinAgent, launchSelection } from "../lib/runtime-metrics-children.ts";
 
-const asset = new URL("../assets/agents/gentle-ai-worker.md", import.meta.url);
+const asset = new URL("../assets/agents/nubia-worker.md", import.meta.url);
 const definition = parseAgentDefinition(readFileSync(asset, "utf8"), asset.pathname, "global");
 assert.ok("instructions" in definition);
 const workerDefinition = definition as AgentDefinition;
@@ -55,7 +55,7 @@ test("installed package definitions retain classification after the actual routi
 });
 
 test("packaged named worker is encoded with its public telemetry class", () => {
-	const path = new URL("../assets/agents/gentle-ai-worker.md", import.meta.url);
+	const path = new URL("../assets/agents/nubia-worker.md", import.meta.url);
 	const packaged = parseAgentDefinition(readFileSync(path, "utf8"), path.pathname, "global");
 	assert.ok("instructions" in packaged);
 	const selection = launchSelection(packaged, { provider: "openai", id: "gpt-4o" }, "high");
@@ -69,11 +69,11 @@ test("packaged named worker is encoded with its public telemetry class", () => {
 	composition.record(completed);
 	const snapshot = composition.snapshot();
 	assert.equal(snapshot.launches[0].agentClass, "worker");
-	assert.ok(!JSON.stringify(snapshot).includes("gentle-ai-worker"));
+	assert.ok(!JSON.stringify(snapshot).includes("nubia-worker"));
 });
 
 test("prefixed packaged names require exact fingerprints and do not expose private names", () => {
-	const path = new URL("../assets/agents/gentle-ai-verify.md", import.meta.url);
+	const path = new URL("../assets/agents/nubia-verify.md", import.meta.url);
 	const packaged = parseAgentDefinition(readFileSync(path, "utf8"), path.pathname, "global");
 	assert.ok("instructions" in packaged);
 	assert.equal(classifyBuiltinAgent(packaged), "verify");
@@ -118,7 +118,7 @@ test("launch distribution and each observed combination remain independent and p
 });
 
 test("registered child launch identity survives catalog state and missing response evidence inherits selection", () => {
-	const path = new URL("../assets/agents/gentle-ai-explore.md", import.meta.url);
+	const path = new URL("../assets/agents/nubia-explore.md", import.meta.url);
 	const agent = parseAgentDefinition(readFileSync(path, "utf8"), path.pathname, "global");
 	assert.ok("instructions" in agent);
 	const selection = launchSelection(agent, { provider: "openai-codex", id: "gpt-5.6-terra" }, "high");

@@ -1,3 +1,4 @@
+import { describeAgentKeyMigration, migrateAgentKeys } from "../lib/agent-name-migration.ts";
 import { appendSystemPromptOnce } from "../lib/append-system-prompt.ts";
 import { recognizeDestructiveCommands } from "../lib/destructive-command-guard.ts";
 import { blockChildDestructiveCommand } from "./child-safety.ts";
@@ -70,6 +71,7 @@ import {
 	profileExportPath,
 	profileExportReadPath,
 	profilesReadFilePath,
+	writeJsonFileAtomicallySync,
 	profileRoutingRows,
 	profilesFilePath,
 	readProfileOrchestrator,
@@ -2142,10 +2144,59 @@ export async function applyModelConfigAsync(
 	return { updated, skipped };
 }
 
+/**
+ * Renames legacy `gentle-ai-*` agent keys in the saved models.json and
+ * profiles.json to their `nubia-*` names, writing each migrated file back to
+ * the canonical config home once. Returns the legacy keys that were renamed.
+ */
+export function migrateSavedAgentRoutingKeys(cwd: string): string[] {
+	const renamed = new Set<string>();
+	const migrateFile = (readPath: string, writePath: string, migrate: (value: Record<string, unknown>) => string[]): void => {
+		try {
+			if (!existsSync(readPath)) return;
+			const parsed: unknown = JSON.parse(readFileSync(readPath, "utf8"));
+			if (!isRecord(parsed)) return;
+			const migrated = migrate(parsed);
+			if (migrated.length === 0) return;
+			mkdirSync(dirname(writePath), { recursive: true });
+			writeJsonFileAtomicallySync(writePath, `${JSON.stringify(parsed, null, 2)}\n`);
+			for (const key of migrated) renamed.add(key);
+		} catch {
+			// Unwritable or unreadable stores keep working through the read-time aliases.
+		}
+	};
+	migrateFile(modelConfigReadPath(cwd), modelConfigPath(cwd), (value) => {
+		const { record, migrated } = migrateAgentKeys(value);
+		if (migrated.length > 0) {
+			for (const key of Object.keys(value)) delete value[key];
+			Object.assign(value, record);
+		}
+		return migrated;
+	});
+	migrateFile(profilesReadFilePath(gentleAiConfigHome()), profilesFilePath(gentleAiConfigHome()), (value) => {
+		const profiles = value.profiles;
+		if (!isRecord(profiles)) return [];
+		const all: string[] = [];
+		for (const [name, profile] of Object.entries(profiles)) {
+			if (!isRecord(profile)) continue;
+			const { record, migrated } = migrateAgentKeys(profile);
+			if (migrated.length === 0) continue;
+			profiles[name] = record;
+			all.push(...migrated);
+		}
+		return all;
+	});
+	return [...renamed];
+}
+
 export async function applySavedModelConfig(
 	ctx: ExtensionContext,
 	applyConfig: typeof applyModelConfigAsync = applyModelConfigAsync,
 ): Promise<{ updated: number; skipped: number; invalidPath?: string }> {
+	const renamedKeys = migrateSavedAgentRoutingKeys(ctx.cwd);
+	if (renamedKeys.length > 0 && ctx.hasUI) {
+		try { ctx.ui.notify(describeAgentKeyMigration(renamedKeys), "info"); } catch { /* stale context */ }
+	}
 	const result = await readModelRoutingAuthorityAsync(
 		modelConfigReadPath(ctx.cwd),
 		legacyProjectModelConfigPath(ctx.cwd),

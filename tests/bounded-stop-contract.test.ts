@@ -15,8 +15,8 @@ import { __testing } from "../extensions/nubia-harness.ts";
 const read = (relative: string): string => readFileSync(join(import.meta.dirname, "..", relative), "utf8");
 const verification = read("assets/orchestrator-verification.md");
 const tracking = read("assets/orchestrator-tracking.md");
-const worker = read("assets/agents/gentle-ai-worker.md");
-const verify = read("assets/agents/gentle-ai-verify.md");
+const worker = read("assets/agents/nubia-worker.md");
+const verify = read("assets/agents/nubia-verify.md");
 const personas = ["gentleman", "neutral"] as const;
 
 function lineStarting(text: string, prefix: string): string {

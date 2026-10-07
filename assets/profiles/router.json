@@ -3,15 +3,15 @@
   "version": 1,
   "name": "router",
   "config": {
-    "gentle-ai-explore": {
+    "nubia-explore": {
       "model": "nub-ia/balanced",
       "thinking": "low"
     },
-    "gentle-ai-verify": {
+    "nubia-verify": {
       "model": "nub-ia/balanced",
       "thinking": "high"
     },
-    "gentle-ai-worker": {
+    "nubia-worker": {
       "model": "nub-ia/balanced",
       "thinking": "medium"
     },

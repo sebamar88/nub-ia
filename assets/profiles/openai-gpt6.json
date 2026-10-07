@@ -3,15 +3,15 @@
   "version": 1,
   "name": "openai-gpt6",
   "config": {
-    "gentle-ai-explore": {
+    "nubia-explore": {
       "model": "openai/gpt-6.1-sol",
       "thinking": "low"
     },
-    "gentle-ai-verify": {
+    "nubia-verify": {
       "model": "openai/gpt-6.1-sol",
       "thinking": "high"
     },
-    "gentle-ai-worker": {
+    "nubia-worker": {
       "model": "openai/gpt-6.1-sol",
       "thinking": "medium"
     },

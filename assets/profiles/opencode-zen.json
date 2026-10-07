@@ -3,15 +3,15 @@
   "version": 1,
   "name": "opencode-zen",
   "config": {
-    "gentle-ai-explore": {
+    "nubia-explore": {
       "model": "opencode/claude-sonnet-5-5",
       "thinking": "low"
     },
-    "gentle-ai-verify": {
+    "nubia-verify": {
       "model": "opencode/claude-sonnet-5-5",
       "thinking": "high"
     },
-    "gentle-ai-worker": {
+    "nubia-worker": {
       "model": "opencode/claude-sonnet-5-5",
       "thinking": "medium"
     },

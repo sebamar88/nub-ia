@@ -8,7 +8,7 @@ El writer acotado ejecuta, en primer plano, los comandos exactos que el padre li
 
 ## Verificación independiente
 
-Se suma una corrida separada de `gentle-ai-verify` (o el fallback nativo `Agent`, con la misma tarea de solo lectura y los comandos exactos autorizados por el padre) cuando:
+Se suma una corrida separada de `nubia-verify` (o el fallback nativo `Agent`, con la misma tarea de solo lectura y los comandos exactos autorizados por el padre) cuando:
 
 - el cambio toca un ítem de riesgo alto de Task Size (datos o efectos irreversibles, seguridad, cambio de un contrato consumido, concurrencia, entrega o entorno, o ningún test detectaría una regresión);
 - el writer reporta `partial` o `blocked`;

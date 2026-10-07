@@ -55,7 +55,7 @@ export default function (pi) {
 			return result.content.filter(part => part.type === "text").map(part => part.text).join("\n");
 		};
 		const before = await names();
-		assert.match(before, /- gentle-ai-explore \(global\)/);
+		assert.match(before, /- nubia-explore \(global\)/);
 		assert.match(before, /- review-risk \(global\)/);
 		assert.doesNotMatch(before, /- sdd-/, "fresh startup must not install SDD definitions");
 		assert.equal(existsSync(join(agentDir, "chains", "sdd-full.chain.md")), false);

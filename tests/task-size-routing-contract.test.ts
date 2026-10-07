@@ -73,7 +73,7 @@ test("AC3: small work runs its checks inline and keeps test-first", () => {
 		assert.ok(!text.includes("only a read-only check within the evidence budget stays inline"), `${path} keeps the read-only-only inline check`);
 		assert.ok(!text.includes("Only a truly local read-only check within the evidence budget stays inline"), `${path} keeps the read-only-only inline check`);
 		assert.ok(!text.includes("running focused tests/builds"), `${path} still delegates focused test runs`);
-		assert.ok(!text.includes("command-running verification → `gentle-ai-verify`"), `${path} still routes every command-running check to a verifier`);
+		assert.ok(!text.includes("command-running verification → `nubia-verify`"), `${path} still routes every command-running check to a verifier`);
 	}
 });
 
@@ -178,7 +178,7 @@ test("work usage stays complete in the human guide while routing precedence stay
 		"confer no ownership, consent or permission. Querying needs no helper/model call.",
 	]) assert.ok(guide.includes(clause), `human guide must retain: ${clause}`);
 	assert.equal(asset.split("For a large task's bounded writes, prefer").length - 1, 1);
-	assert.equal(asset.split("Route generic exploration first to the installed package-owned `gentle-ai-explore`").length - 1, 1);
+	assert.equal(asset.split("Route generic exploration first to the installed package-owned `nubia-explore`").length - 1, 1);
 	assert.ok(asset.includes("Judgment Day phase roles are never generic fallbacks."));
 	assert.ok(asset.includes("same read-only mapping task and report the fallback."));
 });

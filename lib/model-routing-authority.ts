@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
+import { migrateAgentKeys } from "./agent-name-migration.ts";
 
 export const THINKING_LEVELS = [
 	"off",
@@ -77,7 +78,7 @@ export function normalizeRoutingEntry(value: unknown): AgentRoutingEntry | undef
 export function normalizeModelConfig(value: unknown): AgentModelConfig | undefined {
 	if (!isRecord(value)) return undefined;
 	const cleaned: AgentModelConfig = {};
-	for (const [name, entryValue] of Object.entries(value)) {
+	for (const [name, entryValue] of Object.entries(migrateAgentKeys(value).record)) {
 		if (!SAFE_AGENT_NAME_PATTERN.test(name)) continue;
 		const entry = normalizeRoutingEntry(entryValue);
 		if (entry) cleaned[name] = entry;
@@ -87,7 +88,7 @@ export function normalizeModelConfig(value: unknown): AgentModelConfig | undefin
 
 function parseModelConfigFileValue(value: Record<string, unknown>): AgentModelConfig {
 	const config: AgentModelConfig = {};
-	for (const [name, entryValue] of Object.entries(value)) {
+	for (const [name, entryValue] of Object.entries(migrateAgentKeys(value).record)) {
 		const entry = normalizeRoutingEntry(entryValue);
 		if (entry) config[name] = entry;
 	}

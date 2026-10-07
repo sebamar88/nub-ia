@@ -31,7 +31,7 @@ test("T26: the always-on Implement step gives inline work the test checklist", (
 });
 
 test("T26: the worker test discipline carries the same checklist", () => {
-	const worker = read("assets/agents/gentle-ai-worker.md");
+	const worker = read("assets/agents/nubia-worker.md");
 	for (const clause of TEST_RULE) assert.ok(worker.includes(clause), `worker test discipline is missing: ${clause}`);
 	assert.ok(!worker.includes("add the smallest behavior-level test"), "RED must not ask for the smallest test");
 });
@@ -44,7 +44,7 @@ test("T26b: inline and delegated work update the help and docs that describe a c
 		const step = __testing.buildGentlePrompt(persona).split("\n").find((line) => line.startsWith("6. **Implement"));
 		assert.ok(step?.includes(clause), `${persona} Implement step is missing the docs rule`);
 	}
-	assert.ok(read("assets/agents/gentle-ai-worker.md").includes(clause), "worker is missing the docs rule");
+	assert.ok(read("assets/agents/nubia-worker.md").includes(clause), "worker is missing the docs rule");
 });
 
 // T27 (L56): in `pi --mode json` the runtime already rejects background
@@ -81,7 +81,7 @@ test("T28b: inline test-first derives cases from the rules and touched commands,
 });
 
 test("T28b: the worker preserves touched behavior instead of inventing edge cases", () => {
-	const worker = read("assets/agents/gentle-ai-worker.md");
+	const worker = read("assets/agents/nubia-worker.md");
 	assert.ok(worker.includes(`3. PRESERVE — ${PRESERVE}`), "worker step 3 must be PRESERVE");
 	assert.doesNotMatch(worker, /at least two edge cases|3\. TRIANGULATE/, "worker must not keep the edge-case quota");
 });
@@ -98,7 +98,7 @@ test("T31: PRESERVE uses the general definition of touched, not a parser-specifi
 		assert.ok(prompt.includes(TOUCHED), `${persona} prompt must define touched behavior`);
 		assert.doesNotMatch(prompt, /shared parser or command, test that every sibling subcommand/, `${persona} must drop the T30 parser case`);
 	}
-	const worker = read("assets/agents/gentle-ai-worker.md");
+	const worker = read("assets/agents/nubia-worker.md");
 	assert.ok(worker.includes(TOUCHED), "worker must define touched behavior");
 	assert.doesNotMatch(worker, /shared parser or command, test that every sibling subcommand/, "worker must drop the T30 parser case");
 });

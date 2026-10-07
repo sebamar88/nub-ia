@@ -184,7 +184,7 @@ for (const showRose of [false, true]) for (const showTextLogo of [false, true]) 
 		t.mock.method(fs, "readdir", async () => [
 			{ name: "sdd-apply.md", isFile: () => true },
 			{ name: "sdd-status.md", isFile: () => true },
-			{ name: "gentle-ai-worker.md", isFile: () => true },
+			{ name: "nubia-worker.md", isFile: () => true },
 			{ name: "notes.txt", isFile: () => true },
 		] as any);
 		syncBuiltinESMExports();

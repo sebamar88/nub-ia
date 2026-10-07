@@ -435,14 +435,14 @@ async function run() {
 		assert.equal(denied.block, true);
 		assert.match(denied.reason, /destructive/);
 		for (const [agent, label, task] of [
-			["gentle-ai-worker", "missing", "Implement the requested change."],
-			["gentle-ai-worker", "absolute", "## Allowed edit surfaces\n/tmp/outside.ts"],
-			["gentle-ai-worker", "Windows absolute", "## Allowed edit surfaces\nC:\\outside.ts"],
-			["gentle-ai-worker", "prose instead of paths", "## Allowed edit surfaces\nThe parent will determine the paths."],
-			["gentle-ai-worker", "repository root", "## Allowed edit surfaces\n."],
-			["gentle-ai-worker", "bare repository root", "## Allowed edit surfaces\n./"],
-			["gentle-ai-worker", "normalized bare repository root", "## Allowed edit surfaces\n.//"],
-			["gentle-ai-worker", "equivalent normalized bare repository root", "## Allowed edit surfaces\n././/"],
+			["nubia-worker", "missing", "Implement the requested change."],
+			["nubia-worker", "absolute", "## Allowed edit surfaces\n/tmp/outside.ts"],
+			["nubia-worker", "Windows absolute", "## Allowed edit surfaces\nC:\\outside.ts"],
+			["nubia-worker", "prose instead of paths", "## Allowed edit surfaces\nThe parent will determine the paths."],
+			["nubia-worker", "repository root", "## Allowed edit surfaces\n."],
+			["nubia-worker", "bare repository root", "## Allowed edit surfaces\n./"],
+			["nubia-worker", "normalized bare repository root", "## Allowed edit surfaces\n.//"],
+			["nubia-worker", "equivalent normalized bare repository root", "## Allowed edit surfaces\n././/"],
 			["worker", "generic writer missing", "Implement the requested change."],
 		]) {
 			const writerDispatch = { agent, task, mode: "task" };
@@ -458,7 +458,7 @@ async function run() {
 		}
 
 		const scopedWriterDispatch = {
-			agent: "gentle-ai-worker",
+			agent: "nubia-worker",
 			task: "Implement the requested change.\n\n## Allowed edit surfaces\nextensions/nubia-harness.ts\ntests/runtime-harness.mjs",
 			mode: "task",
 		};
@@ -546,7 +546,7 @@ async function run() {
 			["empty frozen evidence", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("\"evidence_claim\":\"The frozen finding has concrete user impact.\"", "\"evidence_claim\":\"\""), mode: "task" }],
 			["missing edit surface", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("## Allowed edit surfaces\nextensions/nubia-harness.ts\ntests/runtime-harness.mjs", ""), mode: "task" }],
 			["invalid edit surface", { agent: "jd-fix-agent", task: canonicalJdFixTask.replace("## Allowed edit surfaces\nextensions/nubia-harness.ts", "## Allowed edit surfaces\n."), mode: "task" }],
-			["mixed", { agent: ["jd-fix-agent", "gentle-ai-worker"], task: canonicalJdFixTask, mode: "task" }],
+			["mixed", { agent: ["jd-fix-agent", "nubia-worker"], task: canonicalJdFixTask, mode: "task" }],
 			["agent array", { agent: ["jd-fix-agent"], task: canonicalJdFixTask, mode: "task" }],
 			["agents array", { agents: ["jd-fix-agent"], task: canonicalJdFixTask, mode: "task" }],
 			["duplicate agent binding", { agent: "jd-fix-agent", agents: "jd-fix-agent", task: canonicalJdFixTask, mode: "task" }],
@@ -569,7 +569,7 @@ async function run() {
 			[
 				"valid scope followed by a repository-root scope",
 				{
-					agent: "gentle-ai-worker",
+					agent: "nubia-worker",
 					task: "## Allowed edit surfaces\nextensions/nubia-harness.ts\n\n## Allowed edit surfaces\n.",
 					mode: "task",
 				},
@@ -577,7 +577,7 @@ async function run() {
 			[
 				"valid task scope plus invalid context scope",
 				{
-					agent: "gentle-ai-worker",
+					agent: "nubia-worker",
 					task: "## Allowed edit surfaces\nextensions/nubia-harness.ts",
 					context: "## Allowed edit surfaces\n.",
 					mode: "task",
@@ -586,7 +586,7 @@ async function run() {
 			[
 				"conflicting valid task and context scopes",
 				{
-					agent: "gentle-ai-worker",
+					agent: "nubia-worker",
 					task: "## Allowed edit surfaces\nextensions/nubia-harness.ts",
 					context: "## Allowed edit surfaces\ntests/runtime-harness.mjs",
 					mode: "task",
@@ -601,7 +601,7 @@ async function run() {
 				{
 					toolName: "subagent_run",
 					input: {
-						agent: "gentle-ai-worker",
+						agent: "nubia-worker",
 						task: "## Allowed edit surfaces\nextensions/nubia-harness.ts\ntests/runtime-harness.mjs\n\n## Allowed edit surfaces\n- `tests/runtime-harness.mjs`\n- `extensions/nubia-harness.ts`",
 						mode: "task",
 					},
@@ -822,11 +822,11 @@ async function run() {
 			false,
 			"the retired review-validator agent must not be installed",
 		);
-		const installedExplorePath = join(globalAgentHome, "agents", "gentle-ai-explore.md");
+		const installedExplorePath = join(globalAgentHome, "agents", "nubia-explore.md");
 		assert.equal(existsSync(installedExplorePath), true);
 		assert.deepEqual(
 			readAgentDefinition(await readFile(installedExplorePath, "utf8")),
-			{ name: "gentle-ai-explore", tools: ["read", "grep", "find", "codegraph"] },
+			{ name: "nubia-explore", tools: ["read", "grep", "find", "codegraph"] },
 			"isolated package installation must activate only the explorer inspection tools",
 		);
 		const installedRiskSource = await readFile(
@@ -917,7 +917,7 @@ async function run() {
 		const fixture = await tempWorkspace();
 		const agentHome = join(fixture, "agent-home");
 		const representatives = {
-			delegation: "gentle-ai-worker.md",
+			delegation: "nubia-worker.md",
 			review: "review-risk.md",
 		};
 		try {

@@ -1,5 +1,5 @@
 ---
-name: gentle-ai-verify
+name: nubia-verify
 description: Read-only technical verification for generic ODD work.
 model: nub-ia/balanced
 thinking: high

@@ -1,3 +1,4 @@
+import { canonicalAgentName } from "../lib/agent-name-migration.ts";
 import { agentsViewKey, agentsCollapseKey, agentsStopKey } from "../lib/agents-keys.ts";
 import { spawn } from "node:child_process";
 import { Type } from "typebox";
@@ -1822,7 +1823,12 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 			if ((Object.hasOwn(params, "repository_root") && typeof params.repository_root !== "string") || (Object.hasOwn(params, "workspace_root") && typeof params.workspace_root !== "string")) throw new Error("Root selectors must be strings.");
 			if (Object.hasOwn(params, "sdd_change") || Object.hasOwn(params, "remediation") || Object.hasOwn(params, "research_selection") || retiredSddAgent(String(params.agent))) return text("Error: retired SDD delegation is not supported.", { error: "retired SDD delegation" });
 			const { agents } = discoverAgents(roots(ctx));
-			const agent = agents.find((candidate) => candidate.name === params.agent);
+			const requestedName = String(params.agent);
+			const canonicalName = canonicalAgentName(requestedName);
+			// A user-kept custom agent still named with the legacy name is honoured when the canonical one is absent.
+			const agent = agents.find((candidate) => candidate.name === canonicalName) ?? agents.find((candidate) => candidate.name === requestedName);
+			const legacyNote = agent && agent.name !== requestedName ? `Note: agent ${requestedName} is now ${agent.name}.` : undefined;
+			const withLegacyNote = (value: ToolText): ToolText => legacyNote ? { ...value, content: [...value.content, { type: "text", text: legacyNote }] } : value;
 			if (!agent) return text(`Error: no subagent named "${String(params.agent)}". Known: ${agents.map((candidate) => candidate.name).join(", ") || "none"}`, { error: "unknown agent" });
 			const mode = (params.mode as AgentMode | undefined) ?? agent.mode ?? resolveDefaultSubagentMode({
 				configuredDefault: loadAgentsConfig(roots(ctx)).defaultMode,
@@ -1841,12 +1847,12 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 					if (current()) publication.status = "recorded";
 				} catch { /* Optional metadata cannot invalidate an allocated task. */ }
 			} : undefined);
-			if (!work) return result;
+			if (!work) return withLegacyNote(result);
 			if (!current()) publication.status = "unavailable";
 			const note = publication.status === "recorded"
 				? "Work recorded in local curated state; peer advertisement is best-effort."
 				: "Work publication unavailable/unknown. Do not relaunch this allocated task. Use orchestrator_session_id with a bounded replacement state and this actual task ID when the owner session is active.";
-			return { ...result, content: [...result.content, { type: "text", text: note }], details: { ...result.details, workPublication: publication } };
+			return withLegacyNote({ ...result, content: [...result.content, { type: "text", text: note }], details: { ...result.details, workPublication: publication } });
 		},
 	);
 

@@ -1219,13 +1219,13 @@ for (const boundary of ["allowed", "env", "session", "replacement", "bus-throws"
 		const env: NodeJS.ProcessEnv = {};
 		const profile = join(root, `metrics-${boundary}`);
 		mkdirSync(join(profile, "agents"), { recursive: true });
-		writeFileSync(join(profile, "agents", "gentle-ai-worker.md"), readFileSync(new URL("../assets/agents/gentle-ai-worker.md", import.meta.url)));
-		writeFileSync(join(profile, "subagents.json"), JSON.stringify({ model_profiles: { "gentle-ai-worker": { model: "openai/gpt-4o", effort: "high" } } }));
+		writeFileSync(join(profile, "agents", "nubia-worker.md"), readFileSync(new URL("../assets/agents/nubia-worker.md", import.meta.url)));
+		writeFileSync(join(profile, "subagents.json"), JSON.stringify({ model_profiles: { "nubia-worker": { model: "openai/gpt-4o", effort: "high" } } }));
 		gentleAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile, metricsNow: () => clock, metricsSchedule });
 		const listenerCounts = () => [...h.listeners].map(([name, set]) => [name, set.size]);
 		await h.fire("session_start", context.ctx);
 		const initialListeners = listenerCounts();
-		const result = h.tools.get("subagent_run")!.execute("call", { agent: "gentle-ai-worker", task: "private task\n## Allowed edit surfaces\nsrc/app.ts\n## Return\nReport", mode: "task" }, undefined, undefined, context.ctx);
+		const result = h.tools.get("subagent_run")!.execute("call", { agent: "nubia-worker", task: "private task\n## Allowed edit surfaces\nsrc/app.ts\n## Return\nReport", mode: "task" }, undefined, undefined, context.ctx);
 		await tick();
 		assert.equal(runtime.children.length, 1);
 		const child = runtime.children[0];
@@ -2633,7 +2633,7 @@ for (const drift of ["loss", "common-dir", "root"] as const) {
 	});
 }
 
-for (const scenario of ["implicit-worker", "explicit-worker", "implicit-gentle-ai-worker", "explicit-gentle-ai-worker", "scope", "task", "mode", "model", "profile-model", "profile-valid", "foreign", "nested", "repository", "print", "cancelled", "missing", "off", "shutdown", "replacement", "changed-id", "during-cancel", "docs", "read-only", "review", "jd"] as const) {
+for (const scenario of ["implicit-worker", "explicit-worker", "implicit-nubia-worker", "explicit-nubia-worker", "scope", "task", "mode", "model", "profile-model", "profile-valid", "foreign", "nested", "repository", "print", "cancelled", "missing", "off", "shutdown", "replacement", "changed-id", "during-cancel", "docs", "read-only", "review", "jd"] as const) {
 	test(`bounded writer executor admission before bootstrap: ${scenario}`, async t => {
 		const fixture = realpathSync(mkdtempSync(join(root, "writer-admission-")));
 		const project = join(fixture, "project");
@@ -2642,7 +2642,7 @@ for (const scenario of ["implicit-worker", "explicit-worker", "implicit-gentle-a
 		mkdirSync(definitions, { recursive: true });
 		mkdirSync(project);
 		mkdirSync(join(project, "nested"));
-		for (const role of ["worker", "gentle-ai-worker", "explore", "reviewer", "jd-fix-agent"]) writeFileSync(join(definitions, `${role}.md`), `---\ndescription: fixture\nmodel: offline/good\ntools: [read]\n---\nFixture`);
+		for (const role of ["worker", "nubia-worker", "explore", "reviewer", "jd-fix-agent"]) writeFileSync(join(definitions, `${role}.md`), `---\ndescription: fixture\nmodel: offline/good\ntools: [read]\n---\nFixture`);
 		const h = fakePi();
 		const runtime = deps();
 		runtime.deps.home = fixtureHome;
@@ -2675,7 +2675,7 @@ for (const scenario of ["implicit-worker", "explicit-worker", "implicit-gentle-a
 		t.after(() => { unbind(); });
 		if (scenario === "cancelled") abort.abort();
 		if (scenario === "print") Object.assign(ctx, { mode: "print", hasUI: false });
-		const agent = scenario.includes("gentle-ai-worker") ? "gentle-ai-worker" : scenario === "read-only" ? "explore" : scenario === "review" ? "reviewer" : scenario === "jd" ? "jd-fix-agent" : "worker";
+		const agent = scenario.includes("nubia-worker") ? "nubia-worker" : scenario === "read-only" ? "explore" : scenario === "review" ? "reviewer" : scenario === "jd" ? "jd-fix-agent" : "worker";
 		const task = `Implement source\n## Allowed edit surfaces\n${scenario === "docs" ? "odd/tasks/feature.md" : "src/app.ts"}\n## Return\nReport`;
 		const params = { agent, task: scenario === "scope" ? "No surface" : scenario === "task" ? 42 : task, mode: scenario === "mode" ? "invalid" : "background", ...(scenario.startsWith("explicit") ? { workspace_root: project } : {}), ...(scenario === "nested" ? { workspace_root: join(project, "nested") } : {}), ...(scenario === "foreign" ? { workspace_root: fixtureHome } : {}), ...(scenario === "repository" ? { repository_root: fixtureHome } : {}) };
 		const accepted = scenario.startsWith("implicit-") || scenario.startsWith("explicit-") || scenario === "profile-valid" || ["docs", "read-only", "review", "jd"].includes(scenario);
@@ -5300,13 +5300,13 @@ test("a writer continuation without its own section inherits the admitted surfac
 	const runtime = deps();
 	const profile = mkdtempSync(join(tmpdir(), "gentle-agents-continue-"));
 	mkdirSync(join(profile, "agents"), { recursive: true });
-	writeFileSync(join(profile, "agents", "gentle-ai-worker.md"), readFileSync(new URL("../assets/agents/gentle-ai-worker.md", import.meta.url)));
-	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ model_profiles: { "gentle-ai-worker": { model: "openai/gpt-4o", effort: "high" } } }));
+	writeFileSync(join(profile, "agents", "nubia-worker.md"), readFileSync(new URL("../assets/agents/nubia-worker.md", import.meta.url)));
+	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ model_profiles: { "nubia-worker": { model: "openai/gpt-4o", effort: "high" } } }));
 	const env: NodeJS.ProcessEnv = {};
 	gentleAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile });
 	const { ctx } = fakeContext();
 	await h.fire("session_start", ctx);
-	const launched = h.tools.get("subagent_run")!.execute("run", { agent: "gentle-ai-worker", task: "Do T2.\n\n## Allowed edit surfaces\n- src/app.ts\n- `docs/with space.md`\n\n## Return\nReport", mode: "task" }, undefined, undefined, ctx);
+	const launched = h.tools.get("subagent_run")!.execute("run", { agent: "nubia-worker", task: "Do T2.\n\n## Allowed edit surfaces\n- src/app.ts\n- `docs/with space.md`\n\n## Return\nReport", mode: "task" }, undefined, undefined, ctx);
 	await tick();
 	runtime.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "partial" }] }] });
 	runtime.children[0].emit({ type: "agent_settled" });
@@ -5331,9 +5331,9 @@ test("parallel writers are admitted only with disjoint Allowed edit surfaces end
 	const runtime = deps();
 	const profile = mkdtempSync(join(tmpdir(), "gentle-agents-parallel-writers-"));
 	mkdirSync(join(profile, "agents"), { recursive: true });
-	writeFileSync(join(profile, "agents", "gentle-ai-worker.md"), readFileSync(new URL("../assets/agents/gentle-ai-worker.md", import.meta.url)));
+	writeFileSync(join(profile, "agents", "nubia-worker.md"), readFileSync(new URL("../assets/agents/nubia-worker.md", import.meta.url)));
 	writeFileSync(join(profile, "agents", "explore.md"), "---\ndescription: maps things\ntools: [read, grep]\n---\nYou map things.");
-	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ max_concurrency: 5, model_profiles: { "gentle-ai-worker": { model: "openai/gpt-4o", effort: "high" } } }));
+	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ max_concurrency: 5, model_profiles: { "nubia-worker": { model: "openai/gpt-4o", effort: "high" } } }));
 	const env: NodeJS.ProcessEnv = {};
 	gentleAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile });
 	const { ctx } = fakeContext();
@@ -5352,11 +5352,11 @@ test("parallel writers are admitted only with disjoint Allowed edit surfaces end
 		assert.fail(`task ${id} never completed`);
 	};
 	try {
-		const app = taskId(await run("gentle-ai-worker", scoped("src/app.ts")));
-		const other = taskId(await run("gentle-ai-worker", scoped("`src/other.ts`")));
+		const app = taskId(await run("nubia-worker", scoped("src/app.ts")));
+		const other = taskId(await run("nubia-worker", scoped("`src/other.ts`")));
 		await tick();
 		assert.equal(runtime.children.length, 2, "disjoint writers run concurrently");
-		await assert.rejects(run("gentle-ai-worker", scoped("src/*.ts")), (error: Error) => {
+		await assert.rejects(run("nubia-worker", scoped("src/*.ts")), (error: Error) => {
 			assert.match(error.message, new RegExp(`task ${app}`));
 			assert.match(error.message, new RegExp(`task ${other}`));
 			assert.match(error.message, /`src\/\*\.ts` overlaps `src\/app\.ts`/);
@@ -5368,8 +5368,8 @@ test("parallel writers are admitted only with disjoint Allowed edit surfaces end
 		await finish(runtime.children[0], app);
 		// The continuation inherits src/app.ts and is admitted again only while no
 		// live writer claims an overlapping entry.
-		await assert.rejects(run("gentle-ai-worker", scoped("src/**")), new RegExp(`task ${other}`), "src/** still overlaps the live src/other.ts writer");
-		const blocking = taskId(await run("gentle-ai-worker", scoped("src/app.ts")));
+		await assert.rejects(run("nubia-worker", scoped("src/**")), new RegExp(`task ${other}`), "src/** still overlaps the live src/other.ts writer");
+		const blocking = taskId(await run("nubia-worker", scoped("src/app.ts")));
 		await assert.rejects(h.tools.get("subagent_continue")!.execute("follow", { task_id: app, prompt: "Continue.", mode: "background" }, undefined, undefined, ctx), new RegExp(`task ${blocking}`));
 		await finish(runtime.children[3], blocking);
 		await h.tools.get("subagent_continue")!.execute("follow", { task_id: app, prompt: "Continue.", mode: "background" }, undefined, undefined, ctx);
@@ -5389,8 +5389,8 @@ test("a subdirectory session cwd and workspace_root of the same worktree share o
 	const runtime = deps();
 	const profile = mkdtempSync(join(tmpdir(), "gentle-agents-writer-root-"));
 	mkdirSync(join(profile, "agents"), { recursive: true });
-	writeFileSync(join(profile, "agents", "gentle-ai-worker.md"), readFileSync(new URL("../assets/agents/gentle-ai-worker.md", import.meta.url)));
-	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ max_concurrency: 5, model_profiles: { "gentle-ai-worker": { model: "openai/gpt-4o", effort: "high" } } }));
+	writeFileSync(join(profile, "agents", "nubia-worker.md"), readFileSync(new URL("../assets/agents/nubia-worker.md", import.meta.url)));
+	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ max_concurrency: 5, model_profiles: { "nubia-worker": { model: "openai/gpt-4o", effort: "high" } } }));
 	const sub = join(cwd, "sub");
 	mkdirSync(sub, { recursive: true });
 	// Git semantics: any path inside the project resolves to the project root.
@@ -5405,11 +5405,35 @@ test("a subdirectory session cwd and workspace_root of the same worktree share o
 	await h.fire("session_start", ctx);
 	const task = "Write it.\n\n## Allowed edit surfaces\nsrc/app.ts\n\n## Return\nReport";
 	try {
-		const first = await h.tools.get("subagent_run")!.execute("run", { agent: "gentle-ai-worker", task, mode: "background" }, undefined, undefined, ctx);
+		const first = await h.tools.get("subagent_run")!.execute("run", { agent: "nubia-worker", task, mode: "background" }, undefined, undefined, ctx);
 		const firstId = (first.details.gentleAgents as { taskId: string }).taskId;
-		await assert.rejects(h.tools.get("subagent_run")!.execute("run", { agent: "gentle-ai-worker", task, workspace_root: cwd, mode: "background" }, undefined, undefined, ctx), new RegExp(`task ${firstId}`));
+		await assert.rejects(h.tools.get("subagent_run")!.execute("run", { agent: "nubia-worker", task, workspace_root: cwd, mode: "background" }, undefined, undefined, ctx), new RegExp(`task ${firstId}`));
 	} finally {
 		await h.fire("session_shutdown", ctx);
 		rmSync(profile, { recursive: true, force: true });
 	}
+});
+
+test("subagent_run resolves a legacy gentle-ai-* agent name to its nubia-* agent and says so", async t => {
+	const agentPath = join(home, ".pi", "agent", "agents", "nubia-explore.md");
+	writeFileSync(agentPath, "---\ndescription: renamed explorer\ntools: [read]\n---\nExplore");
+	t.after(() => rmSync(agentPath, { force: true }));
+	const h = fakePi(), runtime = deps(), { ctx } = fakeContext();
+	gentleAgents(h.pi, {}, runtime.deps);
+	await h.fire("session_start", ctx);
+	const requested: string[] = [];
+	t.mock.method(AgentRunner.prototype, "run", request => {
+		requested.push(request.agent.name);
+		return { id: "legacy-task", agent: request.agent.name, label: "Map", mode: request.mode, status: TASK_STATUS.COMPLETED, cwd, prompt: request.prompt,
+			parentSessionId: request.parentSessionId, createdAt: 1, startedAt: 1, endedAt: 2, model: "fixture", thinking: undefined,
+			sessionPath: null, error: null, result: "Done", lastStep: "Done", lastActivityAt: 2, turns: 1, toolCalls: 0, tokens: 0, cost: 0 } as TaskRecord;
+	});
+	t.mock.method(AgentRunner.prototype, "waitForQuery", async () => undefined);
+	t.mock.method(AgentRunner.prototype, "waitFor", async () => ({ id: "legacy-task", agent: "nubia-explore", label: "Map", mode: "task", status: TASK_STATUS.COMPLETED, cwd, result: "Done", lastStep: "Done" }) as TaskRecord);
+	const legacy = await h.tools.get("subagent_run")!.execute("run", { agent: "gentle-ai-explore", task: "Map", mode: "background" }, undefined, undefined, ctx);
+	assert.deepEqual(requested, ["nubia-explore"]);
+	assert.ok(legacy.content.some(part => part.text === "Note: agent gentle-ai-explore is now nubia-explore."));
+	const canonical = await h.tools.get("subagent_run")!.execute("run", { agent: "nubia-explore", task: "Map", mode: "background" }, undefined, undefined, ctx);
+	assert.deepEqual(requested, ["nubia-explore", "nubia-explore"]);
+	assert.ok(!canonical.content.some(part => /is now/.test(part.text)));
 });

@@ -165,9 +165,9 @@ El orquestador mantiene la sesión delgada y delega en el punto más estrecho ú
 
 | Agente | Rol | Tier |
 | --- | --- | --- |
-| `gentle-ai-explore` | Mapeo de solo lectura; devuelve un handoff corto con evidencia `path:línea`. | `balanced` |
-| `gentle-ai-worker` | Un escritor acotado por tarea, con TDD y verificación según lo reenviado. | `balanced` |
-| `gentle-ai-verify` | Verificador independiente de solo lectura, para cambios de riesgo alto. | `balanced` |
+| `nubia-explore` | Mapeo de solo lectura; devuelve un handoff corto con evidencia `path:línea`. | `balanced` |
+| `nubia-worker` | Un escritor acotado por tarea, con TDD y verificación según lo reenviado. | `balanced` |
+| `nubia-verify` | Verificador independiente de solo lectura, para cambios de riesgo alto. | `balanced` |
 | `review-risk`, `review-reliability`, `review-resilience`, `review-readability` | Los cuatro lentes de `nub_review`. | `strong` (risk) / `balanced` |
 | `jd-judge-a`, `jd-judge-b`, `jd-fix-agent` | Judgment Day: dos jueces ciegos independientes y un agente de fixes (máximo dos rondas). | `strong-alt` / `strong` / `balanced` |
 

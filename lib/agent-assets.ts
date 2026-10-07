@@ -16,6 +16,7 @@ const MANAGED_ASSETS_SCHEMA_VERSION = 1;
 const MANAGED_ASSETS_LOCK_TIMEOUT_MS = 5_000;
 const MANAGED_ASSETS_LOCK_RETRY_MS = 25;
 const LEGACY_MANAGED_ASSET_MANIFESTS = Object.freeze([
+	{ path: join(ASSETS_DIR, "migrations", "managed-assets-v0.1.0.json"), version: "0.1.0" },
 	{ path: join(ASSETS_DIR, "migrations", "managed-assets-v0.10.7.json"), version: "0.10.7" },
 	{ path: join(ASSETS_DIR, "migrations", "managed-assets-v0.13.json"), version: "0.13.0" },
 	{ path: join(ASSETS_DIR, "migrations", "managed-assets-v0.14.json"), version: "0.14.0" },
@@ -23,6 +24,11 @@ const LEGACY_MANAGED_ASSET_MANIFESTS = Object.freeze([
 ]);
 
 const ASSET_OWNER_BY_KEY = Object.freeze({
+	"agents/nubia-explore.md": "delegation",
+	"agents/nubia-verify.md": "delegation",
+	"agents/nubia-worker.md": "delegation",
+	// Renamed agents (see RETIRED_MANAGED_ASSETS): kept so a "delegation"
+	// install still retires their stale managed copies.
 	"agents/gentle-ai-explore.md": "delegation",
 	"agents/gentle-ai-verify.md": "delegation",
 	"agents/gentle-ai-worker.md": "delegation",
@@ -505,6 +511,10 @@ const RETIRED_MANAGED_ASSETS = Object.freeze([
 	"gentle-ai/support/sdd-status-contract.md",
 	"agents/review-refuter.md",
 	"agents/review-validator.md",
+	// Renamed to nubia-* (explore/worker/verify).
+	"agents/gentle-ai-explore.md",
+	"agents/gentle-ai-worker.md",
+	"agents/gentle-ai-verify.md",
 ]);
 
 function removeRetiredManagedAssets(

@@ -20,7 +20,7 @@ const tokenFields = ["input", "output", "cacheRead", "cacheWrite", "reasoning", 
 let definitions: Array<{ name: string; fingerprint: string; fingerprintClass?: AgentClass }> | undefined;
 const packagedAgentClassAliases = new Map([["sdd-proposal", "sdd-propose"]] as const);
 function fingerprintAgentClassName(name: string): string {
-	const compatibilityName = name.startsWith("gentle-ai-") ? name.slice("gentle-ai-".length) : name;
+	const compatibilityName = name.replace(/^(?:gentle-ai|nubia)-/, "");
 	return packagedAgentClassAliases.get(compatibilityName) ?? compatibilityName;
 }
 function fingerprint(agent: AgentDefinition): string {

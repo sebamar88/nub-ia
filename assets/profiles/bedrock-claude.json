@@ -3,15 +3,15 @@
   "version": 1,
   "name": "bedrock-claude",
   "config": {
-    "gentle-ai-explore": {
+    "nubia-explore": {
       "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
       "thinking": "low"
     },
-    "gentle-ai-verify": {
+    "nubia-verify": {
       "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
       "thinking": "high"
     },
-    "gentle-ai-worker": {
+    "nubia-worker": {
       "model": "amazon-bedrock/us.anthropic.claude-sonnet-5-5",
       "thinking": "medium"
     },

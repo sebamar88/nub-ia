@@ -78,16 +78,16 @@ for (const race of ["loss", "replacement", "cancellation"] as const) {
 // the same delegated task, so it inherits the surfaces that launch admitted.
 test("writer continuations inherit the original surfaces only when they carry none", () => {
 	const original = "Implement it.\n\n## Allowed edit surfaces\n- src/model.ts\n- `docs/with space.md`\n\n## Return\nReport";
-	const inherited = inheritAllowedEditSurfaces("gentle-ai-worker", "Continue with the remaining specs.", undefined, original);
+	const inherited = inheritAllowedEditSurfaces("nubia-worker", "Continue with the remaining specs.", undefined, original);
 	assert.deepEqual(allowedEditSurfaces(inherited), ["docs/with space.md", "src/model.ts"]);
 	assert.ok(inherited.startsWith("Continue with the remaining specs."));
 	const own = "Continue.\n## Allowed edit surfaces\nsrc/other.ts";
-	assert.equal(inheritAllowedEditSurfaces("gentle-ai-worker", own, undefined, original), own, "a follow-up section is validated as written, never merged");
+	assert.equal(inheritAllowedEditSurfaces("nubia-worker", own, undefined, original), own, "a follow-up section is validated as written, never merged");
 	const viaContext = "## Allowed edit surfaces\nsrc/other.ts";
 	assert.equal(inheritAllowedEditSurfaces("worker", "Continue.", viaContext, original), "Continue.");
-	assert.equal(inheritAllowedEditSurfaces("gentle-ai-explore", "Continue.", undefined, original), "Continue.", "non-writers are untouched");
+	assert.equal(inheritAllowedEditSurfaces("nubia-explore", "Continue.", undefined, original), "Continue.", "non-writers are untouched");
 	assert.equal(inheritAllowedEditSurfaces("jd-fix-agent", "Continue.", undefined, original), "Continue.", "Judgment Day fix batches keep their exact protocol");
-	assert.equal(inheritAllowedEditSurfaces("gentle-ai-worker", "Continue.", undefined, "No surfaces here."), "Continue.", "nothing to inherit stays rejectable");
+	assert.equal(inheritAllowedEditSurfaces("nubia-worker", "Continue.", undefined, "No surfaces here."), "Continue.", "nothing to inherit stays rejectable");
 	// Review R3-002: an entry admitted only when quoted must round-trip quoted.
 	const quotedOnly = "## Allowed edit surfaces\n- `-`\n- src/model.ts";
 	assert.deepEqual(allowedEditSurfaces(quotedOnly), ["-", "src/model.ts"]);
@@ -96,6 +96,6 @@ test("writer continuations inherit the original surfaces only when they carry no
 
 // gentle-shell#1731: only agents behind the surfaces guard claim surfaces at runtime.
 test("bounded writers are exactly the agents behind the Allowed edit surfaces guard", () => {
-	for (const name of ["gentle-ai-worker", "worker", "jd-fix-agent"]) assert.equal(isBoundedWriter(name), true, name);
-	for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "reviewer", ""]) assert.equal(isBoundedWriter(name), false, name);
+	for (const name of ["nubia-worker", "worker", "jd-fix-agent"]) assert.equal(isBoundedWriter(name), true, name);
+	for (const name of ["explore", "nubia-explore", "nubia-verify", "reviewer", ""]) assert.equal(isBoundedWriter(name), false, name);
 });

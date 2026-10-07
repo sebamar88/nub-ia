@@ -1,5 +1,5 @@
 ---
-name: gentle-ai-explore
+name: nubia-explore
 description: Read-only exploration and mapping for generic ODD work.
 model: nub-ia/balanced
 thinking: low

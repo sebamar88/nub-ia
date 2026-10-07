@@ -27,8 +27,8 @@ before(() => {
 	agentHome = join(home, "agents-home");
 	mkdirSync(fixtureCwd);
 	mkdirSync(join(agentHome, "agents"), { recursive: true });
-	writeFileSync(join(agentHome, "agents", "gentle-ai-worker.md"), "---\nname: gentle-ai-worker\ndescription: Worker.\n---\nBody.\n");
-	writeFileSync(join(agentHome, "subagents.json"), JSON.stringify({ model_profiles: { "gentle-ai-worker": { model: "anthropic/opus" } } }));
+	writeFileSync(join(agentHome, "agents", "nubia-worker.md"), "---\nname: nubia-worker\ndescription: Worker.\n---\nBody.\n");
+	writeFileSync(join(agentHome, "subagents.json"), JSON.stringify({ model_profiles: { "nubia-worker": { model: "anthropic/opus" } } }));
 	Object.assign(fixtureEnvironment, {
 		HOME: home, USERPROFILE: home,
 		GENTLE_PI_CONFIG_HOME: join(home, "config"),
@@ -113,7 +113,7 @@ test("before_agent_start never consults the model catalog for a price ratio", as
 });
 
 test("before_agent_start never injects the fact into a named agent session", async () => {
-	const event = primaryEvent({ agentName: "gentle-ai-worker" });
+	const event = primaryEvent({ agentName: "nubia-worker" });
 	await harness()(event, ctx());
 	assert.doesNotMatch(event.systemPromptOptions.appendSystemPrompt, /Model routing:/);
 });

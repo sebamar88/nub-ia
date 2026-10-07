@@ -11,7 +11,7 @@ import test from "node:test";
 // contracts, not proof of model adherence.
 
 const read = (relative: string): string => readFileSync(join(import.meta.dirname, "..", relative), "utf8");
-const verify = read("assets/agents/gentle-ai-verify.md");
+const verify = read("assets/agents/nubia-verify.md");
 
 function checklistItem(n: number): string {
 	const line = verify.split("\n").find((entry) => entry.startsWith(`${n}. **`));

@@ -38,7 +38,7 @@ test("AC1: the core writer rule fires on named reasons, never on size or file co
 	]) {
 		assert.ok(coreWriter.includes(clause), `core Writer rule is missing: ${clause}`);
 	}
-	assert.ok(!core.includes("large task → one bounded `gentle-ai-worker` per task"), "core keeps the size-based writer rule");
+	assert.ok(!core.includes("large task → one bounded `nubia-worker` per task"), "core keeps the size-based writer rule");
 	assert.ok(
 		core.includes("large tasks get ODD tracking and workers only by the Writer rule, else inline"),
 		"core Task Size must keep tracking for large tasks and run them inline without a writer reason",
@@ -98,13 +98,13 @@ test("T24/L49: configured per-agent model routing still applies to writers launc
 test("AC4: verification stays risk-gated and the writer reasons never include risk", () => {
 	assert.ok(
 		core.includes(
-			"3. **Verification rule** — high risk → independent `gentle-ai-verify` after the change's own checks (`orchestrator-verification.md`); otherwise checks run inline.",
+			"3. **Verification rule** — high risk → independent `nubia-verify` after the change's own checks (`orchestrator-verification.md`); otherwise checks run inline.",
 		),
 		"core Verification rule changed",
 	);
 	assert.ok(
 		delegation.includes(
-			"3. **Verification rule**: a high-risk change (Task Size) gets an independent `gentle-ai-verify` run after the change's own checks; otherwise whoever made the change runs its focused test and suite inline, small tasks included.",
+			"3. **Verification rule**: a high-risk change (Task Size) gets an independent `nubia-verify` run after the change's own checks; otherwise whoever made the change runs its focused test and suite inline, small tasks included.",
 		),
 		"lazy Verification rule changed",
 	);
@@ -203,7 +203,7 @@ test("T11/S4: the parent hands verify the whole spec, authorizes its probes and 
 		"the baseline commit",
 		"probes on isolated state",
 		"typecheck",
-		"`gentle-ai-verify` holds the checklist",
+		"`nubia-verify` holds the checklist",
 		"every unmet item before closing",
 		"the writer commits its probes as regression tests",
 	]) {
@@ -215,7 +215,7 @@ test("AC4/S4: the normative verification rule text is unchanged by the review pr
 	const normative = sectionFrom(verification, "## Verification rule (normative)");
 	assert.equal(
 		createHash("sha256").update(normative).digest("hex"),
-		"a45a7883271f10db35e324ba353a32c1c60a8c7f31890d38a9977f65e9c9bb6c",
+		"385fbb285eca1c6c0d744be44dba4498d0b3bbb9470227e5087b92f781d35c96",
 		"the normative Verification rule section changed",
 	);
 	assert.ok(verification.includes("or a delegated writer returns"), "the module must still load when a delegated writer returns");

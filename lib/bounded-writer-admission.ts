@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { isAbsolute, parse, relative, resolve } from "node:path";
 import { resolveSessionWorktree, type WorktreeResolver } from "./session-worktree-registry.ts";
 
-const WRITER_NAMES = ["gentle-ai-worker", "worker", "jd-fix-agent"];
+const WRITER_NAMES = ["nubia-worker", "gentle-ai-worker", "worker", "jd-fix-agent"];
 export const WRITER_EDIT_SURFACE_REJECTION =
 	"Writer tasks must include the exact Markdown heading `## Allowed edit surfaces` with narrow repository-relative paths or narrow globs, one per line. Every non-empty line belongs to the section until the next canonical Markdown heading and must be a valid surface entry. Paths containing whitespace require whole-entry backticks; begin explanatory prose under the next Markdown heading. The parent must derive or map that canonical block from the delegated task and relaunch the writer; do not accept aliases, and do not ask the human to author paths or globs.";
 // One heading matcher: the parser scans with the global form, and continuation
@@ -101,7 +101,7 @@ export function isBoundedWriter(name: string): boolean {
 }
 
 export function isGenericBoundedWriter(name: string): boolean {
-	return name === "gentle-ai-worker" || name === "worker";
+	return name === "nubia-worker" || name === "gentle-ai-worker" || name === "worker";
 }
 
 // Source authorization is structural, never inferred from task prose. Deliberately

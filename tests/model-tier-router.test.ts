@@ -147,7 +147,7 @@ test("packaged agents declare nub-ia tiers, two distinct strong models for the j
 	assert.equal(read("review-risk"), "nub-ia/strong");
 	assert.equal(read("jd-judge-b"), "nub-ia/strong");
 	assert.equal(read("jd-judge-a"), "nub-ia/strong-alt");
-	for (const name of ["gentle-ai-explore", "gentle-ai-worker", "gentle-ai-verify", "jd-fix-agent", "review-readability", "review-reliability", "review-resilience"]) {
+	for (const name of ["nubia-explore", "nubia-worker", "nubia-verify", "jd-fix-agent", "review-readability", "review-reliability", "review-resilience"]) {
 		assert.equal(read(name), "nub-ia/balanced", name);
 	}
 });

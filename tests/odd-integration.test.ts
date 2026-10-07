@@ -29,8 +29,8 @@ test("applicability, fallback and honest evidence flow through ODD actors", () =
 	const wrapper = read("extensions/nubia-harness.ts");
 	const delegation = readDelegationDetail();
 	const support = read("assets/support/strict-tdd.md");
-	const worker = read("assets/agents/gentle-ai-worker.md");
-	const verifier = read("assets/agents/gentle-ai-verify.md");
+	const worker = read("assets/agents/nubia-worker.md");
+	const verifier = read("assets/agents/nubia-verify.md");
 	assert.match(wrapper, /behavior changes with applicable runnable deterministic tests and a clear expected outcome/);
 	assert.match(delegation, /Test or framework presence alone does not establish applicability/);
 	for (const [actor, text] of [["implementation support", support], ["worker", worker], ["verifier", verifier]] as const) {
@@ -51,8 +51,8 @@ test("retired SDD routes and assets are absent while ODD entry and generic worke
 	assert.match(core, /ODD \(Default Workflow, harness section above\) is mandatory on every request/);
 	assert.match(delegation, /generic writer chain is unavailable/);
 	for (const path of [
-		"assets/agents/gentle-ai-worker.md",
-		"assets/agents/gentle-ai-verify.md",
+		"assets/agents/nubia-worker.md",
+		"assets/agents/nubia-verify.md",
 		"assets/support/strict-tdd.md",
 	]) assert.equal(existsSync(new URL(`../${path}`, import.meta.url)), true, path);
 	for (const path of [

@@ -23,6 +23,10 @@ const TOOL_PHASES: Readonly<Record<string, OddPhase>> = {
 };
 
 const DELEGATED_PHASES: Readonly<Record<string, OddPhase>> = {
+	"nubia-worker": "implementing",
+	"nubia-verify": "checking",
+	"nubia-explore": "exploring",
+	// Legacy names (pre-rename) still resolve to the same phases.
 	"gentle-ai-worker": "implementing",
 	"gentle-ai-verify": "checking",
 	"gentle-ai-explore": "exploring",

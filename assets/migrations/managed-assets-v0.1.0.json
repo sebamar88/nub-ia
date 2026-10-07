@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "packageVersion": "0.1.0",
+  "assets": {
+    "agents/gentle-ai-explore.md": "bcedd4fb8c4fc69cedc23ef5d86446f2856e9a50309189729143903605e87a66",
+    "agents/gentle-ai-verify.md": "cbfef117938168792a402d4c58868bc88a3aa34399812df304f8c06b135f04f5",
+    "agents/gentle-ai-worker.md": "f2a16094b0c103da3b7049a2362170c1bb8be938c77146be8939f415609fc8d2"
+  }
+}

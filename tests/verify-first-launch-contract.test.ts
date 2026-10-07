@@ -16,7 +16,7 @@ import { __testing } from "../extensions/nubia-harness.ts";
 // These are instruction-delivery contracts, not proof of model adherence.
 
 const read = (relative: string): string => readFileSync(join(import.meta.dirname, "..", relative), "utf8");
-const verify = read("assets/agents/gentle-ai-verify.md");
+const verify = read("assets/agents/nubia-verify.md");
 const verification = read("assets/orchestrator-verification.md");
 
 function containsAll(text: string, clauses: readonly string[], label: string): void {

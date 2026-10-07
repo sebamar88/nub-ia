@@ -5,9 +5,9 @@ import test from "node:test";
 
 const agents = join(process.cwd(), "assets", "agents");
 const roles: Record<string, string[]> = {
-	"gentle-ai-explore.md": ["read", "grep", "find", "codegraph"],
-	"gentle-ai-worker.md": ["read", "grep", "find", "edit", "write", "bash", "mem_save"],
-	"gentle-ai-verify.md": ["read", "grep", "find", "bash"],
+	"nubia-explore.md": ["read", "grep", "find", "codegraph"],
+	"nubia-worker.md": ["read", "grep", "find", "edit", "write", "bash", "mem_save"],
+	"nubia-verify.md": ["read", "grep", "find", "bash"],
 };
 
 function tools(file: string): string[] {
@@ -35,14 +35,14 @@ test("generic ODD agents declare exact role tool allowlists without child delega
 });
 
 test("ODD explorer and verifier remain read-only while writer is bounded", () => {
-	for (const file of ["gentle-ai-explore.md", "gentle-ai-verify.md"]) {
+	for (const file of ["nubia-explore.md", "nubia-verify.md"]) {
 		const source = readFileSync(join(agents, file), "utf8");
 		assert.match(source, /generic ODD work/);
 		assert.match(source, /Do not edit, write|read and search only/);
 		assert.ok(!tools(file).includes("edit") && !tools(file).includes("write"));
 		assert.match(source, /The 4R review \(`nub_review`\) remains independent and parent-owned/);
 	}
-	const worker = readFileSync(join(agents, "gentle-ai-worker.md"), "utf8");
+	const worker = readFileSync(join(agents, "nubia-worker.md"), "utf8");
 	assert.match(worker, /exact allowed edit surfaces/);
 	assert.match(worker, /Work-unit commit decisions and the independent 4R review lifecycle remain parent-owned/);
 });

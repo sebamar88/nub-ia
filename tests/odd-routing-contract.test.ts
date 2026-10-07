@@ -192,7 +192,7 @@ test("one feature document carries intent, accepted rationale and worker context
 		"Before implementation or resume, the parent reads both the actual file and full observation",
 		"passes the locator, task IDs, and linked `S#`; workers read the document until `## Log` before edits",
 	]);
-	containsAll(read("assets/agents/gentle-ai-worker.md"), [
+	containsAll(read("assets/agents/nubia-worker.md"), [
 		"Read the parent's ODD feature document locator before edits",
 		"Preserve valid completed work; return proposed intent/task changes and their reasons",
 	]);
@@ -237,20 +237,20 @@ test("feature document is the verbatim specification subagents read by reference
 		"never translate, condense, or paraphrase the user's requirements",
 		"Reproduce a user-reported failure",
 	]);
-	containsAll(read("assets/agents/gentle-ai-worker.md"), ["until `## Log`", "which `S#` the change covers"]);
-	containsAll(read("assets/agents/gentle-ai-verify.md"), [
+	containsAll(read("assets/agents/nubia-worker.md"), ["until `## Log`", "which `S#` the change covers"]);
+	containsAll(read("assets/agents/nubia-verify.md"), [
 		"execute only exact test, build, lint, or spec example commands explicitly authorized by the parent",
 		"verbatim user entries in `## Log`",
 		"verdict per `S#`",
 		"compare the exact output and error text",
 		"isolated state",
 	]);
-	containsAll(read("assets/agents/gentle-ai-explore.md"), ["until `## Log`"]);
+	containsAll(read("assets/agents/nubia-explore.md"), ["until `## Log`"]);
 });
 
 test("ODD defaults to applicable test-first without chat or TUI activation", () => {
-	const worker = read("assets/agents/gentle-ai-worker.md");
-	const verify = read("assets/agents/gentle-ai-verify.md");
+	const worker = read("assets/agents/nubia-worker.md");
+	const verify = read("assets/agents/nubia-verify.md");
 	const support = read("assets/support/strict-tdd.md") + read("assets/support/strict-tdd-verify.md");
 	const skill = read("skills/nubia/SKILL.md");
 	for (const text of [core, delegation, worker, verify, support, skill, wrapper]) {
@@ -354,7 +354,7 @@ test("evidence-budget numbers agree across routing surfaces and retired triggers
 		]);
 		assert.doesNotMatch(text, /4-file rule|20 tool calls|5 exploratory (?:file )?reads/, `${path} keeps a retired trigger`);
 	}
-	for (const agent of ["assets/agents/gentle-ai-explore.md", "assets/agents/gentle-ai-verify.md"]) {
+	for (const agent of ["assets/agents/nubia-explore.md", "assets/agents/nubia-verify.md"]) {
 		containsAll(read(agent), ["at most ~2k tokens", "`path:line`"]);
 	}
 });

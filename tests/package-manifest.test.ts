@@ -23,7 +23,7 @@ import { resolveProjectPiSdkVersion } from "../scripts/test-packed-runner.mjs";
 // Package installation is owned by lib/agent-assets.ts, not the retired SDD preflight.
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const MANAGED_EXEMPLAR_FILE = "gentle-ai-explore.md";
+const MANAGED_EXEMPLAR_FILE = "nubia-explore.md";
 const RETIRED_REFUTER_FILE = "review-refuter.md";
 const REVIEW_RISK_FILE = "review-risk.md";
 const V013_REVIEW_RISK_FIXTURE = join(
@@ -57,7 +57,7 @@ const V014_MANAGED_ASSETS = join(
 	"managed-assets-v0.14.json",
 );
 // gentle-pi#311 P5: the managed-asset installer mechanism tests use
-// gentle-ai-explore.md as their exemplar (packaged, absent from the v0.13
+// nubia-explore.md as their exemplar (packaged, absent from the v0.13
 // manifest) after review-refuter.md was retired together with every
 // Pi-authored adversarial review verdict.
 const MANAGED_EXEMPLAR_TOOLS = ["read", "grep", "find", "codegraph"];
@@ -233,7 +233,7 @@ test("package verification excludes the retired init extension while retaining O
 	assert.equal(existsSync(join(PACKAGE_ROOT, "extensions", "sdd-init.ts")), false);
 	assert.doesNotMatch(verifier, /^\s*"extensions\/sdd-init\.ts",?$/m);
 	assert.match(verifier, /existsSync\(join\(root, "extensions\/sdd-init\.ts"\)\)/);
-	for (const resource of ["extensions/nubia-harness.ts", "extensions/skill-registry.ts", "assets/orchestrator.md", "assets/orchestrator-delegation.md", "assets/agents/gentle-ai-worker.md", "assets/agents/review-risk.md", "assets/chains/4r-review.chain.md"]) {
+	for (const resource of ["extensions/nubia-harness.ts", "extensions/skill-registry.ts", "assets/orchestrator.md", "assets/orchestrator-delegation.md", "assets/agents/nubia-worker.md", "assets/agents/review-risk.md", "assets/chains/4r-review.chain.md"]) {
 		assert.ok(verifier.includes(`"${resource}"`), `${resource} must remain required`);
 	}
 });
@@ -486,11 +486,11 @@ function assertWorkerFallbackRouting(section: string, sectionName: string): void
 	)?.[0];
 	assert.ok(boundedWriterPolicy, `${sectionName} must define bounded writer routing`);
 
-	const preferred = boundedWriterPolicy.indexOf("`gentle-ai-worker`");
+	const preferred = boundedWriterPolicy.indexOf("`nubia-worker`");
 	const configuredFallback = boundedWriterPolicy.indexOf("user-configured `worker`");
 	const nativeFallback = boundedWriterPolicy.indexOf("native `Agent`");
 
-	assert.ok(preferred >= 0, `${sectionName} must reference exact gentle-ai-worker name`);
+	assert.ok(preferred >= 0, `${sectionName} must reference exact nubia-worker name`);
 	assert.ok(
 		configuredFallback > preferred,
 		`${sectionName} must prefer the package-owned worker before a user-configured worker`,
@@ -598,9 +598,9 @@ function installedAssetManifest(agentHome: string): ManagedAssetsManifest {
 
 test("ODD delegation assets retain applicable test-first checks and independent review boundaries without SDD routing", () => {
 	const support = readFileSync(join(PACKAGE_ROOT, "assets/support/strict-tdd.md"), "utf8");
-	const explorer = readFileSync(join(PACKAGE_ROOT, "assets/agents/gentle-ai-explore.md"), "utf8");
-	const verifier = readFileSync(join(PACKAGE_ROOT, "assets/agents/gentle-ai-verify.md"), "utf8");
-	const worker = readFileSync(join(PACKAGE_ROOT, "assets/agents/gentle-ai-worker.md"), "utf8");
+	const explorer = readFileSync(join(PACKAGE_ROOT, "assets/agents/nubia-explore.md"), "utf8");
+	const verifier = readFileSync(join(PACKAGE_ROOT, "assets/agents/nubia-verify.md"), "utf8");
+	const worker = readFileSync(join(PACKAGE_ROOT, "assets/agents/nubia-worker.md"), "utf8");
 	for (const source of [support, explorer, verifier, worker]) {
 		assert.doesNotMatch(source, /openspec\/config\.yaml|sdd-init|SDD phase protocols|generic non-SDD|sdd-verify|sdd\/\{project\}/i);
 	}
@@ -630,15 +630,15 @@ test("selective delegation installation owns only generic agents", () => {
 	withIsolatedAssetHome((agentHome) => {
 		const result = installPackageAssets(agentHome, false, ["delegation"]);
 		assert.deepEqual(Object.keys(installedAssetManifest(agentHome).assets).sort(), [
-			"agents/gentle-ai-explore.md",
-			"agents/gentle-ai-verify.md",
-			"agents/gentle-ai-worker.md",
+			"agents/nubia-explore.md",
+			"agents/nubia-verify.md",
+			"agents/nubia-worker.md",
 			"gentle-ai/support/strict-tdd-verify.md",
 			"gentle-ai/support/strict-tdd.md",
 		]);
 		assert.deepEqual(result, { agents: 3, chains: 0, support: 2, skipped: 0 });
 		assert.deepEqual(readdirSync(join(agentHome, "agents")).sort(), [
-			"gentle-ai-explore.md", "gentle-ai-verify.md", "gentle-ai-worker.md",
+			"nubia-explore.md", "nubia-verify.md", "nubia-worker.md",
 		]);
 		assert.equal(existsSync(join(agentHome, "chains")), false);
 		assert.deepEqual(readdirSync(join(agentHome, "gentle-ai", "support")).sort(), ["strict-tdd-verify.md", "strict-tdd.md"]);
@@ -674,7 +674,7 @@ test("selective installation retires only assets belonging to the selected owner
 
 const EXPECTED_OWNER_ASSETS: Record<PackageAssetOwner, readonly string[]> = {
 	delegation: [
-		"agents/gentle-ai-explore.md", "agents/gentle-ai-verify.md", "agents/gentle-ai-worker.md",
+		"agents/nubia-explore.md", "agents/nubia-verify.md", "agents/nubia-worker.md",
 		"gentle-ai/support/strict-tdd.md", "gentle-ai/support/strict-tdd-verify.md",
 	],
 	review: [
@@ -731,7 +731,7 @@ test("selective refresh preserves unselected ownership and selected user changes
 	withIsolatedAssetHome((agentHome) => {
 		installPackageAssets(agentHome, false);
 		const manifest = installedAssetManifest(agentHome);
-		const selectedUserKey = "agents/gentle-ai-explore.md";
+		const selectedUserKey = "agents/nubia-explore.md";
 		const unselectedUserKey = "agents/review-risk.md";
 		for (const key of [selectedUserKey, unselectedUserKey, "agents/custom.md"]) {
 			writeFileSync(join(agentHome, key), "User-authored instructions\n");
@@ -1068,10 +1068,10 @@ test("forced package installation refreshes an asset recorded as package-managed
 		"managed-assets.json",
 	);
 	const previousPackageSource =
-		"---\nname: gentle-ai-explore\ntools:\n  - read\n  - bash\n---\nprevious package version\n";
+		"---\nname: nubia-explore\ntools:\n  - read\n  - bash\n---\nprevious package version\n";
 	const routedPreviousPackageSource = previousPackageSource.replace(
-		"name: gentle-ai-explore\n",
-		"name: gentle-ai-explore\nmodel: openai/previous-package\nthinking: high\n",
+		"name: nubia-explore\n",
+		"name: nubia-explore\nmodel: openai/previous-package\nthinking: high\n",
 	);
 
 	try {
@@ -1156,8 +1156,8 @@ function assertManagedAgentUserEditIsPreserved(
 test("forced package installation preserves a model-only edit to a managed agent", () => {
 	assertManagedAgentUserEditIsPreserved("a model-only user edit", (source) =>
 		source.replace(
-			"name: gentle-ai-explore\n",
-			"name: gentle-ai-explore\nmodel: private/user-model\n",
+			"name: nubia-explore\n",
+			"name: nubia-explore\nmodel: private/user-model\n",
 		),
 	);
 });
@@ -1165,8 +1165,8 @@ test("forced package installation preserves a model-only edit to a managed agent
 test("forced package installation preserves a thinking-only edit to a managed agent", () => {
 	assertManagedAgentUserEditIsPreserved("a thinking-only user edit", (source) =>
 		source.replace(
-			"name: gentle-ai-explore\n",
-			"name: gentle-ai-explore\nthinking: xhigh\n",
+			"name: nubia-explore\n",
+			"name: nubia-explore\nthinking: xhigh\n",
 		),
 	);
 });
@@ -1198,7 +1198,7 @@ test("package model assignment keeps only package-managed agents owned", () => {
 		writeFileSync(userAgent, userAgentSource);
 
 		applyModelConfig(PACKAGE_ROOT, {
-			"gentle-ai-explore": { model: "package/selected-model", thinking: "high" },
+			"nubia-explore": { model: "package/selected-model", thinking: "high" },
 			"user-router": { model: "user/selected-model", thinking: "low" },
 		});
 
@@ -1273,10 +1273,10 @@ test("deleted SDD definitions remain absent from the installed catalog", () => {
 	});
 });
 
-test("gentle-ai-worker packages the exact scoped writer contract", () => {
+test("nubia-worker packages the exact scoped writer contract", () => {
 	const agentsDir = join(PACKAGE_ROOT, "assets", "agents");
-	const agentPath = join(agentsDir, "gentle-ai-worker.md");
-	assert.ok(existsSync(agentPath), "gentle-pi must package gentle-ai-worker.md");
+	const agentPath = join(agentsDir, "nubia-worker.md");
+	assert.ok(existsSync(agentPath), "gentle-pi must package nubia-worker.md");
 	for (const genericName of ["worker.md", "generic-writer.md"]) {
 		assert.ok(
 			!existsSync(join(agentsDir, genericName)),
@@ -1285,7 +1285,7 @@ test("gentle-ai-worker packages the exact scoped writer contract", () => {
 	}
 
 	const { name, source, tools } = readAgentDefinition(agentPath);
-	assert.equal(name, "gentle-ai-worker");
+	assert.equal(name, "nubia-worker");
 	assert.deepEqual(tools, [
 		"read",
 		"grep",
@@ -1384,7 +1384,7 @@ test("gentle-ai-worker packages the exact scoped writer contract", () => {
 	assert.doesNotMatch(testDiscipline, /clearly required by the repository contract/);
 });
 
-test("package installation gives gentle-ai-worker a loader-compatible scoped identity", () => {
+test("package installation gives nubia-worker a loader-compatible scoped identity", () => {
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-agent-home-"));
 	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
 
@@ -1393,8 +1393,8 @@ test("package installation gives gentle-ai-worker a loader-compatible scoped ide
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
 
 		const installedAgentsDir = join(temporaryAgentHome, "agents");
-		const installedAgentPath = join(installedAgentsDir, "gentle-ai-worker.md");
-		assert.ok(existsSync(installedAgentPath), "the production installer must install gentle-ai-worker.md");
+		const installedAgentPath = join(installedAgentsDir, "nubia-worker.md");
+		assert.ok(existsSync(installedAgentPath), "the production installer must install nubia-worker.md");
 		for (const genericName of ["worker.md", "generic-writer.md"]) {
 			assert.ok(
 				!existsSync(join(installedAgentsDir, genericName)),
@@ -1404,7 +1404,7 @@ test("package installation gives gentle-ai-worker a loader-compatible scoped ide
 
 		const { name, source, tools } = readAgentDefinition(installedAgentPath);
 		const normalizedRuntimeIdentity = name.trim().toLowerCase();
-		assert.equal(normalizedRuntimeIdentity, "gentle-ai-worker");
+		assert.equal(normalizedRuntimeIdentity, "nubia-worker");
 		assert.deepEqual(tools, [
 			"read",
 			"grep",
@@ -1478,18 +1478,18 @@ test("asset installation uses PI_CODING_AGENT_DIR as the Pi agent home when no e
 
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
 
-		const installedPath = join(temporaryPiAgentDir, "agents", "gentle-ai-explore.md");
+		const installedPath = join(temporaryPiAgentDir, "agents", "nubia-explore.md");
 		assert.ok(existsSync(installedPath), "managed agents must install where Pi Subagents reads global definitions");
 		assert.deepEqual(readAgentDefinition(installedPath).tools, MANAGED_EXEMPLAR_TOOLS);
 		assert.ok(
-			!existsSync(join(explicitGentleHome, "agents", "gentle-ai-explore.md")),
+			!existsSync(join(explicitGentleHome, "agents", "nubia-explore.md")),
 			"the explicit override fixture must still be untouched before it is selected",
 		);
 
 		process.env.GENTLE_PI_AGENT_HOME = explicitGentleHome;
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
 		assert.ok(
-			existsSync(join(explicitGentleHome, "agents", "gentle-ai-explore.md")),
+			existsSync(join(explicitGentleHome, "agents", "nubia-explore.md")),
 			"GENTLE_PI_AGENT_HOME remains the explicit test/operator override",
 		);
 	} finally {
@@ -1514,12 +1514,12 @@ test("global model routing uses PI_CODING_AGENT_DIR for package-installed agents
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
 
 		const result = applyModelConfig(temporaryProject, {
-			"gentle-ai-explore": { model: "provider/model", thinking: "high" },
+			"nubia-explore": { model: "provider/model", thinking: "high" },
 		});
 
 		assert.equal(result.updated, 2);
 		const config = JSON.parse(readFileSync(join(temporaryPiAgentDir, "subagents.json"), "utf8"));
-		assert.deepEqual(config.model_profiles["gentle-ai-explore"], {
+		assert.deepEqual(config.model_profiles["nubia-explore"], {
 			model: "provider/model",
 			effort: "high",
 		});
@@ -1536,8 +1536,8 @@ test("global model routing uses PI_CODING_AGENT_DIR for package-installed agents
 test("normal and forced installation copy generic agents with complete role contracts", () => {
 	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
 	const expectedTools = {
-		"gentle-ai-explore": ["read", "grep", "find", "codegraph"],
-		"gentle-ai-verify": ["read", "grep", "find", "bash"],
+		"nubia-explore": ["read", "grep", "find", "codegraph"],
+		"nubia-verify": ["read", "grep", "find", "bash"],
 	} as const;
 
 	try {
@@ -1556,7 +1556,7 @@ test("normal and forced installation copy generic agents with complete role cont
 					assert.deepEqual(installedTools, tools);
 					assert.match(source, /generic ODD work/);
 					assert.match(source, /Do not (?:fix findings, delegate to child agents|delegate to child agents, commit)/);
-					if (name === "gentle-ai-explore") {
+					if (name === "nubia-explore") {
 						assert.match(source, /cwd-scoped `codegraph` tool/);
 						assert.match(source, /never ask it to target another path/);
 						assert.match(source, /sole permitted mutation/);
@@ -1567,7 +1567,7 @@ test("normal and forced installation copy generic agents with complete role cont
 					assert.match(source, /Do not (?:edit, write|edit, write, or fix findings)/);
 					assert.match(source, /compressed (?:handoff|evidence handoff)/);
 					assert.match(source, /Do not use review lenses\. The 4R review \(`nub_review`\) remains independent and parent-owned\./);
-					if (name === "gentle-ai-verify") {
+					if (name === "nubia-verify") {
 						assert.match(source, /exact test, build, lint, or spec example commands explicitly authorized by the parent/);
 						assert.match(source, /only outputs the parent explicitly identified as expected/);
 						assert.match(source, /unexpected mutation as a blocker/);
@@ -1623,12 +1623,12 @@ test("bounded implementation routing resolves the explicit canonical fallback re
 test("orchestrator routes generic roles without static RDD lens routing", () => {
 	for (const file of ["orchestrator.md", "orchestrator-delegation.md"]) {
 		const routing = readFileSync(join(PACKAGE_ROOT, "assets", file), "utf8");
-		assert.match(routing, /`gentle-ai-explore`/);
-		assert.match(routing, /`gentle-ai-worker`/);
-		assert.match(routing, /`gentle-ai-verify`/);
+		assert.match(routing, /`nubia-explore`/);
+		assert.match(routing, /`nubia-worker`/);
+		assert.match(routing, /`nubia-verify`/);
 		assert.match(routing, /focused test and (?:the )?suite/);
 		// The Verification rule line itself must route high risk to the verifier.
-		assert.match(routing, /^\d\. \*\*Verification rule\*\*[^\n]*high[- ]risk[^\n]*`gentle-ai-verify`/m);
+		assert.match(routing, /^\d\. \*\*Verification rule\*\*[^\n]*high[- ]risk[^\n]*`nubia-verify`/m);
 		assert.match(routing, /missing(?: or |\/)unusable[\s\S]*native `Agent`[\s\S]*(?:the )?same read-only/);
 		assert.match(routing, /report (?:the )?fallback/);
 		assert.doesNotMatch(routing, /review lenses? (?:inside|only inside)|review lens routing/i);

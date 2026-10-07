@@ -147,7 +147,7 @@ for (const scenario of ["child", "named-agent"] as const) {
 		const event = {
 			systemPrompt: "base",
 			systemPromptOptions: { appendSystemPrompt: "Existing provider section" },
-			...(scenario === "named-agent" ? { agentName: "gentle-ai-worker" } : {}),
+			...(scenario === "named-agent" ? { agentName: "nubia-worker" } : {}),
 		};
 		const result = await handlers.get("before_agent_start")!(event, ctx());
 		assert.equal(result, undefined, "excluded sessions must not return a replacement system prompt");

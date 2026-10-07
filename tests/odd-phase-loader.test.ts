@@ -204,7 +204,7 @@ test("tool activity in the primary session drives the working label across exten
 		await tool("bash", { command: "git push" });
 		await tool("unknown_tool", {});
 		assert.match(render(), /planning…/, "unknown tools and ambiguous commands leave the label unchanged");
-		await tool("subagent_run", { agent: "gentle-ai-worker", mode: "task", task: "implement" });
+		await tool("subagent_run", { agent: "nubia-worker", mode: "task", task: "implement" });
 		assert.match(render(), /implementing…/, "foreground worker launch replaces stale planning");
 		redraws = 0;
 		await tool("read", { path: "lib/odd-phase.ts" });
@@ -212,19 +212,19 @@ test("tool activity in the primary session drives the working label across exten
 		await tool("write", { path: "odd/tasks/feature.md" });
 		assert.match(render(), /implementing…/, "incidental reads and task bookkeeping cannot hide worker activity");
 		assert.equal(redraws, 0, "ignored signals do not redraw the editor");
-		await tool("subagent_run", { agent: "gentle-ai-verify", mode: "background", task: "verify" });
+		await tool("subagent_run", { agent: "nubia-verify", mode: "background", task: "verify" });
 		assert.match(render(), /checking…/, "background verifier launch replaces active implementation");
 		assert.equal(redraws, 1, "phase change redraws even under potato animation");
 		await tool("read", { path: "tests/odd-phase.test.ts" });
 		await tool("todo", {});
 		assert.match(render(), /checking…/);
-		await tool("subagent_run", { agent: "unknown", task: "gentle-ai-worker implementing" });
+		await tool("subagent_run", { agent: "unknown", task: "nubia-worker implementing" });
 		assert.match(render(), /checking…/, "unknown agent prose is not evidence");
-		await tool("subagent_run", { agent: "gentle-ai-explore", mode: "task" });
+		await tool("subagent_run", { agent: "nubia-explore", mode: "task" });
 		assert.match(render(), /exploring…/, "later delegated exploration is a real phase transition");
-		await tool("subagent_run", { agent: "gentle-ai-worker", mode: "background" });
+		await tool("subagent_run", { agent: "nubia-worker", mode: "background" });
 		assert.match(render(), /implementing…/, "background worker replaces stale exploring");
-		await tool("subagent_run", { agent: "gentle-ai-verify", mode: "task" });
+		await tool("subagent_run", { agent: "nubia-verify", mode: "task" });
 		assert.match(render(), /checking…/, "foreground verifier replaces stale work");
 		await tool("edit", { path: "lib/odd-phase.ts" });
 		assert.match(render(), /implementing…/, "a subsequent source edit can restart implementation");
@@ -239,10 +239,10 @@ test("tool activity in the primary session drives the working label across exten
 		await fire("agent_start");
 		assert.match(render(), /working…/, "a new turn starts unlabeled");
 		const childCtx = { ...ctx, mode: "rpc" };
-		await fire("tool_execution_start", { type: "tool_execution_start", toolCallId: "child", toolName: "subagent_run", args: { agent: "gentle-ai-worker" } }, childCtx);
+		await fire("tool_execution_start", { type: "tool_execution_start", toolCallId: "child", toolName: "subagent_run", args: { agent: "nubia-worker" } }, childCtx);
 		assert.equal(registry.get(sessionId), undefined, "a headless RPC (subagent) process never infers a phase");
 		sessionId = "other-session";
-		await tool("subagent_run", { agent: "gentle-ai-verify" });
+		await tool("subagent_run", { agent: "nubia-verify" });
 		assert.equal(registry.get("tool-activity-loader-test"), undefined, "another session cannot relabel the primary session");
 		assert.equal(registry.get(sessionId), "checking");
 	} finally {
