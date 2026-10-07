@@ -39,13 +39,13 @@ have() { command -v "$1" >/dev/null 2>&1; }
 # shells see it. Never fails the install; the current session already has
 # the directory exported by the caller.
 persist_path() {
-	dir="$1"; var="${2:-}"
+	dir="$1"; var="${2:-}"; varvalue="${3:-$1}"
 	for rc in "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.profile"; do
 		[ -f "$rc" ] || continue
 		grep -q "nub-ia installer" "$rc" 2>/dev/null && grep -q "$dir" "$rc" 2>/dev/null && continue
 		{
 			printf '\n# nub-ia installer\n'
-			[ -n "$var" ] && printf 'export %s="%s"\n' "$var" "$dir"
+			[ -n "$var" ] && printf 'export %s="%s"\n' "$var" "$varvalue"
 			printf 'case ":$PATH:" in *":%s:"*) ;; *) export PATH="%s:$PATH";; esac\n' "$dir" "$dir"
 		} >> "$rc" 2>/dev/null || true
 	done
@@ -67,15 +67,15 @@ if ! have pi; then
 	if [ "$PM" = "npm" ]; then
 		npm install -g @earendil-works/pi-coding-agent || die "could not install pi; install it manually: npm install -g @earendil-works/pi-coding-agent"
 	else
-		# pnpm refuses global installs until its bin dir is on PATH. Point it at
-		# the standard location for this session and persist it the way
+		# pnpm refuses global installs until its global bin dir ($PNPM_HOME/bin)
+		# is on PATH. Export it for this session and persist it the way
 		# `pnpm setup` does, so `pi` resolves now and in new shells.
 		PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"; export PNPM_HOME
-		case ":$PATH:" in *":$PNPM_HOME:"*) ;; *) PATH="$PNPM_HOME:$PATH"; export PATH;; esac
-		mkdir -p "$PNPM_HOME"
-		# Tell pnpm explicitly where its global bin dir is (a user config may point elsewhere).
-		$PM add -g --config.global-bin-dir="$PNPM_HOME" @earendil-works/pi-coding-agent || die "could not install pi; try: pnpm setup && pnpm add -g @earendil-works/pi-coding-agent"
-		persist_path "$PNPM_HOME" PNPM_HOME
+		PNPM_BIN="$PNPM_HOME/bin"
+		case ":$PATH:" in *":$PNPM_BIN:"*) ;; *) PATH="$PNPM_BIN:$PATH"; export PATH;; esac
+		mkdir -p "$PNPM_BIN"
+		$PM add -g @earendil-works/pi-coding-agent || die "could not install pi; try: pnpm setup && pnpm add -g @earendil-works/pi-coding-agent"
+		persist_path "$PNPM_BIN" PNPM_HOME "$PNPM_HOME"
 	fi
 fi
 
