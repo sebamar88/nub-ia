@@ -50,6 +50,13 @@ function sqlDestroys(sql: string): boolean {
 	});
 }
 
+/** Remote-destroying push forms: `+ref` (force), `:ref` (delete), --mirror, --delete/-d, --prune. */
+function pushDeletesOrRewritesRemote(flags: string[]): boolean {
+	return flags.some((arg) => arg.startsWith("-")
+		? /^--(?:mirror|delete|prune)(?:=|$)/.test(arg) || /^-[^-]*d/.test(arg)
+		: arg.startsWith("+") || arg.startsWith(":"));
+}
+
 export function recognizeDestructiveCommands(command: string, depth = 0): DestructiveCommandMatch[] {
 	if (depth > 4) return [];
 	const tokens = tokenize(command);
@@ -69,10 +76,12 @@ export function recognizeDestructiveCommands(command: string, depth = 0): Destru
 				continue;
 			}
 			const name = executable(value);
-			if (!["env", "sudo", "command", "exec", "nohup", "timeout", "xargs"].includes(name)) break;
+			if (!["env", "sudo", "doas", "command", "exec", "nohup", "nice", "setsid", "busybox", "timeout", "xargs"].includes(name)) break;
 			const valueOptions: Record<string, readonly string[]> = {
 				env: ["-u", "--unset", "-C", "--chdir"],
 				sudo: ["-u", "-g", "-h", "-p", "-C", "--user", "--group", "--host", "--prompt", "--chdir"],
+				doas: ["-u", "-C"],
+				nice: ["-n", "--adjustment"],
 				timeout: ["-s", "--signal", "-k", "--kill-after"],
 				xargs: ["-n", "-I", "-P", "--max-args", "--replace", "--max-procs"],
 			};
@@ -95,6 +104,9 @@ export function recognizeDestructiveCommands(command: string, depth = 0): Destru
 				// when quote removal changes the payload's byte positions.
 				matches.push(...recognizeDestructiveCommands(args[flag + 1], depth + 1).map((match) => ({ ...match, triggerIndex: head.index })));
 			}
+		}
+		if (name === "eval" && args.length) {
+			matches.push(...recognizeDestructiveCommands(args.join(" "), depth + 1).map((match) => ({ ...match, triggerIndex: head.index })));
 		}
 		if (["psql", "mysql", "mariadb", "sqlite3"].includes(name)) {
 			const payloads = args.map((arg) => arg.replace(/^(?:--command|--execute)=/, ""));
@@ -130,7 +142,7 @@ export function recognizeDestructiveCommands(command: string, depth = 0): Destru
 			const action = args[index];
 			const flags = args.slice(index + 1);
 			const force = flags.some((arg) => /^--force(?:-with-lease|=|$)/.test(arg) || /^-[^-]*f/.test(arg));
-			const hard = (action === "reset" && flags.includes("--hard")) || (action === "clean" && force) || (action === "push" && force);
+			const hard = (action === "reset" && flags.includes("--hard")) || (action === "clean" && force) || (action === "push" && (force || pushDeletesOrRewritesRemote(flags)));
 			const branchDelete = action === "branch" && (flags.some((arg) => /^-[^-]*D/.test(arg)) || (force && flags.some((arg) => arg === "--delete" || /^-[^-]*d/.test(arg))));
 			if (hard || branchDelete || ["reset", "clean", "restore", "rebase"].includes(action) ||
 				(action === "checkout" && (force || flags.includes("--"))) ||

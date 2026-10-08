@@ -82,3 +82,21 @@ test("root/home recursive removal and destructive git retain hard denial", () =>
 		assert.equal(recognizeDestructiveCommands(command)[0]?.hardDeny, true, command);
 	}
 });
+
+for (const command of [
+	"git push origin +main", "git push --mirror", "git push origin :main", "git push --delete origin main",
+	"git push -d origin main", "git push --prune origin", "eval 'rm -rf ~'", "nice rm -rf ~",
+	"nice -n 10 rm -rf ~", "busybox rm -rf ~", "doas rm -rf /",
+]) {
+	test(`hard-denies remote-destroying push and wrapped destruction: ${command}`, () => {
+		const matches = recognizeDestructiveCommands(command);
+		assert.equal(matches.length, 1);
+		assert.equal(matches[0].hardDeny, true);
+	});
+}
+
+for (const command of ["git push", "git push -u origin feature/x", "git push origin HEAD:refs/heads/x", "git push origin main --tags", "nice ls"]) {
+	test(`does not hard-deny ordinary push: ${command}`, () => {
+		assert.deepEqual(recognizeDestructiveCommands(command), []);
+	});
+}
