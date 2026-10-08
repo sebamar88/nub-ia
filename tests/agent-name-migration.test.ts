@@ -35,12 +35,12 @@ function withHomes(t: test.TestContext) {
 	const root = mkdtempSync(join(tmpdir(), "agent-name-migration-"));
 	const configHome = join(root, "config");
 	mkdirSync(configHome, { recursive: true });
-	const previous = process.env.GENTLE_PI_CONFIG_HOME;
+	const previous = process.env.NUB_IA_CONFIG_HOME;
 	const previousNub = process.env.NUB_IA_CONFIG_HOME;
 	delete process.env.NUB_IA_CONFIG_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
 	t.after(() => {
-		if (previous === undefined) delete process.env.GENTLE_PI_CONFIG_HOME; else process.env.GENTLE_PI_CONFIG_HOME = previous;
+		if (previous === undefined) delete process.env.NUB_IA_CONFIG_HOME; else process.env.NUB_IA_CONFIG_HOME = previous;
 		if (previousNub !== undefined) process.env.NUB_IA_CONFIG_HOME = previousNub;
 		rmSync(root, { recursive: true, force: true });
 	});
@@ -75,7 +75,7 @@ test("(a) a legacy-home models.json keeps applying and is copied forward to the 
 	writeFileSync(join(legacyHome, "models.json"), JSON.stringify({ "gentle-ai-worker": "a/b" }));
 	const previousHome = process.env.HOME;
 	const previousUser = process.env.USERPROFILE;
-	delete process.env.GENTLE_PI_CONFIG_HOME;
+	delete process.env.NUB_IA_CONFIG_HOME;
 	process.env.HOME = home; process.env.USERPROFILE = home;
 	t.after(() => { if (previousHome === undefined) delete process.env.HOME; else process.env.HOME = previousHome; if (previousUser === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = previousUser; });
 	const applied: Array<Record<string, unknown>> = [];
@@ -118,9 +118,9 @@ test("install retires managed legacy gentle-ai-* agent copies and keeps user-edi
 	withHomes(t);
 	const agentHome = mkdtempSync(join(tmpdir(), "agent-name-migration-agents-"));
 	t.after(() => rmSync(agentHome, { recursive: true, force: true }));
-	const previous = process.env.GENTLE_PI_AGENT_HOME;
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
-	t.after(() => { if (previous === undefined) delete process.env.GENTLE_PI_AGENT_HOME; else process.env.GENTLE_PI_AGENT_HOME = previous; });
+	const previous = process.env.NUB_IA_AGENT_HOME;
+	process.env.NUB_IA_AGENT_HOME = agentHome;
+	t.after(() => { if (previous === undefined) delete process.env.NUB_IA_AGENT_HOME; else process.env.NUB_IA_AGENT_HOME = previous; });
 	mkdirSync(join(agentHome, "agents"), { recursive: true });
 	// Package v0.1.0 copy of the explorer (hash recorded in managed-assets-v0.1.0.json) vs a user-edited worker.
 	const legacyExplore = join(agentHome, "agents", "gentle-ai-explore.md");
@@ -156,9 +156,9 @@ test("install retires an untracked legacy gentle-ai-explore copy whose routing l
 	withHomes(t);
 	const agentHome = mkdtempSync(join(tmpdir(), "agent-name-migration-untracked-"));
 	t.after(() => rmSync(agentHome, { recursive: true, force: true }));
-	const previous = process.env.GENTLE_PI_AGENT_HOME;
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
-	t.after(() => { if (previous === undefined) delete process.env.GENTLE_PI_AGENT_HOME; else process.env.GENTLE_PI_AGENT_HOME = previous; });
+	const previous = process.env.NUB_IA_AGENT_HOME;
+	process.env.NUB_IA_AGENT_HOME = agentHome;
+	t.after(() => { if (previous === undefined) delete process.env.NUB_IA_AGENT_HOME; else process.env.NUB_IA_AGENT_HOME = previous; });
 	mkdirSync(join(agentHome, "agents"), { recursive: true });
 	// Real v0.1.0 content with user-chosen routing and no managed-assets manifest entry.
 	const original = readFileSync(new URL("./fixtures/legacy/gentle-ai-explore-v0.1.0.md", import.meta.url), "utf8");

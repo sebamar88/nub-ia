@@ -50,8 +50,8 @@ function routingConsumerFixture(t: test.TestContext, agents = ["worker"]) {
 	for (const name of agents) {
 		writeMarkdown(join(root, ".pi", "agents", `${name}.md`), `---\nname: ${name}\ndescription: Worker\n---\nbody\n`);
 	}
-	const previousConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const previousHome = process.env.HOME;
 	const previousUserProfile = process.env.USERPROFILE;
 	const isolatedHome = join(root, "home");
@@ -60,13 +60,13 @@ function routingConsumerFixture(t: test.TestContext, agents = ["worker"]) {
 	// Package-sibling legacy agents remain subject to discovery assertions.
 	process.env.HOME = isolatedHome;
 	process.env.USERPROFILE = isolatedHome;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
+	process.env.NUB_IA_AGENT_HOME = agentHome;
 	t.after(() => {
-		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousConfigHome;
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousConfigHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		if (previousHome === undefined) delete process.env.HOME;
 		else process.env.HOME = previousHome;
 		if (previousUserProfile === undefined) delete process.env.USERPROFILE;
@@ -257,6 +257,19 @@ test("invalid global routing overrides valid project in models, status, and expo
 	}
 });
 
+/** Point os.homedir() at an empty temp dir so the real ~/.pi/gentle-ai never leaks into the legacy read fallback. */
+function isolateHome(t: test.TestContext): void {
+	const dir = mkdtempSync(join(tmpdir(), "nub-ia-home-"));
+	const previous = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+	process.env.HOME = dir;
+	process.env.USERPROFILE = dir;
+	t.after(() => {
+		if (previous.HOME === undefined) delete process.env.HOME; else process.env.HOME = previous.HOME;
+		if (previous.USERPROFILE === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = previous.USERPROFILE;
+		rmSync(dir, { recursive: true, force: true });
+	});
+}
+
 test("session startup reports invalid project routing without mutating the profile", async (t) => {
 	const root = mkdtempSync(join(tmpdir(), "gentle-pi-model-routing-startup-"));
 	const configHome = join(root, "global");
@@ -276,15 +289,16 @@ test("session startup reports invalid project routing without mutating the profi
 	mkdirSync(agentHomeSubagentsDir, { recursive: true });
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 
-	const previousConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
+	isolateHome(t);
+	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
+	process.env.NUB_IA_AGENT_HOME = agentHome;
 	t.after(() => {
-		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousConfigHome;
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousConfigHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 	});
 
 	writeFileSync(join(projectConfigDir, "models.json"), "[]");
@@ -366,14 +380,14 @@ test("agent discovery skips skills directories", async (t) => {
 test("managed routing timeout leaves its profile, agent, and manifest unchanged", (t) => {
 	const root = mkdtempSync(join(tmpdir(), "gentle-pi-managed-routing-timeout-"));
 	const agentHome = join(root, "agent-home");
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	t.after(() => {
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
+	process.env.NUB_IA_AGENT_HOME = agentHome;
 	installPackageAssets(root, false, ["delegation"]);
 	const agentPath = join(agentHome, "agents", "nubia-worker.md");
 	const manifestPath = join(agentHome, "gentle-ai", "managed-assets.json");
@@ -404,12 +418,12 @@ test("a later alias keeps managed-root precedence and manifest ownership", (t) =
 	const managed = join(agentHome, "agents");
 	const intervening = join(agentHome, "subagents");
 	const alias = join(home, ".agents");
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const previousHome = process.env.HOME;
 	const previousUserProfile = process.env.USERPROFILE;
 	t.after(() => {
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		if (previousHome === undefined) delete process.env.HOME;
 		else process.env.HOME = previousHome;
 		if (previousUserProfile === undefined) delete process.env.USERPROFILE;
@@ -417,7 +431,7 @@ test("a later alias keeps managed-root precedence and manifest ownership", (t) =
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
+	process.env.NUB_IA_AGENT_HOME = agentHome;
 	process.env.HOME = home;
 	process.env.USERPROFILE = home;
 	installPackageAssets(cwd, false, ["delegation"]);
@@ -483,11 +497,11 @@ test("agent model discovery prioritizes Judgment Day agents", (t) => {
 
 test("discoverable model agents include installed Judgment Day agents", (t) => {
 	const root = mkdtempSync(join(tmpdir(), "gentle-pi-installed-agents-"));
-	const previousHome = process.env.GENTLE_PI_AGENT_HOME;
-	process.env.GENTLE_PI_AGENT_HOME = root;
+	const previousHome = process.env.NUB_IA_AGENT_HOME;
+	process.env.NUB_IA_AGENT_HOME = root;
 	t.after(() => {
-		if (previousHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousHome;
+		if (previousHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousHome;
 		rmSync(root, { recursive: true, force: true });
 	});
 	writeMarkdown(join(root, "agents", "jd-judge-a.md"), "name: jd-judge-a\n");
@@ -504,11 +518,11 @@ test("discoverable model agents include installed Judgment Day agents", (t) => {
 
 test("per-JD-agent model assignment keeps judge-a and judge-b profiles divergent", (t) => {
 	const root = mkdtempSync(join(tmpdir(), "gentle-pi-jd-diversity-"));
-	const previousHome = process.env.GENTLE_PI_AGENT_HOME;
-	process.env.GENTLE_PI_AGENT_HOME = root;
+	const previousHome = process.env.NUB_IA_AGENT_HOME;
+	process.env.NUB_IA_AGENT_HOME = root;
 	t.after(() => {
-		if (previousHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousHome;
+		if (previousHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousHome;
 		rmSync(root, { recursive: true, force: true });
 	});
 	writeMarkdown(
@@ -655,7 +669,7 @@ test("guarded command confirmation emits a generic correlated permission lifecyc
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
+	createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-permission-request-"));
@@ -790,7 +804,7 @@ test("concurrent guarded confirmations coalesce the Herdr lifecycle per extensio
 			registerCommand() {},
 			registerTool() {},
 		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
+		createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 		return { handlers, emitted, confirmations };
 	};
 	const first = createHarness();
@@ -955,7 +969,7 @@ test("Herdr preserves the initial label and balanced edges across overlapping so
 			registerCommand() {},
 			registerTool() {},
 		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
+		createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 		const context = {
 			cwd: process.cwd(),
 			hasUI: true,
@@ -1051,7 +1065,7 @@ test("closed choice blockers retain the visible choice label through guarded-con
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
+	createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 	assert.equal(eventHandlers.has("gentle-pi:ask-user-choice:blocked"), true);
 
 	for (const malformed of [null, [], {}, { active: "true" }]) {
@@ -1108,7 +1122,7 @@ test("permission lifecycle is inactive for unguarded and headless commands", asy
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { GENTLE_PI_AGENTS_CHILD: "0" } })(pi);
+	createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-permission-headless-"));
@@ -1170,8 +1184,8 @@ test("bash tool_call confirms a late guarded npm publish and denies on non-appro
 
 	const prefix = "noise ".repeat(80);
 	const command = `${prefix}npm publish --tag beta`;
-	const previousConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
+	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
 	try {
 		const result = await toolCall!({ toolName: "bash", input: { command } }, ctx);
 		assert.deepEqual(result, {
@@ -1180,8 +1194,8 @@ test("bash tool_call confirms a late guarded npm publish and denies on non-appro
 				"Nub-IA safety policy blocked the command because it was not confirmed.",
 		});
 	} finally {
-		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousConfigHome;
+		if (previousConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousConfigHome;
 		rmSync(configHome, { recursive: true, force: true });
 	}
 
@@ -1210,8 +1224,8 @@ test("bash tool_call confirms every compound action and centers a long git -C pu
 	assert.equal(typeof toolCall, "function");
 
 	const configHome = mkdtempSync(join(tmpdir(), "gentle-pi-guard-compound-"));
-	const previousConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
+	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
 	try {
 		const command = `git -C /${"very-long-path/".repeat(30)} push origin main && npm publish --tag beta`;
 		const result = await toolCall!({ toolName: "bash", input: { command } }, {
@@ -1224,8 +1238,8 @@ test("bash tool_call confirms every compound action and centers a long git -C pu
 			reason: "Nub-IA safety policy blocked the command because it was not confirmed.",
 		});
 	} finally {
-		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousConfigHome;
+		if (previousConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousConfigHome;
 		rmSync(configHome, { recursive: true, force: true });
 	}
 

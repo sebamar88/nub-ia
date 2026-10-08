@@ -59,7 +59,7 @@ Alternativa para desarrollo (clon propio): `git clone git@github.com:sebamar88/n
 pnpm link --global`.
 
 Si falta `.rtk/<versión>/rtk` (descarga fallida, sin red), cada arranque de `nub-ia` lo reinstala una vez (aviso por
-stderr, nunca bloquea; `GENTLE_PI_SKIP_RTK_INSTALL=1` lo desactiva).
+stderr, nunca bloquea; `NUB_IA_SKIP_RTK_INSTALL=1` lo desactiva).
 
 Tras el primer provisionado (y con `nub-ia setup`) se imprime un recordatorio de login: iniciá sesión en al menos un
 proveedor dentro del shell (`/login github-copilot`, `/login openai`, `/login opencode`, `/login nvidia`,
@@ -118,30 +118,29 @@ El tema por defecto es `Nub-IA` (`themes/Nub-IA.json`); se cambia desde `/settin
 
 ### Variables de entorno
 
-Las nuevas se llaman `NUB_IA_*`; las heredadas `GENTLE_SHELL_*`/`GENTLE_PI_*` siguen funcionando (el launcher las pasa a
-los procesos hijos) y un alias `NUB_IA_*` siempre tiene prioridad.
+Todas se llaman `NUB_IA_*` (el launcher las pasa a los procesos hijos).
 
 | Variable | Uso |
 | --- | --- |
-| `GENTLE_SHELL_HOME` | Directorio del home aislado (default `~/.nub-ia/agent`). |
-| `GENTLE_SHELL_PI` | Ruta al ejecutable `pi` a usar. |
-| `GENTLE_SHELL_NO_AUTO_SETUP=1` | No provisionar el home automáticamente en el primer arranque. |
-| `GENTLE_SHELL_TEAM_PACKAGES` | Paquetes Pi que `setup` instala (default: la lista del paquete; vacío = ninguno). |
+| `NUB_IA_HOME` | Directorio del home aislado (default `~/.nub-ia/agent`). |
+| `NUB_IA_PI` | Ruta al ejecutable `pi` a usar. |
+| `NUB_IA_NO_AUTO_SETUP=1` | No provisionar el home automáticamente en el primer arranque. |
+| `NUB_IA_TEAM_PACKAGES` | Paquetes Pi que `setup` instala (default: la lista del paquete; vacío = ninguno). |
 | `NUB_IA_CONFIG_HOME` | Config global (default `~/.pi/nub-ia`; lo que solo exista en `~/.pi/gentle-ai` se sigue leyendo). |
 | `NUB_IA_REVIEW_GATE` | `confirm` \| `strict` \| `off` para la sesión (los archivos de política tienen prioridad). |
 | `NUB_IA_METRICS=off` | Desactiva el sink local de métricas (`~/.pi/nub-ia/metrics/runtime-<AAAA-MM>.jsonl`). |
 | `NUB_IA_NO_SELF_UPDATE=1` | `nub-ia update` no actualiza el checkout del paquete. |
-| `GENTLE_PI_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` (postinstall y auto-reparación al arrancar). |
-| `GENTLE_SHELL_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |
+| `NUB_IA_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` (postinstall y auto-reparación al arrancar). |
+| `NUB_IA_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |
 | `RTK_DISABLED=1` | Apagar la reescritura de comandos con rtk en la sesión. |
 | `NUB_IA_ROUTER_DEBUG=1` | Traza en stderr de las decisiones del router y del review. |
 
 ### Guardrails de comandos
 
-`.pi/gentle-ai/runtime-guardrails.json` (versionado) define qué comandos del agente piden confirmación o se bloquean:
+`.pi/nub-ia/runtime-guardrails.json` (versionado) define qué comandos del agente piden confirmación o se bloquean:
 `npm publish` está bloqueado (el paquete nunca se publica). `git push`, `git rebase`, `git branch -D` y `pi remove` piden
 confirmación por defecto sin necesidad de declararlos (declararlos como `confirm` impide que el modo YOLO los exima).
-Se puede sobreescribir por usuario en `~/.pi/gentle-ai/runtime-guardrails.json`.
+Se puede sobreescribir por usuario en `~/.pi/nub-ia/runtime-guardrails.json`.
 
 ### Router de modelos por tier (`nub-ia/*`)
 
@@ -176,7 +175,7 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 `TEAM_PACKAGE_SOURCES` en `lib/nubia-launcher.ts`. Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail)
 (`npm:@dietrichgebert/ponytail@4.13.0`, pinneado a propósito; modo "lazy senior dev": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`,
 `/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. Para agregar otro, sumá su source a la tabla;
-`GENTLE_SHELL_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
+`NUB_IA_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
 instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail@4.13.0`.
 
 ### Review 4R propio (`nub_review`)
@@ -209,8 +208,8 @@ antes de que llegue al modelo. Las reglas viven en rtk; la extensión solo deleg
 El binario viene incluido: el `postinstall` (`scripts/install-rtk.mjs`) descarga la release pinneada de rtk para tu
 plataforma (Linux x64/arm64, macOS x64/arm64, Windows x64; en Windows se descomprime con PowerShell y la ruta se pasa a Git Bash con barras normales), verifica su SHA-256 contra el digest fijado en
 `scripts/rtk-installer.mjs` y lo deja en `<paquete>/.rtk/<versión>/`. La extensión usa esa copia antes que cualquier `rtk`
-del PATH (`GENTLE_SHELL_RTK_BIN` lo fuerza a otra ruta). Si la descarga falla, la instalación no se rompe: los comandos
-pasan sin filtrar y la barra de estado indica cómo reintentar (`pnpm run install:rtk`). `GENTLE_PI_SKIP_RTK_INSTALL=1` salta
+del PATH (`NUB_IA_RTK_BIN` lo fuerza a otra ruta). Si la descarga falla, la instalación no se rompe: los comandos
+pasan sin filtrar y la barra de estado indica cómo reintentar (`pnpm run install:rtk`). `NUB_IA_SKIP_RTK_INSTALL=1` salta
 la descarga; `RTK_DISABLED=1` apaga la reescritura en una sesión. No hace falta `rtk init`.
 
 ## Qué cambia respecto a gentle-shell
@@ -226,8 +225,9 @@ la descarga; `RTK_DISABLED=1` apaga la reescritura en una sesión. No hace falta
 - Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).
 - Workflow de publicación a npm eliminado.
 
-Los identificadores internos (`GENTLE_PI_*`, nombres de archivos en `lib/`) se mantienen
-tal cual para poder hacer merge de cambios del upstream.
+Las variables de entorno se renombraron a `NUB_IA_*` (sin alias `GENTLE_*`). Los identificadores internos
+(nombres de archivos y funciones en `lib/`, esquemas y tipos de mensaje persistidos) se mantienen tal cual para
+poder hacer merge de cambios del upstream.
 
 ## Mantener sincronizado con el upstream
 
@@ -249,7 +249,7 @@ node scripts/trace-brand.mjs isologo|wordmark   # regenera el arte del banner de
 ```
 
 Documentación: [referencia técnica](docs/readme-reference.md) (incluye [Organic Driven Development](docs/readme-reference.md#organic-driven-development)),
-[la shell](docs/gentle-shell.md), [actividad de agentes](docs/gentle-agents-activity.md), [YOLO](docs/yolo-mode.md),
+[la shell](docs/nub-ia-shell.md), [actividad de agentes](docs/gentle-agents-activity.md), [YOLO](docs/yolo-mode.md),
 [métricas](docs/telemetry.md). El README original de gentle-shell queda archivado en [`docs/UPSTREAM-README.md`](docs/UPSTREAM-README.md).
 
 ## Licencia y marcas

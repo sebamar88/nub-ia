@@ -771,7 +771,7 @@ test("piCommand reuses an existing pi entry point and falls back when it disappe
 });
 
 test("piCommand honors the override without checking its entry", () => {
-	const proc = { execPath: "/bin/node", argv: ["/bin/node", "/x/dist/cli.js"], env: { GENTLE_PI_AGENTS_PI: " /bin/node /override/cli.js " } };
+	const proc = { execPath: "/bin/node", argv: ["/bin/node", "/x/dist/cli.js"], env: { NUB_IA_AGENTS_PI: " /bin/node /override/cli.js " } };
 	assert.deepEqual(piCommand(proc, () => { assert.fail("override must bypass the existence check"); }), { command: "/bin/node", args: ["/override/cli.js"] });
 });
 
@@ -944,12 +944,12 @@ for (const [platform, detached] of [["win32", false], ["linux", true]] as const)
 	}, { askUser: async () => ({ cancelled: true }) });
 	const task = runner.run(request({ env: { PATH: "/fixture", KEEP: "yes" } }));
 	await tick();
-	const ownedIpc = launches[0]?.options.env.GENTLE_PI_AGENTS_OWNED_IPC;
+	const ownedIpc = launches[0]?.options.env.NUB_IA_AGENTS_OWNED_IPC;
 	assert.match(ownedIpc ?? "", /^\d+-[a-z0-9]+$/, "the runner creates an opaque owned-IPC marker");
 	assert.deepEqual(launches, [{
 		command: "pi-fixture",
 		args: ["--from-host", "--mode", "rpc", "--session-dir", "/sessions", "--model", "openai-codex/gpt-5.6-terra:high", "--tools", "read,grep,subagent_parent_message", "--append-system-prompt", "You map things."],
-		options: { cwd: "/repo", env: { PATH: "/fixture", KEEP: "yes", GENTLE_PI_AGENTS_CHILD: "1", GENTLE_PI_AGENTS_OWNED_IPC: ownedIpc }, detached, stdio: ["pipe", "pipe", "pipe", "ipc"] },
+		options: { cwd: "/repo", env: { PATH: "/fixture", KEEP: "yes", NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: ownedIpc }, detached, stdio: ["pipe", "pipe", "pipe", "ipc"] },
 	}]);
 	child.emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "platform checked" }], stopReason: "stop" }] });
 	child.emit({ type: "agent_settled" });
@@ -1398,12 +1398,12 @@ test("abortReasonText renders an Error, a string, and nothing for unknown reason
 
 test("generic child extension paths do not forward legacy research selection", async () => {
  const h = harness();
- const launch = request({ extensionPaths: ["/installed/docs tools.ts"], env: { PATH: "/bin", GENTLE_PI_RESEARCH_SELECTION: "stale" } });
+ const launch = request({ extensionPaths: ["/installed/docs tools.ts"], env: { PATH: "/bin", NUB_IA_RESEARCH_SELECTION: "stale" } });
  const argv = childArguments(launch);
  assert.deepEqual(argv.filter((_, i) => argv[i - 1] === "--extension"), launch.extensionPaths);
  const task = h.runner.run(launch);
  await tick();
- assert.equal(h.spawnOptions.at(-1)!.env.GENTLE_PI_RESEARCH_SELECTION, undefined);
+ assert.equal(h.spawnOptions.at(-1)!.env.NUB_IA_RESEARCH_SELECTION, undefined);
  assert.equal(h.spawnOptions.at(-1)!.env.PATH, "/bin");
  h.runner.cancel(task.id);
  assert.equal((await h.runner.waitFor(task.id)).status, TASK_STATUS.CANCELLED);
@@ -1411,7 +1411,7 @@ test("generic child extension paths do not forward legacy research selection", a
 
 test("ordinary tasks never inherit orphaned SDD launch metadata", async () => {
 	const h = harness();
-	const launch = request({ prompt: "Ordinary task", context: "Relevant context", env: { PATH: "/bin", GENTLE_PI_SDD_REMEDIATION_PLAN: "stale" },
+	const launch = request({ prompt: "Ordinary task", context: "Relevant context", env: { PATH: "/bin", NUB_IA_SDD_REMEDIATION_PLAN: "stale" },
 		// Deliberately pass a legacy-shaped payload to prove that no runner path consumes it.
 		...({ sddChange: { changeName: "old", workspaceRoot: "/repo", phase: "apply" }, sddPreflightContext: "stale", sddRemediation: { failedEvidenceRevision: "old", plan: { commands: ["unsafe"] } } } as object),
 	});
@@ -1419,7 +1419,7 @@ test("ordinary tasks never inherit orphaned SDD launch metadata", async () => {
 	const task = h.runner.run(launch);
 	await tick();
 	assert.equal(h.store.get(task.id)?.sddPreflightContext, undefined);
-	assert.equal(h.spawnOptions[0].env.GENTLE_PI_SDD_REMEDIATION_PLAN, undefined);
+	assert.equal(h.spawnOptions[0].env.NUB_IA_SDD_REMEDIATION_PLAN, undefined);
 	assert.equal(h.spawnOptions[0].env.PATH, "/bin");
 	assert.equal(h.children[0].written.find(command => command.type === "prompt")?.message, "Ordinary task\n\n## Context\nRelevant context");
 	h.runner.cancel(task.id);

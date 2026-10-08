@@ -69,18 +69,18 @@ const RTK_SELF_HEAL_TIMEOUT_MS = 60 * 1000;
 // skipped or failed (offline, ignored scripts, `git clean` on a Pi update), so
 // every launch checks <packageRoot>/.rtk/<version>/rtk and installs it once if
 // missing. Best effort only: a stderr notice, never a failure, never a block
-// longer than RTK_SELF_HEAL_TIMEOUT_MS. GENTLE_PI_SKIP_RTK_INSTALL=1 opts out;
-// GENTLE_SHELL_RTK_INSTALLER (test/development only) names a replacement
+// longer than RTK_SELF_HEAL_TIMEOUT_MS. NUB_IA_SKIP_RTK_INSTALL=1 opts out;
+// NUB_IA_RTK_INSTALLER (test/development only) names a replacement
 // installer module exporting `installRtk`.
 async function ensureRtkInstalled() {
-	if (process.env.GENTLE_PI_SKIP_RTK_INSTALL === "1") return;
+	if (process.env.NUB_IA_SKIP_RTK_INSTALL === "1") return;
 	let timer;
 	try {
 		const real = await import("../scripts/rtk-installer.mjs");
 		if (existsSync(real.packageLocalRtkPath(packageRoot))) return;
-		const override = process.env.GENTLE_SHELL_RTK_INSTALLER;
+		const override = process.env.NUB_IA_RTK_INSTALLER;
 		const installer = override ? await import(pathToFileURL(resolvePath(override)).href) : real;
-		process.stderr.write(`nub-ia: rtk v${real.RTK_VERSION} is missing; installing it once (set GENTLE_PI_SKIP_RTK_INSTALL=1 to skip)\n`);
+		process.stderr.write(`nub-ia: rtk v${real.RTK_VERSION} is missing; installing it once (set NUB_IA_SKIP_RTK_INSTALL=1 to skip)\n`);
 		await Promise.race([
 			installer.installRtk({ root: packageRoot }),
 			new Promise((_, reject) => {
@@ -231,7 +231,7 @@ function managedHerdrExtensionArgs(home, args) {
 	const env = process.env;
 	if (home.mode !== "isolated" || args.piSubcommand !== undefined || args.passthrough[0] === "mcp") return [];
 	if (env.HERDR_ENV !== "1" || !env.HERDR_SOCKET_PATH?.trim() || !env.HERDR_PANE_ID?.trim()) return [];
-	if (env.GENTLE_PI_AGENTS_CHILD === "1" || !process.stdin.isTTY || !process.stdout.isTTY) return [];
+	if (env.NUB_IA_AGENTS_CHILD === "1" || !process.stdin.isTTY || !process.stdout.isTTY) return [];
 	// Only automatic interactive loading: a user opt-out must not become an
 	// explicit -e (which Pi loads even under --no-extensions). Conservatively
 	// skip ambiguous mode flags too; --mode text alone still allows a TUI.
@@ -338,7 +338,7 @@ function resolveLooseExtensionEntries(dir) {
 // without ever touching the real ~/.nub-ia/config.json. Never
 // consulted outside these two call sites; see docs/readme-reference.md.
 function resolveConfigPath() {
-	const override = process.env.GENTLE_SHELL_CONFIG;
+	const override = process.env.NUB_IA_CONFIG;
 	return override !== undefined && override.length > 0 ? override : launcherConfigPath(homedir());
 }
 
@@ -495,7 +495,7 @@ function spawnAndWait(command, args, env, stdio, timeoutMs) {
 // minutes when `ms` is an exact multiple of 60000 (matching the production
 // 15-minute default and any operator-chosen whole-minute override), seconds
 // otherwise — including the sub-second overrides
-// GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS sets in tests. Used at every "timed out
+// NUB_IA_AUTO_SETUP_TIMEOUT_MS sets in tests. Used at every "timed out
 // after ..." call site instead of a hardcoded "15 minutes"
 // (R2-timeout-message-hardcoded), so the message always reflects the ceiling
 // that actually fired.
@@ -509,14 +509,14 @@ function formatTimeoutCeiling(ms) {
 }
 
 // Shared env for the pi install spawns below: PI_CODING_AGENT_DIR/
-// GENTLE_PI_AGENT_HOME point at the resolved home, and the resolved pi
+// NUB_IA_AGENT_HOME point at the resolved home, and the resolved pi
 // runtime's directory is prepended to PATH so pi finds itself even when it is
-// bundled or given through GENTLE_SHELL_PI.
+// bundled or given through NUB_IA_PI.
 function buildSetupEnv(home, runtime) {
 	return {
 		...process.env,
 		PI_CODING_AGENT_DIR: home.dir,
-		GENTLE_PI_AGENT_HOME: home.dir,
+		NUB_IA_AGENT_HOME: home.dir,
 		PATH: `${dirname(runtime.command)}${delimiter}${process.env.PATH ?? ""}`,
 	};
 }
@@ -736,7 +736,7 @@ async function handleSetupCommand(commandArgs, home, runtime) {
 	process.exit(result.exitCode);
 }
 
-const AUTO_SETUP_OPT_OUT_ENV = "GENTLE_SHELL_NO_AUTO_SETUP";
+const AUTO_SETUP_OPT_OUT_ENV = "NUB_IA_NO_AUTO_SETUP";
 const SETUP_LOCK_STALE_MS = 15 * 60 * 1000;
 
 // nub-ia never auto-provisions a home it does not itself own: the
@@ -862,14 +862,14 @@ function releaseSetupLock(lockPath) {
 
 // Ceiling for every child this flow spawns (S9): a hung
 // pi invocation must never hang a plain `nub-ia` launch forever.
-// Test/development only: GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS overrides the
+// Test/development only: NUB_IA_AUTO_SETUP_TIMEOUT_MS overrides the
 // 15-minute ceiling so a test can exercise it without actually waiting;
 // documented as test/development-only in docs/readme-reference.md. Manual
 // `setup` never passes a timeout at all (see handleSetupCommand).
 const AUTO_SETUP_CHILD_TIMEOUT_MS = 15 * 60 * 1000;
 
 function resolveAutoSetupTimeoutMs() {
-	const override = process.env.GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS;
+	const override = process.env.NUB_IA_AUTO_SETUP_TIMEOUT_MS;
 	const parsed = override !== undefined && override.length > 0 ? Number(override) : undefined;
 	return parsed !== undefined && Number.isFinite(parsed) ? parsed : AUTO_SETUP_CHILD_TIMEOUT_MS;
 }
@@ -1149,11 +1149,11 @@ async function main() {
 		declaration = findGentlePiDeclaration(settingsText, { agentDir: home.dir, readPackageName });
 		// --package-root only forces a take-over in --link mode (see below);
 		// in every other mode a declared home silently keeps using its
-		// declared gentle-pi and --package-root has no effect at all. Warn
+		// declared Nub-IA package and --package-root has no effect at all. Warn
 		// once so an operator does not assume --package-root took effect.
 		if (packageRootExplicit && home.mode !== "link" && declaration !== undefined) {
 			process.stderr.write(
-				`nub-ia: --package-root only forces a take-over in --link mode; ${home.dir} declares gentle-pi, so the installed package is used and ${args.packageRoot} is ignored\n`,
+				`nub-ia: --package-root only forces a take-over in --link mode; ${home.dir} declares the Nub-IA package, so the installed package is used and ${args.packageRoot} is ignored\n`,
 			);
 		}
 		const realEffectivePackageRoot = safeRealpath(effectivePackageRoot);
@@ -1183,7 +1183,7 @@ async function main() {
 			looseExtensionEntries = [join(home.dir, "extensions"), join(process.cwd(), ".pi", "extensions")].flatMap(resolveLooseExtensionEntries);
 			const declaredFrom = declaration === undefined ? "the requested package root" : declaration.kind === "npm" ? "npm:gentle-pi" : declaration.dir;
 			process.stderr.write(
-				`nub-ia: taking over gentle-pi from ${declaredFrom} for this run (settings unchanged; its skills, prompts, and themes still load alongside this launcher's).\n`,
+				`nub-ia: taking over the Nub-IA package declared in ${declaredFrom} for this run (settings unchanged; its skills, prompts, and themes still load alongside this launcher's).\n`,
 			);
 		}
 	}

@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import promptHistoryExtension from "../extensions/history/index.ts";
 
-// gentle-shell#1690: delegated children (GENTLE_PI_AGENTS_CHILD=1) receive
+// gentle-shell#1690: delegated children (NUB_IA_AGENTS_CHILD=1) receive
 // the package too. Their before_agent_start prompt is a delegation brief,
 // not user history, so a child must never initialize, capture or GC the
 // store, even when capture is opted in. The selector may still register.
@@ -27,7 +27,7 @@ function load(child: boolean) {
     registerCommand: (name: string) => { commands.push(name); },
   };
   promptHistoryExtension(pi as never, {
-    env: { GENTLE_PI_HISTORY_CAPTURE: "1", GENTLE_PI_AGENTS_CHILD: child ? "1" : "0" },
+    env: { NUB_IA_HISTORY_CAPTURE: "1", NUB_IA_AGENTS_CHILD: child ? "1" : "0" },
     root,
     cwd: CWD,
     instanceId: `inst-${child ? "child" : "parent"}`,

@@ -46,7 +46,7 @@ test("tools and failed Todo snapshots never supply fallback summaries", async ()
 	h.fire("session_shutdown");
 });
 test("children, missing Herdr and socket, and non-TUI never publish", async () => {
-	for (const h of [harness({ GENTLE_PI_AGENTS_CHILD: "1" }), harness({ HERDR_ENV: "0" }), harness({ HERDR_PANE_ID: "" }), harness({}, false)]) {
+	for (const h of [harness({ NUB_IA_AGENTS_CHILD: "1" }), harness({ HERDR_ENV: "0" }), harness({ HERDR_PANE_ID: "" }), harness({}, false)]) {
 		h.fire("session_start"); h.fire("agent_start"); await wait(); assert.deepEqual(h.values, []);
 	}
 	const h = harness();

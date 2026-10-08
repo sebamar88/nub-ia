@@ -8,7 +8,7 @@ import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
 import { YOLO_STATUS_KEY } from "../lib/yolo-session-policy.ts";
 
 // gentle-shell#1690: the package is forwarded to delegated rpc children
-// (GENTLE_PI_AGENTS_CHILD=1, where ctx.hasUI is true). Parent-owned startup
+// (NUB_IA_AGENTS_CHILD=1, where ctx.hasUI is true). Parent-owned startup
 // work and shared-state writes must not run there; each case pairs the child
 // with a parent control so the guard cannot pass vacuously.
 
@@ -20,14 +20,14 @@ function isolate(t: TestContext): { root: string; cwd: string; agentHome: string
 	const agentHome = join(root, "agent-home");
 	const configHome = join(root, "config");
 	for (const path of [cwd, agentHome, configHome]) mkdirSync(path, { recursive: true });
-	const previous = { agentHome: process.env.GENTLE_PI_AGENT_HOME, configHome: process.env.GENTLE_PI_CONFIG_HOME };
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
+	const previous = { agentHome: process.env.NUB_IA_AGENT_HOME, configHome: process.env.NUB_IA_CONFIG_HOME };
+	process.env.NUB_IA_AGENT_HOME = agentHome;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
 	t.after(() => {
-		if (previous.agentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previous.agentHome;
-		if (previous.configHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previous.configHome;
+		if (previous.agentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previous.agentHome;
+		if (previous.configHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previous.configHome;
 		rmSync(root, { recursive: true, force: true });
 	});
 	return { root, cwd, agentHome };
@@ -48,7 +48,7 @@ function harness(child: boolean, cwd: string) {
 		registerCommand() {}, registerShortcut() {}, registerMessageRenderer() {},
 	} as unknown as ExtensionAPI;
 	createGentleAiExtension({
-		processEnv: { GENTLE_PI_AGENTS_CHILD: child ? "1" : "0", GENTLE_AI_TELEMETRY: "0" },
+		processEnv: { NUB_IA_AGENTS_CHILD: child ? "1" : "0", GENTLE_AI_TELEMETRY: "0" },
 	})(pi);
 	const sessionManager = { getSessionId: () => `session-${child ? "child" : "parent"}`, getCwd: () => cwd, getEntries: () => entries, getBranch: () => entries };
 	const ctx = {

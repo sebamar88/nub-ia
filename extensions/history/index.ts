@@ -10,7 +10,7 @@
 // session_shutdown GC/compaction.
 //
 // Capture is OPT-IN: nothing is recorded unless an explicit
-// GENTLE_PI_HISTORY_CAPTURE=1|true|on, or (with no explicit env value) the
+// NUB_IA_HISTORY_CAPTURE=1|true|on, or (with no explicit env value) the
 // persisted Gentle → Customize preference, turns it on. The selector honors
 // the same gate: with capture off, opening the selector is a no-op — no
 // registry entry, no writer init, no store reads, no deletes. Turning
@@ -145,7 +145,7 @@ export interface HistoryDeps {
 }
 
 /**
- * Strict opt-in: an explicit GENTLE_PI_HISTORY_CAPTURE value (1|true|on or
+ * Strict opt-in: an explicit NUB_IA_HISTORY_CAPTURE value (1|true|on or
  * 0|false|off, case-insensitive) wins; otherwise the persisted Customize
  * preference under the Gentle config home decides; a missing, malformed or
  * unreadable preference is off. Read per call so a Customize toggle applies
@@ -169,13 +169,13 @@ function captureDisabledMessage(
   configHome: string,
 ): string {
   if (historyCaptureEnvOverride(env) === "off") {
-    return "Prompt history is disabled by GENTLE_PI_HISTORY_CAPTURE, which overrides the Gentle → Customize → History preference.";
+    return "Prompt history is disabled by NUB_IA_HISTORY_CAPTURE, which overrides the Gentle → Customize → History preference.";
   }
   const preference = resolveHistoryCapturePolicy({ gentlePiConfigHome: configHome });
   if (preference.malformed) {
-    return `Prompt history is disabled because the Gentle → Customize → History preference is invalid or unreadable: ${preference.globalFile}. Fix or remove that file, or set GENTLE_PI_HISTORY_CAPTURE=1.`;
+    return `Prompt history is disabled because the Gentle → Customize → History preference is invalid or unreadable: ${preference.globalFile}. Fix or remove that file, or set NUB_IA_HISTORY_CAPTURE=1.`;
   }
-  return "Prompt history is disabled. Turn on \"Prompt history capture\" in Gentle → Customize → History, or set GENTLE_PI_HISTORY_CAPTURE=1.";
+  return "Prompt history is disabled. Turn on \"Prompt history capture\" in Gentle → Customize → History, or set NUB_IA_HISTORY_CAPTURE=1.";
 }
 
 // ---------------------------------------------------------------------------
@@ -1319,7 +1319,7 @@ export default function promptHistoryExtension(
   // Per-prompt gate: re-read so a Customize toggle applies live. A delegated
   // child never captures: its prompt is a delegation brief, not user history,
   // and the parent owns the store's init and GC (gentle-shell#1690).
-  const capturing = () => env.GENTLE_PI_AGENTS_CHILD !== "1" && captureEnabled(env, configHome);
+  const capturing = () => env.NUB_IA_AGENTS_CHILD !== "1" && captureEnabled(env, configHome);
   const root = deps.root ?? PI_HISTORY_ROOT;
   const cwd = deps.cwd ?? process.cwd();
   const instanceId = deps.instanceId ?? randomUUID();

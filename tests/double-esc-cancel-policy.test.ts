@@ -75,10 +75,10 @@ test("default is off with no file and no env", () => {
 	assert.equal(loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: EMPTY_ENV }), "off");
 });
 
-test("the resolver reads GENTLE_PI_CONFIG_HOME from the given env, never from process.env", () => {
+test("the resolver reads NUB_IA_CONFIG_HOME from the given env, never from process.env", () => {
 	const root = makeScratch("gp-esc-envhome-");
 	writePolicyFile(root, "on");
-	const result = resolveDoubleEscCancelPolicy({ env: { GENTLE_PI_CONFIG_HOME: root } });
+	const result = resolveDoubleEscCancelPolicy({ env: { NUB_IA_CONFIG_HOME: root } });
 	assert.equal(result.policy, "on");
 	assert.equal(result.globalFile, join(root, "double-esc-cancel.json"));
 });
@@ -87,7 +87,7 @@ test("global file overrides env", () => {
 	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
 	writePolicyFile(configHome, "on");
 	assert.equal(
-		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { GENTLE_PI_DOUBLE_ESC_CANCEL: "off" } }),
+		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "off" } }),
 		"on",
 	);
 });
@@ -95,12 +95,12 @@ test("global file overrides env", () => {
 test("env var applies only when no policy file exists, and only exact on|off", () => {
 	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
 	assert.equal(
-		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { GENTLE_PI_DOUBLE_ESC_CANCEL: "on" } }),
+		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" } }),
 		"on",
 	);
 	for (const invalid of ["1", "true", "ON", "yes", ""]) {
 		assert.equal(
-			loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { GENTLE_PI_DOUBLE_ESC_CANCEL: invalid } }),
+			loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: invalid } }),
 			"off",
 			`env value "${invalid}" must fail closed to off`,
 		);
@@ -112,7 +112,7 @@ test("a malformed global file fails closed to off instead of falling through to 
 	mkdirSync(configHome, { recursive: true });
 	writeFileSync(join(configHome, DOUBLE_ESC_CANCEL_FILE), "{malformed");
 	assert.equal(
-		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { GENTLE_PI_DOUBLE_ESC_CANCEL: "on" } }),
+		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" } }),
 		"off",
 	);
 });
@@ -137,7 +137,7 @@ test("the resolver attributes the environment variable when no file exists", () 
 	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
 	const resolution = resolveDoubleEscCancelPolicy({
 		gentlePiConfigHome: configHome,
-		env: { GENTLE_PI_DOUBLE_ESC_CANCEL: "on" },
+		env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" },
 	});
 	assert.equal(resolution.source, "environment");
 	assert.equal(resolution.policy, "on");
@@ -158,7 +158,7 @@ test("the resolver attributes a malformed global file to that file and does not 
 	writeFileSync(join(configHome, DOUBLE_ESC_CANCEL_FILE), "{malformed");
 	const resolution = resolveDoubleEscCancelPolicy({
 		gentlePiConfigHome: configHome,
-		env: { GENTLE_PI_DOUBLE_ESC_CANCEL: "on" },
+		env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" },
 	});
 	assert.equal(resolution.source, "global_file");
 	assert.equal(resolution.policy, "off");

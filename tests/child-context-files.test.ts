@@ -219,7 +219,7 @@ test("the child-context extension registers only before_agent_start", () => {
 
 for (const scenario of ["child", "primary"] as const) {
 	test(`the child-context extension ${scenario === "child" ? "filters" : "leaves"} context files on the shared options object for a ${scenario} session`, async () => {
-		const { handlers } = childContextHandlers(scenario === "child" ? { GENTLE_PI_AGENTS_CHILD: "1" } : { GENTLE_PI_AGENTS_CHILD: "0" });
+		const { handlers } = childContextHandlers(scenario === "child" ? { NUB_IA_AGENTS_CHILD: "1" } : { NUB_IA_AGENTS_CHILD: "0" });
 		const contextFiles = [
 			{ path: "/home/AGENTS.md", content: REALISTIC_AGENTS_MD },
 			{ path: "/repo/CLAUDE.md", content: "# Plain\n" },
@@ -244,7 +244,7 @@ for (const scenario of ["child", "primary"] as const) {
 }
 
 test("the child-context extension never throws on missing or malformed options", async () => {
-	const { handlers } = childContextHandlers({ GENTLE_PI_AGENTS_CHILD: "1" });
+	const { handlers } = childContextHandlers({ NUB_IA_AGENTS_CHILD: "1" });
 	const handler = handlers.get("before_agent_start")!;
 	await assert.doesNotReject(async () => handler({}, {}));
 	await assert.doesNotReject(async () => handler({ systemPromptOptions: null }, {}));

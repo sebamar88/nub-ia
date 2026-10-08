@@ -32,7 +32,7 @@ test("rewriteWithRtk follows the rtk rewrite exit-code contract and never rewrit
 
 // Extension-level tests pin the binary to a bare `rtk` so they do not depend
 // on whether this checkout's postinstall already placed the package-local copy.
-process.env.GENTLE_SHELL_RTK_BIN = "rtk";
+process.env.NUB_IA_RTK_BIN = "rtk";
 
 function fakePi(execImpl: (cmd: string, args: string[]) => Promise<{ code: number; stdout: string }>) {
 	const handlers = new Map<string, Function>();
@@ -100,7 +100,7 @@ test("resolveRtkBinary prefers an explicit override, then the package-local pinn
 	writeFileSync(join(root, ".rtk", RTK_VERSION, "rtk"), "");
 	assert.equal(resolveRtkBinary({}, root, "linux"), join(root, ".rtk", RTK_VERSION, "rtk"));
 	assert.equal(resolveRtkBinary({}, root, "win32"), "rtk", "the Windows copy is rtk.exe, so a POSIX file does not count");
-	assert.equal(resolveRtkBinary({ GENTLE_SHELL_RTK_BIN: "/opt/rtk" }, root, "linux"), "/opt/rtk");
+	assert.equal(resolveRtkBinary({ NUB_IA_RTK_BIN: "/opt/rtk" }, root, "linux"), "/opt/rtk");
 });
 
 test("a rewrite produced by a package-local binary names that binary so it runs without rtk on PATH", async () => {

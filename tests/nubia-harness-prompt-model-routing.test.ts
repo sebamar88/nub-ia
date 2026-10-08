@@ -31,8 +31,8 @@ before(() => {
 	writeFileSync(join(agentHome, "subagents.json"), JSON.stringify({ model_profiles: { "nubia-worker": { model: "anthropic/opus" } } }));
 	Object.assign(fixtureEnvironment, {
 		HOME: home, USERPROFILE: home,
-		GENTLE_PI_CONFIG_HOME: join(home, "config"),
-		GENTLE_PI_AGENT_HOME: agentHome,
+		NUB_IA_CONFIG_HOME: join(home, "config"),
+		NUB_IA_AGENT_HOME: agentHome,
 		PI_CODING_AGENT_DIR: join(home, "pi"),
 		XDG_CONFIG_HOME: join(home, "xdg"),
 	});
@@ -60,7 +60,7 @@ function harness(): BeforeAgentStartHandler {
 		registerTool() {},
 	} as unknown as ExtensionAPI;
 	createGentleAiExtension({
-		processEnv: { ...fixtureEnvironment, GENTLE_PI_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0" },
+		processEnv: { ...fixtureEnvironment, NUB_IA_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0" },
 	})(pi);
 	const beforeAgentStart = handlers.get("before_agent_start");
 	assert.equal(typeof beforeAgentStart, "function");

@@ -343,7 +343,7 @@ export class CommandPalette {
 }
 
 /**
- * Shortcut for `/nubia:commands`. Reads GENTLE_PI_COMMANDS_KEY: unset
+ * Shortcut for `/nubia:commands`. Reads NUB_IA_COMMANDS_KEY: unset
  * defaults to "alt+k" (ctrl+k is reserved by Pi's editor for
  * delete-to-line-end, so an extension shortcut on it is skipped); an empty
  * value or "off" (case-insensitive) disables the shortcut; anything else is
@@ -351,7 +351,7 @@ export class CommandPalette {
  * extensions/nubia-shell.ts.
  */
 export function commandsKey(env: NodeJS.ProcessEnv = process.env): string | undefined {
-	const value = env.GENTLE_PI_COMMANDS_KEY?.trim();
+	const value = env.NUB_IA_COMMANDS_KEY?.trim();
 	if (value === undefined) return "alt+k";
 	return value === "" || value.toLowerCase() === "off" ? undefined : value;
 }

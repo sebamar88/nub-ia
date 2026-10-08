@@ -118,7 +118,7 @@ async function withSelector(
       },
     } as never,
     {
-      env: { GENTLE_PI_HISTORY_CAPTURE: "1" },
+      env: { NUB_IA_HISTORY_CAPTURE: "1" },
       gentlePiConfigHome: fs.mkdtempSync(
         path.join(os.tmpdir(), "pi-history-header-config-"),
       ),

@@ -74,8 +74,8 @@ export function parseDoubleEscCancelPolicyFile(raw: string): DoubleEscCancelPoli
  *
  * Resolution order (first hit wins):
  *   1. Global file `${configHome}/double-esc-cancel.json`
- *      (configHome honors NUB_IA_CONFIG_HOME / legacy GENTLE_PI_CONFIG_HOME, default ~/.pi/nub-ia, legacy ~/.pi/gentle-ai read as fallback)
- *   2. Env var GENTLE_PI_DOUBLE_ESC_CANCEL ("on" | "off")
+ *      (configHome honors NUB_IA_CONFIG_HOME, default ~/.pi/nub-ia, legacy ~/.pi/gentle-ai read as fallback)
+ *   2. Env var NUB_IA_DOUBLE_ESC_CANCEL ("on" | "off")
  *   3. Default "off"
  *
  * A present-but-malformed file fails closed to "off" instead of falling
@@ -87,7 +87,7 @@ export function resolveDoubleEscCancelPolicy(
 	options: LoadDoubleEscCancelOptions = {},
 ): DoubleEscCancelResolution {
 	const env = options.env ?? process.env;
-	const envValue = readEnv(env, "NUB_IA_DOUBLE_ESC_CANCEL", "GENTLE_PI_DOUBLE_ESC_CANCEL");
+	const envValue = readEnv(env, "NUB_IA_DOUBLE_ESC_CANCEL");
 	let globalFile = "";
 	try {
 		const configHome = options.gentlePiConfigHome ?? gentlePiConfigHome(env);

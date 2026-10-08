@@ -342,13 +342,13 @@ test("commandsKey defaults to alt+k", () => {
 });
 
 test("commandsKey honors an override", () => {
-	assert.equal(commandsKey({ GENTLE_PI_COMMANDS_KEY: "ctrl+p" }), "ctrl+p");
+	assert.equal(commandsKey({ NUB_IA_COMMANDS_KEY: "ctrl+p" }), "ctrl+p");
 });
 
 test("commandsKey is disabled by an empty value or off (case-insensitive)", () => {
-	assert.equal(commandsKey({ GENTLE_PI_COMMANDS_KEY: "" }), undefined);
-	assert.equal(commandsKey({ GENTLE_PI_COMMANDS_KEY: "off" }), undefined);
-	assert.equal(commandsKey({ GENTLE_PI_COMMANDS_KEY: "OFF" }), undefined);
+	assert.equal(commandsKey({ NUB_IA_COMMANDS_KEY: "" }), undefined);
+	assert.equal(commandsKey({ NUB_IA_COMMANDS_KEY: "off" }), undefined);
+	assert.equal(commandsKey({ NUB_IA_COMMANDS_KEY: "OFF" }), undefined);
 });
 
 // --- catalog -------------------------------------------------------------------

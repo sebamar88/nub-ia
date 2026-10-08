@@ -45,7 +45,7 @@ test("bundled pretty cannot replace or restore an editor owned by the host", asy
 test("disabled shell leaves bundled editor behavior untouched", async () => {
 	let received: unknown;
 	const pi = {};
-	await pretty(pi, undefined, async (api: unknown) => { received = api; }, { GENTLE_PI_SHELL: "0" });
+	await pretty(pi, undefined, async (api: unknown) => { received = api; }, { NUB_IA_SHELL: "0" });
 	assert.equal(received, pi);
 });
 
@@ -54,7 +54,7 @@ test("disabled shell leaves bundled editor behavior untouched", async () => {
 test("delegated children never load upstream pi-pretty", async () => {
 	let loaded = false;
 	const pi = {};
-	const result = await pretty(pi, undefined, async () => { loaded = true; }, { GENTLE_PI_AGENTS_CHILD: "1" });
+	const result = await pretty(pi, undefined, async () => { loaded = true; }, { NUB_IA_AGENTS_CHILD: "1" });
 	assert.equal(loaded, false);
 	assert.equal(result, undefined);
 });

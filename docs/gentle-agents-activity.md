@@ -60,7 +60,7 @@ Si cambia el catálogo público, releé desde la primera página. Un cursor de o
 
 ## Activar el feed RPC
 
-Poné `GENTLE_SHELL_INTERACTIVE_HOST=1` en el proceso `pi --mode rpc` que el host lanza directamente. Cualquier otro valor (o su ausencia) mantiene RPC headless y el comportamiento de los hijos sin cambios (`isInteractiveRpcHost` en `lib/rpc-host.ts`).
+Poné `NUB_IA_INTERACTIVE_HOST=1` en el proceso `pi --mode rpc` que el host lanza directamente. Cualquier otro valor (o su ausencia) mantiene RPC headless y el comportamiento de los hijos sin cambios (`isInteractiveRpcHost` en `lib/rpc-host.ts`).
 
 ## Transporte
 

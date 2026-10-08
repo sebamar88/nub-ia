@@ -308,10 +308,10 @@ test("resolveHome falls back to <homedir>/.pi/agent for --link with no override"
 	assert.deepEqual(resolved, { mode: "link", dir: join("/home/alan", ".pi", "agent"), source: "flag" });
 });
 
-test("resolveHome honours --isolated and reads GENTLE_SHELL_HOME", () => {
+test("resolveHome honours --isolated and reads NUB_IA_HOME", () => {
 	const resolved = resolveHome({
 		args: args({ isolated: true }),
-		env: { GENTLE_SHELL_HOME: "/custom/isolated" },
+		env: { NUB_IA_HOME: "/custom/isolated" },
 		homedir: "/home/alan",
 		config: undefined,
 	});
@@ -501,9 +501,9 @@ test("recordProvisioned overwrites an existing marker for the same home and drop
 
 // --- resolvePiRuntime ------------------------------------------------------
 
-test("resolvePiRuntime prefers GENTLE_SHELL_PI over every other source", () => {
+test("resolvePiRuntime prefers NUB_IA_PI over every other source", () => {
 	const runtime = resolvePiRuntime({
-		env: { GENTLE_SHELL_PI: "/opt/pi/pi" },
+		env: { NUB_IA_PI: "/opt/pi/pi" },
 		resolveBundledCli: () => "/bundled/cli.js",
 		findOnPath: () => "/usr/bin/pi",
 		nodeExecPath: "/usr/bin/node",
@@ -541,9 +541,9 @@ test("resolvePiRuntime returns undefined when no source resolves", () => {
 	assert.equal(runtime, undefined);
 });
 
-test("resolvePiRuntime treats an empty GENTLE_SHELL_PI as unset", () => {
+test("resolvePiRuntime treats an empty NUB_IA_PI as unset", () => {
 	const runtime = resolvePiRuntime({
-		env: { GENTLE_SHELL_PI: "" },
+		env: { NUB_IA_PI: "" },
 		resolveBundledCli: () => "/bundled/cli.js",
 		findOnPath: () => undefined,
 		nodeExecPath: "/usr/bin/node",
@@ -553,7 +553,7 @@ test("resolvePiRuntime treats an empty GENTLE_SHELL_PI as unset", () => {
 
 test("missingPiMessage names the three resolution options", () => {
 	const message = missingPiMessage();
-	assert.match(message, /GENTLE_SHELL_PI/);
+	assert.match(message, /NUB_IA_PI/);
 	assert.match(message, /@earendil-works\/pi-coding-agent/);
 	assert.match(message, /PATH/);
 });
@@ -1057,7 +1057,7 @@ test("buildPiInvocation injects the launcher env into baseEnv", () => {
 		homedir: "/home/u",
 		cwd: "/work",
 	});
-	assert.deepEqual(built.env, { PATH: "/usr/bin", PI_CODING_AGENT_DIR: "/pi/agent", GENTLE_PI_AGENT_HOME: "/pi/agent", GENTLE_SHELL_USER_PI_HOME: join("/home/u", ".pi", "agent") });
+	assert.deepEqual(built.env, { PATH: "/usr/bin", PI_CODING_AGENT_DIR: "/pi/agent", NUB_IA_AGENT_HOME: "/pi/agent", NUB_IA_USER_PI_HOME: join("/home/u", ".pi", "agent") });
 });
 
 test("buildPiInvocation skips injection when there is a declaration and no takeover (npm matches the launcher's own install)", () => {
@@ -1133,8 +1133,8 @@ test("buildPiInvocation still injects the launcher env for a pi subcommand", () 
 	assert.deepEqual(built.env, {
 		PATH: "/usr/bin",
 		PI_CODING_AGENT_DIR: "/nub-ia/agent",
-		GENTLE_PI_AGENT_HOME: "/nub-ia/agent",
-		GENTLE_SHELL_USER_PI_HOME: join("/home/u", ".pi", "agent"),
+		NUB_IA_AGENT_HOME: "/nub-ia/agent",
+		NUB_IA_USER_PI_HOME: join("/home/u", ".pi", "agent"),
 	});
 });
 
@@ -1154,7 +1154,7 @@ test("buildPiInvocation in link mode with a pi subcommand is exactly pi <subcomm
 	});
 	assert.equal(built.command, "/usr/bin/pi");
 	assert.deepEqual(built.args, ["auth", "status"]);
-	assert.deepEqual(built.env, { PI_CODING_AGENT_DIR: "/pi/agent", GENTLE_PI_AGENT_HOME: "/pi/agent", GENTLE_SHELL_USER_PI_HOME: "/pi/agent" });
+	assert.deepEqual(built.env, { PI_CODING_AGENT_DIR: "/pi/agent", NUB_IA_AGENT_HOME: "/pi/agent", NUB_IA_USER_PI_HOME: "/pi/agent" });
 });
 
 // The isolated home overrides PI_CODING_AGENT_DIR for the session, so the
@@ -1175,24 +1175,24 @@ test("buildPiInvocation carries the user's original Pi home without weakening is
 	}).env;
 	const conventional = build({});
 	assert.equal(conventional.PI_CODING_AGENT_DIR, "/nub-ia/agent");
-	assert.equal(conventional.GENTLE_PI_AGENT_HOME, "/nub-ia/agent");
-	assert.equal(conventional.GENTLE_SHELL_USER_PI_HOME, join("/home/u", ".pi", "agent"));
+	assert.equal(conventional.NUB_IA_AGENT_HOME, "/nub-ia/agent");
+	assert.equal(conventional.NUB_IA_USER_PI_HOME, join("/home/u", ".pi", "agent"));
 	// A custom Pi home is preserved; an empty value falls through like Pi itself.
 	const custom = build({ PI_CODING_AGENT_DIR: "/custom/pi" });
 	assert.equal(custom.PI_CODING_AGENT_DIR, "/nub-ia/agent");
-	assert.equal(custom.GENTLE_SHELL_USER_PI_HOME, "/custom/pi");
-	assert.equal(build({ PI_CODING_AGENT_DIR: "" }).GENTLE_SHELL_USER_PI_HOME, join("/home/u", ".pi", "agent"));
+	assert.equal(custom.NUB_IA_USER_PI_HOME, "/custom/pi");
+	assert.equal(build({ PI_CODING_AGENT_DIR: "" }).NUB_IA_USER_PI_HOME, join("/home/u", ".pi", "agent"));
 	// A nested launch inherits the outer isolated PI_CODING_AGENT_DIR; the
 	// original home the outer launcher recorded must win over it.
-	const nested = build({ PI_CODING_AGENT_DIR: "/nub-ia/agent", GENTLE_SHELL_USER_PI_HOME: "/custom/pi" });
+	const nested = build({ PI_CODING_AGENT_DIR: "/nub-ia/agent", NUB_IA_USER_PI_HOME: "/custom/pi" });
 	assert.equal(nested.PI_CODING_AGENT_DIR, "/nub-ia/agent");
-	assert.equal(nested.GENTLE_SHELL_USER_PI_HOME, "/custom/pi");
+	assert.equal(nested.NUB_IA_USER_PI_HOME, "/custom/pi");
 	// --link: the active and original homes are the same directory.
 	const linked = build({ PI_CODING_AGENT_DIR: "/pi/agent" }, linkHome);
 	assert.equal(linked.PI_CODING_AGENT_DIR, "/pi/agent");
-	assert.equal(linked.GENTLE_SHELL_USER_PI_HOME, "/pi/agent");
-	assert.equal(USER_PI_HOME_ENV, "GENTLE_SHELL_USER_PI_HOME");
-	assert.equal(userPiHome({ GENTLE_SHELL_USER_PI_HOME: "/kept" }, "/home/u"), "/kept");
+	assert.equal(linked.NUB_IA_USER_PI_HOME, "/pi/agent");
+	assert.equal(USER_PI_HOME_ENV, "NUB_IA_USER_PI_HOME");
+	assert.equal(userPiHome({ NUB_IA_USER_PI_HOME: "/kept" }, "/home/u"), "/kept");
 });
 
 test("buildPiInvocation keeps the runtime's own args ahead of the injection and passthrough", () => {
@@ -1824,8 +1824,8 @@ test("helpText documents the launcher flags, the home subcommand, the env vars, 
 	assert.match(text, /--home/);
 	assert.match(text, /--package-root/);
 	assert.match(text, /\bhome\b/);
-	assert.match(text, /GENTLE_SHELL_PI/);
-	assert.match(text, /GENTLE_SHELL_HOME/);
+	assert.match(text, /NUB_IA_PI/);
+	assert.match(text, /NUB_IA_HOME/);
 	assert.match(text, /PI_CODING_AGENT_DIR/);
 	assert.match(text, /forward/i);
 });

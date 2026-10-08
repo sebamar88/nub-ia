@@ -5,6 +5,19 @@ import { join } from "node:path";
 import test from "node:test";
 import { applySavedModelConfig, readModelConfig, readModelConfigAsync } from "../extensions/nubia-harness.ts";
 
+/** Point os.homedir() at an empty temp dir so the real ~/.pi/gentle-ai never leaks into the legacy read fallback. */
+function isolateHome(t: test.TestContext): void {
+	const dir = mkdtempSync(join(tmpdir(), "nub-ia-home-"));
+	const previous = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+	process.env.HOME = dir;
+	process.env.USERPROFILE = dir;
+	t.after(() => {
+		if (previous.HOME === undefined) delete process.env.HOME; else process.env.HOME = previous.HOME;
+		if (previous.USERPROFILE === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = previous.USERPROFILE;
+		rmSync(dir, { recursive: true, force: true });
+	});
+}
+
 test("model routing authority normalizes and preserves sync/async source status", async (t) => {
 	const loaded = await import("../lib/model-routing-authority.ts").then(
 		(module) => ({ module, error: undefined }),
@@ -122,11 +135,12 @@ test("model routing authority normalizes and preserves sync/async source status"
 		assert.deepEqual(await authority.readSavedModelConfigAsync(globalSource, projectSource), expected);
 	}
 
-	const previousConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = globalDir;
+	isolateHome(t);
+	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
+	process.env.NUB_IA_CONFIG_HOME = globalDir;
 	t.after(() => {
-		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousConfigHome;
+		if (previousConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousConfigHome;
 	});
 	writeFileSync(projectPath, JSON.stringify({ project: "google/gemini" }));
 	assert.deepEqual(readModelConfig(projectDir), { project: { model: "google/gemini" } });
@@ -164,15 +178,16 @@ test("saved-routing apply fails closed for invalid project and global sources", 
 	mkdirSync(agentHomeSubagentsDir, { recursive: true });
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 
-	const previousConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
+	isolateHome(t);
+	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
+	process.env.NUB_IA_AGENT_HOME = agentHome;
 	t.after(() => {
-		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousConfigHome;
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousConfigHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 	});
 
 	const agentPath = join(projectAgentsDir, "worker.md");
@@ -229,15 +244,16 @@ test("saved-routing apply preserves missing, valid, null, inherit, and omission 
 	mkdirSync(agentHomeSubagentsDir, { recursive: true });
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 
-	const previousConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
-	process.env.GENTLE_PI_AGENT_HOME = agentHome;
+	isolateHome(t);
+	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
+	process.env.NUB_IA_AGENT_HOME = agentHome;
 	t.after(() => {
-		if (previousConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousConfigHome;
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousConfigHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 	});
 
 	const agentPath = join(projectAgentsDir, "worker.md");

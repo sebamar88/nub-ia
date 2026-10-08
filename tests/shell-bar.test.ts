@@ -264,14 +264,14 @@ test("renderShellBar drops the session name, then trailing segments, before trun
 });
 
 test("shellEnabled stays off inside a Gentle Agents child", () => {
-	assert.equal(shellEnabled({ GENTLE_PI_AGENTS_CHILD: "1" }), false);
+	assert.equal(shellEnabled({ NUB_IA_AGENTS_CHILD: "1" }), false);
 });
 
-test("shellEnabled honors GENTLE_PI_SHELL=0", () => {
+test("shellEnabled honors NUB_IA_SHELL=0", () => {
 	assert.equal(shellEnabled({}), true);
-	assert.equal(shellEnabled({ GENTLE_PI_SHELL: "1" }), true);
-	assert.equal(shellEnabled({ GENTLE_PI_SHELL: "0" }), false);
-	assert.equal(shellEnabled({ GENTLE_PI_SHELL: "false" }), false);
+	assert.equal(shellEnabled({ NUB_IA_SHELL: "1" }), true);
+	assert.equal(shellEnabled({ NUB_IA_SHELL: "0" }), false);
+	assert.equal(shellEnabled({ NUB_IA_SHELL: "false" }), false);
 });
 
 test("renderShellSidebarBar paints the Status card frame with border and the title with accent", () => {

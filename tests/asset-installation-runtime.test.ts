@@ -68,7 +68,7 @@ export default function (pi) {
 	}
 }
 
-if (process.env.GENTLE_PI_ASSET_PROOF_CHILD === "1") {
+if (process.env.NUB_IA_ASSET_PROOF_CHILD === "1") {
 	await proveLazyDiscovery();
 } else {
 	test("actual SDK discovers delegation and review assets without SDD activation", () => {
@@ -82,9 +82,9 @@ if (process.env.GENTLE_PI_ASSET_PROOF_CHILD === "1") {
 				cwd, encoding: "utf8", timeout: 30_000,
 				env: {
 					PATH: `${dirname(process.execPath)}:/usr/bin:/bin`, HOME: home, TMPDIR: root,
-					PI_CODING_AGENT_DIR: agentDir, GENTLE_PI_AGENT_HOME: agentDir,
-					GENTLE_PI_CONFIG_HOME: join(home, "config"), XDG_CONFIG_HOME: join(home, ".config"),
-					PI_OFFLINE: "1", GENTLE_PI_ASSET_PROOF_CHILD: "1",
+					PI_CODING_AGENT_DIR: agentDir, NUB_IA_AGENT_HOME: agentDir,
+					NUB_IA_CONFIG_HOME: join(home, "config"), XDG_CONFIG_HOME: join(home, ".config"),
+					PI_OFFLINE: "1", NUB_IA_ASSET_PROOF_CHILD: "1",
 				},
 			});
 			assert.ifError(result.error);

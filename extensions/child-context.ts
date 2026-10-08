@@ -9,7 +9,7 @@ import { filterChildSessionContextFiles, type ContextFileOptions } from "../lib/
 export function createChildContextExtension(env: NodeJS.ProcessEnv = process.env): (pi: ExtensionAPI) => void {
 	return (pi) => {
 		pi.on("before_agent_start", (event) => {
-			if (env.GENTLE_PI_AGENTS_CHILD !== "1") return undefined;
+			if (env.NUB_IA_AGENTS_CHILD !== "1") return undefined;
 			// The filtered copies replace contextFiles on the same options object
 			// (pi-claude-bridge rebuilds its prompt from it). This never throws,
 			// keeps the original files on any error or malformed markers, and is

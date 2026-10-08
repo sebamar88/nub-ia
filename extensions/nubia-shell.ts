@@ -1150,7 +1150,7 @@ function describeDoubleEscCancelSource(resolution: DoubleEscCancelResolution): s
 		case "global_file":
 			return `global file ${resolution.globalFile}`;
 		case "environment":
-			return "GENTLE_PI_DOUBLE_ESC_CANCEL";
+			return "NUB_IA_DOUBLE_ESC_CANCEL";
 		default:
 			return "built-in default";
 	}
@@ -1174,11 +1174,11 @@ function renderDoubleEscCancelReport(
 	if (resolution.envValue !== undefined && resolution.source !== "environment") {
 		lines.push(
 			resolution.envValue === "on" || resolution.envValue === "off"
-				? `GENTLE_PI_DOUBLE_ESC_CANCEL=${resolution.envValue} is set, but the global file exists and decides; the env var applies only when no file exists.`
-				: `GENTLE_PI_DOUBLE_ESC_CANCEL="${resolution.envValue}" is not a recognized value ("on" or "off"), so it is ignored.`,
+				? `NUB_IA_DOUBLE_ESC_CANCEL=${resolution.envValue} is set, but the global file exists and decides; the env var applies only when no file exists.`
+				: `NUB_IA_DOUBLE_ESC_CANCEL="${resolution.envValue}" is not a recognized value ("on" or "off"), so it is ignored.`,
 		);
 	}
-	lines.push("Resolution order (first hit wins): global file, GENTLE_PI_DOUBLE_ESC_CANCEL, built-in default off.");
+	lines.push("Resolution order (first hit wins): global file, NUB_IA_DOUBLE_ESC_CANCEL, built-in default off.");
 	return { message: lines.join("\n"), type: resolution.malformed ? "warning" : "info" };
 }
 
@@ -1239,13 +1239,13 @@ export function openInExternalEditor(host: ExternalEditorHost, path: string, env
 }
 
 export function changesShortcut(env: NodeJS.ProcessEnv = process.env): string | undefined {
-	const value = readEnv(env, "NUB_IA_SHELL_CHANGES_KEY", "GENTLE_PI_SHELL_CHANGES_KEY")?.trim();
+	const value = readEnv(env, "NUB_IA_SHELL_CHANGES_KEY")?.trim();
 	if (value === undefined) return CHANGES_SHORTCUT_DEFAULT;
 	return value === "" || value.toLowerCase() === "off" ? undefined : value;
 }
 
 export function usageShortcut(env: NodeJS.ProcessEnv = process.env): string | undefined {
-	const value = readEnv(env, "NUB_IA_SHELL_USAGE_KEY", "GENTLE_PI_SHELL_USAGE_KEY")?.trim();
+	const value = readEnv(env, "NUB_IA_SHELL_USAGE_KEY")?.trim();
 	if (value === undefined) return USAGE_SHORTCUT_DEFAULT;
 	return value === "" || value.toLowerCase() === "off" ? undefined : value;
 }
@@ -1256,14 +1256,14 @@ function positiveMs(value: string | undefined, fallback: number): number {
 }
 
 function changesPollMs(env: NodeJS.ProcessEnv): number {
-	return positiveMs(readEnv(env, "NUB_IA_SHELL_CHANGES_POLL_MS", "GENTLE_PI_SHELL_CHANGES_POLL_MS"), CHANGES_POLL_DEFAULT_MS);
+	return positiveMs(readEnv(env, "NUB_IA_SHELL_CHANGES_POLL_MS"), CHANGES_POLL_DEFAULT_MS);
 }
 
 // One bounded window per provider refresh: a credential lookup or fetch that
 // never answers must not hold the other providers — or the panel opening on
 // them — past it. Tunable (tests, slow networks); invalid values fall back.
 const USAGE_FETCH_TIMEOUT_DEFAULT_MS = 10_000;
-const usageFetchTimeoutMs = (env: NodeJS.ProcessEnv): number => positiveMs(readEnv(env, "NUB_IA_SHELL_USAGE_TIMEOUT_MS", "GENTLE_PI_SHELL_USAGE_TIMEOUT_MS"), USAGE_FETCH_TIMEOUT_DEFAULT_MS);
+const usageFetchTimeoutMs = (env: NodeJS.ProcessEnv): number => positiveMs(readEnv(env, "NUB_IA_SHELL_USAGE_TIMEOUT_MS"), USAGE_FETCH_TIMEOUT_DEFAULT_MS);
 
 function changesFingerprint(model: ChangesModel): string {
 	return [model.notice ?? "", ...model.files.map((file) => `${file.path}:${file.status}:${file.added}:${file.deleted}:${file.diffRevision ?? ""}:${file.countsUnavailable ?? ""}`)].join("|");
@@ -1377,7 +1377,7 @@ export async function fetchCodexUsage(token: string | undefined, fetchFn: typeof
 	if (!accountId) return undefined;
 	try {
 		const response = await fetchFn(CODEX_USAGE_URL, {
-			headers: { Authorization: `Bearer ${token}`, "chatgpt-account-id": accountId, originator: "pi", "User-Agent": "gentle-pi" },
+			headers: { Authorization: `Bearer ${token}`, "chatgpt-account-id": accountId, originator: "pi", "User-Agent": "nub-ia" },
 		});
 		if (!response.ok) return undefined;
 		return parseCodexUsage(await response.json(), now);
@@ -1396,7 +1396,7 @@ export async function fetchNanUsage(apiKey: string | undefined, fetchFn: typeof 
 		const response = await fetchFn(NAN_QUOTA_URL, {
 			redirect: "error",
 			cache: "no-store",
-			headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json", "User-Agent": "gentle-pi" },
+			headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json", "User-Agent": "nub-ia" },
 		});
 		if (!response.ok) return undefined;
 		const parsed = parseNanQuota(await response.json(), now);
@@ -2052,7 +2052,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			});
 			category = "History";
 			// The prompt-history extension re-reads this preference per prompt, so a
-			// change applies without restart. An explicit GENTLE_PI_HISTORY_CAPTURE
+			// change applies without restart. An explicit NUB_IA_HISTORY_CAPTURE
 			// value wins; the rows say so instead of silently ignoring the choice.
 			const historyCapture = () => resolveHistoryCapture({ env, gentlePiConfigHome: doubleEscCancelConfigHome });
 			for (const [label, policy] of [["enable", "on"], ["disable", "off"]] as const) rows.push({
@@ -2064,14 +2064,14 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				preview: () => {
 					const result = historyCapture();
 					const effective = result.enabled ? "on" : "off";
-					return { title: "Prompt history capture · Customize preference", sample: `preference: ${result.preference} · effective: ${effective}${result.malformed ? " · malformed or unreadable file" : ""}${result.envOverride ? " · GENTLE_PI_HISTORY_CAPTURE overrides this preference" : ""}` };
+					return { title: "Prompt history capture · Customize preference", sample: `preference: ${result.preference} · effective: ${effective}${result.malformed ? " · malformed or unreadable file" : ""}${result.envOverride ? " · NUB_IA_HISTORY_CAPTURE overrides this preference" : ""}` };
 				},
 				action: () => {
 					const current = historyCapture();
 					if (current.malformed) throw new Error(`Cannot update malformed or unreadable history capture preference: ${current.globalFile}`);
 					writeHistoryCapturePolicy(policy, { gentlePiConfigHome: doubleEscCancelConfigHome });
 					const result = historyCapture();
-					if (result.envOverride) ctx.ui.notify(`Prompt history capture preference saved: ${result.preference}. GENTLE_PI_HISTORY_CAPTURE=${result.envOverride} overrides it; capture stays ${result.envOverride}.`, "warning");
+					if (result.envOverride) ctx.ui.notify(`Prompt history capture preference saved: ${result.preference}. NUB_IA_HISTORY_CAPTURE=${result.envOverride} overrides it; capture stays ${result.envOverride}.`, "warning");
 					else ctx.ui.notify(result.enabled ? "Prompt history capture: on. Applies from the next prompt; stored history is kept." : "Prompt history capture: off. New prompts are not recorded; stored history is kept.", "info");
 				},
 			});

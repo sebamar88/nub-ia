@@ -69,7 +69,7 @@ metadata:
 ```
 
 6. Write sections in this order: Activation Contract, Hard Rules, Decision Gates, Execution Steps, Output Contract, References.
-7. If this is a packaged `gentle-pi` skill, add it to `scripts/verify-package-files.mjs`.
+7. If this is a packaged Nub-IA skill, add it to `scripts/verify-package-files.mjs`.
 8. Refresh or document the skill registry update path.
 
 ## Output Contract

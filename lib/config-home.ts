@@ -18,14 +18,14 @@ export function readEnv(env: NodeJS.ProcessEnv, ...names: string[]): string | un
 	return undefined;
 }
 
-/** Canonical config home: NUB_IA_CONFIG_HOME, then legacy GENTLE_PI_CONFIG_HOME, then ~/.pi/nub-ia. */
+/** Canonical config home: NUB_IA_CONFIG_HOME, else ~/.pi/nub-ia. */
 export function nubIaConfigHome(env: NodeJS.ProcessEnv = process.env): string {
-	return env.NUB_IA_CONFIG_HOME || env.GENTLE_PI_CONFIG_HOME || join(homedir(), ".pi", NUB_IA_DIR);
+	return env.NUB_IA_CONFIG_HOME || join(homedir(), ".pi", NUB_IA_DIR);
 }
 
-/** Legacy read-fallback home: GENTLE_PI_CONFIG_HOME, else ~/.pi/gentle-ai. */
-export function legacyConfigHome(env: NodeJS.ProcessEnv = process.env): string {
-	return env.GENTLE_PI_CONFIG_HOME || join(homedir(), ".pi", LEGACY_DIR);
+/** Legacy read-fallback home: ~/.pi/gentle-ai (the pre-rebrand config home). */
+export function legacyConfigHome(): string {
+	return join(homedir(), ".pi", LEGACY_DIR);
 }
 
 type HintNotifier = (message: string) => void;
@@ -60,7 +60,7 @@ export function configReadPath(home: string, file: string, env: NodeJS.ProcessEn
 	const primary = join(home, file);
 	if (existsSync(primary)) return primary;
 	if (home !== nubIaConfigHome(env)) return primary;
-	const legacyHome = legacyConfigHome(env);
+	const legacyHome = legacyConfigHome();
 	if (legacyHome === home) return primary;
 	const legacy = join(legacyHome, file);
 	if (!existsSync(legacy)) return primary;

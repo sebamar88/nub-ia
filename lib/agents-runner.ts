@@ -216,8 +216,8 @@ const FILE_MODE = 0o600;
 // UTF-8 bytes, not characters: argv size is what kills the child on macOS.
 export const MAX_INLINE_INSTRUCTIONS_BYTES = 1000;
 const MAX_TRANSPORT_PREFIX_CHARS = 64;
-const CHILD_MARKER = "GENTLE_PI_AGENTS_CHILD";
-const IPC_MARKER = "GENTLE_PI_AGENTS_OWNED_IPC";
+const CHILD_MARKER = "NUB_IA_AGENTS_CHILD";
+const IPC_MARKER = "NUB_IA_AGENTS_OWNED_IPC";
 const PARENT_NOTIFICATION_TOOL = "subagent_parent_message";
 const DEFAULT_TOOLS: readonly string[] = [];
 const TERMINATION_GRACE_MS = 250;
@@ -275,9 +275,9 @@ export function childArguments(request: TaskRequest, instructionsPath?: string):
 }
 
 // Reuse the running pi entry while it exists; upgrades may remove it.
-// GENTLE_PI_AGENTS_PI overrides it with a command line.
+// NUB_IA_AGENTS_PI overrides it with a command line.
 export function piCommand(proc: ProcessLike = process, exists: (path: string) => boolean = existsSync): PiCommand {
-	const override = proc.env.GENTLE_PI_AGENTS_PI?.trim();
+	const override = proc.env.NUB_IA_AGENTS_PI?.trim();
 	if (override) {
 		const [command, ...args] = override.split(/\s+/);
 		return { command, args };
@@ -483,8 +483,8 @@ export class AgentRunner {
 			[IPC_MARKER]: `${this.deps.now()}-${Math.random().toString(36).slice(2)}`,
 		});
 		// Do not forward stale legacy child selection or authorization.
-		delete env.GENTLE_PI_SDD_REMEDIATION_PLAN;
-		delete env.GENTLE_PI_RESEARCH_SELECTION;
+		delete env.NUB_IA_SDD_REMEDIATION_PLAN;
+		delete env.NUB_IA_RESEARCH_SELECTION;
 		let instructionsTransportDir: string | undefined;
 		let instructionsTransportPath: string | undefined;
 		if (Buffer.byteLength(request.agent.instructions, "utf8") > MAX_INLINE_INSTRUCTIONS_BYTES) {

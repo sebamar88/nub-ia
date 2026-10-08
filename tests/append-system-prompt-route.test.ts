@@ -30,8 +30,8 @@ before(async () => {
 	for (const directory of [fixtureCwd, home]) await mkdir(directory);
 	Object.assign(fixtureEnvironment, {
 		HOME: home, USERPROFILE: home,
-		GENTLE_PI_CONFIG_HOME: join(home, "config"),
-		GENTLE_PI_AGENT_HOME: join(home, "agents"),
+		NUB_IA_CONFIG_HOME: join(home, "config"),
+		NUB_IA_AGENT_HOME: join(home, "agents"),
 		PI_CODING_AGENT_DIR: join(home, "pi"),
 		XDG_CONFIG_HOME: join(home, "xdg"),
 	});
@@ -59,7 +59,7 @@ function gentleAiHandlers(processEnv: NodeJS.ProcessEnv = {}): Map<string, Handl
 		registerTool() {},
 	} as unknown as ExtensionAPI;
 	createGentleAiExtension({
-		processEnv: { ...fixtureEnvironment, GENTLE_PI_AGENTS_CHILD: "0", ...processEnv, GENTLE_AI_TELEMETRY: "0" },
+		processEnv: { ...fixtureEnvironment, NUB_IA_AGENTS_CHILD: "0", ...processEnv, GENTLE_AI_TELEMETRY: "0" },
 	})(pi);
 	return handlers;
 }
@@ -143,7 +143,7 @@ test("re-running both handlers on the same already-populated options object does
 
 for (const scenario of ["child", "named-agent"] as const) {
 	test(`${scenario} start leaves shared prompt options unchanged and returns no replacement`, async () => {
-		const handlers = gentleAiHandlers(scenario === "child" ? { GENTLE_PI_AGENTS_CHILD: "1" } : {});
+		const handlers = gentleAiHandlers(scenario === "child" ? { NUB_IA_AGENTS_CHILD: "1" } : {});
 		const event = {
 			systemPrompt: "base",
 			systemPromptOptions: { appendSystemPrompt: "Existing provider section" },

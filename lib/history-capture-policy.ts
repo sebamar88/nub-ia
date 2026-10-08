@@ -4,14 +4,14 @@ import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
 import { configReadPath, readEnv } from "./config-home.ts";
 
-// Prompt history capture is default-off. An explicit GENTLE_PI_HISTORY_CAPTURE
+// Prompt history capture is default-off. An explicit NUB_IA_HISTORY_CAPTURE
 // value wins, then the Gentle → Customize preference, then off. Any missing,
 // malformed or unreadable preference fails closed. Turning capture off only
 // stops new captures; stored history is never deleted here.
 export const HISTORY_CAPTURE_POLICY = { ON: "on", OFF: "off" } as const;
 export type HistoryCapturePolicy = (typeof HISTORY_CAPTURE_POLICY)[keyof typeof HISTORY_CAPTURE_POLICY];
 export const HISTORY_CAPTURE_SCHEMA = "gentle-pi.history-capture/v1";
-export const HISTORY_CAPTURE_ENV = "GENTLE_PI_HISTORY_CAPTURE";
+export const HISTORY_CAPTURE_ENV = "NUB_IA_HISTORY_CAPTURE";
 interface HistoryCaptureOptions { gentlePiConfigHome?: string }
 export interface HistoryCapturePolicyResolution {
 	policy: HistoryCapturePolicy;
@@ -31,7 +31,7 @@ export interface HistoryCaptureResolution {
 
 /** Only explicit on/off values override; anything else defers to the preference. */
 export function historyCaptureEnvOverride(env: NodeJS.ProcessEnv = process.env): HistoryCapturePolicy | undefined {
-	const value = readEnv(env, "NUB_IA_HISTORY_CAPTURE", HISTORY_CAPTURE_ENV)?.trim().toLowerCase();
+	const value = readEnv(env, HISTORY_CAPTURE_ENV)?.trim().toLowerCase();
 	if (value === "1" || value === "true" || value === "on") return "on";
 	if (value === "0" || value === "false" || value === "off") return "off";
 	return undefined;

@@ -15,7 +15,7 @@ async function fixture(run: (f: any) => Promise<void>, child = false) {
 		events: { on: (key, fn) => { listeners.set(key, fn); return () => listeners.delete(key); }, emit: (key, data) => listeners.get(key)?.(data) } };
 	let id = "session";
 	const ctx = { cwd:root, sessionManager: { getSessionId: () => id, getEntries: () => entries } };
-	installSessionChangeCapture(pi as never, child ? {GENTLE_PI_AGENTS_CHILD:"1"} : {}, () => ({root,commonDir:root}));
+	installSessionChangeCapture(pi as never, child ? {NUB_IA_AGENTS_CHILD:"1"} : {}, () => ({root,commonDir:root}));
 	const fire = (key, event = {}) => handlers.get(key)?.(event, ctx);
 	try { await fire("session_start"); await run({root, entries, ctx, fire, pi, switchSession: () => id = "other"}); }
 	finally { await rm(root, {recursive:true,force:true}); }

@@ -105,9 +105,9 @@ test("resolvePinnedAgentProfile returns the launch profile with its model and th
 
 test("resolveAgentHomeDirectory follows the environment, expands tildes, and keeps explicit overrides literal", () => {
 	const home = "/home/tester";
-	assert.equal(resolveAgentHomeDirectory({ env: { GENTLE_PI_AGENT_HOME: "/opt/agents" }, home }), resolve("/opt/agents"));
+	assert.equal(resolveAgentHomeDirectory({ env: { NUB_IA_AGENT_HOME: "/opt/agents" }, home }), resolve("/opt/agents"));
 	assert.equal(resolveAgentHomeDirectory({ env: { PI_CODING_AGENT_DIR: "~/pi-agent" }, home }), resolve(join(home, "pi-agent")));
-	assert.equal(resolveAgentHomeDirectory({ env: { GENTLE_PI_AGENT_HOME: "~" }, home }), resolve(home));
-	assert.equal(resolveAgentHomeDirectory({ env: { GENTLE_PI_AGENT_HOME: "/ignored" }, home, homeOverridden: true }), resolve(join(home, ".pi", "agent")));
+	assert.equal(resolveAgentHomeDirectory({ env: { NUB_IA_AGENT_HOME: "~" }, home }), resolve(home));
+	assert.equal(resolveAgentHomeDirectory({ env: { NUB_IA_AGENT_HOME: "/ignored" }, home, homeOverridden: true }), resolve(join(home, ".pi", "agent")));
 	assert.equal(resolveAgentHomeDirectory({ env: {}, home, agentHome: "/explicit" }), resolve("/explicit"));
 });

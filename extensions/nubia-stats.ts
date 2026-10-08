@@ -27,7 +27,7 @@ export const STATS_COMMAND_NAME = "nubia:stats";
 
 /** Optional shortcut; there is no default key because the common alt+ keys are taken. */
 export function statsViewKey(env: NodeJS.ProcessEnv = process.env): string | undefined {
-	const value = readEnv(env, "NUB_IA_STATS_VIEW_KEY", "GENTLE_PI_STATS_VIEW_KEY")?.trim();
+	const value = readEnv(env, "NUB_IA_STATS_VIEW_KEY")?.trim();
 	return !value || value.toLowerCase() === "off" ? undefined : value;
 }
 

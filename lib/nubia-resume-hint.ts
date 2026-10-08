@@ -12,7 +12,7 @@
 import { basename, dirname, isAbsolute, join, resolve as resolvePath } from "node:path";
 import { shellQuote } from "./nubia-launcher.ts";
 
-export const RESUME_HANDOFF_ENV = "GENTLE_SHELL_RESUME_HANDOFF";
+export const RESUME_HANDOFF_ENV = "NUB_IA_RESUME_HANDOFF";
 
 const HINT_LABEL = "To resume in nub-ia:";
 

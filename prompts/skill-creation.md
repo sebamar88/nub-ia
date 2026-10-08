@@ -12,7 +12,7 @@ Use the `nubia-skill-creator` skill if it is available. If the skill is not auto
 2. Inspect existing skills first; update an existing skill instead of creating a duplicate.
 3. Create or update `skills/{kebab-name}/SKILL.md` with valid one-line frontmatter description and concise runtime instructions.
 4. Put templates, schemas, or examples under `assets/`; put longer supporting docs under `references/`.
-5. If the skill is part of `gentle-pi`, update `scripts/verify-package-files.mjs`.
+5. If the skill is part of Nub-IA, update `scripts/verify-package-files.mjs`.
 6. Refresh the registry with `/skill-registry:refresh` when available, or tell the user to refresh/reload.
 
 ## Report

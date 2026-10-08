@@ -133,7 +133,7 @@ const options = [
 	{ label: "Preserve requested hash", description: "Keep the hash from the original request.", value: "preserve_requested_hash" },
 ];
 
-const INTERACTIVE_HOST_ENV = "GENTLE_SHELL_INTERACTIVE_HOST";
+const INTERACTIVE_HOST_ENV = "NUB_IA_INTERACTIVE_HOST";
 
 function withInteractiveHostEnv(t: { after(fn: () => void): void }): void {
 	const previous = process.env[INTERACTIVE_HOST_ENV];

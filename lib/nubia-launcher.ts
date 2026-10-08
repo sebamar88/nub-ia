@@ -199,14 +199,14 @@ function linkDir(env: Record<string, string | undefined>, homedir: string): stri
 // user's own Pi home travels in this variable for read-only features such as
 // /nubia:stats. An inherited value wins: a nub-ia launched from inside
 // a Nub-IA session sees the outer isolated home as PI_CODING_AGENT_DIR.
-export const USER_PI_HOME_ENV = "GENTLE_SHELL_USER_PI_HOME";
+export const USER_PI_HOME_ENV = "NUB_IA_USER_PI_HOME";
 
 export function userPiHome(env: Record<string, string | undefined>, homedir: string): string {
 	return env[USER_PI_HOME_ENV] || linkDir(env, homedir);
 }
 
 function isolatedDir(env: Record<string, string | undefined>, homedir: string): string {
-	return env.GENTLE_SHELL_HOME || join(homedir, ".nub-ia", "agent");
+	return env.NUB_IA_HOME || join(homedir, ".nub-ia", "agent");
 }
 
 export function resolveHome(input: ResolveHomeInput): ResolvedHome {
@@ -370,7 +370,7 @@ export interface PiRuntimeDeps {
 }
 
 export function resolvePiRuntime(deps: PiRuntimeDeps): PiRuntime | undefined {
-	const envOverride = deps.env.GENTLE_SHELL_PI;
+	const envOverride = deps.env.NUB_IA_PI;
 	if (envOverride !== undefined && envOverride.length > 0) return { kind: "env", command: envOverride, args: [] };
 
 	const bundledCliPath = deps.resolveBundledCli();
@@ -385,7 +385,7 @@ export function resolvePiRuntime(deps: PiRuntimeDeps): PiRuntime | undefined {
 export function missingPiMessage(): string {
 	return [
 		"No pi runtime could be found. Pick one of:",
-		"  - Set GENTLE_SHELL_PI to the path of a pi executable.",
+		"  - Set NUB_IA_PI to the path of a pi executable.",
 		"  - Install @earendil-works/pi-coding-agent next to nub-ia (it ships as an optional peer dependency).",
 		"  - Install pi and make sure it is on your PATH.",
 	].join("\n");
@@ -526,7 +526,7 @@ export function settingsDeclareGentlePi(settingsText: string | undefined): boole
 
 // Team companion packages: Pi packages every Nub-IA home gets, installed by `setup` (and the first-run auto-provision)
 // through pi's own `install`, so `nub-ia update` keeps them current. Edit this
-// table to change what the team ships with. GENTLE_SHELL_TEAM_PACKAGES
+// table to change what the team ships with. NUB_IA_TEAM_PACKAGES
 // overrides it (comma-separated sources; the empty string installs nothing),
 // which the tests use to keep the setup flow deterministic.
 export const TEAM_PACKAGE_SOURCES: readonly string[] = [
@@ -539,7 +539,7 @@ export const TEAM_PACKAGE_SOURCES: readonly string[] = [
 ];
 
 export function resolveTeamPackageSources(env: NodeJS.ProcessEnv): string[] {
-	const override = env.GENTLE_SHELL_TEAM_PACKAGES;
+	const override = env.NUB_IA_TEAM_PACKAGES;
 	if (override === undefined) return [...TEAM_PACKAGE_SOURCES];
 	return override.split(",").map((entry) => entry.trim()).filter((entry) => entry.length > 0);
 }
@@ -935,7 +935,7 @@ export function buildPiInvocation(input: BuildPiInvocationInput): PiInvocation {
 	const env: Record<string, string | undefined> = {
 		...input.baseEnv,
 		PI_CODING_AGENT_DIR: input.home.dir,
-		GENTLE_PI_AGENT_HOME: input.home.dir,
+		NUB_IA_AGENT_HOME: input.home.dir,
 		[USER_PI_HOME_ENV]: userPiHome(input.baseEnv, input.homedir),
 	};
 	if (childInjection === undefined) delete env[CHILD_PACKAGE_INJECTION_ENV];
@@ -956,7 +956,7 @@ function absoluteExtensionPath(path: string, cwd: string): string {
 
 // R3-001: `findOnPath` can resolve a PATHEXT candidate such as a .CMD or .BAT
 // shim on win32 (exactly how an npm-installed `pi` lands on PATH), and a
-// GENTLE_SHELL_PI override can point at one too. Current Node releases refuse
+// NUB_IA_PI override can point at one too. Current Node releases refuse
 // to spawn a batch file directly without `shell: true` (EINVAL), so both the
 // version probe and the real launch route a batch shim through cmd.exe as one
 // quoted command line instead of spawning it directly.
@@ -1165,9 +1165,9 @@ export function helpText(): string {
 		"  own package.",
 		"",
 		"Environment variables:",
-		"  GENTLE_SHELL_PI       Path to the pi executable to run.",
-		"  GENTLE_SHELL_HOME     Directory for the isolated home (default: ~/.nub-ia/agent).",
-		"  GENTLE_SHELL_TEAM_PACKAGES  Comma-separated Pi package sources setup installs (default: the",
+		"  NUB_IA_PI       Path to the pi executable to run.",
+		"  NUB_IA_HOME     Directory for the isolated home (default: ~/.nub-ia/agent).",
+		"  NUB_IA_TEAM_PACKAGES  Comma-separated Pi package sources setup installs (default: the",
 		"                        packaged team list; empty string installs none).",
 		"  PI_CODING_AGENT_DIR   Directory for the --link home, shared with pi itself.",
 		"",

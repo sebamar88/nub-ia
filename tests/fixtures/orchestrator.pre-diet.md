@@ -269,7 +269,7 @@ Common intent hints, not hard routing:
 | User intent                | Skill to check                         |
 | -------------------------- | -------------------------------------- |
 | PR review / GitHub PR URL  | project review skill, then `pr-review` |
-| Post-ready review comments | `comment-writer`                       |
+| Post-ready review comments | `nubia-comment-writer`                 |
 | Create/open/prepare PR     | `nubia-branch-pr`                  |
 | Split/stack/large PR       | `nubia-chained-pr`                 |
 

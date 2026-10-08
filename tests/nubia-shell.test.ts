@@ -38,16 +38,16 @@ const INSTALLED_PI = (createRequire(import.meta.url)("@earendil-works/pi-tui/pac
 initTheme("dark");
 
 const resolveWorktree = (path: string) => ({ root: path.startsWith("/repo") || path === "." ? "/repo" : path, commonDir: "/clone/git" });
-// Without GENTLE_PI_CONFIG_HOME the extension reads ~/.pi/gentle-ai, so a
+// Without NUB_IA_CONFIG_HOME the extension reads ~/.pi/gentle-ai, so a
 // developer's persisted preferences (for example /nubia:vim on) would leak into
 // tests. Each instance gets a fresh empty config home unless the test owns one.
 const isolatedConfigHomes: string[] = [];
 after(() => { for (const home of isolatedConfigHomes) rmSync(home, { recursive: true, force: true }); });
 function isolatedEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-	if (env.GENTLE_PI_CONFIG_HOME !== undefined) return env;
+	if (env.NUB_IA_CONFIG_HOME !== undefined) return env;
 	const home = mkdtempSync(join(tmpdir(), "gentle-shell-config-"));
 	isolatedConfigHomes.push(home);
-	return { ...env, GENTLE_PI_CONFIG_HOME: home };
+	return { ...env, NUB_IA_CONFIG_HOME: home };
 }
 const gentleShell: typeof installGentleShell = (pi, env, deps) => installGentleShell(pi, isolatedEnv(env), { resolveWorktree, gitRunner: (cwd) => async (args) => pi.exec("git", ["-C", cwd, ...args], { timeout: 5000 }), ...deps });
 
@@ -298,7 +298,7 @@ test("gentleShell installs the footer on session_start when a UI exists", () => 
 test("the fullscreen Status rail carries a live digest so a profile switch refreshes it", async () => {
 	const { pi, handlers } = fakePi();
 	let profile: string | undefined = "team";
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { activeProfile: () => profile });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { activeProfile: () => profile });
 	const { ctx, ui } = fakeContext();
 	await fire(handlers, "session_start", ctx);
 
@@ -333,7 +333,7 @@ test("the fullscreen Status rail carries a live digest so a profile switch refre
 
 test("the fullscreen header rail carries a live digest so model, context, and cost changes refresh it", async () => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" });
 	const entries: unknown[] = [];
 	const { ctx, ui } = fakeContext({ entries });
 	await fire(handlers, "session_start", ctx);
@@ -373,7 +373,7 @@ test("the fullscreen header rail carries a live digest so model, context, and co
 
 test("clicking the header's usage segment opens the usage panel; other header clicks are ignored", async () => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" });
 	const { ctx, ui } = fakeContext();
 	await fire(handlers, "session_start", ctx);
 
@@ -403,7 +403,7 @@ test("profile reader follows store changes and rejects missing or invalid active
 	const root = mkdtempSync(join(tmpdir(), "shell-profile-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	const path = join(root, "profiles.json");
-	const read = createActiveProfileReader({ GENTLE_PI_CONFIG_HOME: root });
+	const read = createActiveProfileReader({ NUB_IA_CONFIG_HOME: root });
 	const save = (active: string | undefined) => writeFileSync(path, JSON.stringify({
 		kind: "gentle-pi.agent_model_profiles", version: 1, active, profiles: { team: {}, other: {} },
 	}));
@@ -417,7 +417,7 @@ test("profile reader follows store changes and rejects missing or invalid active
 	writeFileSync(replacement, JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, active: "team", profiles: { team: {} } }));
 	renameSync(replacement, path);
 	assert.equal(read(), "team", "atomic replacement refreshes the cached profile");
-	const isolated = createActiveProfileReader({ GENTLE_PI_CONFIG_HOME: join(root, "other-home") });
+	const isolated = createActiveProfileReader({ NUB_IA_CONFIG_HOME: join(root, "other-home") });
 	assert.equal(isolated(), undefined);
 	assert.equal(read(), "team", "another shell's config home does not alter this cache");
 	save("missing");
@@ -443,7 +443,7 @@ test("bound profile reader follows pin precedence and keeps frames free of resol
 	mkdirSync(join(repo, ".pi", "gentle-ai"), { recursive: true });
 	writeFileSync(join(home, "profiles.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, active: "team", profiles: { team: {}, other: {} } }));
 	const pin = (path: string, profile: string) => writeFileSync(path, JSON.stringify({ kind: "gentle-pi.agent_model_profile_pin", version: 1, profile }));
-	const read = createActiveProfileReader({ GENTLE_PI_CONFIG_HOME: home });
+	const read = createActiveProfileReader({ NUB_IA_CONFIG_HOME: home });
 	let resolutions = 0;
 	const resolver = () => { resolutions++; return { root: repo, commonDir }; };
 	assert.equal(read(), "team");
@@ -487,7 +487,7 @@ test("profile polling refreshes both fullscreen surfaces only on change and stop
 	t.mock.method(globalThis, "clearInterval", (handle: { timer: (typeof intervals)[number] }) => { handle.timer.stopped = true; });
 	const { pi, handlers } = fakePi();
 	let resolutions = 0;
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, {
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, {
 		resolveWorktree: () => { resolutions++; return { root: repo, commonDir }; },
 	});
 	const first = fakeContext();
@@ -537,7 +537,7 @@ test("profile polling refreshes both fullscreen surfaces only on change and stop
 
 test("gentleShell stays out of the way without a UI or when disabled", () => {
 	const disabled = fakePi();
-	gentleShell(disabled.pi, { GENTLE_PI_SHELL: "0" });
+	gentleShell(disabled.pi, { NUB_IA_SHELL: "0" });
 	assert.equal(disabled.commands.size, 0);
 	assert.ok(disabled.handlers.has("tool_call"), "capture remains available to headless children");
 
@@ -570,7 +570,7 @@ interface MutablePromptThemeHost {
 test("T2 float prompt installed editor reads live toolSuccessBg and preserves Esc/queued hints", () => {
 	const previous = cardStyle();
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_DOUBLE_ESC_CANCEL: "on" });
+	gentleShell(pi, { NUB_IA_DOUBLE_ESC_CANCEL: "on" });
 	const { ctx, ui } = fakeContext({ pending: true });
 	const editor = installedPrompt(ctx, ui, handlers, { matches: (data: string, action: string) => action === "app.interrupt" && data === "\x1b" });
 	// The fake context owns this mutable slot; the production UI exposes it readonly.
@@ -1742,7 +1742,7 @@ test("visual customization and Vim register once and remain independently discov
 		registrations.push(name);
 		register(name, registration);
 	}) as typeof pi.registerCommand;
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	for (const name of ["nubia:customize", "nubia:vim"]) {
 		assert.equal(registrations.filter((registered) => registered === name).length, 1, `${name} must register once`);
 		assert.ok(commands.has(name));
@@ -1764,7 +1764,7 @@ test("actual Pi 1.0.0 enables a live prompt and enters NORMAL without a compatib
  assert.equal(INSTALLED_PI, "1.0.0", "the shell audit must run against actual installed Pi 1.0.0");
  const configHome = mkdtempSync(join(tmpdir(), "gentle-vim-shell-"));
  const { pi, handlers, commands } = fakePi();
- gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+ gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers);
  editor.setText("hello");
@@ -1783,7 +1783,7 @@ test("actual Pi 1.0.0 enables a live prompt and enters NORMAL without a compatib
 test("vim command distinguishes persisted preference from rejected live editor and recovers on next start", async () => {
  const configHome = mkdtempSync(join(tmpdir(), "gentle-vim-rejected-"));
  const { pi, handlers, commands } = fakePi();
- gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome }, { vimRuntimeVersion: () => "unsupported" });
+ gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome }, { vimRuntimeVersion: () => "unsupported" });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers);
  try {
@@ -1813,7 +1813,7 @@ test("vim command distinguishes persisted preference from rejected live editor a
 
 test("compatible vim command reports live activation and disable returns ordinary editing", async () => {
  const { pi, handlers, commands } = fakePi();
- gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-compatible-")) }, { vimRuntimeVersion: () => INSTALLED_PI });
+ gentleShell(pi, { NUB_IA_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-compatible-")) }, { vimRuntimeVersion: () => INSTALLED_PI });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers);
  try {
@@ -1931,7 +1931,7 @@ test("vim NORMAL gives extension and app shortcuts precedence over modal letters
 
 test("vim NORMAL blocks Kitty and emoji text, handles encoded motions and ignores releases", async () => {
  const { pi, handlers, commands } = fakePi();
- gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-keys-")) });
+ gentleShell(pi, { NUB_IA_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-keys-")) });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers, { matches: (data: string, binding: string) => binding === "app.interrupt" && data === "\x1b" });
  await commands.get("nubia:vim")!.handler("enable", ctx);
@@ -2086,7 +2086,7 @@ test("vim paste overflow and policy cancellation discard partial frames without 
 
 test("vim NORMAL rejects encoded insertions and paste without losing Unicode multiline draft", async () => {
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-safety-")) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-safety-")) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
 	await commands.get("nubia:vim")!.handler("enable", ctx);
@@ -2398,7 +2398,7 @@ test("vim NORMAL k at the first visual line does not recall history", () => {
 
 test("vim status preserves NORMAL and frame remains width-safe in every state", async () => {
  const { pi, handlers, commands } = fakePi();
- gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-frame-")) });
+ gentleShell(pi, { NUB_IA_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-frame-")) });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers);
  await commands.get("nubia:vim")!.handler("enable", ctx);
@@ -2418,7 +2418,7 @@ test("vim status preserves NORMAL and frame remains width-safe in every state", 
 
 test("vim NORMAL Escape retains working cancellation and idle draft clearing", async () => {
  const { pi, handlers, commands } = fakePi();
- gentleShell(pi, { GENTLE_PI_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-esc-")) });
+ gentleShell(pi, { NUB_IA_CONFIG_HOME: mkdtempSync(join(tmpdir(), "gentle-vim-esc-")) });
  const { ctx, ui } = fakeContext();
  const editor = installedPrompt(ctx, ui, handlers, { matches: (data: string, binding: string) => binding === "app.interrupt" && data === "\x1b" });
  await commands.get("nubia:vim")!.handler("enable", ctx);
@@ -2441,7 +2441,7 @@ test("vim NORMAL Escape retains working cancellation and idle draft clearing", a
 test("vim live disable restores ordinary input, re-enable starts INSERT, and invalid persisted preference fails closed", async () => {
 	const home = mkdtempSync(join(tmpdir(), "gentle-vim-toggle-"));
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
 	try {
@@ -2466,7 +2466,7 @@ test("vim selector exposes enable, disable and status; status and cancellation d
  const home = mkdtempSync(join(tmpdir(), "gentle-vim-menu-"));
  t.after(() => rmSync(home, { recursive: true, force: true }));
  const { pi, handlers, commands } = fakePi();
- gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+ gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
  let selected: string | undefined = "enable";
  const choices: string[][] = [];
  const { ctx, ui } = fakeContext({ select: async (_title, options) => { choices.push(options); return selected; } });
@@ -2504,7 +2504,7 @@ test("animations command reports without writing and switches the live pulse", a
 	});
 	t.mock.method(globalThis, "clearInterval", () => { active--; });
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
 	const command = commands.get("nubia:animations");
@@ -2541,7 +2541,7 @@ test("potato repaints start/settle and shows queued state on the host's next ren
 	});
 	const renders = t.mock.method(fakeTui, "requestRender", () => {});
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const pending = { value: false };
 	(ctx as unknown as { hasPendingMessages(): boolean }).hasPendingMessages = () => pending.value;
@@ -2574,7 +2574,7 @@ test("animations status attributes malformed files and reports a failed write", 
 	const path = join(configHome, "animations.json");
 	writeFileSync(path, "broken");
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	await commands.get("nubia:animations")!.handler("", ctx);
 	assert.match(ui.notices.at(-1)!, /animations: quality.*global file.*malformed/);
@@ -2589,7 +2589,7 @@ test("animations with no argument opens a selectable menu and applies the chosen
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const path = join(configHome, "animations.json");
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	// No editor/prompt is installed: the handler's `prompt?.setAnimationPolicy`
 	// optional chain must tolerate the interactive menu without one.
 	const chosen = fakeContext({
@@ -2606,7 +2606,7 @@ test("animations with no argument opens a selectable menu and applies the chosen
 	// A dismissed menu (undefined selection) reports nothing and writes nothing.
 	const dismissHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi: dismissPi, commands: dismissCommands } = fakePi();
-	gentleShell(dismissPi, { GENTLE_PI_CONFIG_HOME: dismissHome });
+	gentleShell(dismissPi, { NUB_IA_CONFIG_HOME: dismissHome });
 	const dismissed = fakeContext({ select: async () => undefined });
 	await dismissCommands.get("nubia:animations")!.handler("", dismissed.ctx);
 	assert.equal(dismissed.ui.notices.length, 0);
@@ -2626,7 +2626,7 @@ test("prompt uses the compact banner cadence and releases its unref timer at set
 	});
 	t.mock.method(globalThis, "clearInterval", () => { active--; });
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
 	assert.equal(active, 1);
@@ -2654,7 +2654,7 @@ const escapeKeybindings = { matches: (_data: string, keybinding: string) => keyb
 
 test("double-esc-cancel default off: a single Esc while working still aborts immediately, exactly as before", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	let aborted = 0;
@@ -2698,7 +2698,7 @@ async function customizeAction(ui: FakeUi, label: string): Promise<void> {
 test("customize Editor rows preview global preference without applying until Enter or Space", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
@@ -2719,7 +2719,7 @@ test("customize Editor rows preview global preference without applying until Ent
 test("customize History rows persist prompt history capture and keep stored history", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
@@ -2745,7 +2745,7 @@ test("customize Cards rows persist the card style and switch live conversation c
 	const found = cardStyle();
 	t.after(() => setCardStyle(found));
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	assert.equal(cardStyle(), CARD_STYLE.FLOAT, "no preference file means float");
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
@@ -2781,7 +2781,7 @@ test("T3 live style Cards action refreshes cached TODO, header, footer and promp
 	t.after(() => setCardStyle(previous));
 	writeCardStyle(CARD_STYLE.NEON, { gentlePiConfigHome: home });
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home }, { activeProfile: () => "team" });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home }, { activeProfile: () => "team" });
 	const { ctx, ui, overlayReady } = fakeContext();
 	await fire(handlers, "session_start", ctx);
 	const painted = { ...plainTheme, strikethrough: (text: string) => text, bg: (_role: string, text: string) => `\x1b[44m${text}\x1b[49m` };
@@ -2859,7 +2859,7 @@ test("T3 live style failed persistence leaves live style and sidebar revision un
 	t.after(() => setCardStyle(previous));
 	writeCardStyle(CARD_STYLE.NEON, { gentlePiConfigHome: home });
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home }, { activeProfile: () => "team" });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home }, { activeProfile: () => "team" });
 	const { ctx, ui, overlayReady } = fakeContext();
 	await fire(handlers, "session_start", ctx);
 	let renders = 0;
@@ -2889,7 +2889,7 @@ test("the saved card style applies at startup and on every session start", async
 	t.after(() => setCardStyle(found));
 	writeCardStyle("neon", { gentlePiConfigHome: home });
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	assert.equal(cardStyle(), CARD_STYLE.NEON);
 	writeCardStyle("float", { gentlePiConfigHome: home });
 	const { ctx } = fakeContext({ hasUI: false });
@@ -2903,7 +2903,7 @@ test("customize Cards rows refuse to overwrite a malformed preference", async (t
 	t.after(() => setCardStyle(found));
 	writeFileSync(join(home, "card-style.json"), "{");
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
@@ -2917,16 +2917,16 @@ test("customize Cards rows refuse to overwrite a malformed preference", async (t
 	ui.overlayView!.handleInput("\x1b"); await pending;
 });
 
-test("customize History rows show when GENTLE_PI_HISTORY_CAPTURE overrides the saved preference", async (t) => {
+test("customize History rows show when NUB_IA_HISTORY_CAPTURE overrides the saved preference", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	writeHistoryCapturePolicy("on", { gentlePiConfigHome: home });
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_HISTORY_CAPTURE: " Off " });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_HISTORY_CAPTURE: " Off " });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Prompt history capture: enable (current) · env override"));
-	assert.match(ui.overlayView!.render(90).join("\n"), /preference: on · effective: off · GENTLE_PI_HISTORY_CAPTURE overrides/i);
+	assert.match(ui.overlayView!.render(90).join("\n"), /preference: on · effective: off · NUB_IA_HISTORY_CAPTURE overrides/i);
 	await customizeAction(ui, "Prompt history capture: disable");
 	await new Promise<void>(resolve => setImmediate(resolve));
 	// The choice is still saved for when the env stops forcing a value.
@@ -2934,7 +2934,7 @@ test("customize History rows show when GENTLE_PI_HISTORY_CAPTURE overrides the s
 	await customizeAction(ui, "Prompt history capture: enable");
 	await new Promise<void>(resolve => setImmediate(resolve));
 	assert.equal(resolveHistoryCapturePolicy({ gentlePiConfigHome: home }).policy, "on");
-	assert.match(ui.notices.at(-1)!, /GENTLE_PI_HISTORY_CAPTURE=off overrides it; capture stays off/i);
+	assert.match(ui.notices.at(-1)!, /NUB_IA_HISTORY_CAPTURE=off overrides it; capture stays off/i);
 	ui.overlayView!.handleInput("\x1b"); await pending;
 });
 
@@ -2942,7 +2942,7 @@ test("customize History rows refuse to overwrite a malformed preference and repo
 	const home = scopedDoubleEscCancelConfigHome(t);
 	writeFileSync(join(home, "history-capture.json"), "{");
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
@@ -2958,7 +2958,7 @@ test("customize History rows refuse to overwrite a malformed preference and repo
 test("external Vim preference change while customize is open never implies a compatibility failure", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home }, { vimRuntimeVersion: () => INSTALLED_PI });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home }, { vimRuntimeVersion: () => INSTALLED_PI });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
 	try {
@@ -2981,7 +2981,7 @@ test("customize updates live Vim prompt and reports unsupported effective state 
 	for (const version of [INSTALLED_PI, "unsupported"]) {
 		const home = scopedDoubleEscCancelConfigHome(t);
 		const { pi, handlers, commands } = fakePi();
-		gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home }, { vimRuntimeVersion: () => version });
+		gentleShell(pi, { NUB_IA_CONFIG_HOME: home }, { vimRuntimeVersion: () => version });
 		const { ctx, ui, overlayReady } = fakeContext();
 		const editor = installedPrompt(ctx, ui, handlers);
 		try {
@@ -3001,7 +3001,7 @@ test("customize updates live Vim prompt and reports unsupported effective state 
 
 test("customize Vim reports a persistence error without changing the live prompt", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
-	const { pi, handlers, commands } = fakePi(); gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	const { pi, handlers, commands } = fakePi(); gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers);
 	const pending = commands.get("nubia:customize")!.handler("", ctx); await overlayReady;
@@ -3022,7 +3022,7 @@ test("customize Vim refuses malformed or unreadable policy without false success
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const path = join(home, "vim.json");
 	writeFileSync(path, "invalid");
-	const { pi, commands } = fakePi(); gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	const { pi, commands } = fakePi(); gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx); await overlayReady;
 	assert.ok(findCustomizeRow(ui, "Vim: enable"));
@@ -3042,7 +3042,7 @@ test("customize Vim refuses malformed or unreadable policy without false success
 test("customize command updates displayed settings and applies layout immediately", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
@@ -3066,7 +3066,7 @@ test("customize command updates displayed settings and applies layout immediatel
 test("below-input header remains a fullscreen widget without the rail and follows live placement", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	await fire(handlers, "session_start", ctx);
 	const tui = { mode: "fullscreen", terminal: { rows: 40, columns: 180 }, requestRender() {} };
@@ -3091,7 +3091,7 @@ test("below-input header remains a fullscreen widget without the rail and follow
 test("narrow fullscreen with a below-input header shows only the bottom bar, carrying the header's data and extension statuses", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	await fire(handlers, "session_start", ctx);
 	const tui = { mode: "fullscreen", terminal: { rows: 40, columns: 100 }, requestRender() {} };
@@ -3143,7 +3143,7 @@ test("T4d unified float footer uses one live owner and restores legacy Changes o
 	writeCardStyle("float", { gentlePiConfigHome: home });
 	writeVisualSettings({ ...resolveVisualSettings({ gentlePiConfigHome: home }).settings, headerPlacement: "below-input" }, { gentlePiConfigHome: home });
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	await fire(handlers, "session_start", ctx);
 	const tui = { mode: "fullscreen", terminal: { rows: 40, columns: 139 }, requestRender() {} };
@@ -3265,7 +3265,7 @@ test("customize previews installed source palette without selecting until Enter"
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const source = new URL("../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/dark.json", import.meta.url).pathname;
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const themeApi = ctx.ui as unknown as { getTheme(name: string): { name: string; sourcePath?: string } | undefined; setTheme(name: string): { success: boolean } };
 	const original = themeApi.getTheme;
@@ -3290,7 +3290,7 @@ test("customize preserves invalid visual settings and reports failed theme selec
 	const path = join(home, "visual-customization.json");
 	writeFileSync(path, "invalid");
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const api = ctx.ui as unknown as { getTheme(name: string): unknown; setTheme(name: string): unknown };
 	api.getTheme = () => undefined;
@@ -3310,7 +3310,7 @@ test("customize never overwrites malformed banner through toggle, color or reset
 	const bannerPath = join(home, "banner.json");
 	writeFileSync(bannerPath, "invalid banner");
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
@@ -3328,7 +3328,7 @@ test("customize refuses an unreadable banner path before modifying visual settin
 	const home = scopedDoubleEscCancelConfigHome(t);
 	mkdirSync(join(home, "banner.json"));
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
@@ -3347,7 +3347,7 @@ test("customize reports a partial reset and identifies committed stores on anima
 	writeVisualSettings({ ...resolveVisualSettings(options).settings, statusPlacement: "hidden" }, options);
 	mkdirSync(join(home, "animations.json"));
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
 	await overlayReady;
@@ -3364,7 +3364,7 @@ test("named profile applies installed theme, banner, animation and visual settin
 	const visual = { ...resolveVisualSettings(options).settings, statusPlacement: "hidden" as const };
 	saveVisualProfile("night", { themeName: "light", animationPolicy: "performance", banner: { showRose: false, showTextLogo: true, color: "cyan" }, visual }, options);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const applied: string[] = [];
 	(ctx.ui as unknown as { setTheme(name: string): { success: boolean } }).setTheme = (name) => { applied.push(name); return { success: true }; };
@@ -3391,7 +3391,7 @@ test("named profile applies installed theme, banner, animation and visual settin
 test("saving a profile refuses an active theme that is not installed or resolvable", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	(ctx.ui as unknown as { theme: { name: string } }).theme = { name: "phantom" };
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
@@ -3415,7 +3415,7 @@ test("saving a profile refuses a malformed or unreadable animation policy store"
 	const home = scopedDoubleEscCancelConfigHome(t);
 	mkdirSync(join(home, "animations.json"));
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	(ctx.ui as unknown as { theme: { name: string } }).theme = { name: "dark" };
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
@@ -3438,7 +3438,7 @@ test("saving a profile refuses a malformed or unreadable animation policy store"
 test("profile save, replace, delete and reset succeed through the modal and persist to the catalog", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	(ctx.ui as unknown as { theme: { name: string } }).theme = { name: "dark" };
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
@@ -3494,7 +3494,7 @@ test("named profile reports PARTIAL when animation store fails, and never activa
 	saveVisualProfile("missing", { themeName: "not-installed", animationPolicy: "potato", banner: { showRose: false, showTextLogo: false, color: "green" }, visual }, options);
 	mkdirSync(join(home, "animations.json"));
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	const applied: string[] = [];
 	(ctx.ui as unknown as { setTheme(name: string): { success: boolean } }).setTheme = (name) => { applied.push(name); return { success: true }; };
@@ -3522,7 +3522,7 @@ test("named profile reports PARTIAL when animation store fails, and never activa
 test("customize degrades unavailable theme APIs and refuses noninteractive UI", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
 	(ctx.ui as unknown as { getAllThemes(): unknown }).getAllThemes = () => { throw new Error("theme lookup failed"); };
 	const pending = commands.get("nubia:customize")!.handler("", ctx);
@@ -3540,7 +3540,7 @@ test("customize degrades unavailable theme APIs and refuses noninteractive UI", 
 test("double-esc-cancel enabled: the first Esc while working is swallowed and shows the hint instead of aborting", (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_DOUBLE_ESC_CANCEL: "on", GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_DOUBLE_ESC_CANCEL: "on", NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	let aborted = 0;
@@ -3556,7 +3556,7 @@ test("double-esc-cancel enabled: a second Esc within the window falls through an
 	let now = 1_000_000;
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_DOUBLE_ESC_CANCEL: "on", GENTLE_PI_CONFIG_HOME: configHome }, { now: () => now });
+	gentleShell(pi, { NUB_IA_DOUBLE_ESC_CANCEL: "on", NUB_IA_CONFIG_HOME: configHome }, { now: () => now });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	let aborted = 0;
@@ -3575,7 +3575,7 @@ test("double-esc-cancel enabled: an Esc after the window expires is a fresh firs
 	let now = 1_000_000;
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_DOUBLE_ESC_CANCEL: "on", GENTLE_PI_CONFIG_HOME: configHome }, { now: () => now });
+	gentleShell(pi, { NUB_IA_DOUBLE_ESC_CANCEL: "on", NUB_IA_CONFIG_HOME: configHome }, { now: () => now });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	let aborted = 0;
@@ -3593,7 +3593,7 @@ test("double-esc-cancel enabled: an Esc after the window expires is a fresh firs
 test("double-esc-cancel enabled: Esc while idle passes straight through, untouched by this gate", (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_DOUBLE_ESC_CANCEL: "on", GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_DOUBLE_ESC_CANCEL: "on", NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	let aborted = 0;
@@ -3607,7 +3607,7 @@ test("double-esc-cancel enabled: Esc while idle passes straight through, untouch
 test("double-esc-cancel enabled: Esc while autocomplete is visible bypasses this gate entirely", (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_DOUBLE_ESC_CANCEL: "on", GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_DOUBLE_ESC_CANCEL: "on", NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	(editor as unknown as { isShowingAutocomplete(): boolean }).isShowingAutocomplete = () => true;
@@ -3641,7 +3641,7 @@ test("extractQueuedText treats a whitespace-only draft as empty, matching Pi's o
 
 test("working cancel: an aborted turn with a queued message sends it once settled and keeps the draft", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3657,7 +3657,7 @@ test("working cancel: an aborted turn with a queued message sends it once settle
 
 test("vim INSERT Esc only enters NORMAL; NORMAL Esc hands off queued text after settlement", async (t) => {
 	const { pi, handlers, commands, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	try {
@@ -3681,7 +3681,7 @@ test("vim INSERT Esc only enters NORMAL; NORMAL Esc hands off queued text after 
 
 test("working cancel: an aborted turn with no queued messages behaves exactly as before, with no redundant setText", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3704,7 +3704,7 @@ test("working cancel: an aborted turn with no queued messages behaves exactly as
 
 test("working cancel: an unrecognized restore shape leaves Pi's own text untouched and dispatches nothing", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3720,7 +3720,7 @@ test("working cancel: an unrecognized restore shape leaves Pi's own text untouch
 
 test("working cancel: an empty draft with a queued message sends the whole queue and leaves the editor empty", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.onEscape = () => { editor.setText("only queued"); };
@@ -3736,7 +3736,7 @@ test("working cancel: the same dispatch applies to the confirming second Esc whe
 	let now = 1_000_000;
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_DOUBLE_ESC_CANCEL: "on", GENTLE_PI_CONFIG_HOME: configHome }, { now: () => now });
+	gentleShell(pi, { NUB_IA_DOUBLE_ESC_CANCEL: "on", NUB_IA_CONFIG_HOME: configHome }, { now: () => now });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3753,7 +3753,7 @@ test("working cancel: the same dispatch applies to the confirming second Esc whe
 
 test("working cancel: queued text is never sent twice even if agent_settled fires again", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3768,7 +3768,7 @@ test("working cancel: queued text is never sent twice even if agent_settled fire
 
 test("working cancel: a new agent_start before the aborted run settles keeps the pending text and sends it once that turn settles", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3789,7 +3789,7 @@ test("working cancel: a new agent_start before the aborted run settles keeps the
 
 test("working cancel: a whitespace-only recognized queue is treated as no queue and never dispatched", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3804,7 +3804,7 @@ test("working cancel: a whitespace-only recognized queue is treated as no queue 
 
 test("working cancel: a failing sendUserMessage on settle is reported, not thrown, and the prompt still leaves the working state", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3821,7 +3821,7 @@ test("working cancel: a failing sendUserMessage on settle is reported, not throw
 
 test("working cancel: a failing send reported through a context without UI still restores the queued text into the editor", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const headless = fakeContext({ hasUI: false });
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
@@ -3838,7 +3838,7 @@ test("working cancel: a failing send reported through a context without UI still
 
 test("working cancel: agent_settled never sends while another turn is still in flight; the text waits for an idle settle", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const busy = fakeContext({ idle: false }).ctx;
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
@@ -3860,7 +3860,7 @@ test("working cancel: agent_settled never sends while another turn is still in f
 
 test("working cancel: two aborts before an idle settle deliver both queued texts, in order, as one message", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const busy = fakeContext({ idle: false }).ctx;
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
@@ -3878,7 +3878,7 @@ test("working cancel: two aborts before an idle settle deliver both queued texts
 
 test("working cancel: pending queued text never crosses a session boundary", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3892,7 +3892,7 @@ test("working cancel: pending queued text never crosses a session boundary", (t)
 
 test("working cancel: agent_settled firing first delivers the pending text without a deliverAs override", (t) => {
 	const { pi, handlers, sentMessages } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3918,7 +3918,7 @@ test("working cancel: agent_settled firing first delivers the pending text witho
 
 test("idle draft: the first Esc shows the clear hint and keeps the text", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3934,7 +3934,7 @@ test("idle draft: the first Esc shows the clear hint and keeps the text", (t) =>
 test("idle draft: a second Esc within the window adds the draft to history and clears it", (t) => {
 	let now = 1_000_000;
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3952,7 +3952,7 @@ test("idle draft: a second Esc within the window adds the draft to history and c
 test("idle draft: an Esc after the window expires is a fresh first press, not a clear", (t) => {
 	let now = 1_000_000;
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3966,7 +3966,7 @@ test("idle draft: an Esc after the window expires is a fresh first press, not a 
 
 test("idle empty editor: Esc passes straight through to Pi's own tree/fork double-Esc", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	let aborted = 0;
@@ -3978,7 +3978,7 @@ test("idle empty editor: Esc passes straight through to Pi's own tree/fork doubl
 
 test("idle draft: Esc while autocomplete is visible bypasses the idle-clear gate", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -3991,7 +3991,7 @@ test("idle draft: Esc while autocomplete is visible bypasses the idle-clear gate
 
 test("working state: a non-empty draft's Esc is decided by the working-cancel gate, never the idle-clear hint", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -4005,7 +4005,7 @@ test("working state: a non-empty draft's Esc is decided by the working-cancel ga
 test("idle draft: editing the text between two Esc presses starts a fresh clear window instead of clearing the edit away", (t) => {
 	let now = 1_000_000;
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("draft reply");
@@ -4025,7 +4025,7 @@ test("idle draft: editing the text between two Esc presses starts a fresh clear 
 test("idle draft: typing and deleting between two Esc presses still invalidates the pending clear", (t) => {
 	let now = 1_000_000;
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
 	const { ctx, ui } = fakeContext();
 	// Esc-only matching: ordinary keystrokes must reach the editor as text.
 	const preciseEscape = { matches: (data: string, keybinding: string) => keybinding === "app.interrupt" && data === "\x1b" };
@@ -4044,7 +4044,7 @@ test("idle draft: typing and deleting between two Esc presses still invalidates 
 test("idle draft: selection-only input and same-character replacement cancel pending clear", (t) => {
 	let now = 1_000_000;
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) }, { now: () => now });
 	const { ctx, ui } = fakeContext();
 	const preciseEscape = { matches: (data: string, keybinding: string) => keybinding === "app.interrupt" && data === "\x1b" };
 	const editor = installedPrompt(ctx, ui, handlers, preciseEscape);
@@ -4066,7 +4066,7 @@ test("idle draft: selection-only input and same-character replacement cancel pen
 
 test("idle draft: a bash-mode draft's Esc bypasses the idle-clear gate entirely", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("!ls");
@@ -4081,7 +4081,7 @@ test("idle draft: a bash-mode draft's Esc bypasses the idle-clear gate entirely"
 
 test("idle draft: a bash-mode draft with leading whitespace still bypasses the idle-clear gate", (t) => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: scopedDoubleEscCancelConfigHome(t) });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	editor.setText("  !ls");
@@ -4109,7 +4109,7 @@ test("nubia:double-esc-cancel is registered and declares user-initiated sub-acti
 test("nubia:double-esc-cancel status reports off by default and writes nothing", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	await commands.get("nubia:double-esc-cancel")!.handler("status", ctx);
 	assert.equal(ui.notices.length, 1);
@@ -4120,7 +4120,7 @@ test("nubia:double-esc-cancel status reports off by default and writes nothing",
 test("nubia:double-esc-cancel enable writes the global file, reports it, and takes effect immediately", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	await commands.get("nubia:double-esc-cancel")!.handler("enable", ctx);
 	assert.match(ui.notices[0]!, /^double-esc-cancel: on \(decided by global file/);
@@ -4134,7 +4134,7 @@ test("nubia:double-esc-cancel enable writes the global file, reports it, and tak
 test("nubia:double-esc-cancel disable writes off", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	await commands.get("nubia:double-esc-cancel")!.handler("enable", ctx);
 	await commands.get("nubia:double-esc-cancel")!.handler("disable", ctx);
@@ -4148,7 +4148,7 @@ test("nubia:double-esc-cancel disable writes off", async (t) => {
 test("nubia:double-esc-cancel with no argument toggles the effective policy each time", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	await commands.get("nubia:double-esc-cancel")!.handler("", ctx);
 	assert.match(ui.notices[0]!, /^double-esc-cancel: on /, "off -> on on the first toggle");
@@ -4161,7 +4161,7 @@ test("nubia:double-esc-cancel reports a malformed global file as fail-closed, no
 	mkdirSync(configHome, { recursive: true });
 	writeFileSync(join(configHome, "double-esc-cancel.json"), "{malformed");
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	await commands.get("nubia:double-esc-cancel")!.handler("status", ctx);
 	assert.match(ui.notices[0]!, /present but malformed/);
@@ -4170,7 +4170,7 @@ test("nubia:double-esc-cancel reports a malformed global file as fail-closed, no
 test("nubia:double-esc-cancel an unknown sub-action warns and changes nothing", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	await commands.get("nubia:double-esc-cancel")!.handler("toggle", ctx);
 	assert.match(ui.notices[0]!, /Unknown \/nubia:double-esc-cancel sub-action "toggle"/);
@@ -4180,7 +4180,7 @@ test("nubia:double-esc-cancel an unknown sub-action warns and changes nothing", 
 test("nubia:double-esc-cancel enable updates the in-memory policy so an already-installed prompt picks it up without re-reading the file", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	let aborted = 0;
@@ -4198,7 +4198,7 @@ test("nubia:double-esc-cancel enable updates the in-memory policy so an already-
 test("nubia:double-esc-cancel re-syncs the keypress gate from the global file so status, toggle direction, and Esc behavior agree", async (t) => {
 	const configHome = scopedDoubleEscCancelConfigHome(t);
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: configHome });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: configHome });
 	const { ctx, ui } = fakeContext();
 	const editor = installedPrompt(ctx, ui, handlers, escapeKeybindings);
 	let aborted = 0;
@@ -4299,7 +4299,7 @@ const onlyHeadLabels = (git: readonly string[][]) => git.every((args) => {
 test("same-session explicit registration after bootstrap does not claim Changes", async () => {
 	const { pi, handlers, commands, tools, git } = fakePi();
 	let bootstrapped = false;
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, {
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, {
 		resolveWorktree: (path) => bootstrapped ? { root: path === "." ? "/repo" : path, commonDir: path === "/foreign" ? "/foreign/git" : "/repo/.git" } : undefined,
 	});
 	const { ctx, ui } = fakeContext();
@@ -4341,7 +4341,7 @@ test("Changes opens only for captured mutations, not registered dirty roots", as
 
 test("overlay groups captured roots and refreshes same-count diffs without HEAD or external files", async () => {
  const {pi,handlers,commands,git}=fakePi();
- gentleShell(pi,{GENTLE_PI_SHELL_CHANGES_POLL_MS:"5"});
+ gentleShell(pi,{NUB_IA_SHELL_CHANGES_POLL_MS:"5"});
  const {ctx,ui,overlayReady}=fakeContext();
  sessionChange(ctx,"a","/repo","same.ts","old\n","first\n");
  sessionChange(ctx,"child:a","/linked","same.ts","old\n","child\n");
@@ -4413,7 +4413,7 @@ test("registered canonical root governs real Git discovery, status and diff desp
 	const discovery = await run(["worktree", "list", "--porcelain", "-z"]);
 	assert.match(discovery.stdout, new RegExp(`worktree ${selected}`));
 	assert.ok(!discovery.stdout.includes(foreign));
-	installGentleShell(h.pi, isolatedEnv({ GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }), { gitRunner: (cwd) => shellGitRunner(cwd, poisoned) });
+	installGentleShell(h.pi, isolatedEnv({ NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }), { gitRunner: (cwd) => shellGitRunner(cwd, poisoned) });
 	await fire(h.handlers, "session_start", ctx);
 	t.after(() => fire(h.handlers, "session_shutdown", ctx));
 	assert.equal(ui.widgets.has("gentle-shell-changes"), false, "preexisting dirty files are not agent changes");
@@ -4490,9 +4490,9 @@ test("external editor receives the selected worktree as process cwd", () => {
 
 test("changesShortcut defaults to alt+g and can be overridden or disabled", () => {
 	assert.equal(changesShortcut({}), "alt+g");
-	assert.equal(changesShortcut({ GENTLE_PI_SHELL_CHANGES_KEY: "ctrl+shift+g" }), "ctrl+shift+g");
-	assert.equal(changesShortcut({ GENTLE_PI_SHELL_CHANGES_KEY: "off" }), undefined);
-	assert.equal(changesShortcut({ GENTLE_PI_SHELL_CHANGES_KEY: "" }), undefined);
+	assert.equal(changesShortcut({ NUB_IA_SHELL_CHANGES_KEY: "ctrl+shift+g" }), "ctrl+shift+g");
+	assert.equal(changesShortcut({ NUB_IA_SHELL_CHANGES_KEY: "off" }), undefined);
+	assert.equal(changesShortcut({ NUB_IA_SHELL_CHANGES_KEY: "" }), undefined);
 });
 
 test("gentleShell binds the changes shortcut to the same handler as the command", async () => {
@@ -4506,13 +4506,13 @@ test("gentleShell binds the changes shortcut to the same handler as the command"
 	assert.match(ui.notices.join("\n"), /No captured agent changes/);
 
 	const silent = fakePi();
-	gentleShell(silent.pi, { GENTLE_PI_SHELL_CHANGES_KEY: "off" });
+	gentleShell(silent.pi, { NUB_IA_SHELL_CHANGES_KEY: "off" });
 	assert.equal(silent.shortcuts.has("alt+g"), false, "the changes shortcut must not register when disabled");
 });
 
 test("external edits do not pollute Changes or trigger background Git scans", async () => {
  const {pi,handlers,git}=fakePi([{numstat:"4\t2\texternal.ts\n",porcelain:" M external.ts\0"}]);
- gentleShell(pi,{GENTLE_PI_SHELL_CHANGES_WATCH_MS:"5"});
+ gentleShell(pi,{NUB_IA_SHELL_CHANGES_WATCH_MS:"5"});
  const {ctx,ui}=fakeContext();
  await fire(handlers,"session_start",ctx);
  await new Promise(resolve=>setTimeout(resolve,30));
@@ -4597,7 +4597,7 @@ test("fetchNanUsage degrades to no snapshot without ever throwing", async () => 
 test("gentleShell fetches NaN quota on session start and shows it in the bar", async () => {
 	const { pi, handlers } = fakePi();
 	const { fetchFn, calls } = fakeFetch(NAN_QUOTA_PAYLOAD);
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: "sk-nan-secret" });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "nan";
 	await fire(handlers, "session_start", ctx);
@@ -4623,7 +4623,7 @@ test("a failed NaN refresh keeps the last valid snapshot", async () => {
 		return { ok: true, json: async () => NAN_QUOTA_PAYLOAD } as Response;
 	}) as typeof fetch;
 	let now = 1_788_600_000_000;
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => now });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => now });
 	const { ctx, ui } = fakeContext({ token: "sk-nan-secret" });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "nan";
 	await fire(handlers, "session_start", ctx);
@@ -4641,7 +4641,7 @@ test("a failed NaN refresh keeps the last valid snapshot", async () => {
 test("gentleShell fetches Codex usage on session start and shows it in the bar", async () => {
 	const { pi, handlers } = fakePi();
 	const { fetchFn, calls } = fakeFetch();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
@@ -4656,7 +4656,7 @@ test("gentleShell fetches Codex usage on session start and shows it in the bar",
 test("a provider switch refreshes the new provider inside the same window", async () => {
 	const { pi, handlers } = fakePi();
 	const { fetchFn, calls } = fakeFetch(NAN_QUOTA_PAYLOAD);
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await new Promise((resolve) => setTimeout(resolve, 0));
@@ -4695,7 +4695,7 @@ function acmeSource(onFetch: (apiKey: string | undefined) => void, plan = "Acme 
 test("gentleShell fetches usage through a source registered before session start", async () => {
 	const { pi, handlers } = fakePi();
 	const seen: Array<string | undefined> = [];
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	pi.events.emit(USAGE_SOURCE_EVENT, acmeSource((apiKey) => seen.push(apiKey)));
 	const { ctx, ui } = fakeContext({ token: "acme-token" });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "acme-cloud";
@@ -4708,7 +4708,7 @@ test("gentleShell fetches usage through a source registered before session start
 test("gentleShell forces one refresh when a usage source registers after session start for the active provider", async () => {
 	const { pi, handlers } = fakePi();
 	let calls = 0;
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: "acme-token" });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "acme-cloud";
 	await fire(handlers, "session_start", ctx);
@@ -4724,7 +4724,7 @@ test("gentleShell forces one refresh when a usage source registers after session
 test("a usage source registered for a different provider does not force a refresh", async () => {
 	const { pi, handlers } = fakePi();
 	let calls = 0;
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: "acme-token" });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "openai-codex";
 	await fire(handlers, "session_start", ctx);
@@ -4738,7 +4738,7 @@ test("a usage source registered for a different provider does not force a refres
 
 test("gentleShell shows the unsupported note for a provider with no built-in or registered source", async () => {
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: undefined });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "acme-cloud";
 	await fire(handlers, "session_start", ctx);
@@ -4752,7 +4752,7 @@ test("gentleShell shows the unsupported note for a provider with no built-in or 
 
 test("gentleShell ignores a malformed usage-source registration payload", async () => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	pi.events.emit(USAGE_SOURCE_EVENT, { schema: "wrong-schema", provider: "acme-cloud", fetch: async () => undefined });
 	pi.events.emit(USAGE_SOURCE_EVENT, { schema: USAGE_SOURCE_SCHEMA, provider: "acme-cloud", fetch: "not-a-function" });
 	pi.events.emit(USAGE_SOURCE_EVENT, "not-an-object");
@@ -4781,7 +4781,7 @@ test("a registered source's rejecting fetch never crashes the shell or poisons t
 			throw new Error("acme is down");
 		},
 	});
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: "acme-token" });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "acme-cloud";
 
@@ -4828,7 +4828,7 @@ test("a registered source's rejecting fetch never crashes the shell or poisons t
 test("a registered source resolving usage for another provider is rejected without overwriting that provider's snapshot", async () => {
 	const { pi, handlers } = fakePi();
 	const { fetchFn } = fakeFetch(NAN_QUOTA_PAYLOAD);
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: "sk-nan-secret" });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "nan";
 	await fire(handlers, "session_start", ctx);
@@ -4850,7 +4850,7 @@ test("a registered source resolving usage for another provider is rejected witho
 
 test("gentleShell leaves a generic failure note when a registered source resolves a malformed usage", async () => {
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	pi.events.emit(USAGE_SOURCE_EVENT, {
 		schema: USAGE_SOURCE_SCHEMA,
 		provider: "acme-cloud",
@@ -4872,7 +4872,7 @@ test("gentleShell leaves a generic failure note when a registered source resolve
 
 test("a slow fetch from a replaced source never records after its replacement resolves", async () => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: "acme-token" });
 	(ctx as unknown as { model: { provider: string } }).model.provider = "acme-cloud";
 
@@ -4908,7 +4908,7 @@ test("a slow fetch from a replaced source never records after its replacement re
 
 test("gentleShell records SSE rate-limit headers from provider responses", async () => {
 	const { pi, handlers } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch({}, false).fetchFn, now: () => 0 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch({}, false).fetchFn, now: () => 0 });
 	const { ctx, ui } = fakeContext();
 	await fire(handlers, "session_start", ctx);
 	for (const handler of handlers.get("after_provider_response") ?? []) {
@@ -4926,7 +4926,7 @@ test("gentleShell records SSE rate-limit headers from provider responses", async
 
 test("gentleShell registers /nubia:usage and opens the subscriptions overlay", async () => {
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch().fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch().fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	const opened = commands.get("nubia:usage")!.handler("", ctx);
@@ -4940,14 +4940,14 @@ test("gentleShell registers /nubia:usage and opens the subscriptions overlay", a
 
 test("usageShortcut defaults to alt+u and can be overridden or disabled", () => {
 	assert.equal(usageShortcut({}), "alt+u");
-	assert.equal(usageShortcut({ GENTLE_PI_SHELL_USAGE_KEY: "ctrl+shift+u" }), "ctrl+shift+u");
-	assert.equal(usageShortcut({ GENTLE_PI_SHELL_USAGE_KEY: "off" }), undefined);
-	assert.equal(usageShortcut({ GENTLE_PI_SHELL_USAGE_KEY: "" }), undefined);
+	assert.equal(usageShortcut({ NUB_IA_SHELL_USAGE_KEY: "ctrl+shift+u" }), "ctrl+shift+u");
+	assert.equal(usageShortcut({ NUB_IA_SHELL_USAGE_KEY: "off" }), undefined);
+	assert.equal(usageShortcut({ NUB_IA_SHELL_USAGE_KEY: "" }), undefined);
 });
 
 test("gentleShell binds the usage shortcut to the same handler as /nubia:usage", async () => {
 	const { pi, handlers, shortcuts } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch().fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch().fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	const shortcut = shortcuts.get("alt+u");
@@ -4960,7 +4960,7 @@ test("gentleShell binds the usage shortcut to the same handler as /nubia:usage",
 	await opened;
 
 	const silent = fakePi();
-	gentleShell(silent.pi, { GENTLE_PI_SHELL_USAGE_KEY: "off" });
+	gentleShell(silent.pi, { NUB_IA_SHELL_USAGE_KEY: "off" });
 	assert.equal(silent.shortcuts.has("alt+u"), false, "the usage shortcut must not register when disabled");
 });
 
@@ -4970,16 +4970,16 @@ test("nubia:commands registers alt+k by default", () => {
 	assert.ok(shortcuts.has("alt+k"));
 });
 
-test("nubia:commands honors GENTLE_PI_COMMANDS_KEY", () => {
+test("nubia:commands honors NUB_IA_COMMANDS_KEY", () => {
 	const { pi, shortcuts } = fakePi();
-	gentleShell(pi, { GENTLE_PI_COMMANDS_KEY: "ctrl+p" });
+	gentleShell(pi, { NUB_IA_COMMANDS_KEY: "ctrl+p" });
 	assert.ok(shortcuts.has("ctrl+p"));
 	assert.equal(shortcuts.has("alt+k"), false);
 });
 
-test("GENTLE_PI_COMMANDS_KEY=off registers no command-palette shortcut", () => {
+test("NUB_IA_COMMANDS_KEY=off registers no command-palette shortcut", () => {
 	const { pi, shortcuts } = fakePi();
-	gentleShell(pi, { GENTLE_PI_COMMANDS_KEY: "off" });
+	gentleShell(pi, { NUB_IA_COMMANDS_KEY: "off" });
 	assert.equal(shortcuts.has("alt+k"), false);
 	assert.ok(shortcuts.has("alt+g"), "the unrelated changes shortcut still registers");
 });
@@ -5099,7 +5099,7 @@ test("gentleShell refreshes the active profile's subagent providers alongside th
 	writeProfilesStore(home, { team: { reviewer: { model: "nan/glm5.3" } } }, "team");
 	const { pi, handlers } = fakePi();
 	const { fetchFn, calls } = fakeFetch(NAN_QUOTA_PAYLOAD);
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
@@ -5126,7 +5126,7 @@ test("a pinned profile's subagent providers are the refreshed ones, not the glob
 	}, "team");
 	const { pi, handlers } = fakePi();
 	const { fetchFn, calls } = fakeFetch(NAN_QUOTA_PAYLOAD);
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000, resolveWorktree: () => ({ root: "/repo", commonDir }) });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000, resolveWorktree: () => ({ root: "/repo", commonDir }) });
 	const { ctx } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
@@ -5139,7 +5139,7 @@ test("a bare routing model id resolves through the model registry only when exac
 	writeProfilesStore(home, { team: { reviewer: { model: "glm5.3" } } }, "team");
 	const { pi, handlers } = fakePi();
 	const { fetchFn, calls } = fakeFetch(NAN_QUOTA_PAYLOAD);
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx } = fakeContext({ token: JWT });
 	(ctx as unknown as { modelRegistry: { getAll(): Array<{ id: string; provider: string }> } }).modelRegistry.getAll = () => [{ id: "gpt-5.5", provider: "openai-codex" }, { id: "glm5.3", provider: "nan" }];
 	await fire(handlers, "session_start", ctx);
@@ -5148,7 +5148,7 @@ test("a bare routing model id resolves through the model registry only when exac
 
 	const ambiguous = fakePi();
 	const ambiguousFetch = fakeFetch(NAN_QUOTA_PAYLOAD);
-	gentleShell(ambiguous.pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: ambiguousFetch.fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(ambiguous.pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: ambiguousFetch.fetchFn, now: () => 1_788_600_000_000 });
 	const ambiguousCtx = fakeContext({ token: JWT });
 	(ambiguousCtx.ctx as unknown as { modelRegistry: { getAll(): Array<{ id: string; provider: string }> } }).modelRegistry.getAll = () => [{ id: "glm5.3", provider: "nan" }, { id: "glm5.3", provider: "openai-codex" }];
 	await fire(ambiguous.handlers, "session_start", ambiguousCtx.ctx);
@@ -5162,7 +5162,7 @@ test("a usage source registered after session start refreshes a subagent provide
 	writeProfilesStore(home, { team: { watcher: { model: "acme-cloud/acme" } } }, "team");
 	const { pi, handlers } = fakePi();
 	const seen: Array<string | undefined> = [];
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { now: () => 1_788_600_000_000 });
 	const { ctx } = fakeContext({ token: "acme-token" });
 	await fire(handlers, "session_start", ctx);
 	await settle();
@@ -5177,7 +5177,7 @@ test("the subscriptions panel shows targeted providers with no data and a generi
 	t.after(() => rmSync(home, { recursive: true, force: true }));
 	writeProfilesStore(home, { team: { reviewer: { model: "nan/glm5.3" } } }, "team");
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch(NAN_QUOTA_PAYLOAD, false).fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch(NAN_QUOTA_PAYLOAD, false).fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	const opened = commands.get("nubia:usage")!.handler("", ctx);
@@ -5210,7 +5210,7 @@ test("a stalled provider times out without hanging the overlay, and a late answe
 	const { fetchFn } = fakeFetch(NAN_QUOTA_PAYLOAD);
 	gentleShell(
 		pi,
-		{ GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off", GENTLE_PI_SHELL_USAGE_TIMEOUT_MS: "25" },
+		{ NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off", NUB_IA_SHELL_USAGE_TIMEOUT_MS: "25" },
 		{ fetch: fetchFn, now: () => 1_788_600_000_000 },
 	);
 	pi.events.emit(USAGE_SOURCE_EVENT, {
@@ -5269,7 +5269,7 @@ test("a settled provider repaints the overlay before the stalled provider's wind
 	}) as typeof fetch;
 	gentleShell(
 		pi,
-		{ GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off", GENTLE_PI_SHELL_USAGE_TIMEOUT_MS: "100" },
+		{ NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off", NUB_IA_SHELL_USAGE_TIMEOUT_MS: "100" },
 		{ fetch: nanFetch, now: () => 1_788_600_000_000 },
 	);
 	pi.events.emit(USAGE_SOURCE_EVENT, {
@@ -5324,7 +5324,7 @@ test("the refresh timeout composes with a source's own abort signal instead of r
 		captured = (init?.signal ?? undefined) as AbortSignal | undefined;
 		return await new Promise<Response>(() => {});
 	}) as typeof fetch;
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off", GENTLE_PI_SHELL_USAGE_TIMEOUT_MS: "100" }, { fetch: spyFetch, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off", NUB_IA_SHELL_USAGE_TIMEOUT_MS: "100" }, { fetch: spyFetch, now: () => 1_788_600_000_000 });
 	const hangingSource = (caller: AbortController): unknown => ({
 		schema: USAGE_SOURCE_SCHEMA,
 		provider: "acme-cloud",
@@ -5365,7 +5365,7 @@ test("a provider aborted while its credential resolves never starts its fetch", 
 		fetchCalls += 1;
 		return { ok: true, json: async () => ({}) } as Response;
 	}) as typeof fetch;
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off", GENTLE_PI_SHELL_USAGE_TIMEOUT_MS: "25" }, { fetch: spyFetch, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off", NUB_IA_SHELL_USAGE_TIMEOUT_MS: "25" }, { fetch: spyFetch, now: () => 1_788_600_000_000 });
 	pi.events.emit(USAGE_SOURCE_EVENT, {
 		schema: USAGE_SOURCE_SCHEMA,
 		provider: "acme-cloud",
@@ -5394,7 +5394,7 @@ test("the panel keeps a headers-only subagent provider pending instead of a fals
 	writeProfilesStore(home, { team: { reviewer: { model: "anthropic/claude-x" } } }, "team");
 	const { pi, handlers, commands } = fakePi();
 	const { fetchFn, calls } = fakeFetch(NAN_QUOTA_PAYLOAD);
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
@@ -5413,7 +5413,7 @@ test("after a profile switch the panel stops presenting the old profile's provid
 	t.after(() => rmSync(home, { recursive: true, force: true }));
 	writeProfilesStore(home, { team: { reviewer: { model: "nan/glm5.3" } }, solo: {} }, "team");
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch(NAN_QUOTA_PAYLOAD).fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch(NAN_QUOTA_PAYLOAD).fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	const opened = commands.get("nubia:usage")!.handler("", ctx);
@@ -5445,7 +5445,7 @@ test("a failed refresh says so beside the retained snapshot and clears on the ne
 		return { ok: true, json: async () => NAN_QUOTA_PAYLOAD } as Response;
 	}) as typeof fetch;
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => now });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => now });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
@@ -5518,7 +5518,7 @@ test("a replaced source's late failure cannot mark the provider failed after its
 	};
 	let bCalls = 0;
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch().fetchFn, now: () => now });
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch().fetchFn, now: () => now });
 	pi.events.emit(USAGE_SOURCE_EVENT, sourceA);
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
@@ -5543,7 +5543,7 @@ test("a replaced source's late failure cannot mark the provider failed after its
 
 test("a valid response-header snapshot clears a prior refresh failure", async (_t) => {
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch(USAGE_PAYLOAD, false).fetchFn, now: () => 1_788_600_000_000 });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fakeFetch(USAGE_PAYLOAD, false).fetchFn, now: () => 1_788_600_000_000 });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
@@ -5568,7 +5568,7 @@ test("the panel's scope is resolved on refresh, not on every render", async (t) 
 	writeProfilesStore(home, { team: { reviewer: { model: "nan/glm5.3" } } }, "team");
 	let resolutions = 0;
 	const { pi, handlers, commands } = fakePi();
-	gentleShell(pi, { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, {
+	gentleShell(pi, { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, {
 		fetch: fakeFetch(NAN_QUOTA_PAYLOAD).fetchFn,
 		now: () => 1_788_600_000_000,
 		resolveWorktree: (cwd: string) => {
@@ -5605,7 +5605,7 @@ test("an older overlapping refresh cannot mark a provider failed after a newer o
 		}
 		return { ok: true, json: async () => USAGE_PAYLOAD } as Response; // the newer refresh succeeds
 	}) as typeof fetch;
-	gentleShell(pi, { GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => now });
+	gentleShell(pi, { NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, { fetch: fetchFn, now: () => now });
 	const { ctx, ui } = fakeContext({ token: JWT });
 	await fire(handlers, "session_start", ctx);
 	await settle();
@@ -5629,7 +5629,7 @@ test("active profile reader prefers a session binding, labels it (session), and 
 	writeFileSync(path, JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, active: "team", profiles: { team: {}, work: {} } }));
 	resetSessionProfileBindingsForTesting();
 	bindSessionProfile("session-1", "work", { worker: { model: "zai/glm-4.7" } });
-	const read = createActiveProfileReader({ GENTLE_PI_CONFIG_HOME: root });
+	const read = createActiveProfileReader({ NUB_IA_CONFIG_HOME: root });
 	assert.equal(read(), "team", "an unbound reader still reads the global active profile");
 	read.bind(root, () => undefined, "session-1");
 	assert.equal(read(), "work (session)", "a bound session outranks the global active profile");
@@ -5648,7 +5648,7 @@ test("active profile reader keeps the pin label when a different session is boun
 	writeFileSync(join(root, "profiles.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, active: "team", profiles: { team: {}, work: {} } }));
 	resetSessionProfileBindingsForTesting();
 	bindSessionProfile("session-other", "work", { worker: { model: "zai/glm-4.7" } });
-	const read = createActiveProfileReader({ GENTLE_PI_CONFIG_HOME: root });
+	const read = createActiveProfileReader({ NUB_IA_CONFIG_HOME: root });
 	read.bind(root, () => ({ root, commonDir: root }), "session-1");
 	assert.equal(read(), "team", "no pin file and no binding for this session: the global active profile governs");
 	clearSessionProfileBinding("session-other");

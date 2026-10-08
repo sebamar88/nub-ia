@@ -26,13 +26,13 @@ export const RTK_INSTALL_HINT = "RTK off: no rtk binary — run `pnpm run instal
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /**
- * The rtk executable to use: an explicit GENTLE_SHELL_RTK_BIN, else the copy
+ * The rtk executable to use: an explicit NUB_IA_RTK_BIN, else the copy
  * the postinstall pinned under `<package>/.rtk/<version>/` (every Nub-IA
  * install ships it, so teammates need no separate rtk install), else a PATH
  * `rtk`.
  */
 export function resolveRtkBinary(env: NodeJS.ProcessEnv = process.env, root: string = PACKAGE_ROOT, platform: NodeJS.Platform = process.platform): string {
-	const explicit = env.GENTLE_SHELL_RTK_BIN;
+	const explicit = env.NUB_IA_RTK_BIN;
 	if (explicit && explicit.length > 0) return explicit;
 	const local = join(root, ".rtk", RTK_VERSION, platform === "win32" ? "rtk.exe" : "rtk");
 	return existsSync(local) ? local : "rtk";

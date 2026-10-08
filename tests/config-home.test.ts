@@ -37,27 +37,36 @@ function withHints(t: test.TestContext): string[] {
 	return messages;
 }
 
-test("readEnv returns the first defined name so NUB_IA_* outranks GENTLE_PI_*", () => {
-	assert.equal(readEnv({ NUB_IA_X: "new", GENTLE_PI_X: "old" }, "NUB_IA_X", "GENTLE_PI_X"), "new");
-	assert.equal(readEnv({ GENTLE_PI_X: "old" }, "NUB_IA_X", "GENTLE_PI_X"), "old");
-	assert.equal(readEnv({}, "NUB_IA_X", "GENTLE_PI_X"), undefined);
+test("readEnv returns the first defined name", () => {
+	assert.equal(readEnv({ NUB_IA_X: "new" }, "NUB_IA_X"), "new");
+	assert.equal(readEnv({}, "NUB_IA_X"), undefined);
 });
 
-test("config homes: NUB_IA_CONFIG_HOME, then legacy GENTLE_PI_CONFIG_HOME, then defaults", () => {
-	assert.equal(nubIaConfigHome({ NUB_IA_CONFIG_HOME: "/a", GENTLE_PI_CONFIG_HOME: "/b" }), "/a");
-	assert.equal(nubIaConfigHome({ GENTLE_PI_CONFIG_HOME: "/b" }), "/b");
+test("config homes: NUB_IA_CONFIG_HOME, then defaults", () => {
+	assert.equal(nubIaConfigHome({ NUB_IA_CONFIG_HOME: "/a" }), "/a");
 	assert.match(nubIaConfigHome({}), /[\\/]\.pi[\\/]nub-ia$/);
-	assert.equal(legacyConfigHome({ NUB_IA_CONFIG_HOME: "/a", GENTLE_PI_CONFIG_HOME: "/b" }), "/b");
-	assert.match(legacyConfigHome({}), /[\\/]\.pi[\\/]gentle-ai$/);
+	assert.match(legacyConfigHome(), /[\\/]\.pi[\\/]gentle-ai$/);
 });
+
+/** Point os.homedir() at `root` so the fixed legacy home (~/.pi/gentle-ai) lands inside the sandbox. */
+function withHome(t: test.TestContext, root: string): void {
+	const prior = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+	process.env.HOME = root;
+	process.env.USERPROFILE = root;
+	t.after(() => {
+		if (prior.HOME === undefined) delete process.env.HOME; else process.env.HOME = prior.HOME;
+		if (prior.USERPROFILE === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = prior.USERPROFILE;
+	});
+}
 
 test("reads prefer the nub-ia home, fall back to the legacy home, and hint once", (t) => {
 	const root = tmp(t);
-	const nub = join(root, "nub-ia");
-	const legacy = join(root, "gentle-ai");
-	mkdirSync(nub);
-	mkdirSync(legacy);
-	const env = { NUB_IA_CONFIG_HOME: nub, GENTLE_PI_CONFIG_HOME: legacy };
+	withHome(t, root);
+	const nub = join(root, ".pi", "nub-ia");
+	const legacy = join(root, ".pi", "gentle-ai");
+	mkdirSync(nub, { recursive: true });
+	mkdirSync(legacy, { recursive: true });
+	const env = { NUB_IA_CONFIG_HOME: nub };
 	const hints = withHints(t);
 
 	assert.equal(configReadPath(nub, "a.json", env), join(nub, "a.json"), "missing everywhere reports the canonical path");
@@ -75,14 +84,6 @@ test("reads prefer the nub-ia home, fall back to the legacy home, and hint once"
 	assert.equal(configReadPath(nub, "a.json", env), join(nub, "a.json"), "the nub-ia copy wins");
 });
 
-test("a legacy-only override (GENTLE_PI_CONFIG_HOME) is one home: no fallback, no hint", (t) => {
-	const home = tmp(t);
-	const hints = withHints(t);
-	const env = { GENTLE_PI_CONFIG_HOME: home };
-	assert.equal(configReadPath(home, "x.json", env), join(home, "x.json"));
-	assert.deepEqual(hints, []);
-});
-
 test("project reads prefer .pi/nub-ia and fall back to .pi/gentle-ai", (t) => {
 	const cwd = tmp(t);
 	const hints = withHints(t);
@@ -98,17 +99,16 @@ test("project reads prefer .pi/nub-ia and fall back to .pi/gentle-ai", (t) => {
 
 test("policy files: legacy value is read, the next save lands in the nub-ia home", (t) => {
 	const root = tmp(t);
-	const nub = join(root, "nub-ia");
-	const legacy = join(root, "gentle-ai");
-	mkdirSync(legacy);
+	withHome(t, root);
+	const nub = join(root, ".pi", "nub-ia");
+	const legacy = join(root, ".pi", "gentle-ai");
+	mkdirSync(legacy, { recursive: true });
 	writeFileSync(join(legacy, "animations.json"), '{"schema":"gentle-pi.animations/v1","policy":"potato"}');
-	const prior = { nub: process.env.NUB_IA_CONFIG_HOME, old: process.env.GENTLE_PI_CONFIG_HOME };
+	const prior = { nub: process.env.NUB_IA_CONFIG_HOME };
 	process.env.NUB_IA_CONFIG_HOME = nub;
-	process.env.GENTLE_PI_CONFIG_HOME = legacy;
 	withHints(t);
 	t.after(() => {
 		if (prior.nub === undefined) delete process.env.NUB_IA_CONFIG_HOME; else process.env.NUB_IA_CONFIG_HOME = prior.nub;
-		if (prior.old === undefined) delete process.env.GENTLE_PI_CONFIG_HOME; else process.env.GENTLE_PI_CONFIG_HOME = prior.old;
 	});
 
 	assert.equal(resolveAnimationPolicy({ gentlePiConfigHome: nub }).policy, "potato");
@@ -119,17 +119,16 @@ test("policy files: legacy value is read, the next save lands in the nub-ia home
 
 test("profiles store: read path falls back, write path is nub-ia", (t) => {
 	const root = tmp(t);
-	const nub = join(root, "nub-ia");
-	const legacy = join(root, "gentle-ai");
-	mkdirSync(legacy);
+	withHome(t, root);
+	const nub = join(root, ".pi", "nub-ia");
+	const legacy = join(root, ".pi", "gentle-ai");
+	mkdirSync(legacy, { recursive: true });
 	writeFileSync(join(legacy, "profiles.json"), "{}");
 	withHints(t);
-	const prior = { nub: process.env.NUB_IA_CONFIG_HOME, old: process.env.GENTLE_PI_CONFIG_HOME };
+	const prior = { nub: process.env.NUB_IA_CONFIG_HOME };
 	process.env.NUB_IA_CONFIG_HOME = nub;
-	process.env.GENTLE_PI_CONFIG_HOME = legacy;
 	t.after(() => {
 		if (prior.nub === undefined) delete process.env.NUB_IA_CONFIG_HOME; else process.env.NUB_IA_CONFIG_HOME = prior.nub;
-		if (prior.old === undefined) delete process.env.GENTLE_PI_CONFIG_HOME; else process.env.GENTLE_PI_CONFIG_HOME = prior.old;
 	});
 	assert.equal(profilesReadFilePath(nub), join(legacy, "profiles.json"));
 	assert.equal(profilesFilePath(nub), join(nub, "profiles.json"));
@@ -152,7 +151,7 @@ test("project background-subagents file is read from .pi/nub-ia before .pi/gentl
 		mkdirSync(join(cwd, ".pi", dir), { recursive: true });
 		writeFileSync(join(cwd, ".pi", dir, "background-subagents.json"), JSON.stringify({ schema: "gentle-pi.background-subagents/v1", policy }));
 	};
-	const env = { GENTLE_PI_CONFIG_HOME: home };
+	const env = { NUB_IA_CONFIG_HOME: home };
 	file("gentle-ai", "on");
 	const legacy = resolveBackgroundSubagentsPolicy(cwd, { env, gentlePiConfigHome: home });
 	assert.equal(legacy.source, "project_file");
@@ -162,23 +161,19 @@ test("project background-subagents file is read from .pi/nub-ia before .pi/gentl
 	assert.match(canonical.projectFile, /nub-ia/);
 });
 
-test("NUB_IA_* env aliases outrank the legacy GENTLE_PI_* variables", (t) => {
+test("NUB_IA_* env switches drive the policies", (t) => {
 	const home = tmp(t);
-	const base = { GENTLE_PI_CONFIG_HOME: home };
-	assert.equal(resolveDoubleEscCancelPolicy({ env: { ...base, GENTLE_PI_DOUBLE_ESC_CANCEL: "off" } }).policy, "off");
-	assert.equal(resolveDoubleEscCancelPolicy({ env: { ...base, GENTLE_PI_DOUBLE_ESC_CANCEL: "on" } }).policy, "on");
-	assert.equal(resolveDoubleEscCancelPolicy({ env: { ...base, NUB_IA_DOUBLE_ESC_CANCEL: "off", GENTLE_PI_DOUBLE_ESC_CANCEL: "on" } }).policy, "off");
+	const base = { NUB_IA_CONFIG_HOME: home };
+	assert.equal(resolveDoubleEscCancelPolicy({ env: { ...base, NUB_IA_DOUBLE_ESC_CANCEL: "off" } }).policy, "off");
 	assert.equal(resolveDoubleEscCancelPolicy({ env: { ...base, NUB_IA_DOUBLE_ESC_CANCEL: "on" } }).policy, "on");
 
-	assert.equal(resolveBackgroundSubagentsPolicy(home, { env: { ...base, NUB_IA_BACKGROUND_SUBAGENTS: "on", GENTLE_PI_BACKGROUND_SUBAGENTS: "off" }, gentlePiConfigHome: home }).policy, "on");
-	assert.equal(resolveBackgroundSubagentsPolicy(home, { env: { ...base, GENTLE_PI_BACKGROUND_SUBAGENTS: "on" }, gentlePiConfigHome: home }).policy, "on");
+	assert.equal(resolveBackgroundSubagentsPolicy(home, { env: { ...base, NUB_IA_BACKGROUND_SUBAGENTS: "on" }, gentlePiConfigHome: home }).policy, "on");
 
-	assert.equal(quietToolsEnabled({ GENTLE_PI_QUIET_TOOLS: "0" }), false);
-	assert.equal(quietToolsEnabled({ NUB_IA_QUIET_TOOLS: "1", GENTLE_PI_QUIET_TOOLS: "0" }), true);
 	assert.equal(quietToolsEnabled({ NUB_IA_QUIET_TOOLS: "0" }), false);
+	assert.equal(quietToolsEnabled({ NUB_IA_QUIET_TOOLS: "1" }), true);
 
-	const off = resolveHistoryCapture({ env: { ...base, NUB_IA_HISTORY_CAPTURE: "off", GENTLE_PI_HISTORY_CAPTURE: "on" }, gentlePiConfigHome: home });
-	const on = resolveHistoryCapture({ env: { ...base, GENTLE_PI_HISTORY_CAPTURE: "on" }, gentlePiConfigHome: home });
+	const off = resolveHistoryCapture({ env: { ...base, NUB_IA_HISTORY_CAPTURE: "off" }, gentlePiConfigHome: home });
+	const on = resolveHistoryCapture({ env: { ...base, NUB_IA_HISTORY_CAPTURE: "on" }, gentlePiConfigHome: home });
 	assert.equal(off.enabled, false);
 	assert.equal(on.enabled, true);
 });

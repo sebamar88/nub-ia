@@ -117,7 +117,7 @@ function run(tool: RegisteredTool, params: unknown, ctx: unknown): Promise<ToolR
 	return tool.execute("call", params, new AbortController().signal, undefined, ctx);
 }
 
-const INTERACTIVE_HOST_ENV = "GENTLE_SHELL_INTERACTIVE_HOST";
+const INTERACTIVE_HOST_ENV = "NUB_IA_INTERACTIVE_HOST";
 
 /** Fake interactive-RPC-host ctx: scripted `select` answers, one per call. */
 function rpcHostContext(selectAnswers: readonly (string | undefined)[]) {

@@ -59,13 +59,13 @@ const TOOL_PARAMETERS = {
 } as const;
 
 export function todoEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-	if (env.GENTLE_PI_AGENTS_CHILD === "1") return false;
-	const value = env.GENTLE_PI_TODO?.trim().toLowerCase();
+	if (env.NUB_IA_AGENTS_CHILD === "1") return false;
+	const value = env.NUB_IA_TODO?.trim().toLowerCase();
 	return !(value === "0" || value === "false" || value === "off");
 }
 
 export function todoCollapseKey(env: NodeJS.ProcessEnv = process.env): string | undefined {
-	const value = env.GENTLE_PI_TODO_KEY?.trim();
+	const value = env.NUB_IA_TODO_KEY?.trim();
 	if (value === undefined) return COLLAPSE_KEY_DEFAULT;
 	return value === "" || value.toLowerCase() === "off" ? undefined : value;
 }

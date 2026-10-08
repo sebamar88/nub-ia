@@ -1,4 +1,4 @@
-// gentle-shell#1587: delegated children (GENTLE_PI_AGENTS_CHILD=1) load the
+// gentle-shell#1587: delegated children (NUB_IA_AGENTS_CHILD=1) load the
 // same context files as the orchestrator, including gentle-ai managed blocks
 // that bind themselves to the orchestrator only. Those blocks cost ~37k prefix
 // tokens per child and give a worker orchestration rules it must not follow.

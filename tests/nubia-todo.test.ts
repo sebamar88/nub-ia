@@ -78,13 +78,13 @@ function fakeContext(branch: unknown[] = [], hasUI = true) {
 
 test("todoEnabled and todoCollapseKey read their environment flags", () => {
 	assert.equal(todoEnabled({}), true);
-	assert.equal(todoEnabled({ GENTLE_PI_TODO: "0" }), false);
-	assert.equal(todoEnabled({ GENTLE_PI_AGENTS_CHILD: "1" }), false);
+	assert.equal(todoEnabled({ NUB_IA_TODO: "0" }), false);
+	assert.equal(todoEnabled({ NUB_IA_AGENTS_CHILD: "1" }), false);
 	assert.equal(todoCollapseKey({}), "ctrl+shift+t");
-	assert.equal(todoCollapseKey({ GENTLE_PI_TODO_KEY: "alt+t" }), "alt+t");
-	assert.equal(todoCollapseKey({ GENTLE_PI_TODO_KEY: "off" }), undefined);
+	assert.equal(todoCollapseKey({ NUB_IA_TODO_KEY: "alt+t" }), "alt+t");
+	assert.equal(todoCollapseKey({ NUB_IA_TODO_KEY: "off" }), undefined);
 	const off = fakePi();
-	gentleTodo(off.pi, { GENTLE_PI_TODO: "off" });
+	gentleTodo(off.pi, { NUB_IA_TODO: "off" });
 	assert.equal(off.tools.size, 0);
 });
 

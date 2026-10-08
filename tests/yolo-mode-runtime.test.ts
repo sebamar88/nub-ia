@@ -91,7 +91,7 @@ for (const shellFirst of [false, true]) test(`SDK loads both extensions on one b
 	const home = mkdtempSync(join(tmpdir(), "yolo-sdk-menu-"));
 	t.after(() => rmSync(home, { recursive: true, force: true }));
 	const cwd = process.cwd(), runtime = createExtensionRuntime(), bus = createEventBus();
-	const env = { GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" };
+	const env = { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" };
 	const ownerFactory = createGentleAiExtension({ processEnv: env,
 	});
 	const shellFactory = (pi: Parameters<typeof gentleShell>[0]) => gentleShell(pi, env, {

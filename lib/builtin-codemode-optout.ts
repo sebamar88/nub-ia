@@ -127,7 +127,7 @@ function writeSettingsAtomically(path: string, data: string): void {
 function promptMessage(settingsPath: string): string {
 	return [
 		"Pi warns at startup that the builtin codemode extension was not loaded, because Nub-IA replaces it with its compact codemode renderer.",
-		`Adding "${BUILTIN_CODEMODE_OPTOUT_ENTRY}" to the "extensions" list in ${settingsPath} silences that warning from the next launch. gentle-pi keeps its compact codemode either way.`,
+		`Adding "${BUILTIN_CODEMODE_OPTOUT_ENTRY}" to the "extensions" list in ${settingsPath} silences that warning from the next launch. Nub-IA keeps its compact codemode either way.`,
 		"Nothing is written unless you accept. If you decline, Nub-IA will not ask again.",
 	].join("\n\n");
 }

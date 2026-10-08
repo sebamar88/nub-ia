@@ -201,7 +201,7 @@ async function captureOverlayOptions(terminal: object): Promise<OverlayOptions> 
       },
     } as never,
     {
-      env: { GENTLE_PI_HISTORY_CAPTURE: "1" },
+      env: { NUB_IA_HISTORY_CAPTURE: "1" },
       gentlePiConfigHome: fs.mkdtempSync(
         path.join(os.tmpdir(), "pi-history-margin-config-"),
       ),

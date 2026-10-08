@@ -69,7 +69,7 @@ function fixture(t: test.TestContext, order = "owner-first", env: NodeJS.Process
 	} as unknown as ExtensionContext;
 	let controller: yolo.YoloSessionController | undefined;
 	const owner = () => { controller = yolo.registerYoloSessionPolicy(pi, env); };
-	const shell = () => gentleShell(pi, { ...env, GENTLE_PI_CONFIG_HOME: home, GENTLE_PI_SHELL_CHANGES_WATCH_MS: "off" }, {
+	const shell = () => gentleShell(pi, { ...env, NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, {
 		fetch: async () => { assert.fail("network disabled"); }, activeProfile: () => undefined, 
 	});
 	if (order === "owner-first") { owner(); shell(); }
@@ -188,7 +188,7 @@ test("off wins over pending menu on; child/headless/RPC cannot acquire adapter a
 	open.close(); await open.result;
 	assert.equal(typeof yolo.discoverYoloUiAdapter, "function");
 	for (const variant of ["child", "headless", "rpc", "missing-clone"]) {
-		const f = fixture(t, "owner-first", variant === "child" ? { GENTLE_PI_AGENTS_CHILD: "1" } : {});
+		const f = fixture(t, "owner-first", variant === "child" ? { NUB_IA_AGENTS_CHILD: "1" } : {});
 		if (variant === "headless") Object.assign(f.ctx, { hasUI: false });
 		if (variant === "rpc") Object.assign(f.ctx, { mode: "rpc" });
 		if (variant === "missing-clone") Object.assign(f.ctx, { cwd: "/" });

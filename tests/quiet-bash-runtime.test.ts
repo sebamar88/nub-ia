@@ -60,8 +60,8 @@ if (process.env.GENTLE_TEST_BASH_CHILD === "1") {
 		const agentDir = join(home, "agent");
 		for (const path of [cwd, agentDir]) mkdirSync(path, { recursive: true });
 		const env = { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, "config"),
-			PI_CODING_AGENT_DIR: agentDir, GENTLE_PI_AGENT_HOME: agentDir, GENTLE_PI_CONFIG_HOME: join(home, "gentle-config"),
-			PI_OFFLINE: "1", GENTLE_PI_QUIET_TOOLS: "1", GENTLE_TEST_BASH_CHILD: "1", GENTLE_TEST_SHELL: shell };
+			PI_CODING_AGENT_DIR: agentDir, NUB_IA_AGENT_HOME: agentDir, NUB_IA_CONFIG_HOME: join(home, "gentle-config"),
+			PI_OFFLINE: "1", NUB_IA_QUIET_TOOLS: "1", GENTLE_TEST_BASH_CHILD: "1", GENTLE_TEST_SHELL: shell };
 		try {
 			const result = spawnSync(process.execPath, ["--experimental-strip-types", fileURLToPath(import.meta.url)],
 				{ cwd, env, encoding: "utf8", timeout: 30_000 });

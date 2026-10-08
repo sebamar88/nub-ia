@@ -10,8 +10,8 @@ import {
 
 const envWith = (value: string | undefined) => ({ [CHILD_PACKAGE_INJECTION_ENV]: value });
 
-test("the env name follows the GENTLE_SHELL_* launcher naming", () => {
-	assert.equal(CHILD_PACKAGE_INJECTION_ENV, "GENTLE_SHELL_CHILD_PACKAGE_INJECTION");
+test("the env name follows the NUB_IA_* launcher naming", () => {
+	assert.equal(CHILD_PACKAGE_INJECTION_ENV, "NUB_IA_CHILD_PACKAGE_INJECTION");
 });
 
 test("encode and parse round-trip both launcher shapes", () => {

@@ -5,8 +5,8 @@
 // falls back to a PATH `rtk` or passes commands through unchanged.
 import { RTK_VERSION, installRtk } from "./rtk-installer.mjs";
 
-if (process.env.GENTLE_PI_SKIP_RTK_INSTALL === "1") {
-	console.warn("GENTLE_PI_SKIP_RTK_INSTALL=1: skipped the package-local rtk install; the rtk-rewrite extension will use a PATH rtk if present.");
+if (process.env.NUB_IA_SKIP_RTK_INSTALL === "1") {
+	console.warn("NUB_IA_SKIP_RTK_INSTALL=1: skipped the package-local rtk install; the rtk-rewrite extension will use a PATH rtk if present.");
 } else {
 	try {
 		const result = await installRtk();

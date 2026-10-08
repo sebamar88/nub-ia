@@ -74,9 +74,9 @@ export function parseBackgroundSubagentsPolicyFile(
  * Resolution order (first hit wins, mirroring loadRuntimeGuardrailsConfig):
  *   1. Project file `${cwd}/.pi/nub-ia/background-subagents.json` (legacy `.pi/gentle-ai/` read as fallback)
  *   2. Global file `${configHome}/background-subagents.json`
- *      (configHome honors NUB_IA_CONFIG_HOME / legacy GENTLE_PI_CONFIG_HOME, default ~/.pi/nub-ia,
+ *      (configHome honors NUB_IA_CONFIG_HOME, default ~/.pi/nub-ia,
  *      falling back to ~/.pi/gentle-ai when the file is absent there)
- *   3. Env var NUB_IA_BACKGROUND_SUBAGENTS (legacy GENTLE_PI_BACKGROUND_SUBAGENTS) ("on" | "off")
+ *   3. Env var NUB_IA_BACKGROUND_SUBAGENTS ("on" | "off")
  *   4. Default "off"
  *
  * A present-but-malformed file fails closed to "off" instead of falling
@@ -93,7 +93,7 @@ export function resolveBackgroundSubagentsPolicy(
 	options: LoadBackgroundSubagentsOptions = {},
 ): BackgroundSubagentsResolution {
 	const env = options.env ?? process.env;
-	const envValue = readEnv(env, "NUB_IA_BACKGROUND_SUBAGENTS", "GENTLE_PI_BACKGROUND_SUBAGENTS");
+	const envValue = readEnv(env, "NUB_IA_BACKGROUND_SUBAGENTS");
 	let projectFile = "";
 	let globalFile = "";
 	try {

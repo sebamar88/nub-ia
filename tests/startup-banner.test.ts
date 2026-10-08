@@ -12,7 +12,7 @@ import { stripAnsi } from "../lib/terminal-theme.ts";
 
 // The banner reads process.env directly; a suite launched from a delegated
 // child must still exercise the parent paths (gentle-shell#1690).
-delete process.env.GENTLE_PI_AGENTS_CHILD;
+delete process.env.NUB_IA_AGENTS_CHILD;
 
 test("startup artwork is the traced Nubiral wordmark and isologo with aligned animation spans", () => {
 	const source = readFileSync(new URL("../extensions/startup-banner.ts", import.meta.url), "utf8");
@@ -49,11 +49,11 @@ test("startup branch lookup uses direct git argv and hides its Windows child", a
 test("startup banner keeps animating after invalidate and cleans up on dispose", async (t) => {
 	const home = mkdtempSync(join(tmpdir(), "gp-banner-quality-"));
 	writeFileSync(join(home, "animations.json"), '{"schema":"gentle-pi.animations/v1","policy":"quality"}');
-	const previousHome = process.env.GENTLE_PI_CONFIG_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = home;
+	const previousHome = process.env.NUB_IA_CONFIG_HOME;
+	process.env.NUB_IA_CONFIG_HOME = home;
 	t.after(() => {
-		if (previousHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousHome;
+		if (previousHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousHome;
 		rmSync(home, { recursive: true, force: true });
 	});
 	t.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"] });
@@ -99,11 +99,11 @@ test("startup banner keeps animating after invalidate and cleans up on dispose",
 
 test("animation modes retain banner lifetime policy, final artwork and approximate duration", async (t) => {
 	const home = mkdtempSync(join(tmpdir(), "gp-banner-animations-"));
-	const previousHome = process.env.GENTLE_PI_CONFIG_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = home;
+	const previousHome = process.env.NUB_IA_CONFIG_HOME;
+	process.env.NUB_IA_CONFIG_HOME = home;
 	t.after(() => {
-		if (previousHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousHome;
+		if (previousHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousHome;
 		rmSync(home, { recursive: true, force: true });
 	});
 	t.mock.method(fs, "readFile", async () => JSON.stringify({ showRose: true, showTextLogo: true, color: "pink" }));
@@ -371,18 +371,18 @@ test("launcher-injected extension directories do not suppress the startup banner
 // gentle-shell#1690: a delegated rpc child has hasUI=true; only a piped stdout
 // without rows/columns kept the banner off before the explicit child guard.
 test("delegated children never paint the startup banner", async (t) => {
-	const previousChild = process.env.GENTLE_PI_AGENTS_CHILD;
-	process.env.GENTLE_PI_AGENTS_CHILD = "1";
+	const previousChild = process.env.NUB_IA_AGENTS_CHILD;
+	process.env.NUB_IA_AGENTS_CHILD = "1";
 	t.after(() => {
-		if (previousChild === undefined) delete process.env.GENTLE_PI_AGENTS_CHILD;
-		else process.env.GENTLE_PI_AGENTS_CHILD = previousChild;
+		if (previousChild === undefined) delete process.env.NUB_IA_AGENTS_CHILD;
+		else process.env.NUB_IA_AGENTS_CHILD = previousChild;
 	});
 	const home = mkdtempSync(join(tmpdir(), "gp-banner-child-"));
-	const previousHome = process.env.GENTLE_PI_CONFIG_HOME;
-	process.env.GENTLE_PI_CONFIG_HOME = home;
+	const previousHome = process.env.NUB_IA_CONFIG_HOME;
+	process.env.NUB_IA_CONFIG_HOME = home;
 	t.after(() => {
-		if (previousHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousHome;
+		if (previousHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousHome;
 		rmSync(home, { recursive: true, force: true });
 	});
 	t.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"] });

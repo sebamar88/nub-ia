@@ -101,7 +101,7 @@ test("the capture gate precedes every store touch in the open flow (#1390)", () 
     source.indexOf("\n}", source.indexOf("function captureDisabledMessage(")),
   );
   assert.ok(
-    message.includes("GENTLE_PI_HISTORY_CAPTURE") &&
+    message.includes("NUB_IA_HISTORY_CAPTURE") &&
       message.includes("Gentle → Customize → History"),
     "the disabled warning names both the env switch and the Customize control",
   );

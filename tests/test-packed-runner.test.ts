@@ -12,7 +12,7 @@ test("packed runner targets the nub-ia package, not gentle-pi", () => {
 });
 
 test("packed runner never downloads rtk during its install and checks the bundled launcher", () => {
-	assert.match(runner, /GENTLE_PI_SKIP_RTK_INSTALL: "1"/);
+	assert.match(runner, /NUB_IA_SKIP_RTK_INSTALL: "1"/);
 	assert.match(runner, /bin\/nub-ia\.mjs/);
 	assert.match(runner, /assets\/nub-ia-logo\.png/);
 });

@@ -121,7 +121,7 @@ async function acquireLock(path) {
  */
 export async function installTuiModeSetting(options = {}) {
 	const env = options.env ?? process.env;
-	const requestedHome = resolve(env.GENTLE_PI_AGENT_HOME || env.PI_CODING_AGENT_DIR || join(options.home ?? homedir(), ".pi", "agent"));
+	const requestedHome = resolve(env.NUB_IA_AGENT_HOME || env.PI_CODING_AGENT_DIR || join(options.home ?? homedir(), ".pi", "agent"));
 	const packageRoot = resolve(options.packageRoot ?? dirname(dirname(fileURLToPath(import.meta.url))));
 	let home;
 	try { home = realpathSync(requestedHome); }

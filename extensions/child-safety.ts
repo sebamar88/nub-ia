@@ -10,7 +10,7 @@ export function blockChildDestructiveCommand(command: string): ToolCallEventResu
 // primary is inert. No UI or inherited delivery permission can waive this guard.
 export function createChildSafetyExtension(env: NodeJS.ProcessEnv = process.env): (pi: ExtensionAPI) => void {
 	return (pi) => {
-		if (env.GENTLE_PI_AGENTS_CHILD !== "1") return;
+		if (env.NUB_IA_AGENTS_CHILD !== "1") return;
 		pi.on("tool_call", (event) => {
 			if (event.toolName !== "bash" || typeof event.input.command !== "string") return undefined;
 			return blockChildDestructiveCommand(event.input.command);

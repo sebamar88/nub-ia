@@ -89,17 +89,17 @@ afterEach(stopActiveSessions);
 // subagent_run's default mode now reads the background-subagents policy
 // in-process (gentle-pi#background-subagents-default-mode), which falls
 // back to the real ~/.pi/gentle-ai/background-subagents.json when
-// GENTLE_PI_CONFIG_HOME is unset. Point it at an empty scratch directory so
+// NUB_IA_CONFIG_HOME is unset. Point it at an empty scratch directory so
 // this file's expectations never depend on the developer's own global
 // policy file (a real "on" file on the runner's machine would otherwise
 // flip every unrelated fixture's default mode to background).
-const previousGentlePiConfigHome = process.env.GENTLE_PI_CONFIG_HOME;
-process.env.GENTLE_PI_CONFIG_HOME = join(root, "gentle-ai-config-home");
+const previousGentlePiConfigHome = process.env.NUB_IA_CONFIG_HOME;
+process.env.NUB_IA_CONFIG_HOME = join(root, "gentle-ai-config-home");
 after(async () => {
 	try { await stopActiveSessions(); }
 	finally {
-		if (previousGentlePiConfigHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME;
-		else process.env.GENTLE_PI_CONFIG_HOME = previousGentlePiConfigHome;
+		if (previousGentlePiConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousGentlePiConfigHome;
 		rmSync(root, { recursive: true, force: true });
 	}
 });
@@ -352,7 +352,7 @@ function deps(): { deps: Partial<AgentsDeps>; children: FakeChild[]; spawned: st
 	};
 }
 
-test("cache warming follows actual Gentle Agents ownership and completion lifecycle", async (t) => {
+test("cache warming follows actual Nub-IA Agents ownership and completion lifecycle", async (t) => {
 	const h = fakePi();
 	const runtime = deps();
 	let store: TaskStore | undefined;
@@ -518,7 +518,7 @@ function fakeScheduler() {
 }
 
 for (const scenario of [
-	{ label: "an interactive RPC host", mode: "rpc", env: { PATH: "/bin", GENTLE_SHELL_INTERACTIVE_HOST: "1" }, expectPublish: true },
+	{ label: "an interactive RPC host", mode: "rpc", env: { PATH: "/bin", NUB_IA_INTERACTIVE_HOST: "1" }, expectPublish: true },
 	{ label: "plain RPC without the interactive-host variable", mode: "rpc", env: { PATH: "/bin" }, expectPublish: false },
 	{ label: "TUI", mode: "tui", env: { PATH: "/bin" }, expectPublish: false },
 ] as const) {
@@ -565,7 +565,7 @@ test("gentle-agents notifies once, deduplicated, when the RPC activity publisher
 	const runtime = deps();
 	const scheduler = fakeScheduler();
 	runtime.deps.schedule = scheduler.schedule;
-	runtime.deps.env = { PATH: "/bin", GENTLE_SHELL_INTERACTIVE_HOST: "1" };
+	runtime.deps.env = { PATH: "/bin", NUB_IA_INTERACTIVE_HOST: "1" };
 	gentleAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	Object.assign(ctx, { mode: "rpc", hasUI: true });
@@ -599,7 +599,7 @@ test("gentle-agents' RPC activity payload excludes a restored task from another 
 	const runtime = deps();
 	const scheduler = fakeScheduler();
 	runtime.deps.schedule = scheduler.schedule;
-	runtime.deps.env = { PATH: "/bin", GENTLE_SHELL_INTERACTIVE_HOST: "1" };
+	runtime.deps.env = { PATH: "/bin", NUB_IA_INTERACTIVE_HOST: "1" };
 	const historyHome = join(root, "rpc-restore-history-home");
 	const own: TaskRecord = { id: "own-1", agent: "explore-a", mode: "background", prompt: "p", label: "p", cwd, parentSessionId: "resumed-session", status: TASK_STATUS.COMPLETED, createdAt: 1, startedAt: 1, endedAt: 100, model: "m", thinking: undefined, sessionPath: null, error: null, result: "done", lastStep: "responded", lastActivityAt: 100, turns: 1, toolCalls: 0, tokens: 0, cost: 0 };
 	const other: TaskRecord = { ...own, id: "not-mine", agent: "explore-other", parentSessionId: "other-session" };
@@ -1147,7 +1147,7 @@ test("child parent-message tooling admits notifications and the active parent pr
 	const child = fakePi();
 	const listeners = new Map<string, Array<(value: Record<string, unknown>) => void>>();
 	const frames: Array<Record<string, unknown>> = [];
-	gentleAgents(child.pi, { GENTLE_PI_AGENTS_CHILD: "1", GENTLE_PI_AGENTS_OWNED_IPC: "fixture" }, {
+	gentleAgents(child.pi, { NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: "fixture" }, {
 		childIpc: {
 			send: (frame: Record<string, unknown>) => { frames.push(frame); return true; },
 			on: (event: string, listener: (value: Record<string, unknown>) => void) => listeners.set(event, [...(listeners.get(event) ?? []), listener]),
@@ -1575,10 +1575,10 @@ test("live-only directory traverses presence overflow, excludes expired and othe
 });
 
 test("retired managed SDD child envelopes deny all tools without registering a delegation host", () => {
-	for (const env of [{ GENTLE_PI_RESEARCH_TOOLS: '["read"]' }, { GENTLE_PI_RESEARCH_SELECTION: '{}' }, { GENTLE_PI_RESEARCH_ARTIFACT: '{}' }, { GENTLE_PI_SDD_REMEDIATION_PLAN: '{}' }]) {
+	for (const env of [{ NUB_IA_RESEARCH_TOOLS: '["read"]' }, { NUB_IA_RESEARCH_SELECTION: '{}' }, { NUB_IA_RESEARCH_ARTIFACT: '{}' }, { NUB_IA_SDD_REMEDIATION_PLAN: '{}' }]) {
 		const hooks = new Map<string, (event: { toolName: string }) => { block: boolean }>();
 		const pi = { on: (name: string, handler: (event: { toolName: string }) => { block: boolean }) => hooks.set(name, handler) } as never;
-		gentleAgents(pi, { GENTLE_PI_AGENTS_CHILD: "1", ...env });
+		gentleAgents(pi, { NUB_IA_AGENTS_CHILD: "1", ...env });
 		assert.equal(hooks.get("tool_call")!({ toolName: "read" }).block, true);
 		assert.equal(hooks.get("tool_call")!({ toolName: "bash" }).block, true);
 	}
@@ -1632,7 +1632,7 @@ for (const matching of [true, false]) {
 
 // Runs the CHILD half of installSessionChangeCapture against a real repo, the
 // same way an actual subagent process would: a tool_call/tool_result pair
-// with GENTLE_PI_AGENTS_CHILD set, using the real git-backed resolver rather
+// with NUB_IA_AGENTS_CHILD set, using the real git-backed resolver rather
 // than a stub. Returns exactly the evidence object the child would put in
 // its tool result's details.gentleSessionChange.
 async function childSessionChangeEvidence(root: string, relPath: string, toolCallId: string, content: string): Promise<SessionChangeEvidence> {
@@ -1643,7 +1643,7 @@ async function childSessionChangeEvidence(root: string, relPath: string, toolCal
 		events: { on: () => () => {}, emit: () => {} },
 	} as unknown as ExtensionAPI;
 	const childCtx = { cwd: root, sessionManager: { getSessionId: () => "child-session", getEntries: () => [] } } as unknown as ExtensionContext;
-	installSessionChangeCapture(childPi, { GENTLE_PI_AGENTS_CHILD: "1" }, resolveSessionWorktree);
+	installSessionChangeCapture(childPi, { NUB_IA_AGENTS_CHILD: "1" }, resolveSessionWorktree);
 	await handlers.get("session_start")?.({}, childCtx);
 	const event = { toolCallId, toolName: "write", input: { path: relPath, content } };
 	await handlers.get("tool_call")?.(event, childCtx);
@@ -1661,7 +1661,7 @@ async function childSessionEditEvidence(root: string, relPath: string, toolCallI
 		events: { on: () => () => {}, emit: () => {} },
 	} as unknown as ExtensionAPI;
 	const childCtx = { cwd: root, sessionManager: { getSessionId: () => "child-session", getEntries: () => [] } } as unknown as ExtensionContext;
-	installSessionChangeCapture(childPi, { GENTLE_PI_AGENTS_CHILD: "1" }, resolveSessionWorktree);
+	installSessionChangeCapture(childPi, { NUB_IA_AGENTS_CHILD: "1" }, resolveSessionWorktree);
 	await handlers.get("session_start")?.({}, childCtx);
 	writeFileSync(join(root, relPath), before);
 	const event = { toolCallId, toolName: "edit", input: { path: relPath, oldText: before, newText: after } };
@@ -2082,12 +2082,12 @@ test("default Node spawn adapter launches IPC-only children, canonical Git or no
 		const args = ["--host-flag", "--mode", "rpc", "--session-dir", join(home, ".pi", "agent", "gentle-agents", "sessions"), ...childContextExtensionPaths().flatMap((path) => ["--extension", path]), "--model", "openai-codex/gpt-5.6-terra:low", "--tools", "read,grep,subagent_parent_message", "--append-system-prompt", "You map things."];
 		assert.equal(captured.length, 3, "the extension reaches Node's spawn boundary for IPC-only and permission-channel launches");
 		for (const [index, fixture] of ["task", "background", "permission"].entries()) {
-			const ownedIpc = captured[index]?.options.env.GENTLE_PI_AGENTS_OWNED_IPC;
+			const ownedIpc = captured[index]?.options.env.NUB_IA_AGENTS_OWNED_IPC;
 			assert.match(ownedIpc ?? "", /^\d+-[a-z0-9]+$/, "the child receives an opaque owned-IPC marker");
 			assert.equal(captured[index]?.command, "/fixture/pi");
 			assert.deepEqual(captured[index]?.args, args);
 			assert.equal(captured[index]?.options.cwd, index === 2 ? canonicalGitCwd : nonGitCwd);
-			assert.deepEqual(captured[index]?.options.env, { PATH: "/bin", FIXTURE: fixture, GENTLE_PI_AGENTS_CHILD: "1", GENTLE_PI_AGENTS_OWNED_IPC: ownedIpc });
+			assert.deepEqual(captured[index]?.options.env, { PATH: "/bin", FIXTURE: fixture, NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: ownedIpc });
 			assert.equal(captured[index]?.options.shell, undefined, "the adapter does not invoke a shell");
 			assert.equal(captured[index]?.options.windowsHide, true, "the adapter always hides a Windows console");
 			assert.equal(captured[index]?.options.detached, process.platform !== "win32", "the adapter forwards the runner's platform selection");
@@ -2183,7 +2183,7 @@ test("foreign clone tool requires consent before queueing and never enters paren
 		mkdirSync(join(foreign, ".git", "gentle-ai"));
 		writeFileSync(join(foreign, ".git", "gentle-ai", "profile-pin.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profile_pin", version: 1, profile: "pinned" }));
 		const h = fakePi(), runtime = deps();
-		runtime.deps.env = { PATH: "/bin", GENTLE_PI_CONFIG_HOME: configHome };
+		runtime.deps.env = { PATH: "/bin", NUB_IA_CONFIG_HOME: configHome };
 		runtime.deps.resolveWorktree = resolveSessionWorktree;
 		const spawned: string[] = [];
 		const spawnEnvs: Array<Record<string, string | undefined>> = [];
@@ -2469,7 +2469,7 @@ test("foreign selector rejects RPC and retired SDD selections before consent", a
 		assert.match((await run.execute("foreign-sdd", { ...base, agent: "sdd-apply", sdd_change: { changeName: "alpha", workspaceRoot: foreign, phase: "apply" } }, undefined, undefined, ctx)).content[0].text, /retired SDD/);
 		assert.equal(existsSync(join(agentHome, ".pi", "agent", "sessions")), false, "foreign explicit selection rejection must precede child session directory creation");
 		const childHost = fakePi();
-		gentleAgents(childHost.pi, { GENTLE_PI_AGENTS_CHILD: "1" }, runtime.deps);
+		gentleAgents(childHost.pi, { NUB_IA_AGENTS_CHILD: "1" }, runtime.deps);
 		assert.equal(childHost.tools.has("subagent_run"), false, "child-originated foreign launches have no delegation tool");
 		assert.equal(dialogs.length, 0);
 		assert.equal(runtime.children.length, 0);
@@ -2656,7 +2656,7 @@ for (const scenario of ["implicit-worker", "explicit-worker", "implicit-nubia-wo
 		if (scenario === "profile-model" || scenario === "profile-valid") {
 			mkdirSync(join(project, ".pi", "gentle-ai"), { recursive: true });
 			writeFileSync(join(project, ".pi", "gentle-ai", "profile.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profile_pin", version: 1, profile: "invalid" }));
-			const config = runtime.deps.env!.GENTLE_PI_CONFIG_HOME = join(fixture, "config");
+			const config = runtime.deps.env!.NUB_IA_CONFIG_HOME = join(fixture, "config");
 			mkdirSync(config, { recursive: true });
 			writeFileSync(join(config, "profiles.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, profiles: { invalid: { worker: { model: scenario === "profile-valid" ? "offline/pinned-good" : "offline/bad" } } } }));
 		}
@@ -2716,7 +2716,7 @@ test("a session binding keeps writer admission and launch resolution in agreemen
 	const h = fakePi();
 	const runtime = deps();
 	runtime.deps.home = fixtureHome;
-	runtime.deps.env!.GENTLE_PI_CONFIG_HOME = configHome;
+	runtime.deps.env!.NUB_IA_CONFIG_HOME = configHome;
 	runtime.deps.resolveWorktree = resolveSessionWorktree;
 	gentleAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
@@ -2854,7 +2854,7 @@ test("extension resolves each profile environment at setup time without changing
 		return overrides;
 	};
 	const principal = fakePi();
-	gentleAgents(principal.pi, { GENTLE_PI_AGENT_HOME: principalHome, PI_CODING_AGENT_DIR: labHome }, withoutExplicitHome());
+	gentleAgents(principal.pi, { NUB_IA_AGENT_HOME: principalHome, PI_CODING_AGENT_DIR: labHome }, withoutExplicitHome());
 	const principalContext = fakeContext();
 	await principal.fire("session_start", principalContext.ctx);
 	assert.match((await principal.tools.get("subagent_list_agents")!.execute("p1", {}, undefined, undefined, principalContext.ctx)).content[0].text, /principal/);
@@ -2865,7 +2865,7 @@ test("extension resolves each profile environment at setup time without changing
 	assert.match((await lab.tools.get("subagent_list_agents")!.execute("l1", {}, undefined, undefined, labContext.ctx)).content[0].text, /lab/);
 });
 
-for (const [key, tilde] of [["GENTLE_PI_AGENT_HOME", false], ["PI_CODING_AGENT_DIR", false], ["GENTLE_PI_AGENT_HOME", true], ["PI_CODING_AGENT_DIR", true]] as const) {
+for (const [key, tilde] of [["NUB_IA_AGENT_HOME", false], ["PI_CODING_AGENT_DIR", false], ["NUB_IA_AGENT_HOME", true], ["PI_CODING_AGENT_DIR", true]] as const) {
 	test(`${key} ${tilde ? "tilde" : "relative"} profile shares an absolute parent and child session root`, async () => {
 		const agentHome = join(root, `${key}-${tilde}`, "agent");
 		mkdirSync(join(agentHome, "agents"), { recursive: true });
@@ -2931,7 +2931,7 @@ function pinFixture(name: string) {
 async function launchPinned(base: ReturnType<typeof pinFixture>): Promise<string> {
 	const harness = deps();
 	harness.deps.resolveWorktree = () => ({ root: base.root, commonDir: base.commonDir });
-	harness.deps.env = { PATH: "/bin", GENTLE_PI_CONFIG_HOME: base.configHome };
+	harness.deps.env = { PATH: "/bin", NUB_IA_CONFIG_HOME: base.configHome };
 	const { pi, tools, fire } = fakePi();
 	gentleAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
@@ -3025,7 +3025,7 @@ test("a queued launch keeps the session routing frozen across a rebind", async t
 	bindSessionProfile("s1", "first", { explore: { model: "openai/alpha", thinking: "minimal" } });
 	const harness = deps();
 	harness.deps.resolveWorktree = () => ({ root: base.root, commonDir: base.commonDir });
-	harness.deps.env = { PATH: "/bin", GENTLE_PI_CONFIG_HOME: base.configHome };
+	harness.deps.env = { PATH: "/bin", NUB_IA_CONFIG_HOME: base.configHome };
 	const { pi, tools, fire } = fakePi();
 	gentleAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
@@ -3049,17 +3049,17 @@ test("a queued launch keeps the session routing frozen across a rebind", async t
 
 test("agentsEnabled and agentsCollapseKey read their flags and stay off inside a child", () => {
 	assert.equal(agentsEnabled({}), true);
-	assert.equal(agentsEnabled({ GENTLE_PI_AGENTS: "off" }), false);
-	assert.equal(agentsEnabled({ GENTLE_PI_AGENTS_CHILD: "1" }), false);
+	assert.equal(agentsEnabled({ NUB_IA_AGENTS: "off" }), false);
+	assert.equal(agentsEnabled({ NUB_IA_AGENTS_CHILD: "1" }), false);
 	assert.equal(agentsCollapseKey({}), "ctrl+shift+a");
-	assert.equal(agentsCollapseKey({ GENTLE_PI_AGENTS_KEY: "off" }), undefined);
+	assert.equal(agentsCollapseKey({ NUB_IA_AGENTS_KEY: "off" }), undefined);
 	assert.equal(agentsViewKey({}), "alt+a");
-	assert.equal(agentsViewKey({ GENTLE_PI_AGENTS_VIEW_KEY: "off" }), undefined);
+	assert.equal(agentsViewKey({ NUB_IA_AGENTS_VIEW_KEY: "off" }), undefined);
 	assert.equal(agentsStopKey({}), "alt+s");
-	assert.equal(agentsStopKey({ GENTLE_PI_AGENTS_STOP_KEY: "" }), undefined);
-	assert.equal(agentsStopKey({ GENTLE_PI_AGENTS_STOP_KEY: "off" }), undefined);
+	assert.equal(agentsStopKey({ NUB_IA_AGENTS_STOP_KEY: "" }), undefined);
+	assert.equal(agentsStopKey({ NUB_IA_AGENTS_STOP_KEY: "off" }), undefined);
 	const off = fakePi();
-	gentleAgents(off.pi, { GENTLE_PI_AGENTS: "0" });
+	gentleAgents(off.pi, { NUB_IA_AGENTS: "0" });
 	assert.equal(off.tools.size, 0);
 });
 
@@ -3076,7 +3076,7 @@ test("while pi-subagents-j0k3r is still installed the tools stay unregistered an
 	const notices: string[] = [];
 	const ctx = { hasUI: true, ui: { notify: (message: string, level: string) => notices.push(`${level}:${message}`) } } as unknown as ExtensionContext;
 	await fire("session_start", ctx);
-	assert.match(notices[0] ?? "", /^warning:∾ Gentle Agents is waiting: remove the old package first with "pi remove npm:pi-subagents-j0k3r"/);
+	assert.match(notices[0] ?? "", /^warning:∾ Nub-IA Agents is waiting: remove the old package first with "pi remove npm:pi-subagents-j0k3r"/);
 });
 
 test("subagent_list_agents and subagent_run in task mode launch a child with the resolved profile and return its answer", async () => {

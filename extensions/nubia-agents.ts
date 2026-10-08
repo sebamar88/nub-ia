@@ -57,7 +57,7 @@ import { CHILD_METRICS_EVENT, CHILD_METRICS_REVOKED, childEvent, launchSelection
 import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
 import { readEnv } from "../lib/config-home.ts";
 
-// Gentle Agents: subagents as isolated `pi --mode rpc` children, a task
+// Nub-IA Agents: subagents as isolated `pi --mode rpc` children, a task
 // store that notifies per task, and a Gentle Shell card above the editor.
 // The tool names match the retired pi-subagents package so prompts, skills,
 // and gentle-ai's delegation rules keep working unchanged.
@@ -73,7 +73,7 @@ const CLOCK_TICK_MS = 1000;
 const TOOL_PREFIX = "subagent_";
 // Wakes an idle parent after child content was stored as a custom message.
 // It names itself as automated so the model never attributes it to the human.
-const PARENT_WAKE_TEXT = "[System-generated Gentle Agents notification, not written by the user] Subagent output was delivered to this session above. Review it and continue.";
+const PARENT_WAKE_TEXT = "[System-generated Nub-IA Agents notification, not written by the user] Subagent output was delivered to this session above. Review it and continue.";
 const PARENT_WAKE_TYPE = "gentle-agents.wake";
 const BRIDGE_WAKE_IDENTITY_TYPE = "gentle-agents.wake-identity";
 interface BridgeWakeIdentity {
@@ -82,6 +82,9 @@ interface BridgeWakeIdentity {
 	text: string;
 }
 const bridgeWakeText = (nonce: string): string => `${PARENT_WAKE_TEXT} [gentle-agents wake: ${nonce}]`;
+// Sessions persisted before the rename recorded this wording in their wake identity; still recognised so their generated bubbles stay hidden.
+const LEGACY_PARENT_WAKE_TEXT = "[System-generated Gentle Agents notification, not written by the user] Subagent output was delivered to this session above. Review it and continue.";
+const legacyBridgeWakeText = (nonce: string): string => `${LEGACY_PARENT_WAKE_TEXT} [gentle-agents wake: ${nonce}]`;
 const NATIVE_PARENT_WAKE_TEXT = "Review the delivered subagent output and continue.";
 // How long a dispatched wake may take to start a parent run before a later
 // delivery may send another one.
@@ -187,8 +190,8 @@ const defaultDeps = (env: NodeJS.ProcessEnv): AgentsDeps => ({
 });
 
 export function agentsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-	if (readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1") return false;
-	const value = readEnv(env, "NUB_IA_AGENTS", "GENTLE_PI_AGENTS")?.trim().toLowerCase();
+	if (readEnv(env, "NUB_IA_AGENTS_CHILD") === "1") return false;
+	const value = readEnv(env, "NUB_IA_AGENTS")?.trim().toLowerCase();
 	return !(value === "0" || value === "false" || value === "off");
 }
 
@@ -224,7 +227,7 @@ function messageText(content: unknown): string {
 }
 
 function ownedChildIpc(env: NodeJS.ProcessEnv, candidate: IpcEndpoint | undefined): IpcEndpoint | undefined {
-	if (readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") !== "1" || !readEnv(env, "NUB_IA_AGENTS_OWNED_IPC", "GENTLE_PI_AGENTS_OWNED_IPC") || !candidate || typeof candidate.send !== "function" || typeof candidate.on !== "function") return undefined;
+	if (readEnv(env, "NUB_IA_AGENTS_CHILD") !== "1" || !readEnv(env, "NUB_IA_AGENTS_OWNED_IPC") || !candidate || typeof candidate.send !== "function" || typeof candidate.on !== "function") return undefined;
 	return candidate;
 }
 
@@ -373,9 +376,9 @@ export async function answerThroughUi(ui: ExtensionContext["ui"] | undefined, as
 
 export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env, overrides: Partial<AgentsDeps> = {}): void {
 	const childIpc = ownedChildIpc(env, overrides.childIpc ?? (process.send ? process as unknown as IpcEndpoint : undefined));
-	if (readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1") {
+	if (readEnv(env, "NUB_IA_AGENTS_CHILD") === "1") {
 		// A stale managed-SDD child must never inherit unrestricted ordinary tools.
-		if (readEnv(env, "NUB_IA_RESEARCH_TOOLS", "GENTLE_PI_RESEARCH_TOOLS") !== undefined || readEnv(env, "NUB_IA_RESEARCH_SELECTION", "GENTLE_PI_RESEARCH_SELECTION") !== undefined || readEnv(env, "NUB_IA_RESEARCH_ARTIFACT", "GENTLE_PI_RESEARCH_ARTIFACT") !== undefined || readEnv(env, "NUB_IA_SDD_REMEDIATION_PLAN", "GENTLE_PI_SDD_REMEDIATION_PLAN") !== undefined) {
+		if (readEnv(env, "NUB_IA_RESEARCH_TOOLS") !== undefined || readEnv(env, "NUB_IA_RESEARCH_SELECTION") !== undefined || readEnv(env, "NUB_IA_RESEARCH_ARTIFACT") !== undefined || readEnv(env, "NUB_IA_SDD_REMEDIATION_PLAN") !== undefined) {
 			pi.on("tool_call", () => ({ block: true, reason: "Retired SDD child launch is not supported." }));
 			return;
 		}
@@ -391,7 +394,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	const sessionTransport = deps.sessionTransport ?? createDefaultSessionTransport();
 	if (legacySubagentsInstalledAt(agentHome)) {
 		pi.on("session_start", (_event, ctx) => {
-			if (ctx.hasUI) ctx.ui.notify(`${AGENTS_GLYPH} Gentle Agents is waiting: remove the old package first with "pi remove npm:${LEGACY_SUBAGENTS_PACKAGE}"`, "warning");
+			if (ctx.hasUI) ctx.ui.notify(`${AGENTS_GLYPH} Nub-IA Agents is waiting: remove the old package first with "pi remove npm:${LEGACY_SUBAGENTS_PACKAGE}"`, "warning");
 		});
 		return;
 	}
@@ -649,7 +652,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	// message, but the host only drains that queue when the parent agent stops
 	// calling tools entirely, so in a long orchestrator run the notification
 	// could land nearly an hour after the parent pulled the same result (#867).
-	// Gentle Agents now owns the pending completions: they settle here, are
+	// Nub-IA Agents now owns the pending completions: they settle here, are
 	// flushed at the next turn boundary, and a stale one never re-enters the
 	// conversation.
 	const completions = createCompletionQueue<TaskRecord>();
@@ -678,7 +681,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 			const data = entry.data as Partial<BridgeWakeIdentity> | undefined;
 			if (data?.sessionId === ctx.sessionManager.getSessionId() && typeof data.nonce === "string"
 				&& /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(data.nonce)
-				&& data.text === bridgeWakeText(data.nonce)) {
+				&& (data.text === bridgeWakeText(data.nonce) || data.text === legacyBridgeWakeText(data.nonce))) {
 				bridgeWakeIdentity = data as BridgeWakeIdentity;
 				break;
 			}
@@ -708,7 +711,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 			// Compatibility fallback preserves continuation, not invisibility.
 			if (!wakeVisibilityWarning) {
 				wakeVisibilityWarning = true;
-				try { parentCtx.ui.notify("Gentle Agents cannot hide Claude Bridge continuation on this runtime; the generated user wake remains visible.", "warning"); } catch { /* UI failure must not drop continuation. */ }
+				try { parentCtx.ui.notify("Nub-IA Agents cannot hide Claude Bridge continuation on this runtime; the generated user wake remains visible.", "warning"); } catch { /* UI failure must not drop continuation. */ }
 			}
 			return PARENT_WAKE_TEXT;
 		}
@@ -758,7 +761,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	type ParentRoute = "idle" | "run" | "hold";
 	// Throws for a missing or stale parent context, so delivery fails closed.
 	const parentRoute = (): ParentRoute => {
-		if (!parentCtx) throw new Error("Gentle Agents has no live parent session context");
+		if (!parentCtx) throw new Error("Nub-IA Agents has no live parent session context");
 		if (parentCtx.isIdle()) {
 			// The host is authoritative: an idle parent has no run, even if a
 			// lifecycle event was missed.
@@ -1363,7 +1366,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 		// An explicit target is validated before any queue or session-dir writes.
 		const parentIdentity = deps.resolveWorktree(parentCwd, parentCwd);
 		if (repositoryRoot !== undefined && workspaceRoot !== undefined) throw new Error("repository_root and workspace_root are mutually exclusive.");
-		if (repositoryRoot !== undefined && (readEnv(deps.env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1" || ctx.mode !== "tui" || !ctx.hasUI)) throw new Error("Foreign repository launch requires an interactive parent session.");
+		if (repositoryRoot !== undefined && (readEnv(deps.env, "NUB_IA_AGENTS_CHILD") === "1" || ctx.mode !== "tui" || !ctx.hasUI)) throw new Error("Foreign repository launch requires an interactive parent session.");
 		const selectedRoot = repositoryRoot ?? workspaceRoot;
 		// Preserve ordinary non-Git continuation, without admitting any new root.
 		const sameNonGitContinuation = resume !== undefined && repositoryRoot === undefined && selectedRoot === parentCwd && !parentIdentity;
@@ -1995,7 +1998,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 				schedule: deps.schedule,
 				parentSessionId: activeSessionId(),
 				onError: (error) => {
-					const message = `Gentle Agents activity push failed: ${error instanceof Error ? error.message : String(error)}`;
+					const message = `Nub-IA Agents activity push failed: ${error instanceof Error ? error.message : String(error)}`;
 					if (notifiedRpcActivityErrors?.has(message)) return;
 					notifiedRpcActivityErrors?.add(message);
 					ctx.ui.notify(message, "warning");

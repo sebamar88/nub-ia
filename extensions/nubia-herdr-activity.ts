@@ -16,7 +16,7 @@ interface ActivityOptions {
 export function createHerdrActivityExtension(options: ActivityOptions = {}) {
 	return (pi: ExtensionAPI): void => {
 		const env = options.env ?? process.env;
-		if (readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1" || env.HERDR_ENV !== "1" ||
+		if (readEnv(env, "NUB_IA_AGENTS_CHILD") === "1" || env.HERDR_ENV !== "1" ||
 			!env.HERDR_PANE_ID?.trim() || !env.HERDR_SOCKET_PATH?.trim()) return;
 		const isSocket = options.isSocket ?? ((path: string) => {
 			try { return statSync(path).isSocket(); } catch { return false; }

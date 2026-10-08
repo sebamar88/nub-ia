@@ -51,7 +51,7 @@ El reconocimiento de SQL se limita a argumentos literales pasados a `psql`, `mys
 
 **Precedencia:** 1) los hard deny ganan en todo el comando; 2) los bloqueos explícitos configurados ganan antes que la confirmación por pérdida de datos (YOLO respeta además las restricciones explícitas de push); 3) la pérdida de datos reconocida siempre pide confirmación nueva, aunque el modo autónomo o una acción de entrega la permitan; 4) sin UI, cancelación, respuesta no verdadera o error de diálogo nunca autorizan. La aprobación no se cachea.
 
-Los hijos reciben la entrada liviana `child-safety.ts` junto a `child-context.ts`; registra algo solo con `GENTLE_PI_AGENTS_CHILD=1`.
+Los hijos reciben la entrada liviana `child-safety.ts` junto a `child-context.ts`; registra algo solo con `NUB_IA_AGENTS_CHILD=1`.
 
 ### Limitaciones de la detección
 

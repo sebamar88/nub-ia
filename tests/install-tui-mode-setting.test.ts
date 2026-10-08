@@ -16,7 +16,7 @@ function fixture(t: { after(fn: () => void): void }, packagePath: readonly strin
 	const packageRoot = join(home, ...packagePath);
 	mkdirSync(packageRoot, { recursive: true });
 	const settings = join(home, "settings.json");
-	const env = { GENTLE_PI_AGENT_HOME: home, PI_CODING_AGENT_DIR: join(root, "other-agent") };
+	const env = { NUB_IA_AGENT_HOME: home, PI_CODING_AGENT_DIR: join(root, "other-agent") };
 	return { root, home, packageRoot, settings, env, options: { packageRoot, env, home: root } };
 }
 
@@ -60,7 +60,7 @@ test("already fullscreen preserves bytes and inode", async (t) => {
 	assert.deepEqual(readdirSync(f.home).sort(), ["npm", "settings.json"]);
 });
 
-for (const name of ["GENTLE_PI_AGENT_HOME", "PI_CODING_AGENT_DIR", "default"]) {
+for (const name of ["NUB_IA_AGENT_HOME", "PI_CODING_AGENT_DIR", "default"]) {
 	test(`agent-home precedence: ${name}`, async (t) => {
 		const f = fixture(t);
 		const home = name === "default" ? join(f.root, ".pi", "agent") : f.home;
@@ -110,7 +110,7 @@ for (const packagePath of [
 
 test("missing configured agent home is a no-op", async (t) => {
 	const f = fixture(t);
-	assert.equal((await installTuiModeSetting({ ...f.options, env: { GENTLE_PI_AGENT_HOME: join(f.root, "absent") } })).recognized, false);
+	assert.equal((await installTuiModeSetting({ ...f.options, env: { NUB_IA_AGENT_HOME: join(f.root, "absent") } })).recognized, false);
 });
 
 for (const [name, packagePath] of [
@@ -123,7 +123,7 @@ for (const [name, packagePath] of [
 		const packageRoot = join(home, ...packagePath);
 		mkdirSync(join(packageRoot, ".."), { recursive: true });
 		link(f.packageRoot, packageRoot, true);
-		assert.equal((await installTuiModeSetting({ packageRoot, env: { GENTLE_PI_AGENT_HOME: home }, home: f.root })).recognized, false);
+		assert.equal((await installTuiModeSetting({ packageRoot, env: { NUB_IA_AGENT_HOME: home }, home: f.root })).recognized, false);
 		assert.equal(existsSync(join(home, "settings.json")), false);
 	});
 }
@@ -132,7 +132,7 @@ test("canonical agent-home alias is supported", async (t) => {
 	const f = fixture(t);
 	const alias = join(f.root, "alias");
 	link(f.home, alias, true);
-	await installTuiModeSetting({ ...f.options, env: { GENTLE_PI_AGENT_HOME: alias } });
+	await installTuiModeSetting({ ...f.options, env: { NUB_IA_AGENT_HOME: alias } });
 	assert.equal(JSON.parse(readFileSync(f.settings, "utf8")).tuiMode, "fullscreen");
 });
 
@@ -219,7 +219,7 @@ for (const [name, packagePath] of [
 		mkdirSync(home);
 		mkdirSync(join(f.home, ...packagePath), { recursive: true });
 		link(join(f.home, packagePath[0]), join(home, packagePath[0]), true);
-		const result = await installTuiModeSetting({ packageRoot: join(home, ...packagePath), env: { GENTLE_PI_AGENT_HOME: home }, home: f.root });
+		const result = await installTuiModeSetting({ packageRoot: join(home, ...packagePath), env: { NUB_IA_AGENT_HOME: home }, home: f.root });
 		assert.equal(result.recognized, false);
 		assert.equal(existsSync(join(home, "settings.json")), false);
 		assert.equal(existsSync(f.settings), false);

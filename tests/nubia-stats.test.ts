@@ -64,9 +64,9 @@ async function until(check: () => boolean, attempts = 200) {
 
 test("statsViewKey is off by default and honors an explicit key", () => {
 	assert.equal(statsViewKey({}), undefined);
-	assert.equal(statsViewKey({ GENTLE_PI_STATS_VIEW_KEY: "alt+t" }), "alt+t");
-	assert.equal(statsViewKey({ GENTLE_PI_STATS_VIEW_KEY: " off " }), undefined);
-	assert.equal(statsViewKey({ GENTLE_PI_STATS_VIEW_KEY: "" }), undefined);
+	assert.equal(statsViewKey({ NUB_IA_STATS_VIEW_KEY: "alt+t" }), "alt+t");
+	assert.equal(statsViewKey({ NUB_IA_STATS_VIEW_KEY: " off " }), undefined);
+	assert.equal(statsViewKey({ NUB_IA_STATS_VIEW_KEY: "" }), undefined);
 });
 
 test("registers /nubia:stats and only registers a shortcut when one is configured", () => {
@@ -76,7 +76,7 @@ test("registers /nubia:stats and only registers a shortcut when one is configure
 	assert.match(plain.commands.get(STATS_COMMAND_NAME)!.description, /usage/i);
 	assert.equal(plain.shortcuts.size, 0);
 	const keyed = fakePi();
-	gentleStats(keyed.pi, { env: { GENTLE_PI_STATS_VIEW_KEY: "alt+t" } });
+	gentleStats(keyed.pi, { env: { NUB_IA_STATS_VIEW_KEY: "alt+t" } });
 	assert.deepEqual([...keyed.shortcuts.keys()], ["alt+t"]);
 });
 
@@ -99,15 +99,15 @@ test("the command opens a full-terminal overlay that loads, renders, and closes 
 });
 
 test("stats read the active home and the user's original Pi home, falling back to the conventional one", () => {
-	assert.deepEqual(statsSessionRoots("/gs/agent", { GENTLE_SHELL_USER_PI_HOME: "/custom/pi" }, "/home/u"), ["/gs/agent/sessions", "/custom/pi/sessions"]);
+	assert.deepEqual(statsSessionRoots("/gs/agent", { NUB_IA_USER_PI_HOME: "/custom/pi" }, "/home/u"), ["/gs/agent/sessions", "/custom/pi/sessions"]);
 	// Launched directly (or by an older launcher): the conventional ~/.pi/agent, never PI_CODING_AGENT_DIR.
 	assert.deepEqual(statsSessionRoots("/gs/agent", { PI_CODING_AGENT_DIR: "/gs/agent" }, "/home/u"), ["/gs/agent/sessions", "/home/u/.pi/agent/sessions"]);
-	assert.deepEqual(statsSessionRoots("/gs/agent", { GENTLE_SHELL_USER_PI_HOME: "" }, "/home/u"), ["/gs/agent/sessions", "/home/u/.pi/agent/sessions"]);
+	assert.deepEqual(statsSessionRoots("/gs/agent", { NUB_IA_USER_PI_HOME: "" }, "/home/u"), ["/gs/agent/sessions", "/home/u/.pi/agent/sessions"]);
 });
 
 test("the overlay totals combine the Gentle Shell and regular Pi histories", async () => {
 	const { pi, commands } = fakePi();
-	gentleStats(pi, { env: {}, now: () => NOW, sessionsRoots: () => statsSessionRoots(STATS_HOME, { GENTLE_SHELL_USER_PI_HOME: USER_PI_HOME }) });
+	gentleStats(pi, { env: {}, now: () => NOW, sessionsRoots: () => statsSessionRoots(STATS_HOME, { NUB_IA_USER_PI_HOME: USER_PI_HOME }) });
 	const context = fakeContext();
 	const opened = commands.get(STATS_COMMAND_NAME)!.handler("", context.ctx);
 	const view = context.component()!;
@@ -119,7 +119,7 @@ test("the overlay totals combine the Gentle Shell and regular Pi histories", asy
 
 test("the shortcut opens the same overlay", async () => {
 	const { pi, shortcuts } = fakePi();
-	gentleStats(pi, { env: { GENTLE_PI_STATS_VIEW_KEY: "alt+t" }, now: () => NOW, sessionsRoots: () => [SESSIONS] });
+	gentleStats(pi, { env: { NUB_IA_STATS_VIEW_KEY: "alt+t" }, now: () => NOW, sessionsRoots: () => [SESSIONS] });
 	const context = fakeContext();
 	const opened = shortcuts.get("alt+t")!.handler(context.ctx);
 	assert.equal(context.options.length, 1);

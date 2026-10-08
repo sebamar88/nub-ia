@@ -25,7 +25,7 @@ const EXCLUDE_PREFIXES = ["sdd-"];
 const WATCH_DEBOUNCE_MS = 500;
 const REGISTRY_SCHEMA_VERSION = 7;
 const NO_SKILL_REGISTRY_FLAG = "no-skill-registry";
-const NO_SKILL_REGISTRY_ENV = "GENTLE_PI_NO_SKILL_REGISTRY";
+const NO_SKILL_REGISTRY_ENV = "NUB_IA_NO_SKILL_REGISTRY";
 const LEGACY_PROJECT_REGISTRY_REL_PATH = ".pi/extensions/skill-registry.ts";
 const LEGACY_PROJECT_REGISTRY_DISABLED_REL_PATH =
 	".pi/extensions/skill-registry.ts.disabled";
@@ -507,7 +507,7 @@ function shouldSkipSkillRegistryStartup(
 	return (
 		// gentle-shell#1690: delegated children share the parent's cwd; the
 		// parent owns .atl/ writes, the legacy rename and the watcher.
-		env.GENTLE_PI_AGENTS_CHILD === "1" ||
+		env.NUB_IA_AGENTS_CHILD === "1" ||
 		pi.getFlag(NO_SKILL_REGISTRY_FLAG) === true ||
 		isTruthyEnv(env[NO_SKILL_REGISTRY_ENV]) ||
 		hasCliArg(argv, "--no-skills", "-ns")

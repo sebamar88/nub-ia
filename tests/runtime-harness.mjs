@@ -210,8 +210,8 @@ function restoreWorkspaceWritePermissions(cwd) {
 const ownedFixtureRoots = [];
 const previousFixtureEnvironment = new Map([
 	"HOME", "USERPROFILE", "XDG_CONFIG_HOME", "PI_CODING_AGENT_DIR",
-	"GENTLE_PI_CONFIG_HOME", "GENTLE_PI_AGENT_HOME", "GENTLE_PI_TEST_ASSETS_DIR",
-	"GENTLE_PI_AGENTS_PARENT_PERMISSION_FD",
+	"NUB_IA_CONFIG_HOME", "NUB_IA_AGENT_HOME", "NUB_IA_TEST_ASSETS_DIR",
+	"NUB_IA_AGENTS_PARENT_PERMISSION_FD",
 ].map((key) => [key, process.env[key]]));
 
 async function loadExtensions(pi, fixtureDependencies) {
@@ -230,23 +230,23 @@ async function run() {
 	ownedFixtureRoots.push(globalAgentHome);
 	const ambientTestAssetsDir = await tempWorkspace();
 	ownedFixtureRoots.push(ambientTestAssetsDir);
-	process.env.GENTLE_PI_CONFIG_HOME = globalConfigHome;
-	process.env.GENTLE_PI_AGENT_HOME = globalAgentHome;
-	process.env.GENTLE_PI_TEST_ASSETS_DIR = ambientTestAssetsDir;
+	process.env.NUB_IA_CONFIG_HOME = globalConfigHome;
+	process.env.NUB_IA_AGENT_HOME = globalAgentHome;
+	process.env.NUB_IA_TEST_ASSETS_DIR = ambientTestAssetsDir;
 	process.env.HOME = globalAgentHome;
 	process.env.USERPROFILE = globalAgentHome;
 	process.env.XDG_CONFIG_HOME = join(globalAgentHome, "xdg");
 	process.env.PI_CODING_AGENT_DIR = join(globalAgentHome, "pi");
 	// Discovery still exercises the default exports under the actual worker
 	// role, but must never acquire the worker's parent-permission channel.
-	delete process.env.GENTLE_PI_AGENTS_PARENT_PERMISSION_FD;
+	delete process.env.NUB_IA_AGENTS_PARENT_PERMISSION_FD;
 	const fixtureDependencies = {
 		processEnv: {
 			HOME: globalAgentHome, USERPROFILE: globalAgentHome,
-			GENTLE_PI_CONFIG_HOME: globalConfigHome, GENTLE_PI_AGENT_HOME: globalAgentHome,
+			NUB_IA_CONFIG_HOME: globalConfigHome, NUB_IA_AGENT_HOME: globalAgentHome,
 			PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,
 			XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
-			GENTLE_PI_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0",
+			NUB_IA_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0",
 		},
 	};
 	const globalModelsPath = join(globalConfigHome, "models.json");
@@ -357,9 +357,9 @@ async function run() {
 		assert.doesNotMatch(
 			promptAppended,
 			new RegExp(ambientTestAssetsDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
-			"normal runtime must ignore ambient GENTLE_PI_TEST_ASSETS_DIR",
+			"normal runtime must ignore ambient NUB_IA_TEST_ASSETS_DIR",
 		);
-		delete process.env.GENTLE_PI_TEST_ASSETS_DIR;
+		delete process.env.NUB_IA_TEST_ASSETS_DIR;
 		await rm(ambientTestAssetsDir, { recursive: true, force: true });
 		await writeFile(
 			join(globalConfigHome, "persona.json"),
@@ -803,7 +803,7 @@ async function run() {
 
 	const noUiCwd = await tempWorkspace();
 	const startupAgentHome = join(noUiCwd, "agent-home");
-	process.env.GENTLE_PI_AGENT_HOME = startupAgentHome;
+	process.env.NUB_IA_AGENT_HOME = startupAgentHome;
 	try {
 		const globalAgentHome = startupAgentHome;
 		for (const handler of hooks.get("session_start")) {
@@ -909,7 +909,7 @@ async function run() {
 			"a user-authored same-path retired asset must stay unowned",
 		);
 	} finally {
-		process.env.GENTLE_PI_AGENT_HOME = globalAgentHome;
+		process.env.NUB_IA_AGENT_HOME = globalAgentHome;
 		await rm(noUiCwd, { recursive: true, force: true });
 	}
 
@@ -921,10 +921,10 @@ async function run() {
 			review: "review-risk.md",
 		};
 		try {
-			process.env.GENTLE_PI_AGENT_HOME = agentHome;
-			process.env.GENTLE_PI_CONFIG_HOME = join(fixture, "config");
-			await mkdir(process.env.GENTLE_PI_CONFIG_HOME);
-			await writeFile(join(process.env.GENTLE_PI_CONFIG_HOME, "models.json"),
+			process.env.NUB_IA_AGENT_HOME = agentHome;
+			process.env.NUB_IA_CONFIG_HOME = join(fixture, "config");
+			await mkdir(process.env.NUB_IA_CONFIG_HOME);
+			await writeFile(join(process.env.NUB_IA_CONFIG_HOME, "models.json"),
 				JSON.stringify({ [representatives[owner].replace(/\.md$/, "")]: "test/installer-must-not-apply" }));
 			const ctx = createCtx(fixture, true);
 			const command = commands.get(`nubia:install-${owner}`);
@@ -968,15 +968,15 @@ async function run() {
 			const label = owner;
 			assert.ok(ctx.ui.notifications.at(-1).message.includes(`Global ${label} user overrides: 1 file(s)`));
 		} finally {
-			process.env.GENTLE_PI_CONFIG_HOME = globalConfigHome;
-			process.env.GENTLE_PI_AGENT_HOME = globalAgentHome;
+			process.env.NUB_IA_CONFIG_HOME = globalConfigHome;
+			process.env.NUB_IA_AGENT_HOME = globalAgentHome;
 			await rm(fixture, { recursive: true, force: true });
 		}
 	}
 
 	const repairFixture = await tempWorkspace();
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = join(repairFixture, "agent-home");
+		process.env.NUB_IA_AGENT_HOME = join(repairFixture, "agent-home");
 		const ctx = createCtx(repairFixture, true);
 		for (const diagnostic of ["nubia:status", "nubia:doctor"]) {
 			await commands.get(diagnostic).handler("", ctx);
@@ -989,9 +989,9 @@ async function run() {
 		}
 		await commands.get("nubia:install-delegation").handler("", ctx);
 		await commands.get("nubia:install-review").handler("", ctx);
-		const manifest = JSON.parse(await readFile(join(process.env.GENTLE_PI_AGENT_HOME, "gentle-ai", "managed-assets.json"), "utf8"));
+		const manifest = JSON.parse(await readFile(join(process.env.NUB_IA_AGENT_HOME, "gentle-ai", "managed-assets.json"), "utf8"));
 		for (const key of Object.keys(manifest.assets)) {
-			await rm(join(process.env.GENTLE_PI_AGENT_HOME, key));
+			await rm(join(process.env.NUB_IA_AGENT_HOME, key));
 		}
 		for (const diagnostic of ["nubia:status", "nubia:doctor"]) {
 			await commands.get(diagnostic).handler("", ctx);
@@ -1002,16 +1002,16 @@ async function run() {
 				"managed installation evidence must survive missing delegation and review files");
 		}
 	} finally {
-		process.env.GENTLE_PI_AGENT_HOME = globalAgentHome;
+		process.env.NUB_IA_AGENT_HOME = globalAgentHome;
 		await rm(repairFixture, { recursive: true, force: true });
 	}
 
 	const staleAssetsCwd = await tempWorkspace();
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const previousHome = process.env.HOME;
 	const previousUserProfile = process.env.USERPROFILE;
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = join(staleAssetsCwd, "agent-home");
+		process.env.NUB_IA_AGENT_HOME = join(staleAssetsCwd, "agent-home");
 		process.env.HOME = staleAssetsCwd;
 		process.env.USERPROFILE = staleAssetsCwd;
 		const ctx = createCtx(staleAssetsCwd, true);
@@ -1032,8 +1032,8 @@ async function run() {
 		assert.match(ctx.ui.notifications.at(-1).message, /Engram memory tools not active in this session/);
 	} finally {
 		pi.setActiveTools(["read", "bash", "edit", "write"]);
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		if (previousHome === undefined) delete process.env.HOME;
 		else process.env.HOME = previousHome;
 		if (previousUserProfile === undefined) delete process.env.USERPROFILE;

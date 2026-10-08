@@ -124,7 +124,7 @@ test("public docs and metadata advertise ODD and review without retired phase wo
 	assert.ok(manifest.keywords?.includes("odd"));
 	assert.ok(manifest.keywords?.includes("code-review"));
 	assert.ok(manifest.keywords?.every(keyword => !/sdd|openspec/i.test(keyword)));
-	for (const path of ["README.md", "docs/gentle-shell.md", "docs/readme-reference.md"]) {
+	for (const path of ["README.md", "docs/nub-ia-shell.md", "docs/readme-reference.md"]) {
 		const source = readFileSync(join(PACKAGE_ROOT, path), "utf8");
 		assert.match(source, /ODD|Organic Driven Development/, path);
 		assert.match(source, /review/i, path);
@@ -138,7 +138,7 @@ test("technical reference declares the tested Pi minimum required for agent_sett
 	assert.equal(manifest.devDependencies?.["@earendil-works/pi-coding-agent"], ">=1.0.0");
 	assert.equal(manifest.peerDependenciesMeta?.["@earendil-works/pi-coding-agent"]?.optional, true);
 	assert.equal(manifest.engines?.node, ">=22.19.0");
-	for (const path of ["docs/readme-reference.md", "docs/gentle-shell.md"]) {
+	for (const path of ["docs/readme-reference.md", "docs/nub-ia-shell.md"]) {
 		const source = readFileSync(join(PACKAGE_ROOT, path), "utf8");
 		assert.match(source, /Pi 0\.99\.1 or newer/, path);
 		assert.match(source, /open `>=1\.0\.0` development range/, path);
@@ -581,13 +581,13 @@ test("packaged agents declare only tool names a Pi child session can resolve", (
 
 function withIsolatedAssetHome(run: (agentHome: string) => void): void {
 	const temporary = mkdtempSync(join(tmpdir(), "gentle-asset-owners-"));
-	const previous = process.env.GENTLE_PI_AGENT_HOME;
+	const previous = process.env.NUB_IA_AGENT_HOME;
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporary;
+		process.env.NUB_IA_AGENT_HOME = temporary;
 		run(temporary);
 	} finally {
-		if (previous === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previous;
+		if (previous === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previous;
 		rmSync(temporary, { recursive: true, force: true });
 	}
 }
@@ -831,7 +831,7 @@ test("forced package installation preserves same-path user-authored agents and s
 	// hash-proven package-managed copies, never user content.
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-refuter-home-"));
 	const temporaryProject = mkdtempSync(join(tmpdir(), "gentle-pi-refuter-project-"));
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const samePathUserAgent = join(temporaryAgentHome, "agents", RETIRED_REFUTER_FILE);
 	const userShadow = join(temporaryAgentHome, "subagents", RETIRED_REFUTER_FILE);
 	const projectOverride = join(temporaryProject, ".pi", "agents", RETIRED_REFUTER_FILE);
@@ -847,7 +847,7 @@ test("forced package installation preserves same-path user-authored agents and s
 	].join("\n");
 
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+		process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 		mkdirSync(dirname(projectOverride), { recursive: true });
 		writeFileSync(projectOverride, "project override must stay\n");
 		mkdirSync(dirname(userShadow), { recursive: true });
@@ -874,9 +874,9 @@ test("forced package installation preserves same-path user-authored agents and s
 		);
 	} finally {
 		if (previousAgentHome === undefined) {
-			delete process.env.GENTLE_PI_AGENT_HOME;
+			delete process.env.NUB_IA_AGENT_HOME;
 		} else {
-			process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+			process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		}
 		rmSync(temporaryAgentHome, { recursive: true, force: true });
 		rmSync(temporaryProject, { recursive: true, force: true });
@@ -913,7 +913,7 @@ test("v0.14 ownership evidence is bundled and matches the self-contained bounded
 
 test("first forced sync migrates untouched v0.13 assets, preserves routing, and owns new assets", () => {
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-v013-upgrade-"));
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedReviewRisk = join(temporaryAgentHome, "agents", REVIEW_RISK_FILE);
 	const installedExemplar = join(temporaryAgentHome, "agents", MANAGED_EXEMPLAR_FILE);
 	const managedAssetsManifest = join(
@@ -928,7 +928,7 @@ test("first forced sync migrates untouched v0.13 assets, preserves routing, and 
 	);
 
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+		process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 		mkdirSync(dirname(installedReviewRisk), { recursive: true });
 		writeFileSync(installedReviewRisk, routedLegacySource);
 		assert.equal(existsSync(managedAssetsManifest), false, "v0.13 had no ownership manifest");
@@ -981,9 +981,9 @@ test("first forced sync migrates untouched v0.13 assets, preserves routing, and 
 		assert.equal(postEditManifest.assets[`agents/${REVIEW_RISK_FILE}`], undefined);
 	} finally {
 		if (previousAgentHome === undefined) {
-			delete process.env.GENTLE_PI_AGENT_HOME;
+			delete process.env.NUB_IA_AGENT_HOME;
 		} else {
-			process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+			process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		}
 		rmSync(temporaryAgentHome, { recursive: true, force: true });
 	}
@@ -991,7 +991,7 @@ test("first forced sync migrates untouched v0.13 assets, preserves routing, and 
 
 test("first forced sync migrates untouched v0.14 review contracts and preserves routing", () => {
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-v014-upgrade-"));
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedReviewRisk = join(temporaryAgentHome, "agents", REVIEW_RISK_FILE);
 	const legacySource = readFileSync(V014_REVIEW_RISK_FIXTURE, "utf8");
 	const routedLegacySource = legacySource.replace(
@@ -1000,7 +1000,7 @@ test("first forced sync migrates untouched v0.14 review contracts and preserves 
 	);
 
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+		process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 		mkdirSync(dirname(installedReviewRisk), { recursive: true });
 		writeFileSync(installedReviewRisk, routedLegacySource);
 
@@ -1021,15 +1021,15 @@ test("first forced sync migrates untouched v0.14 review contracts and preserves 
 			currentPackageSource.replace(/^model: .*\n|^thinking: .*\n/gm, ""),
 		);
 	} finally {
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		rmSync(temporaryAgentHome, { recursive: true, force: true });
 	}
 });
 
 test("first forced sync preserves a body-edited v0.13 asset byte-for-byte", () => {
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-v013-edited-"));
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedReviewRisk = join(temporaryAgentHome, "agents", REVIEW_RISK_FILE);
 	const editedLegacySource = readFileSync(V013_REVIEW_RISK_FIXTURE, "utf8").replace(
 		"Find security risks; do not fix them.",
@@ -1037,7 +1037,7 @@ test("first forced sync preserves a body-edited v0.13 asset byte-for-byte", () =
 	);
 
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+		process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 		mkdirSync(dirname(installedReviewRisk), { recursive: true });
 		writeFileSync(installedReviewRisk, editedLegacySource);
 
@@ -1050,9 +1050,9 @@ test("first forced sync preserves a body-edited v0.13 asset byte-for-byte", () =
 		assert.equal(manifest.assets[`agents/${REVIEW_RISK_FILE}`], undefined);
 	} finally {
 		if (previousAgentHome === undefined) {
-			delete process.env.GENTLE_PI_AGENT_HOME;
+			delete process.env.NUB_IA_AGENT_HOME;
 		} else {
-			process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+			process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		}
 		rmSync(temporaryAgentHome, { recursive: true, force: true });
 	}
@@ -1060,7 +1060,7 @@ test("first forced sync preserves a body-edited v0.13 asset byte-for-byte", () =
 
 test("forced package installation refreshes an asset recorded as package-managed", () => {
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-malformed-refuter-"));
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedExemplar = join(temporaryAgentHome, "agents", MANAGED_EXEMPLAR_FILE);
 	const managedAssetsManifest = join(
 		temporaryAgentHome,
@@ -1075,7 +1075,7 @@ test("forced package installation refreshes an asset recorded as package-managed
 	);
 
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+		process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 		installPackageAssets(PACKAGE_ROOT, true);
 		assert.ok(existsSync(installedExemplar), "a missing package asset must install");
 		assert.ok(
@@ -1099,9 +1099,9 @@ test("forced package installation refreshes an asset recorded as package-managed
 		assert.doesNotMatch(refreshed.source, /^  - bash$/m);
 	} finally {
 		if (previousAgentHome === undefined) {
-			delete process.env.GENTLE_PI_AGENT_HOME;
+			delete process.env.NUB_IA_AGENT_HOME;
 		} else {
-			process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+			process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		}
 		rmSync(temporaryAgentHome, { recursive: true, force: true });
 	}
@@ -1112,7 +1112,7 @@ function assertManagedAgentUserEditIsPreserved(
 	editSource: (source: string) => string,
 ): void {
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-managed-edit-"));
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedExemplar = join(temporaryAgentHome, "agents", MANAGED_EXEMPLAR_FILE);
 	const managedAssetsManifest = join(
 		temporaryAgentHome,
@@ -1121,7 +1121,7 @@ function assertManagedAgentUserEditIsPreserved(
 	);
 
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+		process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 		installPackageAssets(PACKAGE_ROOT, true);
 		const installedSource = readFileSync(installedExemplar, "utf8");
 		const userEditedSource = editSource(installedSource);
@@ -1145,9 +1145,9 @@ function assertManagedAgentUserEditIsPreserved(
 		);
 	} finally {
 		if (previousAgentHome === undefined) {
-			delete process.env.GENTLE_PI_AGENT_HOME;
+			delete process.env.NUB_IA_AGENT_HOME;
 		} else {
-			process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+			process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		}
 		rmSync(temporaryAgentHome, { recursive: true, force: true });
 	}
@@ -1182,7 +1182,7 @@ test("forced package installation preserves an ordinary body edit to a managed a
 
 test("package model assignment keeps only package-managed agents owned", () => {
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-model-ownership-"));
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedExemplar = join(temporaryAgentHome, "agents", MANAGED_EXEMPLAR_FILE);
 	const userAgent = join(temporaryAgentHome, "agents", "user-router.md");
 	const managedAssetsManifest = join(
@@ -1193,7 +1193,7 @@ test("package model assignment keeps only package-managed agents owned", () => {
 	const userAgentSource = "---\nname: user-router\n---\nuser-owned body\n";
 
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+		process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 		installPackageAssets(PACKAGE_ROOT, true);
 		writeFileSync(userAgent, userAgentSource);
 
@@ -1236,9 +1236,9 @@ test("package model assignment keeps only package-managed agents owned", () => {
 		);
 	} finally {
 		if (previousAgentHome === undefined) {
-			delete process.env.GENTLE_PI_AGENT_HOME;
+			delete process.env.NUB_IA_AGENT_HOME;
 		} else {
-			process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+			process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		}
 		rmSync(temporaryAgentHome, { recursive: true, force: true });
 	}
@@ -1386,10 +1386,10 @@ test("nubia-worker packages the exact scoped writer contract", () => {
 
 test("package installation gives nubia-worker a loader-compatible scoped identity", () => {
 	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-agent-home-"));
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 
 	try {
-		process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+		process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
 
 		const installedAgentsDir = join(temporaryAgentHome, "agents");
@@ -1422,14 +1422,14 @@ test("package installation gives nubia-worker a loader-compatible scoped identit
 		assert.doesNotMatch(source, /^name:\s*(?:worker|generic-writer)$/m);
 	} finally {
 		if (previousAgentHome === undefined) {
-			delete process.env.GENTLE_PI_AGENT_HOME;
+			delete process.env.NUB_IA_AGENT_HOME;
 		} else {
-			process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+			process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		}
 		rmSync(temporaryAgentHome, { recursive: true, force: true });
 	}
 
-	assert.equal(process.env.GENTLE_PI_AGENT_HOME, previousAgentHome);
+	assert.equal(process.env.NUB_IA_AGENT_HOME, previousAgentHome);
 	assert.ok(
 		!existsSync(temporaryAgentHome),
 		"the integration test must delete only its temporary agent home",
@@ -1443,7 +1443,7 @@ test("agent home resolver centralizes Gentle and Pi agent-dir precedence", () =>
 	try {
 		assert.equal(
 			resolveGentlePiAgentHome({
-				GENTLE_PI_AGENT_HOME: explicitGentleHome,
+				NUB_IA_AGENT_HOME: explicitGentleHome,
 				PI_CODING_AGENT_DIR: piAgentDir,
 			}),
 			explicitGentleHome,
@@ -1451,7 +1451,7 @@ test("agent home resolver centralizes Gentle and Pi agent-dir precedence", () =>
 		assert.equal(resolveGentlePiAgentHome({ PI_CODING_AGENT_DIR: piAgentDir }), piAgentDir);
 		assert.equal(resolveGentlePiAgentHome({}), join(homedir(), ".pi", "agent"));
 		assert.equal(
-			resolveGentlePiAgentHome({ GENTLE_PI_AGENT_HOME: "", PI_CODING_AGENT_DIR: piAgentDir }),
+			resolveGentlePiAgentHome({ NUB_IA_AGENT_HOME: "", PI_CODING_AGENT_DIR: piAgentDir }),
 			piAgentDir,
 			"an empty explicit override falls through like Pi Subagents does",
 		);
@@ -1467,13 +1467,13 @@ test("agent home resolver centralizes Gentle and Pi agent-dir precedence", () =>
 });
 
 test("asset installation uses PI_CODING_AGENT_DIR as the Pi agent home when no explicit Gentle override is set", () => {
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
 	const temporaryPiAgentDir = mkdtempSync(join(tmpdir(), "gentle-pi-agent-dir-"));
 	const explicitGentleHome = mkdtempSync(join(tmpdir(), "gentle-pi-explicit-home-"));
 
 	try {
-		delete process.env.GENTLE_PI_AGENT_HOME;
+		delete process.env.NUB_IA_AGENT_HOME;
 		process.env.PI_CODING_AGENT_DIR = temporaryPiAgentDir;
 
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
@@ -1486,15 +1486,15 @@ test("asset installation uses PI_CODING_AGENT_DIR as the Pi agent home when no e
 			"the explicit override fixture must still be untouched before it is selected",
 		);
 
-		process.env.GENTLE_PI_AGENT_HOME = explicitGentleHome;
+		process.env.NUB_IA_AGENT_HOME = explicitGentleHome;
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
 		assert.ok(
 			existsSync(join(explicitGentleHome, "agents", "nubia-explore.md")),
-			"GENTLE_PI_AGENT_HOME remains the explicit test/operator override",
+			"NUB_IA_AGENT_HOME remains the explicit test/operator override",
 		);
 	} finally {
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		if (previousPiAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
 		else process.env.PI_CODING_AGENT_DIR = previousPiAgentDir;
 		rmSync(temporaryPiAgentDir, { recursive: true, force: true });
@@ -1503,13 +1503,13 @@ test("asset installation uses PI_CODING_AGENT_DIR as the Pi agent home when no e
 });
 
 test("global model routing uses PI_CODING_AGENT_DIR for package-installed agents", () => {
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
 	const temporaryPiAgentDir = mkdtempSync(join(tmpdir(), "gentle-pi-model-agent-dir-"));
 	const temporaryProject = mkdtempSync(join(tmpdir(), "gentle-pi-model-project-"));
 
 	try {
-		delete process.env.GENTLE_PI_AGENT_HOME;
+		delete process.env.NUB_IA_AGENT_HOME;
 		process.env.PI_CODING_AGENT_DIR = temporaryPiAgentDir;
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
 
@@ -1524,8 +1524,8 @@ test("global model routing uses PI_CODING_AGENT_DIR for package-installed agents
 			effort: "high",
 		});
 	} finally {
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 		if (previousPiAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
 		else process.env.PI_CODING_AGENT_DIR = previousPiAgentDir;
 		rmSync(temporaryPiAgentDir, { recursive: true, force: true });
@@ -1534,7 +1534,7 @@ test("global model routing uses PI_CODING_AGENT_DIR for package-installed agents
 });
 
 test("normal and forced installation copy generic agents with complete role contracts", () => {
-	const previousAgentHome = process.env.GENTLE_PI_AGENT_HOME;
+	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const expectedTools = {
 		"nubia-explore": ["read", "grep", "find", "codegraph"],
 		"nubia-verify": ["read", "grep", "find", "bash"],
@@ -1543,7 +1543,7 @@ test("normal and forced installation copy generic agents with complete role cont
 	try {
 		for (const force of [false, true]) {
 			const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-generic-agents-"));
-			process.env.GENTLE_PI_AGENT_HOME = temporaryAgentHome;
+			process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 			try {
 				installPackageAssets(PACKAGE_ROOT, force, ["delegation"]);
 
@@ -1579,8 +1579,8 @@ test("normal and forced installation copy generic agents with complete role cont
 			}
 		}
 	} finally {
-		if (previousAgentHome === undefined) delete process.env.GENTLE_PI_AGENT_HOME;
-		else process.env.GENTLE_PI_AGENT_HOME = previousAgentHome;
+		if (previousAgentHome === undefined) delete process.env.NUB_IA_AGENT_HOME;
+		else process.env.NUB_IA_AGENT_HOME = previousAgentHome;
 	}
 });
 

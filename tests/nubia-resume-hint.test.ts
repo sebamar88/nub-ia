@@ -22,7 +22,7 @@ const CWD = resolve("/home/u/project");
 const DEFAULT_DIR = join(AGENT_DIR, "sessions", `--${CWD.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`);
 
 test("handoff env name is stable", () => {
-	assert.equal(RESUME_HANDOFF_ENV, "GENTLE_SHELL_RESUME_HANDOFF");
+	assert.equal(RESUME_HANDOFF_ENV, "NUB_IA_RESUME_HANDOFF");
 });
 
 test("piDefaultSessionDir mirrors pi's encoded per-cwd session dir", () => {

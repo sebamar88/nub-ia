@@ -311,13 +311,13 @@ test("the armed state drives the footer copy and the error-colored highlight", (
 });
 
 // ---------------------------------------------------------------------------
-// Capture gate: the opt-in switch stays GENTLE_PI_HISTORY_CAPTURE (#1390).
+// Capture gate: the opt-in switch stays NUB_IA_HISTORY_CAPTURE (#1390).
 // ---------------------------------------------------------------------------
 
 // The contributor branch briefly renamed the switch; the rename must not
 // ship. Assemble the rejected literal from parts so this file stays
 // grep-clean for it.
-const renamedSwitch = `GENTLE_PI_HISTORY_${"ENABLE"}`;
+const renamedSwitch = `NUB_IA_HISTORY_${"ENABLE"}`;
 
 test("captureEnabled delegates to the shared env-then-Customize gate", () => {
   const decl = selectorSource.indexOf("export function captureEnabled(");

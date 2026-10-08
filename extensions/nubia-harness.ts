@@ -257,7 +257,7 @@ function describeBackgroundSubagentsSource(
 		case "global_file":
 			return `global file ${resolution.globalFile}`;
 		case "environment":
-			return "GENTLE_PI_BACKGROUND_SUBAGENTS";
+			return "NUB_IA_BACKGROUND_SUBAGENTS";
 		default:
 			return "built-in default";
 	}
@@ -305,12 +305,12 @@ function renderBackgroundSubagentsReport(
 	if (resolution.envValue !== undefined && resolution.source !== "environment") {
 		lines.push(
 			resolution.envValue === "on" || resolution.envValue === "off"
-				? `GENTLE_PI_BACKGROUND_SUBAGENTS=${resolution.envValue} is set, but both files outrank it and it outranks the built-in default; it decides only when neither file exists.`
-				: `GENTLE_PI_BACKGROUND_SUBAGENTS="${resolution.envValue}" is not a recognized value ("on" or "off"), so it is ignored.`,
+				? `NUB_IA_BACKGROUND_SUBAGENTS=${resolution.envValue} is set, but both files outrank it and it outranks the built-in default; it decides only when neither file exists.`
+				: `NUB_IA_BACKGROUND_SUBAGENTS="${resolution.envValue}" is not a recognized value ("on" or "off"), so it is ignored.`,
 		);
 	}
 	lines.push(
-		"Resolution order (first hit wins): project file, global file, GENTLE_PI_BACKGROUND_SUBAGENTS, built-in default off.",
+		"Resolution order (first hit wins): project file, global file, NUB_IA_BACKGROUND_SUBAGENTS, built-in default off.",
 	);
 	return {
 		message: lines.join("\n"),
@@ -687,7 +687,7 @@ Organic Driven Development (ODD) is the predefined workflow of this orchestrator
 5. **Track before the first write.** For large authorized implementation, create \`odd/tasks/<feature-name>.md\` and its Engram mirror \`odd/<feature-name>/tasks\` automatically, then create or rebuild the visible \`todo\` list from the reconciled feature tasks, all before the first source write and without asking permission for tasks or storage. Tell the user in one line which feature document was created and how many tasks it holds. The document is the specification subagents read, in this order: a two- or three-line header; \`## Specs\` with numbered \`S#\` that quote the user's exact strings, error messages, and examples verbatim, never summarized and never adding unrequested requirements; \`## Tasks\` with one line per task (ID, linked \`S#\`, route, commit); \`## Log\` last, where \`L1\` is the user's original request verbatim and later user corrections, evidence, and decisions are appended. A requirement change appends its verbatim Log entry, rewrites only the affected \`S#\`, and reopens only its task.
 6. **Implement task by task.** Hand off by reference, never by paraphrase: name the document, task, and specs (for example \`Spec: odd/tasks/<feature>.md, T2, S3-S4\`), tell workers to read until \`## Log\`, and ask which \`S#\` were covered. Without a feature document, include the user's request verbatim. Verify reads the whole document, runs the spec's examples the parent authorized, against isolated state when they mutate data, and returns a verdict per \`S#\`. When the user reports a failure, reproduce it before deciding it already works. Each test asserts every observable effect of the rule it covers (exit code, exact stdout and stderr, and that rejected input leaves stored data and counters unchanged), covers the cases the rule itself names (its examples, boundaries, and errors), and checks through the public interface, never internal storage. When you add or change a command, option, or message, update the help text and docs that describe it. Route each task through the orchestrator's Mechanisms, honoring its mandatory delegation triggers, with applicable test-first development and checks. These triggers are mandatory, not advisory: executing past a fired trigger inline is a routing defect even if the work succeeds. Check an item off only after its outcome and checks were observed; update the file, mirror, and visible \`todo\` projection after every task transition and material plan change. Every tracked task closes with at least one work-unit commit on the feature branch, branch first when on the default branch, with tests and docs alongside the behavior, using a Conventional Commit message; record the commit identity in the feature document as evidence. Work-unit commits on the feature branch are part of authorized large ODD implementation; push, pull request creation, and merge remain the user's decisions.
 7. **Close.** Report the verified outcome, every failed, skipped, or pending check, and the next step. Before writing \`Risk: none\`, check whether your diff changes code that existing behavior the request did not mention also uses (shared options, parsers, helpers); if it does, that is item 3. Never end with a tracked task pending unless you quote the user's explicit stop. An applicable quick check runs once; an unavailable verifier or subagent is reported as unavailable, never retried or escalated into extra ceremony. Partial, blocked, unavailable, or exhausted proof becomes one **Needs your decision** result naming the open blockers or missing proof, never more verification; that result is a valid stop, hedged wording is not. For a non-trivial change, run \`nub_review\` over the diff before delivery and address its BLOCKER/CRITICAL findings; the push gate asks for confirmation when changes were not reviewed or were blocked.
-Phase reporting: the Gentle Shell prompt label is inferred automatically from the primary session's tool activity (reads show \`exploring\`, edits \`implementing\`, test runs \`checking\`, user questions \`deciding\`). When the \`gentle_odd_phase\` tool is available, use it to refine that label with phases tools cannot show (\`authorizing\`, \`researching\`, \`deciding\`, \`closing\`): call \`gentle_odd_phase\` only when the primary session's ODD phase actually changes, never per tool call or on a fixed cadence, and never from a subagent. It drives the Gentle Shell prompt label only.
+Phase reporting: the Nub-IA prompt label is inferred automatically from the primary session's tool activity (reads show \`exploring\`, edits \`implementing\`, test runs \`checking\`, user questions \`deciding\`). When the \`gentle_odd_phase\` tool is available, use it to refine that label with phases tools cannot show (\`authorizing\`, \`researching\`, \`deciding\`, \`closing\`): call \`gentle_odd_phase\` only when the primary session's ODD phase actually changes, never per tool call or on a fixed cadence, and never from a subagent. It drives the Gentle Shell prompt label only.
 Resume an interrupted feature with \`mem_context\`, then project- and feature-scoped \`mem_search\`, then \`mem_get_observation\` for the full document, then the task file itself; reconcile before continuing the next unfinished task. Detail for steps 3–7: \`orchestrator-delegation.md\` and \`orchestrator-memory.md\`.
 
 Harness principles:
@@ -929,7 +929,7 @@ function parseGuardrailsConfigFile(
  * Load the runtime guardrails config.
  *
  * Resolution order (project overrides global):
- *   1. Check NUB_IA_AUTONOMOUS_MODE (legacy GENTLE_PI_AUTONOMOUS_MODE) env var — if "1", forces autonomousMode=true
+ *   1. Check NUB_IA_AUTONOMOUS_MODE env var — if "1", forces autonomousMode=true
  *      and uses default guarded command actions.
  *   2. Read global config from ${gentlePiConfigHome}/runtime-guardrails.json
  *   3. Read project config from ${cwd}/.pi/nub-ia/runtime-guardrails.json (legacy .pi/gentle-ai/ read as fallback)
@@ -942,7 +942,7 @@ function loadRuntimeGuardrailsConfig(
 ): RuntimeGuardrailsConfig {
 	try {
 		// Env var override: forces autonomous mode with default actions
-		if (readEnv(process.env, "NUB_IA_AUTONOMOUS_MODE", "GENTLE_PI_AUTONOMOUS_MODE") === "1") {
+		if (readEnv(process.env, "NUB_IA_AUTONOMOUS_MODE") === "1") {
 			return { autonomousMode: true, guardedCommands: {} };
 		}
 
@@ -4497,7 +4497,7 @@ function createGentleAiExtensionForTesting(
 		// A delegated child runs in the parent's resolved worktree. Asset
 		// install and model config belong to the parent session and write
 		// shared state, so only the parent performs them.
-		if (readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") !== "1") await startParentSession(ctx);
+		if (readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD") !== "1") await startParentSession(ctx);
 	});
 
 	const startParentSession = async (ctx: ExtensionContext): Promise<void> => {
@@ -4530,7 +4530,7 @@ function createGentleAiExtensionForTesting(
 
 	pi.on("before_agent_start", async (event, ctx) => {
 		const isNamedAgent = isNamedAgentStartEvent(event);
-		const isChildSession = readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1";
+		const isChildSession = readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD") === "1";
 		const isPrimarySession = !isNamedAgent && !isChildSession;
 		const subagentDepthKey = subagentDepthSessionKey(ctx, subagentDepthFallbackKey);
 		if (isNamedAgent || isChildSession) {
@@ -4573,7 +4573,7 @@ function createGentleAiExtensionForTesting(
 		if (!isRecord(event.input) || typeof event.input.command !== "string") {
 			return undefined;
 		}
-		if (readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === "1") {
+		if (readEnv(permissionEnvironment, "NUB_IA_AGENTS_CHILD") === "1") {
 			const childDenied = blockChildDestructiveCommand(event.input.command);
 			if (childDenied) return childDenied;
 		}

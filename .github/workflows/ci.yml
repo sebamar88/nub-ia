@@ -33,7 +33,7 @@ jobs:
       - name: Run tests
         run: pnpm test
         env:
-          GENTLE_PI_REQUIRE_NATIVE_BINARY: "1"
+          NUB_IA_REQUIRE_NATIVE_BINARY: "1"
 
       - name: Type check
         run: pnpm run typecheck
@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
-          GENTLE_PI_SKIP_RTK_INSTALL: "1"
+          NUB_IA_SKIP_RTK_INSTALL: "1"
 
       - name: Run Darwin session transport tests
         run: pnpm exec node --experimental-strip-types --test tests/agents-session-transport.test.ts tests/agents-session-transport-process.test.ts tests/nubia-agents.test.ts
@@ -96,7 +96,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
-          GENTLE_PI_SKIP_RTK_INSTALL: "1"
+          NUB_IA_SKIP_RTK_INSTALL: "1"
 
       - name: Run Windows Git authority probe
         shell: pwsh

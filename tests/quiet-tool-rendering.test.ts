@@ -173,14 +173,14 @@ async function withEnvAsync<T>(updates: Record<string, string | undefined>, run:
 // No executor, shellPath, or claim of production native-Bash UI parity.
 function quietTools(pi: any) {
 	productionQuietTools(pi);
-	if (process.env.GENTLE_PI_QUIET_TOOLS !== "0") {
+	if (process.env.NUB_IA_QUIET_TOOLS !== "0") {
 		pi.registerTool({ name: "bash", ...createQuietToolRenderer("bash") });
 	}
 }
 
 function registeredQuietTools() {
 	const { pi, tools } = createPi();
-	withEnv({ GENTLE_PI_QUIET_TOOLS: undefined }, () => quietTools(pi as any));
+	withEnv({ NUB_IA_QUIET_TOOLS: undefined }, () => quietTools(pi as any));
 	return tools;
 }
 
@@ -189,7 +189,7 @@ function renderToolResult(tool: any, result: any, options: any, context: Record<
 }
 
 test("quiet tools register six overrides and codemode, never Bash", () => {
-	withEnv({ GENTLE_PI_QUIET_TOOLS: undefined }, () => {
+	withEnv({ NUB_IA_QUIET_TOOLS: undefined }, () => {
 		const { pi, tools } = createPi();
 
 		productionQuietTools(pi as any);
@@ -206,7 +206,7 @@ test("quiet tools register six overrides and codemode, never Bash", () => {
 });
 
 test("quiet tools never replace an existing native Bash tool", () => {
-	withEnv({ GENTLE_PI_QUIET_TOOLS: undefined }, () => {
+	withEnv({ NUB_IA_QUIET_TOOLS: undefined }, () => {
 		const { pi, tools } = createPi({ throwOnToolConflict: true });
 		const native = createSdkTool("bash");
 		pi.registerTool(native);
@@ -226,7 +226,7 @@ test("standalone Bash rendering fixture does not interpret shellPath", () => {
 });
 
 test("quiet tool rendering can be disabled by env", () => {
-	withEnv({ GENTLE_PI_QUIET_TOOLS: "0" }, () => {
+	withEnv({ NUB_IA_QUIET_TOOLS: "0" }, () => {
 		const { pi, tools } = createPi();
 
 		productionQuietTools(pi as any);
@@ -237,7 +237,7 @@ test("quiet tool rendering can be disabled by env", () => {
 
 test("pi-pretty suppresses overlapping tools before quiet tools register", async () => {
 	await withEnvAsync(
-		{ GENTLE_PI_QUIET_TOOLS: undefined, PRETTY_DISABLE_TOOLS: "multi_grep" },
+		{ NUB_IA_QUIET_TOOLS: undefined, PRETTY_DISABLE_TOOLS: "multi_grep" },
 		async () => {
 			const { pi, tools } = createPi({ throwOnToolConflict: true });
 
@@ -255,7 +255,7 @@ test("pi-pretty suppresses overlapping tools before quiet tools register", async
 
 test("pi-pretty preserves byte-exact model-visible read results when quiet tools suppress its renderer", async () => {
 	await withEnvAsync(
-		{ GENTLE_PI_QUIET_TOOLS: undefined, PRETTY_DISABLE_TOOLS: undefined },
+		{ NUB_IA_QUIET_TOOLS: undefined, PRETTY_DISABLE_TOOLS: undefined },
 		async () => {
 			const { pi, hooks } = createPi();
 			await piPretty(pi as any, fakePiPrettyDeps as any);
@@ -278,7 +278,7 @@ test("pi-pretty preserves byte-exact model-visible read results when quiet tools
 test("pi-pretty suppression is skipped when quiet tools are disabled", async () => {
 	await withEnvAsync(
 		{
-			GENTLE_PI_QUIET_TOOLS: "0",
+			NUB_IA_QUIET_TOOLS: "0",
 			PRETTY_DISABLE_TOOLS: undefined,
 			PRETTY_ENABLE_TOOLS: "ls",
 		},
@@ -298,7 +298,7 @@ test("pi-pretty suppression is skipped when quiet tools are disabled", async () 
 
 test("quiet tool rendering uses bounded previews while preserving search summaries", () => {
 	const { pi, tools } = createPi();
-	withEnv({ GENTLE_PI_QUIET_TOOLS: undefined }, () => quietTools(pi as any));
+	withEnv({ NUB_IA_QUIET_TOOLS: undefined }, () => quietTools(pi as any));
 
 	const read = renderToString(
 		tools.get("read").renderResult(textResult("first line\nsecond line"), { expanded: false, isPartial: false }, passthroughTheme, {}),
@@ -512,7 +512,7 @@ test("quiet tool rendering keeps concise collapsed edit and write summaries", ()
 
 test("quiet tool rendering sanitizes collapsed output and call rows", () => {
 	const { pi, tools } = createPi();
-	withEnv({ GENTLE_PI_QUIET_TOOLS: undefined }, () => quietTools(pi as any));
+	withEnv({ NUB_IA_QUIET_TOOLS: undefined }, () => quietTools(pi as any));
 
 	const collapsed = renderToString(
 		tools.get("bash").renderResult(textResult("safe\x1b[31mred\x1b[0m"), { expanded: false, isPartial: false }, passthroughTheme, { args: { command: "printf output" } }),
@@ -539,7 +539,7 @@ test("quiet tool rendering sanitizes only rendered fields", () => {
 
 test("quiet tool rendering call rows show tool calls without result output", () => {
 	const { pi, tools } = createPi();
-	withEnv({ GENTLE_PI_QUIET_TOOLS: undefined }, () => quietTools(pi as any));
+	withEnv({ NUB_IA_QUIET_TOOLS: undefined }, () => quietTools(pi as any));
 
 	const readCall = renderToString(tools.get("read").renderCall({ path: "/tmp/example.ts", offset: 2, limit: 3 }, passthroughTheme, {}));
 	const bashCall = renderToString(tools.get("bash").renderCall({ command: "printf noisy", timeout: 5 }, passthroughTheme, {}));

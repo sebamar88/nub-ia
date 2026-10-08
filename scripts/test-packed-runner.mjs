@@ -603,7 +603,7 @@ async function testHookedPackedRunner() {
 	// Every child inherits only disposable Pi homes, never the operator's settings.
 	const agentHome = join(temporary, "agent");
 	const piAgentHome = join(temporary, "pi-agent");
-	const isolatedEnv = { ...process.env, GENTLE_PI_SKIP_RTK_INSTALL: "1", GENTLE_PI_AGENT_HOME: agentHome, PI_CODING_AGENT_DIR: piAgentHome };
+	const isolatedEnv = { ...process.env, NUB_IA_SKIP_RTK_INSTALL: "1", NUB_IA_AGENT_HOME: agentHome, PI_CODING_AGENT_DIR: piAgentHome };
 	const runNpm = (arguments_, options) => runNpmWithEnv(arguments_, isolatedEnv, options);
 	try {
 		mkdirSync(packDirectory);
@@ -664,7 +664,7 @@ function isolatedUnhookedEnvironment(temporary) {
 		HOME: home, USERPROFILE: home, APPDATA: appData, LOCALAPPDATA: localAppData,
 		XDG_CONFIG_HOME: xdgConfigHome, XDG_CACHE_HOME: xdgCacheHome, XDG_DATA_HOME: xdgDataHome,
 		TMPDIR: temporary, TMP: temporary, TEMP: temporary,
-		GENTLE_PI_AGENT_HOME: agentHome, GENTLE_PI_CONFIG_HOME: gentleConfigHome, PI_CODING_AGENT_DIR: piAgentHome,
+		NUB_IA_AGENT_HOME: agentHome, NUB_IA_CONFIG_HOME: gentleConfigHome, PI_CODING_AGENT_DIR: piAgentHome,
 		NPM_CONFIG_CACHE: npmCache, npm_config_cache: npmCache, NPM_CONFIG_USERCONFIG: npmUserConfig, npm_config_userconfig: npmUserConfig,
 		NPM_CONFIG_TMP: temporary, npm_config_tmp: temporary, NPM_CONFIG_IGNORE_SCRIPTS: "true", npm_config_ignore_scripts: "true",
 		NPM_CONFIG_UPDATE_NOTIFIER: "false", npm_config_update_notifier: "false",
@@ -797,10 +797,10 @@ function assertPackedAssets(packageRoot, receipt) {
 
 function assertNoNativeInstallerArtifacts(packageRoot, consumerDirectory, receipt) {
 	selectUnhookedCheck(receipt, "native-package-cache-absent");
-	if (existsSync(join(packageRoot, ".gentle-ai"))) throw new Error("unhooked install unexpectedly contains a native Gentle AI artifact");
+	if (existsSync(join(packageRoot, ".gentle-ai"))) throw new Error("unhooked install unexpectedly contains a native gentle-ai artifact");
 	selectUnhookedCheck(receipt, "native-command-absent");
 	const nativeCommand = process.platform === "win32" ? "gentle-ai.cmd" : "gentle-ai";
-	if (existsSync(join(consumerDirectory, "node_modules", ".bin", nativeCommand))) throw new Error("unhooked install unexpectedly exposed a native Gentle AI executable");
+	if (existsSync(join(consumerDirectory, "node_modules", ".bin", nativeCommand))) throw new Error("unhooked install unexpectedly exposed a native gentle-ai executable");
 }
 
 function compareRelease(left, right) {
@@ -1173,7 +1173,7 @@ try {
   ({ join } = pathModule);
   ({ pathToFileURL } = urlModule);
   checkpoint("bootstrap", "bootstrap-agent-home");
-  const agentHome = process.env.GENTLE_PI_AGENT_HOME;
+  const agentHome = process.env.NUB_IA_AGENT_HOME;
   assert.equal(typeof agentHome, "string");
   checkpoint("bootstrap", "bootstrap-directories");
   const probeRoot = join(process.cwd(), "sdk-lifecycle-probe");
@@ -1385,7 +1385,7 @@ async function testSdkLifecyclePackedSession() {
 		mkdirSync(packDirectory);
 		mkdirSync(consumerDirectory);
 		const { env } = isolatedUnhookedEnvironment(temporary);
-		Object.assign(env, { GENTLE_PI_AGENTS: "1", PI_OFFLINE: "1" });
+		Object.assign(env, { NUB_IA_AGENTS: "1", PI_OFFLINE: "1" });
 		selectSdkLifecycleCheck(receipt, "project-sdk-version");
 		const sdkVersion = resolveProjectPiSdkVersion(root, "SDK lifecycle probe");
 		selectSdkLifecycleCheck(receipt, "pack-command");
@@ -1458,7 +1458,7 @@ async function testWindowsStartupTimingPackedHelper() {
 		mkdirSync(packDirectory);
 		mkdirSync(consumerDirectory);
 		const { env } = isolatedUnhookedEnvironment(temporary);
-		Object.assign(env, { GENTLE_PI_AGENTS: "1", PI_OFFLINE: "1" });
+		Object.assign(env, { NUB_IA_AGENTS: "1", PI_OFFLINE: "1" });
 		selectWindowsStartupTimingCheck(receipt, "project-sdk-version");
 		const sdkVersion = resolveProjectPiSdkVersion(root, "Windows startup timing probe");
 		selectWindowsStartupTimingCheck(receipt, "pack-command");
@@ -1532,7 +1532,7 @@ async function testWindowsStartupTimingEnvironmentExperiment() {
 		// Both cases retain this exact existing minimal isolation environment; only
 		// the treatment receives the validated, fixed Windows path-key delta.
 		const { env: isolatedEnv } = isolatedUnhookedEnvironment(temporary);
-		Object.assign(isolatedEnv, { GENTLE_PI_AGENTS: "1", PI_OFFLINE: "1" });
+		Object.assign(isolatedEnv, { NUB_IA_AGENTS: "1", PI_OFFLINE: "1" });
 		const pathDelta = deriveWindowsStartupTimingPathDelta(process.env);
 		const treatmentPathDelta = validateWindowsStartupTimingMachinePaths(pathDelta) ? pathDelta : undefined;
 		selectWindowsStartupTimingCheck(receipt, "project-sdk-version");

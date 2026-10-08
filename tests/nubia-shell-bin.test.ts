@@ -51,7 +51,7 @@ test("Herdr activity is discoverable through the isolated launcher package", asy
 test("real adjacent Pi resolves through its public entry without PATH or a runtime override", (t) => {
 	const f = fixture(t);
 	const result = spawnSync(process.execPath, [binPath, "--version"], {
-		env: { HOME: f.home, USERPROFILE: f.home, PATH: "", GENTLE_SHELL_NO_AUTO_SETUP: "1" },
+		env: { HOME: f.home, USERPROFILE: f.home, PATH: "", NUB_IA_NO_AUTO_SETUP: "1" },
 		encoding: "utf8",
 	});
 	assert.equal(result.status, 0, result.stderr);
@@ -71,7 +71,7 @@ function standaloneLauncher(t: test.TestContext) {
 	writeFileSync(join(root, "bin", "nub-ia.mjs"), readFileSync(binPath));
 	writeFileSync(join(root, "package.json"), readFileSync(join(packageRoot, "package.json")));
 	for (const dir of ["runtime", "scripts"]) symlinkSync(join(packageRoot, dir), join(root, dir), "junction");
-	const env = { HOME: f.home, USERPROFILE: f.home, PATH: `${root}${delimiter}${dirname(process.execPath)}`, GENTLE_SHELL_NO_AUTO_SETUP: "1", GENTLE_PI_SKIP_RTK_INSTALL: "1" };
+	const env = { HOME: f.home, USERPROFILE: f.home, PATH: `${root}${delimiter}${dirname(process.execPath)}`, NUB_IA_NO_AUTO_SETUP: "1", NUB_IA_SKIP_RTK_INSTALL: "1" };
 	return { ...f, root, env, launcher: join(root, "bin", "nub-ia.mjs") };
 }
 
@@ -99,7 +99,7 @@ test("malformed adjacent metadata never silently falls back to PATH; env overrid
 		assert.equal(result.stdout, "");
 	}
 	writeFileSync(join(peer, "package.json"), JSON.stringify({ ...base, name: "impostor" }));
-	const override = spawnSync(process.execPath, [f.launcher, "--version"], { env: { ...f.env, GENTLE_SHELL_PI: fallback }, encoding: "utf8" });
+	const override = spawnSync(process.execPath, [f.launcher, "--version"], { env: { ...f.env, NUB_IA_PI: fallback }, encoding: "utf8" });
 	assert.equal(override.status, 0, override.stderr);
 	assert.match(override.stdout, /pi 0\.99\.2/);
 });
@@ -112,7 +112,7 @@ function ownGentlePiVersion(): string {
 	return JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8")).version;
 }
 
-// GENTLE_SHELL_NO_AUTO_SETUP=1 is in the base fixture env so every test that
+// NUB_IA_NO_AUTO_SETUP=1 is in the base fixture env so every test that
 // is not itself about auto-provisioning (S7) keeps today's plain-launch
 // behavior: without it, every fixture-driven test against a fresh isolated
 // home would run `pi install` for the team packages (network, mutating
@@ -130,22 +130,22 @@ function fixture(t: test.TestContext) {
 		...process.env,
 		HOME: home,
 		USERPROFILE: home,
-		GENTLE_SHELL_HOME: gentleShellHome,
-		GENTLE_SHELL_PI: piScript,
-		GENTLE_SHELL_NO_AUTO_SETUP: "1",
+		NUB_IA_HOME: gentleShellHome,
+		NUB_IA_PI: piScript,
+		NUB_IA_NO_AUTO_SETUP: "1",
 		// Never download rtk from a test; the self-heal has its own tests.
-		GENTLE_PI_SKIP_RTK_INSTALL: "1",
+		NUB_IA_SKIP_RTK_INSTALL: "1",
 		// Team companion packages are exercised by their own tests below; every
 		// other setup test keeps a deterministic install sequence.
-		GENTLE_SHELL_TEAM_PACKAGES: "",
+		NUB_IA_TEAM_PACKAGES: "",
 	};
 	return { root, home, gentleShellHome, piScript, env };
 }
 
-// Removes the fixture's default GENTLE_SHELL_NO_AUTO_SETUP=1 opt-out, for a
+// Removes the fixture's default NUB_IA_NO_AUTO_SETUP=1 opt-out, for a
 // test that specifically exercises auto-provisioning (S7).
 function enableAutoProvision(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-	const { GENTLE_SHELL_NO_AUTO_SETUP, ...rest } = env;
+	const { NUB_IA_NO_AUTO_SETUP, ...rest } = env;
 	return rest;
 }
 
@@ -164,7 +164,7 @@ function writePiScript(path: string, version: string, removeExitCode = 0) {
 			"  console.log(JSON.stringify({",
 			"    args,",
 			"    PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,",
-			"    GENTLE_PI_AGENT_HOME: process.env.GENTLE_PI_AGENT_HOME,",
+			"    NUB_IA_AGENT_HOME: process.env.NUB_IA_AGENT_HOME,",
 			"    PATH: process.env.PATH,",
 			"  }));",
 			`  process.exit(${removeExitCode});`,
@@ -172,9 +172,9 @@ function writePiScript(path: string, version: string, removeExitCode = 0) {
 			"console.log(JSON.stringify({",
 			"  args,",
 			"  PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,",
-			"  GENTLE_PI_AGENT_HOME: process.env.GENTLE_PI_AGENT_HOME,",
-			"  GENTLE_SHELL_USER_PI_HOME: process.env.GENTLE_SHELL_USER_PI_HOME,",
-			"  GENTLE_SHELL_CHILD_PACKAGE_INJECTION: process.env.GENTLE_SHELL_CHILD_PACKAGE_INJECTION,",
+			"  NUB_IA_AGENT_HOME: process.env.NUB_IA_AGENT_HOME,",
+			"  NUB_IA_USER_PI_HOME: process.env.NUB_IA_USER_PI_HOME,",
+			"  NUB_IA_CHILD_PACKAGE_INJECTION: process.env.NUB_IA_CHILD_PACKAGE_INJECTION,",
 			"}));",
 			"process.exit(0);",
 			"",
@@ -212,7 +212,7 @@ function herdrFixture(t: test.TestContext) {
 		HERDR_ENV: "1", HERDR_SOCKET_PATH: socket, HERDR_PANE_ID: "mock-pane",
 		TEST_SOCKET_VALID: "1", TEST_STDIN_TTY: "1", TEST_STDOUT_TTY: "1",
 	};
-	delete env.GENTLE_PI_AGENTS_CHILD;
+	delete env.NUB_IA_AGENTS_CHILD;
 	// Keep parent agent-home inheritance out of every portable test fixture.
 	delete env.PI_CODING_AGENT_DIR;
 	const launch = (args: string[] = [], overrides: NodeJS.ProcessEnv = {}) => {
@@ -263,7 +263,7 @@ test("Herdr bridge injection respects disabled extensions, headless modes and ch
 	}
 	for (const overrides of [{ HERDR_ENV: "0" }, { HERDR_ENV: undefined }, { HERDR_PANE_ID: "" },
 		{ HERDR_SOCKET_PATH: "" }, { TEST_SOCKET_VALID: "0" }, { TEST_STDIN_TTY: "0" },
-		{ TEST_STDOUT_TTY: "0" }, { GENTLE_PI_AGENTS_CHILD: "1" }]) {
+		{ TEST_STDOUT_TTY: "0" }, { NUB_IA_AGENTS_CHILD: "1" }]) {
 		assert.ok(!extensionPaths(f.launch([], overrides)).includes(realpathSync(f.bridge)), JSON.stringify(overrides));
 	}
 	assert.ok(extensionPaths(f.launch(["--mode", "text"])).includes(realpathSync(f.bridge)));
@@ -350,16 +350,16 @@ test("home <path> persists a custom directory", (t) => {
 	assert.equal(check.stdout.trim(), `path ${target}`);
 });
 
-// Test/development-only: GENTLE_SHELL_CONFIG overrides the launcher
+// Test/development-only: NUB_IA_CONFIG overrides the launcher
 // config.json path (normally <homedir>/.nub-ia/config.json), so a test
 // or a field run against the real HOME (for example the packed-artifact E2E
 // script, which needs `--link` probes against the real pi home) never
 // touches the real ~/.nub-ia/config.json. Documented as
 // test/development-only in docs/readme-reference.md.
-test("GENTLE_SHELL_CONFIG redirects the config.json path used by 'home' and auto-provisioning", (t) => {
+test("NUB_IA_CONFIG redirects the config.json path used by 'home' and auto-provisioning", (t) => {
 	const f = fixture(t);
 	const overridePath = join(f.root, "alt-config.json");
-	const env = { ...f.env, GENTLE_SHELL_CONFIG: overridePath };
+	const env = { ...f.env, NUB_IA_CONFIG: overridePath };
 
 	const save = run(env, ["home", "link"]);
 	assert.equal(save.status, 0, save.stderr);
@@ -399,7 +399,7 @@ test("forwarded args reach pi after the injected extension flags, in order", (t)
 		"-p",
 		"hi",
 	]);
-	assert.equal(payload.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
+	assert.equal(payload.NUB_IA_AGENT_HOME, f.gentleShellHome);
 });
 
 // #1690: the spawned pi must carry the launcher's own -e set so the subagent
@@ -408,11 +408,11 @@ test("an isolated launch without a gentle-pi declaration signals its package inj
 	const f = fixture(t);
 	const stale = JSON.stringify({ version: 1, noExtensions: true, extensionPaths: [join(f.root, "outer")] });
 	for (const inherited of [undefined, stale]) {
-		const result = run({ ...f.env, GENTLE_SHELL_CHILD_PACKAGE_INJECTION: inherited }, ["--mode", "rpc"]);
+		const result = run({ ...f.env, NUB_IA_CHILD_PACKAGE_INJECTION: inherited }, ["--mode", "rpc"]);
 		assert.equal(result.status, 0, result.stderr);
 		const payload = JSON.parse(result.stdout);
 		assert.deepEqual(payload.args.slice(0, 2), ["-e", packageRoot]);
-		assert.deepEqual(JSON.parse(payload.GENTLE_SHELL_CHILD_PACKAGE_INJECTION), { version: 1, noExtensions: false, extensionPaths: [packageRoot] });
+		assert.deepEqual(JSON.parse(payload.NUB_IA_CHILD_PACKAGE_INJECTION), { version: 1, noExtensions: false, extensionPaths: [packageRoot] });
 	}
 });
 
@@ -420,7 +420,7 @@ test("an isolated launch keeps its own agent home and carries the user's origina
 	const f = fixture(t);
 	const base = { ...f.env };
 	delete base.PI_CODING_AGENT_DIR;
-	delete base.GENTLE_SHELL_USER_PI_HOME;
+	delete base.NUB_IA_USER_PI_HOME;
 	const launch = (overrides: NodeJS.ProcessEnv, args: string[] = []) => {
 		const result = run({ ...base, ...overrides }, [...args, "--mode", "rpc"]);
 		assert.equal(result.status, 0, result.stderr);
@@ -428,19 +428,19 @@ test("an isolated launch keeps its own agent home and carries the user's origina
 	};
 	const conventional = launch({});
 	assert.equal(conventional.PI_CODING_AGENT_DIR, f.gentleShellHome);
-	assert.equal(conventional.GENTLE_SHELL_USER_PI_HOME, join(f.home, ".pi", "agent"));
+	assert.equal(conventional.NUB_IA_USER_PI_HOME, join(f.home, ".pi", "agent"));
 	const customHome = join(f.root, "custom-pi");
 	const custom = launch({ PI_CODING_AGENT_DIR: customHome });
 	assert.equal(custom.PI_CODING_AGENT_DIR, f.gentleShellHome);
-	assert.equal(custom.GENTLE_PI_AGENT_HOME, f.gentleShellHome);
-	assert.equal(custom.GENTLE_SHELL_USER_PI_HOME, customHome);
+	assert.equal(custom.NUB_IA_AGENT_HOME, f.gentleShellHome);
+	assert.equal(custom.NUB_IA_USER_PI_HOME, customHome);
 	// A nub-ia started from inside a Nub-IA session inherits both variables.
-	const nested = launch({ PI_CODING_AGENT_DIR: custom.PI_CODING_AGENT_DIR, GENTLE_SHELL_USER_PI_HOME: custom.GENTLE_SHELL_USER_PI_HOME });
+	const nested = launch({ PI_CODING_AGENT_DIR: custom.PI_CODING_AGENT_DIR, NUB_IA_USER_PI_HOME: custom.NUB_IA_USER_PI_HOME });
 	assert.equal(nested.PI_CODING_AGENT_DIR, f.gentleShellHome);
-	assert.equal(nested.GENTLE_SHELL_USER_PI_HOME, customHome);
+	assert.equal(nested.NUB_IA_USER_PI_HOME, customHome);
 	const linked = launch({ PI_CODING_AGENT_DIR: customHome }, ["--link"]);
 	assert.equal(linked.PI_CODING_AGENT_DIR, customHome);
-	assert.equal(linked.GENTLE_SHELL_USER_PI_HOME, customHome);
+	assert.equal(linked.NUB_IA_USER_PI_HOME, customHome);
 	assert.equal(existsSync(join(customHome, "sessions")), false);
 });
 
@@ -507,7 +507,7 @@ test("an isolated home whose settings.json declares a path-based gentle-pi takes
 
 	const result = run(f.env, ["--mode", "rpc"], { cwd: f.root });
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /taking over gentle-pi from/);
+	assert.match(result.stderr, /taking over the Nub-IA package declared in/);
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, [
 		"--no-extensions",
@@ -566,7 +566,7 @@ test("--version prints three lines", (t) => {
 // run extra JavaScript (for example to rewrite settings.json) on install. Any
 // other invocation prints its args as JSON, like the plain fixture pi.
 
-const CHILD_READY_TOKEN = "GENTLE_SHELL_TEST_CHILD_READY";
+const CHILD_READY_TOKEN = "NUB_IA_TEST_CHILD_READY";
 
 function writeProvisioningPi(
 	path: string,
@@ -581,7 +581,7 @@ function writeProvisioningPi(
 			"import { join } from 'node:path';",
 			"const args = process.argv.slice(2);",
 			'if (args.includes("--version")) { console.log("0.99.1"); process.exit(0); }',
-			"const record = { args, PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR, GENTLE_PI_AGENT_HOME: process.env.GENTLE_PI_AGENT_HOME };",
+			"const record = { args, PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR, NUB_IA_AGENT_HOME: process.env.NUB_IA_AGENT_HOME };",
 			"if (args[0] === 'install') {",
 			`  const log = ${JSON.stringify(log ?? null)};`,
 			"  if (log) appendFileSync(log, JSON.stringify(record) + '\\n');",
@@ -592,7 +592,7 @@ function writeProvisioningPi(
 			"  console.log(JSON.stringify(record));",
 			`  process.exit(${installExit});`,
 			"}",
-			"console.log(JSON.stringify({ ...record, GENTLE_SHELL_USER_PI_HOME: process.env.GENTLE_SHELL_USER_PI_HOME }));",
+			"console.log(JSON.stringify({ ...record, NUB_IA_USER_PI_HOME: process.env.NUB_IA_USER_PI_HOME }));",
 			"process.exit(0);",
 			"",
 		].join("\n"),
@@ -606,7 +606,7 @@ const TEAM = "npm:example-a";
 function provisioning(f: ReturnType<typeof fixture>, options: Parameters<typeof writeProvisioningPi>[1] = {}, extra: NodeJS.ProcessEnv = {}) {
 	const script = join(f.root, "fake-pi-provisioning.mjs");
 	writeProvisioningPi(script, options);
-	return { ...f.env, GENTLE_SHELL_PI: script, GENTLE_SHELL_TEAM_PACKAGES: TEAM, ...extra };
+	return { ...f.env, NUB_IA_PI: script, NUB_IA_TEAM_PACKAGES: TEAM, ...extra };
 }
 
 function installRuns(log: string): string[] {
@@ -624,7 +624,7 @@ const escapeForRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\
 test("nub-ia setup installs the packaged team packages via pi's own install, in the resolved home", (t) => {
 	const f = fixture(t);
 	const env = provisioning(f);
-	delete env.GENTLE_SHELL_TEAM_PACKAGES;
+	delete env.NUB_IA_TEAM_PACKAGES;
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
@@ -637,7 +637,7 @@ test("nub-ia setup installs the packaged team packages via pi's own install, in 
 
 test("nub-ia setup never spawns a gentle-ai binary", (t) => {
 	const f = fixture(t);
-	const env = provisioning(f, {}, { GENTLE_SHELL_GENTLE_AI_BIN: join(f.root, "must-not-run") });
+	const env = provisioning(f, {}, { NUB_IA_GENTLE_AI_BIN: join(f.root, "must-not-run") });
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.doesNotMatch(result.stderr, /gentle-ai/);
@@ -648,7 +648,7 @@ test("nub-ia setup skips team packages the home already declares, at any version
 	mkdirSync(f.gentleShellHome, { recursive: true });
 	writeFileSync(join(f.gentleShellHome, "settings.json"), JSON.stringify({ packages: ["npm:@dietrichgebert/ponytail@4.12.0"] }));
 	const env = provisioning(f);
-	delete env.GENTLE_SHELL_TEAM_PACKAGES;
+	delete env.NUB_IA_TEAM_PACKAGES;
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
@@ -656,9 +656,9 @@ test("nub-ia setup skips team packages the home already declares, at any version
 	assert.equal(jsonRecords(result.stdout).length, 0, "nothing to install");
 });
 
-test("GENTLE_SHELL_TEAM_PACKAGES overrides the packaged team list and --dry-run reports it without installing", (t) => {
+test("NUB_IA_TEAM_PACKAGES overrides the packaged team list and --dry-run reports it without installing", (t) => {
 	const f = fixture(t);
-	const env = provisioning(f, {}, { GENTLE_SHELL_TEAM_PACKAGES: "npm:example-a, git:github.com/x/y" });
+	const env = provisioning(f, {}, { NUB_IA_TEAM_PACKAGES: "npm:example-a, git:github.com/x/y" });
 
 	const dry = run(env, ["setup", "--dry-run"]);
 	assert.equal(dry.status, 0, dry.stderr);
@@ -698,7 +698,7 @@ test("nub-ia setup shell-quotes a --home path containing a space in the retry co
 
 test("manual setup never times out even past the auto-mode ceiling override", (t) => {
 	const f = fixture(t);
-	const env = provisioning(f, { installSleepMs: 300 }, { GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS: "50" });
+	const env = provisioning(f, { installSleepMs: 300 }, { NUB_IA_AUTO_SETUP_TIMEOUT_MS: "50" });
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.doesNotMatch(result.stderr, /timed out/);
@@ -724,7 +724,7 @@ test("first launch auto-provisions the isolated home, writes the marker, then la
 	assert.equal(stdoutLines.length, 1, result.stdout);
 	assert.deepEqual(JSON.parse(stdoutLines[0]).args.slice(-4), ["--mode", "rpc", "-p", "hi"]);
 
-	assert.match(result.stderr, /nub-ia: first run in .+: installing the team packages \(one time; set GENTLE_SHELL_NO_AUTO_SETUP=1 to skip\)/);
+	assert.match(result.stderr, /nub-ia: first run in .+: installing the team packages \(one time; set NUB_IA_NO_AUTO_SETUP=1 to skip\)/);
 
 	const config = JSON.parse(readFileSync(join(f.home, ".nub-ia", "config.json"), "utf8"));
 	const homeKey = realpathSync(f.gentleShellHome);
@@ -832,7 +832,7 @@ test("a failing auto-provision flow names the --home selector in its retry remed
 	assert.match(result.stderr, new RegExp(`Run \`nub-ia --home ${escapeForRegExp(target)} setup\` to see the full output\\.`));
 });
 
-test("GENTLE_SHELL_NO_AUTO_SETUP=1 skips auto-provisioning entirely", (t) => {
+test("NUB_IA_NO_AUTO_SETUP=1 skips auto-provisioning entirely", (t) => {
 	const f = fixture(t);
 	const log = join(f.root, "install-runs.log");
 	const result = run(provisioning(f, { log }), []);
@@ -1030,7 +1030,7 @@ test(
 		const configPath = join(restrictedRoot, ".nub-ia", "config.json");
 		chmodSync(restrictedRoot, 0o500);
 
-		const env = enableAutoProvision(provisioning(f, {}, { GENTLE_SHELL_CONFIG: configPath }));
+		const env = enableAutoProvision(provisioning(f, {}, { NUB_IA_CONFIG: configPath }));
 		const result = run(env, ["--mode", "rpc", "-p", "hi"]);
 		assert.equal(result.status, 0, result.stderr);
 		assert.match(result.stderr, /nub-ia: automatic setup failed unexpectedly/);
@@ -1040,7 +1040,7 @@ test(
 
 test("a hung install during automatic provisioning is killed after the timeout ceiling, treated as a failure, and pi still launches", (t) => {
 	const f = fixture(t);
-	const env = enableAutoProvision(provisioning(f, { installSleepMs: 60000 }, { GENTLE_SHELL_AUTO_SETUP_TIMEOUT_MS: "300" }));
+	const env = enableAutoProvision(provisioning(f, { installSleepMs: 60000 }, { NUB_IA_AUTO_SETUP_TIMEOUT_MS: "300" }));
 
 	const started = Date.now();
 	const result = run(env, ["--mode", "rpc", "-p", "hi"]);
@@ -1339,7 +1339,7 @@ test("'home' persistence writes through a symlinked config.json", { skip: fileSy
 	const targetPath = join(f.root, "dotfiles", "config.json");
 	symlinkedFile(linkPath, targetPath, "{}\n", 0o600);
 
-	const result = run({ ...f.env, GENTLE_SHELL_CONFIG: linkPath }, ["home", "link"]);
+	const result = run({ ...f.env, NUB_IA_CONFIG: linkPath }, ["home", "link"]);
 	assert.equal(result.status, 0, result.stderr);
 	assertStillLinkedTo(linkPath, targetPath, 0o600);
 	assert.deepEqual(JSON.parse(readFileSync(targetPath, "utf8")), { home: "link" });
@@ -1352,7 +1352,7 @@ test("a dangling config.json symlink is replaced in place, never followed to cre
 	mkdirSync(dirname(linkPath), { recursive: true });
 	symlinkSync(missingTarget, linkPath, "file");
 
-	const result = run({ ...f.env, GENTLE_SHELL_CONFIG: linkPath }, ["home", "link"]);
+	const result = run({ ...f.env, NUB_IA_CONFIG: linkPath }, ["home", "link"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.equal(lstatSync(linkPath).isSymbolicLink(), false);
 	assert.deepEqual(JSON.parse(readFileSync(linkPath, "utf8")), { home: "link" });
@@ -1373,10 +1373,10 @@ test("--package-root warns and is ignored when an isolated home already declares
 	assert.match(
 		result.stderr,
 		new RegExp(
-			`--package-root only forces a take-over in --link mode; ${f.gentleShellHome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} declares gentle-pi, so the installed package is used and ${forcedRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} is ignored`,
+			`--package-root only forces a take-over in --link mode; ${f.gentleShellHome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} declares the Nub-IA package, so the installed package is used and ${forcedRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} is ignored`,
 		),
 	);
-	assert.doesNotMatch(result.stderr, /taking over gentle-pi from/);
+	assert.doesNotMatch(result.stderr, /taking over the Nub-IA package declared in/);
 
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, ["--mode", "rpc"]);
@@ -1430,7 +1430,7 @@ test("--link takes over a path-declared conflicting gentle-pi: --no-extensions, 
 	const result = run(env, ["--link", "--mode", "rpc"], { cwd: f.root });
 	assert.equal(result.status, 0, result.stderr);
 
-	assert.match(result.stderr, /taking over gentle-pi from/);
+	assert.match(result.stderr, /taking over the Nub-IA package declared in/);
 	assert.match(result.stderr, /other-gentle-pi/);
 
 	const payload = JSON.parse(result.stdout);
@@ -1464,7 +1464,7 @@ test("--link install npm:x with a path-declared conflicting gentle-pi in setting
 	const env = { ...f.env, PI_CODING_AGENT_DIR: piAgentDir };
 	const result = run(env, ["--link", "install", "npm:x"], { cwd: f.root });
 	assert.equal(result.status, 0, result.stderr);
-	assert.doesNotMatch(result.stderr, /taking over gentle-pi from/);
+	assert.doesNotMatch(result.stderr, /taking over the Nub-IA package declared in/);
 
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, ["install", "npm:x"]);
@@ -1507,7 +1507,7 @@ test("--package-root forces a takeover even when settings already declare a matc
 	const env = { ...f.env, PI_CODING_AGENT_DIR: piAgentDir };
 	const result = run(env, ["--link", "--package-root", forcedRoot], { cwd: f.root });
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /taking over gentle-pi from npm:gentle-pi/);
+	assert.match(result.stderr, /taking over the Nub-IA package declared in npm:gentle-pi/);
 
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, ["--no-extensions", "-e", forcedRoot]);
@@ -1531,7 +1531,7 @@ test("--package-root forces a takeover even with no gentle-pi declaration at all
 	const env = { ...f.env, PI_CODING_AGENT_DIR: piAgentDir };
 	const result = run(env, ["--link", "--package-root", forcedRoot], { cwd: f.root });
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /taking over gentle-pi from the requested package root/);
+	assert.match(result.stderr, /taking over the Nub-IA package declared in the requested package root/);
 
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, [
@@ -1623,7 +1623,7 @@ test("--link take-over re-injects loose extension files, one -e per discovered f
 	const env = { ...f.env, PI_CODING_AGENT_DIR: piAgentDir };
 	const result = run(env, ["--link", "--mode", "rpc"], { cwd: projectDir });
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /taking over gentle-pi from/);
+	assert.match(result.stderr, /taking over the Nub-IA package declared in/);
 
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, [
@@ -1815,7 +1815,7 @@ test("--isolated --package-root produces the plain injection (no --no-extensions
 
 	const result = run(f.env, ["--isolated", "--package-root", forcedRoot, "--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.doesNotMatch(result.stderr, /taking over gentle-pi from/);
+	assert.doesNotMatch(result.stderr, /taking over the Nub-IA package declared in/);
 
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, [
@@ -1947,7 +1947,7 @@ test("--link take-over stderr message also notes that the taken-over declaration
 	const env = { ...f.env, PI_CODING_AGENT_DIR: piAgentDir };
 	const result = run(env, ["--link"], { cwd: f.root });
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /taking over gentle-pi from/);
+	assert.match(result.stderr, /taking over the Nub-IA package declared in/);
 	assert.match(result.stderr, /skills, prompts, and themes/);
 });
 
@@ -1983,7 +1983,7 @@ function writeHandoffPiScript(path: string, exitCode = 0) {
 			"const { writeFileSync } = require('node:fs');",
 			"const args = process.argv.slice(2);",
 			"if (args.includes('--version')) { console.log('0.99.1'); process.exit(0); }",
-			"const handoff = process.env.GENTLE_SHELL_RESUME_HANDOFF;",
+			"const handoff = process.env.NUB_IA_RESUME_HANDOFF;",
 			"if (handoff) writeFileSync(handoff, JSON.stringify({ sessionId: 'abc' }));",
 			"if (process.env.PI_STUB_PRINT_ENV) console.log(JSON.stringify({ args, handoff }));",
 			"process.stdout.write('To resume this session: pi --session abc\\n');",
@@ -1998,7 +1998,7 @@ test("interactive launch hands pi a private resume handoff and cleans it up", (t
 	const f = fixture(t);
 	const piScript = join(f.root, "handoff-pi.cjs");
 	writeHandoffPiScript(piScript);
-	const result = run({ ...f.env, GENTLE_SHELL_PI: piScript, PI_STUB_PRINT_ENV: "1" }, []);
+	const result = run({ ...f.env, NUB_IA_PI: piScript, PI_STUB_PRINT_ENV: "1" }, []);
 	assert.equal(result.status, 0, result.stderr);
 	const lines = result.stdout.trim().split("\n");
 	const { handoff } = JSON.parse(lines[0]);
@@ -2013,7 +2013,7 @@ test("pi subcommands get no resume handoff", (t) => {
 	const f = fixture(t);
 	const piScript = join(f.root, "handoff-pi.cjs");
 	writeHandoffPiScript(piScript);
-	const result = run({ ...f.env, GENTLE_SHELL_PI: piScript, PI_STUB_PRINT_ENV: "1" }, ["list"]);
+	const result = run({ ...f.env, NUB_IA_PI: piScript, PI_STUB_PRINT_ENV: "1" }, ["list"]);
 	assert.equal(result.status, 0, result.stderr);
 	assert.equal(JSON.parse(result.stdout.trim().split("\n")[0]).handoff, undefined);
 });
@@ -2062,7 +2062,7 @@ test("on a TTY the launcher appends a nub-ia resume line below pi's hint", { ski
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeHandoffPiScript(piScript);
-	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript }, ["--link"]);
+	const out = runInPty({ ...f.env, NUB_IA_PI: piScript }, ["--link"]);
 	assert.ok(out.endsWith(PI_HINT + GENTLE_HINT), JSON.stringify(out));
 });
 
@@ -2070,7 +2070,7 @@ test("on a TTY the nub-ia line still follows a non-zero pi exit, keeping the cod
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeHandoffPiScript(piScript, 3);
-	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript }, ["--link"], 3);
+	const out = runInPty({ ...f.env, NUB_IA_PI: piScript }, ["--link"], 3);
 	assert.ok(out.endsWith(PI_HINT + GENTLE_HINT), JSON.stringify(out));
 });
 
@@ -2084,7 +2084,7 @@ function writeWaitingPiScript(path: string) {
 			"#!/usr/bin/env node",
 			"const { writeFileSync } = require('node:fs');",
 			"if (process.argv.includes('--version')) { console.log('0.99.1'); process.exit(0); }",
-			"writeFileSync(process.env.GENTLE_SHELL_RESUME_HANDOFF, JSON.stringify({ sessionId: 'abc' }));",
+			"writeFileSync(process.env.NUB_IA_RESUME_HANDOFF, JSON.stringify({ sessionId: 'abc' }));",
 			"const quit = () => { process.stdout.write('To resume this session: pi --session abc\\n'); process.exit(0); };",
 			"process.on('SIGHUP', quit);",
 			"process.on('SIGTERM', quit);",
@@ -2101,7 +2101,7 @@ test("on a TTY the launcher prints nothing extra after the terminal hangs up", {
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeWaitingPiScript(piScript);
-	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript, PTY_SIGNAL_AFTER: "ready", PTY_SIGNAL: "1" }, ["--link"]);
+	const out = runInPty({ ...f.env, NUB_IA_PI: piScript, PTY_SIGNAL_AFTER: "ready", PTY_SIGNAL: "1" }, ["--link"]);
 	// pi quit cleanly with its own hint; only the nub-ia line is withheld.
 	assert.ok(out.endsWith(PI_HINT), JSON.stringify(out));
 	assert.equal(out.includes("nub-ia --"), false, JSON.stringify(out));
@@ -2111,7 +2111,7 @@ test("on a TTY a forwarded SIGINT that pi survives does not silence the nub-ia l
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeWaitingPiScript(piScript);
-	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript, PTY_SIGNAL_AFTER: "ready", PTY_SIGNAL: "2" }, ["--link"]);
+	const out = runInPty({ ...f.env, NUB_IA_PI: piScript, PTY_SIGNAL_AFTER: "ready", PTY_SIGNAL: "2" }, ["--link"]);
 	assert.ok(out.includes("interrupted"), JSON.stringify(out));
 	assert.ok(out.endsWith(PI_HINT + GENTLE_HINT), JSON.stringify(out));
 });
@@ -2126,13 +2126,13 @@ test("on a TTY a cross-project session resumes by its session file", { skip: !ha
 			"#!/usr/bin/env node",
 			"const { writeFileSync } = require('node:fs');",
 			"if (process.argv.includes('--version')) { console.log('0.99.1'); process.exit(0); }",
-			`writeFileSync(process.env.GENTLE_SHELL_RESUME_HANDOFF, JSON.stringify({ sessionId: 'abc', sessionFile: ${JSON.stringify(sessionFile)} }));`,
+			`writeFileSync(process.env.NUB_IA_RESUME_HANDOFF, JSON.stringify({ sessionId: 'abc', sessionFile: ${JSON.stringify(sessionFile)} }));`,
 			"process.stdout.write('To resume this session: pi --session abc\\n');",
 			"",
 		].join("\n"),
 	);
 	chmodSync(piScript, 0o755);
-	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript }, ["--link"]);
+	const out = runInPty({ ...f.env, NUB_IA_PI: piScript }, ["--link"]);
 	assert.ok(
 		out.endsWith(`${PI_HINT}\u001b[2mTo resume in nub-ia:\u001b[22m nub-ia --link --session '${sessionFile}'\r\n`),
 		JSON.stringify(out),
@@ -2143,7 +2143,7 @@ test("on a TTY without colors the nub-ia line has no ANSI styling", { skip: !has
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeHandoffPiScript(piScript);
-	const out = runInPty({ ...f.env, GENTLE_SHELL_PI: piScript, PTY_NO_COLOR: "1" }, ["--link"]);
+	const out = runInPty({ ...f.env, NUB_IA_PI: piScript, PTY_NO_COLOR: "1" }, ["--link"]);
 	assert.ok(out.endsWith(`${PI_HINT}To resume in nub-ia: nub-ia --link --session abc\r\n`), JSON.stringify(out));
 });
 
@@ -2155,7 +2155,7 @@ test("launch installs a missing rtk once through the installer and only warns on
 	const installer = join(f.root, "fake-rtk-installer.mjs");
 	const marker = join(f.root, "installer-ran");
 	writeFileSync(installer, `import { writeFileSync } from "node:fs";\nexport async function installRtk({ root }) { writeFileSync(${JSON.stringify(marker)}, root); }\n`);
-	const env = { ...f.env, GENTLE_PI_SKIP_RTK_INSTALL: "", GENTLE_SHELL_RTK_INSTALLER: installer };
+	const env = { ...f.env, NUB_IA_SKIP_RTK_INSTALL: "", NUB_IA_RTK_INSTALLER: installer };
 	const result = spawnSync(process.execPath, [f.launcher, "--home", join(f.root, "h")], { env, encoding: "utf8" });
 	assert.equal(result.status, 0, result.stderr);
 	assert.match(result.stderr, /nub-ia: rtk v[\d.]+ is missing; installing it once/);
@@ -2167,10 +2167,10 @@ test("launch installs a missing rtk once through the installer and only warns on
 	assert.match(failed.stderr, /could not install rtk \(offline\); continuing without it/);
 });
 
-test("GENTLE_PI_SKIP_RTK_INSTALL=1 suppresses the rtk self-heal", (t) => {
+test("NUB_IA_SKIP_RTK_INSTALL=1 suppresses the rtk self-heal", (t) => {
 	const f = standaloneLauncher(t);
 	writePiScript(join(f.root, "pi"), "0.99.2");
-	const result = spawnSync(process.execPath, [f.launcher, "--home", join(f.root, "h")], { env: { ...f.env, GENTLE_SHELL_RTK_INSTALLER: join(f.root, "missing.mjs") }, encoding: "utf8" });
+	const result = spawnSync(process.execPath, [f.launcher, "--home", join(f.root, "h")], { env: { ...f.env, NUB_IA_RTK_INSTALLER: join(f.root, "missing.mjs") }, encoding: "utf8" });
 	assert.equal(result.status, 0, result.stderr);
 	assert.doesNotMatch(result.stderr, /rtk/);
 });

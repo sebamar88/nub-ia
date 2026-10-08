@@ -118,7 +118,7 @@ export function reconcileGeneratedRuntimeSources(packageRoot, sources, paths) {
 
 async function main() {
   if (existsSync(join(root, "extensions/sdd-init.ts"))) {
-    console.error("gentle-pi package must not restore the retired SDD init extension");
+    console.error("Nub-IA package must not restore the retired SDD init extension");
     process.exit(1);
   }
 
@@ -128,7 +128,7 @@ async function main() {
   });
 
   if (missing.length > 0) {
-    console.error("gentle-pi package is missing required Pi resources:");
+    console.error("Nub-IA package is missing required Pi resources:");
     for (const relativePath of missing) {
       console.error(`- ${relativePath}`);
     }
@@ -139,7 +139,7 @@ async function main() {
   const generatedRuntimeSources = extractGeneratedRuntimeSources(root);
   const { drifted } = reconcileGeneratedRuntimeSources(root, generatedRuntimeSources, requiredPaths);
   if (drifted.length > 0) {
-    console.error("gentle-pi generated runtime sources, runtime/*.mjs, and requiredPaths have drifted apart:");
+    console.error("Nub-IA generated runtime sources, runtime/*.mjs, and requiredPaths have drifted apart:");
     for (const entry of drifted) {
       const where = [];
       if (!entry.inSources) where.push("missing from generator sources");
@@ -157,7 +157,7 @@ async function main() {
     env: { ...process.env, NODE_NO_WARNINGS: "1" },
   });
   if (generatedRuntimeCheck.status !== 0) {
-    console.error("gentle-pi generated runtime does not match its TypeScript sources:");
+    console.error("Nub-IA generated runtime does not match its TypeScript sources:");
     console.error((generatedRuntimeCheck.stderr || generatedRuntimeCheck.stdout || "unknown generator failure").trim());
     process.exit(1);
   }

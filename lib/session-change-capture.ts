@@ -19,7 +19,7 @@ const unknown = (): ChangeSnapshot => ({ kind: "unavailable", reason: "Tool snap
 
 /** Observe explicit write/edit outcomes, never infer ownership from Git status or shell text. */
 export function installSessionChangeCapture(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env, resolver: WorktreeResolver = resolveSessionWorktree): void {
-	const child = env.GENTLE_PI_AGENTS_CHILD === "1";
+	const child = env.NUB_IA_AGENTS_CHILD === "1";
 	const pending = new Map<string, Pending>();
 	let current: ExtensionContext | undefined;
 	let store: SessionChanges | undefined;

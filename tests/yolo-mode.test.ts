@@ -132,7 +132,7 @@ test("revocation wins over an activation still awaiting Git identity", async () 
 
 test("child, headless, RPC and unidentified repository cannot activate", async () => {
 	for (const variant of ["child", "headless", "rpc", "no-repository"]) {
-		const h = harness(variant === "child" ? { GENTLE_PI_AGENTS_CHILD: "1" } : {});
+		const h = harness(variant === "child" ? { NUB_IA_AGENTS_CHILD: "1" } : {});
 		if (variant === "headless") Object.assign(h.ctx, { hasUI: false });
 		if (variant === "rpc") Object.assign(h.ctx, { mode: "rpc" });
 		if (variant === "no-repository") Object.assign(h.ctx, { cwd: "/" });
@@ -186,15 +186,15 @@ test("active YOLO waives only ordinary push after full destructive/guard evaluat
 	await h.command("disable"); assert.ok(await call("git push origin main"));
 });
 
-test("active command path preserves configured push confirmations and blocks, including legacy env override", async () => {
+test("active command path preserves configured push confirmations and blocks, including env override", async () => {
 	const configHome = mkdtempSync(join(tmpdir(), "gentle-yolo-config-"));
-	const previousHome = process.env.GENTLE_PI_CONFIG_HOME;
-	const previousAutonomy = process.env.GENTLE_PI_AUTONOMOUS_MODE;
-	process.env.GENTLE_PI_CONFIG_HOME = configHome;
+	const previousHome = process.env.NUB_IA_CONFIG_HOME;
+	const previousAutonomy = process.env.NUB_IA_AUTONOMOUS_MODE;
+	process.env.NUB_IA_CONFIG_HOME = configHome;
 	try {
 		for (const envOverride of [undefined, "1"]) {
-			if (envOverride === undefined) delete process.env.GENTLE_PI_AUTONOMOUS_MODE;
-			else process.env.GENTLE_PI_AUTONOMOUS_MODE = envOverride;
+			if (envOverride === undefined) delete process.env.NUB_IA_AUTONOMOUS_MODE;
+			else process.env.NUB_IA_AUTONOMOUS_MODE = envOverride;
 			for (const action of ["confirm", "block"]) {
 				writeFileSync(join(configHome, "runtime-guardrails.json"), JSON.stringify({ autonomousMode: false, guardedCommands: { gitPush: action } }));
 				const h = harness(); await h.command("enable");
@@ -203,8 +203,8 @@ test("active command path preserves configured push confirmations and blocks, in
 			}
 		}
 	} finally {
-		if (previousHome === undefined) delete process.env.GENTLE_PI_CONFIG_HOME; else process.env.GENTLE_PI_CONFIG_HOME = previousHome;
-		if (previousAutonomy === undefined) delete process.env.GENTLE_PI_AUTONOMOUS_MODE; else process.env.GENTLE_PI_AUTONOMOUS_MODE = previousAutonomy;
+		if (previousHome === undefined) delete process.env.NUB_IA_CONFIG_HOME; else process.env.NUB_IA_CONFIG_HOME = previousHome;
+		if (previousAutonomy === undefined) delete process.env.NUB_IA_AUTONOMOUS_MODE; else process.env.NUB_IA_AUTONOMOUS_MODE = previousAutonomy;
 		rmSync(configHome, { recursive: true, force: true });
 	}
 });

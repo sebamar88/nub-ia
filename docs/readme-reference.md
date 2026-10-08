@@ -1,6 +1,6 @@
 # Referencia técnica de Nub-IA
 
-Nub-IA es la shell de coding-agent del equipo de Nubiral, construida sobre [Pi](https://pi.dev). Es un fork de [gentle-shell](https://github.com/Gentleman-Programming/gentle-shell) (paquete `gentle-pi`, MIT) con la identidad y la configuración del equipo. Esta página es la referencia operativa; para el panorama general empezá por el [README](../README.md) y para la experiencia de la terminal por [La shell de Nub-IA](gentle-shell.md).
+Nub-IA es la shell de coding-agent del equipo de Nubiral, construida sobre [Pi](https://pi.dev). Es un fork de [gentle-shell](https://github.com/Gentleman-Programming/gentle-shell) (paquete `gentle-pi`, MIT) con la identidad y la configuración del equipo. Esta página es la referencia operativa; para el panorama general empezá por el [README](../README.md) y para la experiencia de la terminal por [La shell de Nub-IA](nub-ia-shell.md).
 
 ## Índice
 
@@ -42,7 +42,7 @@ nub-ia install npm:<pkg> | remove <source> | list | update [target] | config | a
 | Opción | Efecto |
 | --- | --- |
 | `--link` | Usa tu home de Pi existente (`PI_CODING_AGENT_DIR` o `~/.pi/agent`): sesiones, logins y modelos. Nunca escribe su `settings.json`. |
-| `--isolated` | Usa el home dedicado `GENTLE_SHELL_HOME` o `~/.nub-ia/agent` (por defecto). No copia credenciales: hace falta `/login` una vez. |
+| `--isolated` | Usa el home dedicado `NUB_IA_HOME` o `~/.nub-ia/agent` (por defecto). No copia credenciales: hace falta `/login` una vez. |
 | `--home <path>` | Usa un directorio de home propio. |
 | `--package-root <dir>` | Fuerza el directorio del paquete a cargar, por encima de cualquier paquete en conflicto que declare el `settings.json`. |
 | `--help`, `-h` / `--version` | Ayuda completa / versiones de `nub-ia`, `pi` y home. |
@@ -50,13 +50,13 @@ nub-ia install npm:<pkg> | remove <source> | list | update [target] | config | a
 
 `--link`, `--isolated` y `--home` son excluyentes. Precedencia del home: flag explícito, luego la elección persistida con `nub-ia home`, luego `--isolated`. `nub-ia home link|isolated|<path>` persiste la elección en `~/.nub-ia/config.json`; `nub-ia home` solo imprime la vigente. Cualquier argumento desconocido (`--mode rpc`, `-p "..."`) se reenvía a Pi.
 
-**Home aislado vs `--link`.** El aislado arranca con `tuiMode: fullscreen`, el tema `Nub-IA`, `defaultProvider: nub-ia` / `defaultModel: balanced`, y un marcador de propiedad `.gentle-shell-home`. Es el único donde el launcher provisiona paquetes automáticamente. `--link` reutiliza lo que ya tenés y nunca se provisiona: instalá los paquetes a mano con `nub-ia --link install <source>`.
+**Home aislado vs `--link`.** El aislado arranca con `tuiMode: fullscreen`, el tema `Nub-IA`, `defaultProvider: nub-ia` / `defaultModel: balanced`, y un marcador de propiedad `.nub-ia-home`. Es el único donde el launcher provisiona paquetes automáticamente. `--link` reutiliza lo que ya tenés y nunca se provisiona: instalá los paquetes a mano con `nub-ia --link install <source>`.
 
-**`setup`.** `nub-ia setup` instala en el home los paquetes de `TEAM_PACKAGE_SOURCES` que todavía no declare (vía `pi install`). `--dry-run` solo informa. Corre solo en el primer arranque de un home propio y luego cuando cambia la lista; un fallo nunca bloquea el arranque y se reintenta en la siguiente ejecución. Un lock `<home>/.gentle-shell-setup.lock` serializa primeras ejecuciones concurrentes (se considera vencido a los 15 minutos). `GENTLE_SHELL_NO_AUTO_SETUP=1` lo desactiva.
+**`setup`.** `nub-ia setup` instala en el home los paquetes de `TEAM_PACKAGE_SOURCES` que todavía no declare (vía `pi install`). `--dry-run` solo informa. Corre solo en el primer arranque de un home propio y luego cuando cambia la lista; un fallo nunca bloquea el arranque y se reintenta en la siguiente ejecución. Un lock `<home>/.nub-ia-setup.lock` serializa primeras ejecuciones concurrentes (se considera vencido a los 15 minutos). `NUB_IA_NO_AUTO_SETUP=1` lo desactiva.
 
-**Resolución del runtime de Pi:** 1) `GENTLE_SHELL_PI`; 2) `@earendil-works/pi-coding-agent` resuelto junto al paquete (peer opcional); 3) `pi` en el `PATH`. La versión mínima exigida es 0.99.1.
+**Resolución del runtime de Pi:** 1) `NUB_IA_PI`; 2) `@earendil-works/pi-coding-agent` resuelto junto al paquete (peer opcional); 3) `pi` en el `PATH`. La versión mínima exigida es 0.99.1.
 
-**Compatibilidad con Pi.** The current package requires Pi 0.99.1 or newer and Node >=22.19.0. Development tests resolve Pi through the open `>=1.0.0` development range. The private Vim editor adapter admits only the audited Pi `0.99.1`, `0.99.2`, and `1.0.0` releases; any other release keeps ordinary prompt editing until its editor is audited. Los procesos hijo (incluido cualquier override `GENTLE_PI_AGENTS_PI`) deben emitir `agent_settled`: `agent_end` registra la salida de una corrida pero no es la finalización, porque pueden seguir reintentos o continuaciones encoladas. Nub-IA no actualiza tu Pi instalado.
+**Compatibilidad con Pi.** The current package requires Pi 0.99.1 or newer and Node >=22.19.0. Development tests resolve Pi through the open `>=1.0.0` development range. The private Vim editor adapter admits only the audited Pi `0.99.1`, `0.99.2`, and `1.0.0` releases; any other release keeps ordinary prompt editing until its editor is audited. Los procesos hijo (incluido cualquier override `NUB_IA_AGENTS_PI`) deben emitir `agent_settled`: `agent_end` registra la salida de una corrida pero no es la finalización, porque pueden seguir reintentos o continuaciones encoladas. Nub-IA no actualiza tu Pi instalado.
 
 ## Comandos `/nubia:*`
 
@@ -75,7 +75,7 @@ nub-ia install npm:<pkg> | remove <source> | list | update [target] | config | a
 | `/nubia:commands` (`alt+k`) | Paleta de comandos curada. |
 | `/nubia:usage`, `/nubia:stats` | Uso de suscripciones / historial local de uso. |
 | `/nubia:customize` | Apariencia, Vim, YOLO, captura de historial de prompts. |
-| `/nubia:banner`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo`, `/nubia:banner-color` | Banner de inicio (ver [la shell](gentle-shell.md#personalización)). |
+| `/nubia:banner`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo`, `/nubia:banner-color` | Banner de inicio (ver [la shell](nub-ia-shell.md#personalización)). |
 | `/nubia:animations`, `/nubia:vim`, `/nubia:double-esc-cancel` | Animaciones, edición modal, doble Esc (ver más abajo). |
 | `/nubia:review [staged\|working\|<ref>]` | Review 4R en proceso. |
 | `/skill-registry:refresh` | Regenera `.atl/skill-registry.md`. |
@@ -177,7 +177,7 @@ Disparadores: investigación que supera el presupuesto de evidencia (un lote par
 
 Herramientas: `subagent_list_agents`, `subagent_run` (`agent`, `task`, `mode` task|background, `workspace_root`/`repository_root`), `subagent_status`, `subagent_result`, `subagent_list_tasks`, `subagent_reply`, `subagent_cancel`, `subagent_send_message`, `subagent_continue`. Las definiciones son markdown en `~/.pi/agent/agents/`, `<cwd>/.pi/agents/` y las carpetas `subagents/` equivalentes (el proyecto gana). El overlay `/nubia:agents` y el esquema de actividad RPC están en [gentle-agents-activity.md](gentle-agents-activity.md); cómo se verifica el trabajo delegado, en [delegated-verification.md](delegated-verification.md).
 
-**Background subagents.** Con la política `on`, `subagent_run` usa `mode: "background"` por defecto en sesiones interactivas/RPC; el resultado vuelve como mensaje `gentle-agents.result` y arranca un turno nuevo (el modelo no hace polling). En `pi -p` y `pi --mode json` siempre se usa `task`. Es `off` salvo que la actives con `/nubia:background-subagents enable`. Fuentes, primera que gana: `<cwd>/.pi/gentle-ai/background-subagents.json` (proyecto), `<configHome>/background-subagents.json` (global), `GENTLE_PI_BACKGROUND_SUBAGENTS=on|off`, default `off`. Un archivo malformado falla cerrado a `off`. `configHome` es `GENTLE_PI_CONFIG_HOME` o, por defecto, `~/.pi/nub-ia` (ruta heredada del upstream).
+**Background subagents.** Con la política `on`, `subagent_run` usa `mode: "background"` por defecto en sesiones interactivas/RPC; el resultado vuelve como mensaje `gentle-agents.result` y arranca un turno nuevo (el modelo no hace polling). En `pi -p` y `pi --mode json` siempre se usa `task`. Es `off` salvo que la actives con `/nubia:background-subagents enable`. Fuentes, primera que gana: `<cwd>/.pi/nub-ia/background-subagents.json` (proyecto), `<configHome>/background-subagents.json` (global), `NUB_IA_BACKGROUND_SUBAGENTS=on|off`, default `off`. Un archivo malformado falla cerrado a `off`. `configHome` es `NUB_IA_CONFIG_HOME` o, por defecto, `~/.pi/nub-ia` (ruta heredada del upstream).
 
 ### Cache warming nativo (Pi 0.86.1+)
 
@@ -241,7 +241,7 @@ Ambas usan `{"kind":"gentle-pi.agent_model_profile_pin","version":1,"profile":"<
 
 ### Esc
 
-El prompt sigue el modelo de Esc de Claude Code sobre el de Pi: (1) con el agente trabajando, Esc aborta el turno y los mensajes encolados se envían como turno siguiente; (2) *double-esc-cancel* (opt-in, apagado por defecto) exige un segundo Esc (`esc again to cancel`); (3) con el prompt inactivo y un borrador, Esc dos veces (500 ms) lo limpia y queda en el historial; (4) prompt vacío: decide Pi. `/nubia:double-esc-cancel [status|enable|disable]` (sin argumento alterna) se guarda en `<configHome>/double-esc-cancel.json`; `GENTLE_PI_DOUBLE_ESC_CANCEL=on|off` decide solo si no hay archivo.
+El prompt sigue el modelo de Esc de Claude Code sobre el de Pi: (1) con el agente trabajando, Esc aborta el turno y los mensajes encolados se envían como turno siguiente; (2) *double-esc-cancel* (opt-in, apagado por defecto) exige un segundo Esc (`esc again to cancel`); (3) con el prompt inactivo y un borrador, Esc dos veces (500 ms) lo limpia y queda en el historial; (4) prompt vacío: decide Pi. `/nubia:double-esc-cancel [status|enable|disable]` (sin argumento alterna) se guarda en `<configHome>/double-esc-cancel.json`; `NUB_IA_DOUBLE_ESC_CANCEL=on|off` decide solo si no hay archivo.
 
 ### Animaciones
 
@@ -267,11 +267,11 @@ Modos: INSERT (input normal de Pi), NORMAL (Esc no aborta el turno ni borra el b
 
 `extensions/rtk-rewrite.ts` reescribe cada comando de la herramienta `bash` con [`rtk rewrite`](https://github.com/rtk-ai/rtk) antes de ejecutarlo (`git status` → `rtk git status`), filtrando y resumiendo la salida antes de que llegue al modelo. Las reglas viven en rtk; la extensión solo delega.
 
-El `postinstall` (`scripts/install-rtk.mjs`) descarga la release pinneada para tu plataforma (Linux x64/arm64, macOS x64/arm64, Windows x64), verifica su SHA-256 contra `scripts/rtk-installer.mjs` y la deja en `<paquete>/.rtk/<versión>/`. La extensión usa esa copia antes que cualquier `rtk` del `PATH`; `GENTLE_SHELL_RTK_BIN` fuerza otra ruta. Si la descarga falla la instalación no se rompe: los comandos pasan sin filtrar y la barra de estado indica cómo reintentar (`pnpm run install:rtk`). `GENTLE_PI_SKIP_RTK_INSTALL=1` salta la descarga; `RTK_DISABLED=1` apaga la reescritura en la sesión. No hace falta `rtk init`.
+El `postinstall` (`scripts/install-rtk.mjs`) descarga la release pinneada para tu plataforma (Linux x64/arm64, macOS x64/arm64, Windows x64), verifica su SHA-256 contra `scripts/rtk-installer.mjs` y la deja en `<paquete>/.rtk/<versión>/`. La extensión usa esa copia antes que cualquier `rtk` del `PATH`; `NUB_IA_RTK_BIN` fuerza otra ruta. Si la descarga falla la instalación no se rompe: los comandos pasan sin filtrar y la barra de estado indica cómo reintentar (`pnpm run install:rtk`). `NUB_IA_SKIP_RTK_INSTALL=1` salta la descarga; `RTK_DISABLED=1` apaga la reescritura en la sesión. No hace falta `rtk init`.
 
 ## Paquetes del equipo y skills
 
-`nub-ia setup` (y el primer arranque automático) instala los paquetes de `TEAM_PACKAGE_SOURCES` (`lib/nubia-launcher.ts`). Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail) (`npm:@dietrichgebert/ponytail`; modo "senior perezoso": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`, `/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. `GENTLE_SHELL_TEAM_PACKAGES="npm:a,git:github.com/x/y"` reemplaza la lista (vacío = ninguno).
+`nub-ia setup` (y el primer arranque automático) instala los paquetes de `TEAM_PACKAGE_SOURCES` (`lib/nubia-launcher.ts`). Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail) (`npm:@dietrichgebert/ponytail`; modo "senior perezoso": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`, `/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. `NUB_IA_TEAM_PACKAGES="npm:a,git:github.com/x/y"` reemplaza la lista (vacío = ninguno).
 
 El paquete trae skills de entrega y review bajo `skills/`: `branch-pr`, `chained-pr`, `work-unit-commits`, `cognitive-doc-design`, `comment-writer`, `issue-creation`, `judgment-day`, `skill-creator`, `skill-improver` y `skill-registry`. `/skill-registry:refresh` regenera `.atl/skill-registry.md`, un índice (el `SKILL.md` es la fuente de verdad).
 
@@ -283,27 +283,26 @@ Legacy names `gentle-ai` and `gentle-ai-<x>` (e.g. `gentle-ai-judgment-day`) wer
 
 | Variable | Efecto |
 | --- | --- |
-| `GENTLE_SHELL_HOME` | Directorio del home aislado (default `~/.nub-ia/agent`). |
-| `GENTLE_SHELL_PI` | Ruta al ejecutable `pi`. |
-| `GENTLE_SHELL_NO_AUTO_SETUP=1` | No provisionar el home automáticamente. |
-| `GENTLE_SHELL_TEAM_PACKAGES` | Lista separada por comas que reemplaza los paquetes del equipo. |
+| `NUB_IA_HOME` | Directorio del home aislado (default `~/.nub-ia/agent`). |
+| `NUB_IA_PI` | Ruta al ejecutable `pi`. |
+| `NUB_IA_NO_AUTO_SETUP=1` | No provisionar el home automáticamente. |
+| `NUB_IA_TEAM_PACKAGES` | Lista separada por comas que reemplaza los paquetes del equipo. |
 | `PI_CODING_AGENT_DIR` | Home de `--link`; el launcher también lo fija en el hijo. |
-| `GENTLE_PI_AGENT_HOME` | Home efectivo que lee el propio paquete. |
+| `NUB_IA_AGENT_HOME` | Home efectivo que lee el propio paquete. |
 | `NUB_IA_CONFIG_HOME` | Config home de las preferencias globales (default `~/.pi/nub-ia`). Las lecturas caen a la ruta heredada `~/.pi/gentle-ai` si el archivo solo existe ahí; las escrituras van siempre a `~/.pi/nub-ia`. |
-| `GENTLE_PI_CONFIG_HOME` | Alias heredado de `NUB_IA_CONFIG_HOME`. |
 | `NUB_IA_METRICS=off` | Desactiva el sink local de métricas (`~/.pi/nub-ia/metrics/runtime-<AAAA-MM>.jsonl`). |
 | `NUB_IA_REVIEW_GATE=off` | Desactiva el gate de push de `nub_review`. |
-| `GENTLE_PI_SKIP_RTK_INSTALL=1` | Salta la descarga de rtk en el postinstall. |
-| `GENTLE_SHELL_RTK_BIN` | Ruta a un `rtk` concreto. |
+| `NUB_IA_SKIP_RTK_INSTALL=1` | Salta la descarga de rtk en el postinstall. |
+| `NUB_IA_RTK_BIN` | Ruta a un `rtk` concreto. |
 | `RTK_DISABLED=1` | Apaga la reescritura con rtk. |
-| `GENTLE_PI_BACKGROUND_SUBAGENTS`, `GENTLE_PI_DOUBLE_ESC_CANCEL` | `on`/`off` cuando no hay archivo de preferencia. |
-| `GENTLE_PI_AGENTS=0`, `GENTLE_PI_TODO=0`, `GENTLE_PI_SHELL=0`, `GENTLE_PI_QUIET_TOOLS=0` | Desactivan subagentes/card, todo, la shell visual o las cards silenciosas. |
+| `NUB_IA_BACKGROUND_SUBAGENTS`, `NUB_IA_DOUBLE_ESC_CANCEL` | `on`/`off` cuando no hay archivo de preferencia. |
+| `NUB_IA_AGENTS=0`, `NUB_IA_TODO=0`, `NUB_IA_SHELL=0`, `NUB_IA_QUIET_TOOLS=0` | Desactivan subagentes/card, todo, la shell visual o las cards silenciosas. |
 | `NUB_IA_METRICS=off` | Desactiva las métricas locales ([telemetry.md](telemetry.md)). |
 
 ## Resolución de problemas
 
-- **`rtk` no se instaló** (red cortada, plataforma no soportada): los comandos pasan sin filtrar. Reintentá con `pnpm run install:rtk`; `GENTLE_PI_SKIP_RTK_INSTALL=1` evita el intento, `RTK_DISABLED=1` apaga la reescritura.
-- **`pi` no se encuentra** o es demasiado viejo: `nub-ia` sale con código 1 nombrando las tres opciones de resolución o la versión mínima (0.99.1). Instalá/actualizá Pi o apuntá `GENTLE_SHELL_PI`.
+- **`rtk` no se instaló** (red cortada, plataforma no soportada): los comandos pasan sin filtrar. Reintentá con `pnpm run install:rtk`; `NUB_IA_SKIP_RTK_INSTALL=1` evita el intento, `RTK_DISABLED=1` apaga la reescritura.
+- **`pi` no se encuentra** o es demasiado viejo: `nub-ia` sale con código 1 nombrando las tres opciones de resolución o la versión mínima (0.99.1). Instalá/actualizá Pi o apuntá `NUB_IA_PI`.
 - **Primer arranque sin modelos:** el home aislado no copia credenciales; hacé `/login` por cada provider (Copilot, OpenAI, o variables `AWS_*` para Bedrock) o usá `nub-ia --link`.
 - **La provisión automática falló:** no bloquea el arranque; corré `nub-ia setup` para ver la salida completa. Si quedó un lock, se descarta solo tras 15 minutos.
 - **Windows:** usá Git Bash para los comandos del agente. Si el `pi` resuelto es un `.cmd`/`.bat`, el launcher lo ejecuta vía `cmd.exe`. Los procesos hijo de Git no deben abrir consolas visibles; el protocolo de verificación está en [windows-startup-console-visibility.md](windows-startup-console-visibility.md). El binario rtk de Windows se descomprime con PowerShell.
@@ -311,4 +310,4 @@ Legacy names `gentle-ai` and `gentle-ai-<x>` (e.g. `gentle-ai-judgment-day`) wer
 
 ## Desarrollo
 
-`pnpm test` corre la suite completa y `pnpm run typecheck` el chequeo de tipos. Los identificadores internos (`GENTLE_PI_*`, nombres de archivos en `lib/`) se conservan del upstream para poder mergear sus cambios. Para la experiencia de la terminal ver [La shell de Nub-IA](gentle-shell.md); el texto archivado del README upstream está en [UPSTREAM-README.md](UPSTREAM-README.md).
+`pnpm test` corre la suite completa y `pnpm run typecheck` el chequeo de tipos. Las variables de entorno son todas `NUB_IA_*` (sin alias `GENTLE_*`). Los identificadores internos (nombres de archivos y funciones en `lib/`, esquemas persistidos) se conservan del upstream para poder mergear sus cambios. Para la experiencia de la terminal ver [La shell de Nub-IA](nub-ia-shell.md); el texto archivado del README upstream está en [UPSTREAM-README.md](UPSTREAM-README.md).

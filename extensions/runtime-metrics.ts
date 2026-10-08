@@ -25,7 +25,7 @@ export default function runtimeMetrics(pi: ExtensionAPI, env = process.env,
 	// Default sink: local JSONL under <configHome>/metrics/ (NUB_IA_METRICS=off disables it).
 	const send: RuntimeMetricsSend | undefined = injectedSend
 		?? (runtimeMetricsSinkEnabled(env) ? async (rows) => appendRuntimeMetricRows(rows, env) : undefined);
-	const allows = () => readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") !== "1" && runtimeMetricsEnvAllows(env);
+	const allows = () => readEnv(env, "NUB_IA_AGENTS_CHILD") !== "1" && runtimeMetricsEnvAllows(env);
 	if (!allows()) return;
 	type Selection = Pick<FinalResponse, "selectedModelId" | "selectedProvider" | "effort">;
 	let selection: Selection | undefined;
@@ -118,8 +118,8 @@ export default function runtimeMetrics(pi: ExtensionAPI, env = process.env,
 			submit(owner, [{ kind: "final_assistant_response", responseId: "0",
 				selectedProvider: selected?.selectedProvider ?? "unknown", selectedModelId: selected?.selectedModelId,
 				effort: selected?.effort ?? "unavailable",
-				executor: readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === undefined ? "orchestrator" : "unknown",
-				agentClass: readEnv(env, "NUB_IA_AGENTS_CHILD", "GENTLE_PI_AGENTS_CHILD") === undefined ? ORCHESTRATOR_AGENT_CLASS : UNKNOWN_AGENT_CLASS,
+				executor: readEnv(env, "NUB_IA_AGENTS_CHILD") === undefined ? "orchestrator" : "unknown",
+				agentClass: readEnv(env, "NUB_IA_AGENTS_CHILD") === undefined ? ORCHESTRATOR_AGENT_CLASS : UNKNOWN_AGENT_CLASS,
 				observedModelId: message.model, responseModelId: message.responseModel,
 				providerThinkingLevel: EFFORTS.includes(message.providerThinkingLevel as FinalResponse["effort"])
 					? message.providerThinkingLevel as FinalResponse["effort"] : "unavailable",
