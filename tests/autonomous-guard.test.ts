@@ -735,3 +735,11 @@ test("project guardrails config can only tighten the user's policy", () => {
 		assert.equal(classifyGuardedCommand("git rebase main", load()), "confirm");
 	} finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("npmPublish guard also covers pnpm, yarn and bun publishes", () => {
+	const config = { autonomousMode: true, guardedCommands: {} };
+	for (const command of ["npm publish", "pnpm publish", "yarn publish", "yarn npm publish", "bun publish --access public"]) {
+		assert.equal(classifyGuardedCommand(command, config), "block", command);
+	}
+	assert.equal(classifyGuardedCommand("pnpm install", config), "not-guarded");
+});

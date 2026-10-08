@@ -773,7 +773,7 @@ const GUARDED_KEY_PATTERNS: Record<GuardedCommandKey, RegExp> = {
 	gitPush: GIT_PUSH_RE,
 	gitRebase: /\bgit\s+(rebase)\b/,
 	gitBranchDeleteForce: /\bgit\s+(branch)\s+(?:-[a-zA-Z]*D[a-zA-Z]*|-[a-zA-Z]*d[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*d[a-zA-Z]*|--delete\b[^\r\n;&|]*--force\b|--force\b[^\r\n;&|]*--delete\b)/,
-	npmPublish: /\bnpm\s+(publish)\b/,
+	npmPublish: /\b(?:npm|pnpm|yarn|bun)\s+(?:npm\s+)?(publish)\b/,
 	piRemove: /\bpi\s+(remove)\b/,
 };
 
