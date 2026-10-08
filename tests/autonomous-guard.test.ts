@@ -718,3 +718,20 @@ test("loadRuntimeGuardrailsConfig: autonomousMode:{} (object) in JSON does NOT a
 		rmSync(dir, { recursive: true, force: true });
 	}
 });
+
+test("project guardrails config can only tighten the user's policy", () => {
+	const root = makeTmpDir();
+	const cwd = join(root, "repo");
+	const home = join(root, "home");
+	const load = () => __testing.loadRuntimeGuardrailsConfig(cwd, { gentlePiConfigHome: home });
+	try {
+		writeConfig(cwd, ".pi/nub-ia/runtime-guardrails.json", { autonomousMode: true, guardedCommands: { gitRebase: "allow", npmPublish: "allow" } });
+		assert.equal(load().autonomousMode, false);
+		assert.equal(classifyGuardedCommand("git rebase main", load()), "confirm");
+		writeConfig(home, "runtime-guardrails.json", { autonomousMode: true, guardedCommands: { gitPush: "allow" } });
+		assert.equal(classifyGuardedCommand("npm publish", load()), "block");
+		writeConfig(cwd, ".pi/nub-ia/runtime-guardrails.json", { guardedCommands: { gitPush: "block", gitRebase: "allow" } });
+		assert.equal(classifyGuardedCommand("git push origin main", load()), "block");
+		assert.equal(classifyGuardedCommand("git rebase main", load()), "confirm");
+	} finally { rmSync(root, { recursive: true, force: true }); }
+});

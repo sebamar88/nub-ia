@@ -965,14 +965,17 @@ function loadRuntimeGuardrailsConfig(
 				readFileSync(projectConfigPath, "utf8"),
 			);
 			if (!projectParsed) return SAFE_GUARDRAILS_CONFIG;
-			// Project values fully override global values
-			merged = {
-				autonomousMode: projectParsed.autonomousMode,
-				guardedCommands: {
-					...merged.guardedCommands,
-					...projectParsed.guardedCommands,
-				},
-			};
+			// A repo is untrusted input: its config may only tighten the user's
+			// policy. It cannot enable autonomous mode or loosen any command.
+			const strictness: Record<GuardAction, number> = { allow: 0, confirm: 1, block: 2 };
+			const guardedCommands = { ...merged.guardedCommands };
+			for (const [key, action] of Object.entries(projectParsed.guardedCommands) as [GuardedCommandKey, GuardAction][]) {
+				const effective = merged.autonomousMode
+					? (guardedCommands[key] ?? AUTONOMOUS_DEFAULT_ACTIONS[key])
+					: "confirm";
+				if (strictness[action] >= strictness[effective]) guardedCommands[key] = action;
+			}
+			merged = { autonomousMode: merged.autonomousMode, guardedCommands };
 		}
 
 		return merged;
@@ -993,6 +996,7 @@ const PATH_INPUT_KEYS = new Set([
 const SENSITIVE_PATH_PATTERNS: RegExp[] = [
 	/(^|\/)\.ssh(?:\/|$)/,
 	/(^|\/)\.credentials(?:\/|$)/,
+	/(^|\/)\.pi\/(?:nub-ia|gentle-ai)(?:\/|$)/,
 	/(^|\/)library\/keychains(?:\/|$)/,
 	/(^|\/)\.aws\/credentials$/,
 	/(^|\/)\.config\/gh\/hosts\.ya?ml$/,
