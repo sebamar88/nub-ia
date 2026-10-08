@@ -233,7 +233,8 @@ test("ts precedence: message ms beats entry ISO; ISO alone; header ts; file mtim
   );
 
   // final fallback: unparseable header timestamp → the file mtime
-  const before = Date.now() - 5;
+  // mtime comes from the kernel's coarse clock, which can lag Date.now() by a few ms
+  const before = Date.now() - 2000;
   const mtimeFile = writeSessionFile([
     sessionHeader({ timestamp: "garbage" }),
     userTextEntry("m"),
@@ -568,7 +569,8 @@ test("a header with NO timestamp field (parseHeader NaN branch) plus timestamp-l
   // Distinct from the garbage-header-timestamp case already covered: here
   // the header carries no timestamp key at all, so parseHeader returns NaN
   // and resolveTimestamp falls all the way through to the file mtime.
-  const before = Date.now() - 5;
+  // mtime comes from the kernel's coarse clock, which can lag Date.now() by a few ms
+  const before = Date.now() - 2000;
   const file = writeSessionFile([
     { type: "session", version: 3 },
     userTextEntry("no ts anywhere"),
