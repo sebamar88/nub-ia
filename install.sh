@@ -59,7 +59,7 @@ node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(
 # Used both for pi below and for this package's dependencies.
 if have pnpm; then PM="pnpm"
 elif have corepack; then PM="corepack pnpm"
-elif have npx; then PM="npx --yes pnpm@11"
+elif have npx; then PM="npx --yes pnpm@11.1.1"
 else PM="npm"; fi
 
 if ! have pi; then
@@ -97,7 +97,7 @@ fi
 
 say "installing dependencies (this downloads the pinned rtk binary)"
 if [ "$PM" = "npm" ]; then
-	(cd "$APP" && npm install)
+	(cd "$APP" && npm install --omit=dev)
 else
 	(cd "$APP" && $PM install --frozen-lockfile)
 fi

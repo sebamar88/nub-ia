@@ -38,7 +38,7 @@ if ([int]$v[0] -lt 22 -or ([int]$v[0] -eq 22 -and [int]$v[1] -lt 19)) { throw "N
 $env:COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"   # corepack must not ask "Do you want to continue?" in a piped install
 # [string[]] is required: PowerShell unwraps a one-element @("pnpm") returned
 # from `if` into the plain string "pnpm", whose [0] is the letter "p".
-[string[]]$Pm = if (Have pnpm) { @("pnpm") } elseif (Have corepack) { @("corepack", "pnpm") } elseif (Have npx) { @("npx", "--yes", "pnpm@11") } else { @("npm") }
+[string[]]$Pm = if (Have pnpm) { @("pnpm") } elseif (Have corepack) { @("corepack", "pnpm") } elseif (Have npx) { @("npx", "--yes", "pnpm@11.1.1") } else { @("npm") }
 # Runs the package manager with $PmArgs. Output streams straight to the
 # console: a PowerShell function's return value is EVERYTHING it emits, so
 # capturing `return $LASTEXITCODE` would mix pnpm's stdout into the "code".
@@ -97,7 +97,7 @@ if ($LASTEXITCODE -ne 0) { throw "git failed" }
 Say "installing dependencies (this downloads the pinned rtk binary)"
 Push-Location $App
 try {
-	if ($Pm[0] -eq "npm") { npm install } else { Invoke-Pm @("install", "--frozen-lockfile") }
+	if ($Pm[0] -eq "npm") { npm install --omit=dev } else { Invoke-Pm @("install", "--frozen-lockfile") }
 	if ($LASTEXITCODE -ne 0) { throw "dependency install failed" }
 } finally { Pop-Location }
 
