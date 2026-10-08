@@ -77,3 +77,21 @@ test("two cwds map to sibling project dirs", () => {
   assert.notEqual(a, b);
   assert.equal(path.dirname(a), path.dirname(b));
 });
+
+test("ensurePrivateRoot makes the store root owner-only, including an existing 0755 root", async () => {
+  const { mkdtempSync, mkdirSync, statSync, rmSync, chmodSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { ensurePrivateRoot } = await import("../extensions/history/store.ts");
+  const base = mkdtempSync(join(tmpdir(), "history-private-root-"));
+  try {
+    const root = join(base, "history");
+    mkdirSync(root);
+    chmodSync(root, 0o755);
+    ensurePrivateRoot(root);
+    if (process.platform !== "win32") assert.equal(statSync(root).mode & 0o777, 0o700);
+    const fresh = join(base, "a", "b");
+    ensurePrivateRoot(fresh);
+    if (process.platform !== "win32") assert.equal(statSync(fresh).mode & 0o777, 0o700);
+  } finally { rmSync(base, { recursive: true, force: true }); }
+});

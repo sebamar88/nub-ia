@@ -673,6 +673,20 @@ function readValidLines(file: string): StoreEntry[] {
 }
 
 /**
+ * Prompts may contain pasted secrets: keep the store root owner-only. A 0700
+ * root blocks other users from reaching every file below it, including files
+ * created earlier under the default umask. Best-effort (no-op on Windows).
+ */
+export function ensurePrivateRoot(root: string): void {
+  fs.mkdirSync(root, { recursive: true, mode: 0o700 });
+  try {
+    fs.chmodSync(root, 0o700);
+  } catch {
+    // not owned by us or unsupported filesystem
+  }
+}
+
+/**
  * One-time migration from the v1 stores into the v2 global seed:
  * - `~/.pi/agent/editor-history.jsonl` (v1 single-file store)
  * - `~/.pi/agent/editor-history.json` (pre-v1 array, newest-first)

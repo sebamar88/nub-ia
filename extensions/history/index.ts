@@ -52,6 +52,7 @@ import {
   type DrainResult,
   drainGlobal,
   drainProject,
+  ensurePrivateRoot,
   ensureRegistryEntry,
   gcProjectDir,
   migrateLegacyStores,
@@ -1334,6 +1335,11 @@ export default function promptHistoryExtension(
    */
   const getWriter = (): SessionWriterState => {
     if (!writerState) {
+      try {
+        ensurePrivateRoot(root);
+      } catch {
+        // hardening is best-effort; the writers below create the root anyway
+      }
       try {
         migrateLegacyStores(root, agentDir);
       } catch {
