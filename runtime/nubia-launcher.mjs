@@ -482,7 +482,7 @@ export function packageSourceKind(source        )                    {
 }
 
 function npmSourceDeclaresGentlePi(source        )          {
-	return source === "npm:gentle-pi" || source.startsWith("npm:gentle-pi@");
+	return ["npm:nub-ia", "npm:gentle-pi"].some((name) => source === name || source.startsWith(`${name}@`));
 }
 
 // npm:<name> or npm:<name>@<version>, tolerating a scoped `@scope/name`: only
@@ -584,7 +584,7 @@ export function findGentlePiDeclaration(settingsText                    , opts  
 		if (kind === "npm" && npmSourceDeclaresGentlePi(source)) return { kind: "npm" };
 		if (kind === "path") {
 			const dir = resolvePath(opts.agentDir, source);
-			if (opts.readPackageName(dir) === "gentle-pi") return { kind: "path", dir };
+			if (["nub-ia", "gentle-pi"].includes(opts.readPackageName(dir) ?? "")) return { kind: "path", dir };
 		}
 	}
 	return undefined;
@@ -1140,7 +1140,7 @@ export function helpText()         {
 		"  --link           Use your existing pi agent home (never edits its settings.json).",
 		"  --isolated       Use the dedicated ~/.nub-ia/agent home (default).",
 		"  --home <path>    Use a custom agent home directory.",
-		"  --package-root <dir>  Force this directory as the gentle-pi package to load, taking over",
+		"  --package-root <dir>  Force this directory as the nub-ia package to load, taking over",
 		"                        from any conflicting package the target settings.json already declares.",
 		"  --help, -h       Show this help text.",
 		"  --version        Show nub-ia, pi, and home version information.",
@@ -1161,9 +1161,9 @@ export function helpText()         {
 		"  nub-ia config              Run pi's own 'config' against the resolved home.",
 		"  nub-ia auth <command>      Run pi's own 'auth' against the resolved home.",
 		"  These run pi's own commands, forwarded verbatim, against the --isolated home",
-		"  (or your own pi home with --link). Running 'nub-ia install npm:gentle-pi'",
-		"  inside the isolated home is unnecessary: nub-ia already loads the",
-		"  package itself.",
+		"  (or your own pi home with --link). Installing nub-ia as a pi package",
+		"  inside the isolated home is unnecessary: nub-ia already loads its",
+		"  own package.",
 		"",
 		"Environment variables:",
 		"  GENTLE_SHELL_PI       Path to the pi executable to run.",

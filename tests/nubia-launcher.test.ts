@@ -1845,3 +1845,12 @@ test("helpText documents pi's own package-management subcommands", () => {
 	assert.match(text, /\bconfig\b/);
 	assert.match(text, /\bauth\b/);
 });
+
+test("findGentlePiDeclaration recognises a local path package named nub-ia", () => {
+	const result = findGentlePiDeclaration('{"packages":["../work/nub-ia"]}', { agentDir: "/agent", readPackageName: () => "nub-ia" });
+	assert.equal(result?.kind, "path");
+});
+
+test("findGentlePiDeclaration recognises npm:nub-ia", () => {
+	assert.equal(findGentlePiDeclaration('{"packages":["npm:nub-ia@1.0.0"]}', { agentDir: "/agent", readPackageName: () => undefined })?.kind, "npm");
+});
