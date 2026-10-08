@@ -1224,13 +1224,17 @@ export interface ExternalEditorHost {
 	requestRender(force?: boolean): void;
 }
 
-export function openInExternalEditor(host: ExternalEditorHost, path: string, env: NodeJS.ProcessEnv = process.env, spawn: typeof spawnSync = spawnSync, cwd?: string): boolean {
+export function openInExternalEditor(host: ExternalEditorHost, path: string, env: NodeJS.ProcessEnv = process.env, spawn: typeof spawnSync = spawnSync, cwd?: string, platform: NodeJS.Platform = process.platform): boolean {
 	const command = env.VISUAL || env.EDITOR;
 	if (!command) return false;
 	const [editor, ...editorArgs] = command.split(" ");
+	// Windows needs a shell for .cmd editor shims, and cmd.exe treats these
+	// characters in a repo-controlled file name as syntax: refuse instead of quoting.
+	const win32 = platform === "win32";
+	if (win32 && /[&|<>^%"!\r\n]/.test(path)) return false;
 	host.stop();
 	try {
-		spawn(editor, [...editorArgs, path], { cwd, stdio: "inherit", shell: process.platform === "win32" });
+		spawn(editor, [...editorArgs, win32 ? `"${path}"` : path], { cwd, stdio: "inherit", shell: win32 });
 	} finally {
 		host.start();
 		host.requestRender(true);

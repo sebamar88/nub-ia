@@ -5654,3 +5654,19 @@ test("active profile reader keeps the pin label when a different session is boun
 	clearSessionProfileBinding("session-other");
 	resetSessionProfileBindingsForTesting();
 });
+
+test("openInExternalEditor on win32 quotes the path and refuses cmd.exe metacharacters", () => {
+	const host = { stop() {}, start() {}, requestRender() {} };
+	const calls: string[][] = [];
+	const spawn = ((_command: string, args: string[]) => {
+		calls.push(args);
+		return { status: 0 } as ReturnType<typeof import("node:child_process").spawnSync>;
+	}) as typeof import("node:child_process").spawnSync;
+	assert.equal(openInExternalEditor(host, "my dir\\a.ts", { EDITOR: "code" }, spawn, undefined, "win32"), true);
+	assert.deepEqual(calls, [['"my dir\\a.ts"']]);
+	for (const hostile of ["a&calc.exe&.txt", "a|b.txt", "a%PATH%.txt", 'a".txt', "a^b.txt", "a\nb.txt"]) {
+		assert.equal(openInExternalEditor(host, hostile, { EDITOR: "code" }, spawn, undefined, "win32"), false, hostile);
+	}
+	assert.equal(calls.length, 1, "refused paths never reach spawn");
+	assert.equal(openInExternalEditor(host, "a&b.txt", { EDITOR: "vi" }, spawn, undefined, "linux"), true, "POSIX has no shell, so no restriction");
+});
