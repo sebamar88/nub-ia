@@ -151,3 +151,21 @@ test("bounded writer admission accepts both the nubia and the legacy worker name
 	}
 	assert.equal(isBoundedWriter("nubia-verify"), false);
 });
+
+test("install retires an untracked legacy gentle-ai-explore copy whose routing lines were rewritten", t => {
+	withHomes(t);
+	const agentHome = mkdtempSync(join(tmpdir(), "agent-name-migration-untracked-"));
+	t.after(() => rmSync(agentHome, { recursive: true, force: true }));
+	const previous = process.env.GENTLE_PI_AGENT_HOME;
+	process.env.GENTLE_PI_AGENT_HOME = agentHome;
+	t.after(() => { if (previous === undefined) delete process.env.GENTLE_PI_AGENT_HOME; else process.env.GENTLE_PI_AGENT_HOME = previous; });
+	mkdirSync(join(agentHome, "agents"), { recursive: true });
+	// Real v0.1.0 content with user-chosen routing and no managed-assets manifest entry.
+	const original = readFileSync(new URL("./fixtures/legacy/gentle-ai-explore-v0.1.0.md", import.meta.url), "utf8");
+	const rerouted = original.replace(/^model:.*$/m, "model: openai/custom").replace(/^thinking:.*$/m, "thinking: high");
+	assert.notEqual(rerouted, original);
+	const legacyExplore = join(agentHome, "agents", "gentle-ai-explore.md");
+	writeFileSync(legacyExplore, rerouted);
+	installPackageAssets(agentHome, true, ["delegation"]);
+	assert.equal(existsSync(legacyExplore), false);
+});
