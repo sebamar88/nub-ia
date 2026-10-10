@@ -2,8 +2,7 @@
 
 Shell de coding-agent para el equipo de Nubiral, construida sobre [Pi](https://pi.dev).
 
-![Nub-IA en Windows Terminal: banner con el isologo de Nubiral, barra superior con modelo y contexto, y el panel Status con Review y ponytail](docs/assets/brand/nub-ia-shell.png)
-
+<img width="2547" height="1347" alt="Nub-IA en Windows Terminal: banner con el isologo de Nubiral, barra superior con modelo y contexto, y el panel Status con Review y ponytail" src="https://github.com/user-attachments/assets/bbb63757-5228-45a7-a171-60ad3449734a" />
 https://github.com/user-attachments/assets/d474ea1b-720f-4ad6-9155-b3a4c899021d
 
 También en [YouTube](https://youtu.be/qvtMXvDKnNI).
