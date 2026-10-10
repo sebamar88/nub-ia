@@ -11,7 +11,7 @@ test("missing settings use responsive defaults and return independent copies", (
 		const resolved = resolveVisualSettings({ gentlePiConfigHome: home });
 		assert.deepEqual(resolved.settings, DEFAULT_VISUAL_SETTINGS);
 		assert.equal(DEFAULT_VISUAL_SETTINGS.statusPlacement, "auto");
-		assert.equal(DEFAULT_VISUAL_SETTINGS.headerPlacement, "top");
+		assert.equal(DEFAULT_VISUAL_SETTINGS.headerPlacement, "below-input");
 		assert.equal(DEFAULT_VISUAL_SETTINGS.density, "comfortable");
 		assert.deepEqual(DEFAULT_VISUAL_SETTINGS.visibility, { changes: true, rdd: true, agents: true, todo: true, usageCost: true, modelDetails: true });
 		resolved.settings.visibility.agents = false;

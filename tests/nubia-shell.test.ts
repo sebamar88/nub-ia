@@ -2780,6 +2780,7 @@ test("T3 live style Cards action refreshes cached TODO, header, footer and promp
 	const previous = cardStyle();
 	t.after(() => setCardStyle(previous));
 	writeCardStyle(CARD_STYLE.NEON, { gentlePiConfigHome: home });
+	writeVisualSettings({ ...resolveVisualSettings({ gentlePiConfigHome: home }).settings, headerPlacement: "top" }, { gentlePiConfigHome: home });
 	const { pi, handlers, commands } = fakePi();
 	gentleShell(pi, { NUB_IA_CONFIG_HOME: home }, { activeProfile: () => "team" });
 	const { ctx, ui, overlayReady } = fakeContext();
@@ -3065,6 +3066,7 @@ test("customize command updates displayed settings and applies layout immediatel
 
 test("below-input header remains a fullscreen widget without the rail and follows live placement", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
+	writeVisualSettings({ ...resolveVisualSettings({ gentlePiConfigHome: home }).settings, headerPlacement: "top" }, { gentlePiConfigHome: home });
 	const { pi, handlers, commands } = fakePi();
 	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();
@@ -3090,6 +3092,7 @@ test("below-input header remains a fullscreen widget without the rail and follow
 
 test("narrow fullscreen with a below-input header shows only the bottom bar, carrying the header's data and extension statuses", async (t) => {
 	const home = scopedDoubleEscCancelConfigHome(t);
+	writeVisualSettings({ ...resolveVisualSettings({ gentlePiConfigHome: home }).settings, headerPlacement: "top" }, { gentlePiConfigHome: home });
 	const { pi, handlers, commands } = fakePi();
 	gentleShell(pi, { NUB_IA_CONFIG_HOME: home });
 	const { ctx, ui, overlayReady } = fakeContext();

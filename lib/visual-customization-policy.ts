@@ -28,7 +28,7 @@ export interface VisualSettings {
 }
 export const DEFAULT_VISUAL_SETTINGS: VisualSettings = {
 	statusPlacement: STATUS_PLACEMENT.AUTO,
-	headerPlacement: HEADER_PLACEMENT.TOP,
+	headerPlacement: HEADER_PLACEMENT.BELOW_INPUT,
 	density: DENSITY.COMFORTABLE,
 	visibility: { changes: true, rdd: true, agents: true, todo: true, usageCost: true, modelDetails: true },
 };

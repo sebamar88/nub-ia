@@ -778,7 +778,7 @@ test("unified below-input float includes optional Changes and sanitized statuses
 		assert.equal(renderShellBelowInputFloat(model(), plainTheme, width, "alt+u", presentation, changes), undefined);
 		if (width === 9) assert.equal(renderShellBelowInputFloat(model(), theme, width, "alt+u", presentation, changes), undefined);
 	}
-	assert.equal(renderShellBelowInputFloat(model(), theme, 140, "alt+u", DEFAULT_VISUAL_SETTINGS, changes), undefined);
+	assert.equal(renderShellBelowInputFloat(model(), theme, 140, "alt+u", { ...DEFAULT_VISUAL_SETTINGS, headerPlacement: "top" as const }, changes), undefined);
 	setCardStyle(CARD_STYLE.NEON);
 	assert.equal(renderShellBelowInputFloat(model(), theme, 140, "alt+u", presentation, changes), undefined);
 });
