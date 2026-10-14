@@ -19,7 +19,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
 import { configReadPath, projectConfigReadPath } from "./config-home.ts";
-import { ORG_POLICY_FILE, orgReviewGate, parseOrgPolicy } from "./org-policy.ts";
+import { loadEffectiveOrgPolicy, orgReviewGate } from "./org-policy.ts";
 
 export const REVIEW_GATE_MODES = ["confirm", "strict", "off"] as const;
 export type ReviewGateMode = (typeof REVIEW_GATE_MODES)[number];
@@ -98,14 +98,11 @@ export function resolveReviewGate(cwd: string, options: ResolveReviewGateOptions
 		resolved = { mode: project.mode, source: "project_file", malformed: false, projectFile, globalFile };
 	}
 	// The organisation sits above both and, like them, can only raise the bar.
-	const org = orgReviewGate(parseOrgPolicy(readTextQuiet(join(configHome, ORG_POLICY_FILE))));
+	const org = orgReviewGate(loadEffectiveOrgPolicy({ ...env, NUB_IA_CONFIG_HOME: configHome }, cwd).policy);
 	if (org && STRICTNESS[org] > STRICTNESS[resolved.mode]) resolved = { ...resolved, mode: org, source: "org_policy", malformed: false };
 	return resolved;
 }
 
-function readTextQuiet(path: string): string | undefined {
-	try { return readFileSync(path, "utf8"); } catch { return undefined; }
-}
 
 /** Writes the global policy file (always the nub-ia config home), returning its path. */
 export function writeGlobalReviewGate(mode: ReviewGateMode, configHome: string = gentlePiConfigHome()): string {

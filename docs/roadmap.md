@@ -228,9 +228,11 @@ persiste ni se activa por config/env/tool.
   (`git clone --depth 1`, valida schema, escribe `org-policy.json` con procedencia; un fallo conserva la anterior).
   `nub-ia policy status|pull|set|clear`; `nub-ia update` refresca. Capa org cableada en modos, paths, agentes, límites,
   review gate (`source: org_policy`) y model tiers (allowlist + budget). `docs/governance.md`.
-- [ ] **T8.2 Roles**
-  `roles: { developer, lead }` + `NUB_IA_ROLE` o `git config user.email`. Un `lead` puede relajar el gate a `confirm`;
-  un `developer` no. *Cierre:* test de rol; el cambio de rol se audita (T8.4). Depende de T8.1.
+- [x] **T8.2 Roles**
+  `roles.{default,members,definitions}` en `org-policy.json` (`parseRoles`, `resolveRole`: `NUB_IA_ROLE` → email exacto
+  → `*@dominio` → default; `applyRole` sustituye secciones de nivel org). `loadEffectiveOrgPolicy(env, cwd)` es el
+  único cargador (lee `git config user.email` solo si hay `members`) y lo usan modos, paths, agentes, límites, gate y
+  tiers. `/nubia:mode status` muestra el rol. *Auditoría del cambio de rol:* en T8.4.
 - [ ] **T8.3 Skills y paquetes aprobados**
   `approvedPackages` / `approvedSkillSources`; `nub-ia install` y la carga de skills avisan (`warn`, default) o rechazan
   (`enforce`). Hash del SKILL.md al instalar, aviso si cambia. *Cierre:* instalación fuera de lista rechazada con

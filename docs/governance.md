@@ -60,6 +60,28 @@ Ejemplo completo:
 
 `/nubia:mode status`, `/nubia:review-mode status` y `/nubia:doctor` dicen de qué capa salió cada valor en vigor.
 
+## Roles
+
+La org puede decidir **por persona** con `roles` dentro de `org-policy.json`:
+
+```json
+"roles": {
+  "default": "developer",
+  "members": { "lead@nubiral.com": "lead", "*@contractor.example": "contractor" },
+  "definitions": {
+    "lead":       { "permissionMode": { "max": "yolo" }, "reviewGate": "confirm" },
+    "developer":  { "permissionMode": { "max": "auto" } },
+    "contractor": { "permissionMode": { "max": "accept-edits" }, "reviewGate": "strict", "limits": { "maxConcurrentSubagents": 1 } }
+  }
+}
+```
+
+El rol se resuelve por `NUB_IA_ROLE` (si la org lo define), si no por el `git config user.email` del repo (entrada exacta,
+luego `*@dominio`), si no por `default`. Las secciones del rol **reemplazan las de nivel org del mismo nombre** (así un
+lead puede tener más margen que el default de la org); el repo y el usuario conservan su palabra, siempre "solo
+endurecer". La identidad es una pista para elegir defaults de la org, no autenticación: nunca otorga nada que la
+persona no pudiera darse localmente. `/nubia:mode status` muestra el rol en vigor y de dónde salió.
+
 ## Lo que no es
 
 Ninguna de estas capas es un sandbox: son redes basadas en patrones sobre las herramientas del agente. Para contención

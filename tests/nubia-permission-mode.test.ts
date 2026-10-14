@@ -267,3 +267,25 @@ test("permission mode extension: the organisation policy caps the mode and prote
 		rmSync(root, { recursive: true, force: true });
 	}
 });
+
+test("permission mode extension: an org role (NUB_IA_ROLE) replaces the org-level cap for that member", async () => {
+	const root = mkdtempSync(join(tmpdir(), "nubia-mode-"));
+	try {
+		const cwd = join(root, "repo");
+		const configHome = join(root, "config");
+		mkdirSync(cwd, { recursive: true });
+		mkdirSync(configHome, { recursive: true });
+		writeFileSync(join(configHome, "org-policy.json"), JSON.stringify({ schema: "nub-ia.org-policy/v1", name: "Org", permissionMode: { max: "manual" }, roles: { default: "developer", members: {}, definitions: { developer: {}, lead: { permissionMode: { max: "auto" } } } } }));
+		const dev = harness({ cwd, configHome });
+		await dev.fire("session_start", {});
+		assert.deepEqual(dev.statuses.at(-1), ["nubia:mode", "✋ Manual · max Manual"]);
+		const lead = harness({ cwd, configHome });
+		lead.env.NUB_IA_ROLE = "lead";
+		await lead.fire("session_start", {});
+		assert.deepEqual(lead.statuses.at(-1), ["nubia:mode", "▶ Auto · max Auto"], "the lead role lifts the org cap to auto");
+		await lead.commands.get("nubia:mode")!.handler("status", lead.ctx);
+		assert.match(lead.notices.at(-1)!, /Org policy: Org · role lead \(env\)/);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});

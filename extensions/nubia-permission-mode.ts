@@ -36,7 +36,7 @@ import { discoverYoloUiAdapter, YOLO_DISPLAY } from "../lib/yolo-session-policy.
 import { bashWriteTargets, evaluatePaths, mergePathPolicies, parsePathPolicy, type PathPolicy } from "../lib/path-permission-policy.ts";
 import { agentToolRule, mergeAgentToolPolicies, parseAgentToolPolicy, type AgentToolPolicy } from "../lib/agent-tool-policy.ts";
 import { describeRedactions, redactSecrets } from "../lib/secret-redaction.ts";
-import { ORG_POLICY_FILE, parseOrgPolicy, sectionText, type OrgPolicy } from "../lib/org-policy.ts";
+import { loadEffectiveOrgPolicy, sectionText, type OrgPolicy } from "../lib/org-policy.ts";
 import { relative } from "node:path";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
@@ -73,8 +73,8 @@ function readText(path: string): string | undefined {
 }
 
 /** The organisation policy, when `nub-ia update` fetched one (lib/org-policy.ts). */
-function loadOrgPolicy(env: NodeJS.ProcessEnv): OrgPolicy | undefined {
-	return parseOrgPolicy(readText(join(nubIaConfigHome(env), ORG_POLICY_FILE)));
+function loadOrgPolicy(env: NodeJS.ProcessEnv, cwd?: string): OrgPolicy | undefined {
+	return loadEffectiveOrgPolicy(env, cwd).policy;
 }
 
 function loadConfig(cwd: string, env: NodeJS.ProcessEnv): EffectivePermissionModeConfig {
@@ -83,24 +83,24 @@ function loadConfig(cwd: string, env: NodeJS.ProcessEnv): EffectivePermissionMod
 		userModeFile: readText(join(home, "permission-mode.json")),
 		userGuardrails: readText(configReadPath(home, "runtime-guardrails.json", env)),
 		projectGuardrails: readText(projectConfigReadPath(cwd, "runtime-guardrails.json")),
-		orgPolicy: sectionText(loadOrgPolicy(env), "permissionMode"),
+		orgPolicy: sectionText(loadOrgPolicy(env, cwd), "permissionMode"),
 	});
 }
 
 /** `paths` of the user's and the repository's guardrails files: the union (a repo can only add). */
 function loadPathPolicy(cwd: string, env: NodeJS.ProcessEnv): PathPolicy {
 	const home = nubIaConfigHome(env);
-	return mergePathPolicies(parsePathPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parsePathPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parsePathPolicy(sectionText(loadOrgPolicy(env), "paths")));
+	return mergePathPolicies(parsePathPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parsePathPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parsePathPolicy(sectionText(loadOrgPolicy(env, cwd), "paths")));
 }
 
 function loadDelegationLimits(cwd: string, env: NodeJS.ProcessEnv): DelegationLimits {
 	const home = nubIaConfigHome(env);
-	return tightestLimits(parseDelegationLimits(readText(configReadPath(home, "runtime-guardrails.json", env))), parseDelegationLimits(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parseDelegationLimits(sectionText(loadOrgPolicy(env), "limits")));
+	return tightestLimits(parseDelegationLimits(readText(configReadPath(home, "runtime-guardrails.json", env))), parseDelegationLimits(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parseDelegationLimits(sectionText(loadOrgPolicy(env, cwd), "limits")));
 }
 
 function loadAgentToolPolicy(cwd: string, env: NodeJS.ProcessEnv): AgentToolPolicy {
 	const home = nubIaConfigHome(env);
-	return mergeAgentToolPolicies(parseAgentToolPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parseAgentToolPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parseAgentToolPolicy(sectionText(loadOrgPolicy(env), "agents")));
+	return mergeAgentToolPolicies(parseAgentToolPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parseAgentToolPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parseAgentToolPolicy(sectionText(loadOrgPolicy(env, cwd), "agents")));
 }
 
 /** Repository-relative form of a tool path (absolute or cwd-relative); outside the worktree it is returned as given. */
@@ -292,6 +292,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 				const lines = [
 					`Permission mode: ${modeChip(mode, config.max)}`,
 					`Startup mode: ${MODE_LABEL[config.initial]} (${config.sources.initial})${config.max ? ` · cap: ${MODE_LABEL[config.max]} (${config.sources.max})` : ""}`,
+					...(() => { const org = loadEffectiveOrgPolicy(env, ctx.cwd); return org.policy ? [`Org policy: ${org.policy.name ?? "unnamed"}${org.role ? ` · role ${org.role.role} (${org.role.source})` : ""}`] : []; })(),
 					"plan: read-only · manual: every write/command asks · accept-edits: edits run, commands ask · auto: guardrails only · yolo: + commits/push/PR",
 					`Shift+Tab cycles (isolated home); /nubia:mode <mode> sets; /nubia:mode default <mode> saves the startup mode in ${join(nubIaConfigHome(env), "permission-mode.json")}.`,
 				];

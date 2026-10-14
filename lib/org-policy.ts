@@ -109,3 +109,118 @@ export function parseOrgPolicySource(text: string | undefined): OrgPolicySource 
 	if (/^(https?:\/\/|git@|ssh:\/\/|\/|[A-Za-z]:\\|\.\.?\/)/.test(raw)) return { repository: raw, path: ORG_POLICY_FILE };
 	return undefined;
 }
+
+// --- roles (roadmap T8.2) ---------------------------------------------------------------
+//
+//   "roles": {
+//     "default": "developer",
+//     "members": { "lead@nubiral.com": "lead", "*@contractor.example": "contractor" },
+//     "definitions": {
+//       "lead":       { "permissionMode": { "max": "yolo" }, "reviewGate": "confirm" },
+//       "developer":  { "permissionMode": { "max": "auto" } },
+//       "contractor": { "permissionMode": { "max": "accept-edits" }, "reviewGate": "strict", "limits": { "maxConcurrentSubagents": 1 } }
+//     }
+//   }
+//
+// The role is the organisation deciding per person: a role's sections replace the
+// org-level sections of the same name (so a lead can be allowed more than the
+// org default), and the result still sits above repository and user, which keep
+// their own tighten-only say. NUB_IA_ROLE names a role explicitly; otherwise the
+// Git identity's email is matched against `members` (exact, then `*@domain`),
+// else `default`. Identity is a hint, not authentication: it decides which org
+// defaults apply, never anything the user could not grant themselves locally.
+
+export interface RolesSection {
+	default?: string;
+	members: Record<string, string>;
+	definitions: Record<string, Partial<Record<Exclude<OrgPolicySection, "roles" | "approvedPackages">, unknown>>>;
+}
+
+const ROLE_NAME = /^[A-Za-z][A-Za-z0-9_-]{0,31}$/;
+
+export function parseRoles(policy: OrgPolicy | undefined): RolesSection | undefined {
+	const raw = policy?.sections.roles;
+	if (typeof raw !== "object" || raw === null) return undefined;
+	const record = raw as Record<string, unknown>;
+	const definitions: RolesSection["definitions"] = {};
+	if (typeof record.definitions === "object" && record.definitions !== null) {
+		for (const [name, spec] of Object.entries(record.definitions as Record<string, unknown>)) {
+			if (!ROLE_NAME.test(name) || typeof spec !== "object" || spec === null) continue;
+			const sections: Record<string, unknown> = {};
+			for (const key of ORG_POLICY_SECTIONS) if (key !== "roles" && key !== "approvedPackages" && (spec as Record<string, unknown>)[key] !== undefined) sections[key] = (spec as Record<string, unknown>)[key];
+			definitions[name] = sections;
+		}
+	}
+	const members: Record<string, string> = {};
+	if (typeof record.members === "object" && record.members !== null) {
+		for (const [who, role] of Object.entries(record.members as Record<string, unknown>)) if (typeof role === "string" && definitions[role] && who.length <= 254) members[who.toLowerCase()] = role;
+	}
+	const fallback = typeof record.default === "string" && definitions[record.default] ? record.default : undefined;
+	if (Object.keys(definitions).length === 0) return undefined;
+	return { ...(fallback ? { default: fallback } : {}), members, definitions };
+}
+
+export interface ResolvedRole {
+	role: string;
+	source: "env" | "member" | "domain" | "default";
+}
+
+/** Which role applies: NUB_IA_ROLE (if defined by the org), the email's entry, its domain wildcard, or the default. */
+export function resolveRole(roles: RolesSection | undefined, input: { envRole?: string; email?: string }): ResolvedRole | undefined {
+	if (!roles) return undefined;
+	if (input.envRole && roles.definitions[input.envRole]) return { role: input.envRole, source: "env" };
+	const email = input.email?.trim().toLowerCase();
+	if (email) {
+		if (roles.members[email]) return { role: roles.members[email]!, source: "member" };
+		const domain = email.slice(email.indexOf("@"));
+		if (domain && roles.members[`*${domain}`]) return { role: roles.members[`*${domain}`]!, source: "domain" };
+	}
+	return roles.default ? { role: roles.default, source: "default" } : undefined;
+}
+
+/** The org policy with the role's sections substituted for the org-level ones of the same name. */
+export function applyRole(policy: OrgPolicy | undefined, resolved: ResolvedRole | undefined): OrgPolicy | undefined {
+	if (!policy || !resolved) return policy;
+	const roles = parseRoles(policy);
+	const definition = roles?.definitions[resolved.role];
+	if (!definition) return policy;
+	return { ...policy, sections: { ...policy.sections, ...definition } };
+}
+
+// --- effective policy loader (shared by every consumer) ---------------------------------
+
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { nubIaConfigHome } from "./config-home.ts";
+
+export const ROLE_ENV = "NUB_IA_ROLE";
+
+function gitEmail(cwd: string | undefined): string | undefined {
+	try {
+		return execFileSync("git", [...(cwd ? ["-C", cwd] : []), "config", "--get", "user.email"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true, timeout: 2_000 }).trim() || undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+export interface EffectiveOrgPolicy {
+	policy: OrgPolicy | undefined;
+	role?: ResolvedRole;
+	path: string;
+}
+
+/**
+ * org-policy.json with the member's role applied. Read fresh on every call
+ * (policies are small; a `nub-ia update` in another terminal applies at once).
+ */
+export function loadEffectiveOrgPolicy(env: NodeJS.ProcessEnv = process.env, cwd?: string): EffectiveOrgPolicy {
+	const path = join(nubIaConfigHome(env), ORG_POLICY_FILE);
+	let text: string | undefined;
+	try { text = readFileSync(path, "utf8"); } catch { text = undefined; }
+	const policy = parseOrgPolicy(text);
+	if (!policy) return { policy: undefined, path };
+	const roles = parseRoles(policy);
+	const role = roles ? resolveRole(roles, { envRole: env[ROLE_ENV], email: roles.members && Object.keys(roles.members).length ? gitEmail(cwd) : undefined }) : undefined;
+	return { policy: applyRole(policy, role), ...(role ? { role } : {}), path };
+}

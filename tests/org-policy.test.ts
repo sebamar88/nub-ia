@@ -58,3 +58,53 @@ test("describeOrgPolicy and parseOrgPolicySource", () => {
 	assert.equal(parseOrgPolicySource("whatever"), undefined);
 	assert.equal(parseOrgPolicySource(""), undefined);
 });
+
+// --- roles (roadmap T8.2) ---------------------------------------------------------------
+
+import { applyRole, parseRoles, resolveRole } from "../lib/org-policy.ts";
+
+const withRoles = parseOrgPolicy(JSON.stringify({
+	schema: ORG_POLICY_SCHEMA,
+	permissionMode: { max: "auto" },
+	reviewGate: "strict",
+	roles: {
+		default: "developer",
+		members: { "Lead@Nubiral.com": "lead", "*@contractor.example": "contractor", "ghost@x.y": "undefined-role" },
+		definitions: {
+			lead: { permissionMode: { max: "yolo" }, reviewGate: "confirm" },
+			developer: {},
+			contractor: { permissionMode: { max: "accept-edits" }, limits: { maxConcurrentSubagents: 1 }, roles: "ignored", approvedPackages: ["ignored"] },
+			"bad name!": { permissionMode: {} },
+		},
+	},
+}))!;
+
+test("parseRoles: definitions, members (lower-cased, only known roles) and default", () => {
+	const roles = parseRoles(withRoles)!;
+	assert.deepEqual(Object.keys(roles.definitions).sort(), ["contractor", "developer", "lead"]);
+	assert.deepEqual(roles.members, { "lead@nubiral.com": "lead", "*@contractor.example": "contractor" });
+	assert.equal(roles.default, "developer");
+	assert.deepEqual(Object.keys(roles.definitions.contractor!), ["permissionMode", "limits"], "a role never nests roles or approvedPackages");
+	assert.equal(parseRoles(parseOrgPolicy(JSON.stringify({ schema: ORG_POLICY_SCHEMA }))), undefined);
+});
+
+test("resolveRole: env, exact member, domain wildcard, default; unknown env role is ignored", () => {
+	const roles = parseRoles(withRoles);
+	assert.deepEqual(resolveRole(roles, { envRole: "lead" }), { role: "lead", source: "env" });
+	assert.deepEqual(resolveRole(roles, { envRole: "admin", email: "someone@contractor.example" }), { role: "contractor", source: "domain" });
+	assert.deepEqual(resolveRole(roles, { email: "LEAD@nubiral.com" }), { role: "lead", source: "member" });
+	assert.deepEqual(resolveRole(roles, { email: "dev@nubiral.com" }), { role: "developer", source: "default" });
+	assert.equal(resolveRole(undefined, { email: "x@y" }), undefined);
+});
+
+test("applyRole: a role's sections replace the org-level ones of the same name; everything else stays", () => {
+	const lead = applyRole(withRoles, { role: "lead", source: "member" })!;
+	assert.deepEqual(lead.sections.permissionMode, { max: "yolo" });
+	assert.equal(lead.sections.reviewGate, "confirm");
+	const contractor = applyRole(withRoles, { role: "contractor", source: "domain" })!;
+	assert.deepEqual(contractor.sections.permissionMode, { max: "accept-edits" });
+	assert.equal(contractor.sections.reviewGate, "strict", "untouched org sections remain");
+	assert.deepEqual(contractor.sections.limits, { maxConcurrentSubagents: 1 });
+	assert.equal(applyRole(withRoles, undefined), withRoles);
+	assert.equal(applyRole(withRoles, { role: "nope", source: "env" }), withRoles);
+});
