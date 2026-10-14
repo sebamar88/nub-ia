@@ -1,0 +1,20 @@
+{
+  "description": "Repository rules (review-rules.md) say: no console.log in src/api (use the logger), never log customer PII, and use the shared http client instead of importing axios. None of these are generic lens rules; they must come from the Project rules block.",
+  "verdict": "warn",
+  "lenses": {
+    "review-readability": {
+      "mustFlag": [
+        { "location": "src/api/orders.ts", "minSeverity": "WARNING", "claimPattern": "project rule|convention|console\\.log|logger" },
+        { "location": "src/api/orders.ts", "claimPattern": "axios|http client" }
+      ]
+    },
+    "review-risk": {
+      "mustFlag": [
+        { "location": "src/api/orders.ts", "minSeverity": "WARNING", "claimPattern": "pii|email|log" }
+      ]
+    },
+    "review-resilience": {
+      "mustNotFlag": [ { "location": "src/api/orders.ts", "claimPattern": "slo|latency" } ]
+    }
+  }
+}

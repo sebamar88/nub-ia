@@ -42,9 +42,10 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   extensión lee índice / `HEAD` / working tree según el alcance y anexa el bloque dentro del fence del diff, un bloque
   por chunk. La instrucción va en el mensaje de usuario, así los prompt pins no cambian. Fixture
   `signature-change-callers` (hallazgo solo visible con contexto).
-- [ ] **T1.3 Reglas de proyecto**
-  `lib/nub-review.ts`: cargar `.pi/nub-ia/review-rules.md` (y `AGENTS.md` si existe) como sección "Project rules" del
-  prompt de cada lente. *Cierre:* test con regla custom que genera WARNING; README actualizado.
+- [x] **T1.3 Reglas de proyecto**
+  `loadProjectRules` (`.pi/nub-ia/review-rules.md` > `AGENTS.md`, 16 KiB, truncado con marcador) y
+  `renderProjectRules` en `lib/nub-review.ts`; anexado al mensaje de usuario de cada lente como datos (los prompt pins
+  no cambian). Fixture `project-rule-violation` (WARNINGs que solo salen de las reglas del repo). README actualizado.
 - [ ] **T1.4 `/nubia:review fix` — cerrar el ciclo**
   Subcomando que delega BLOCKER/CRITICAL a `jd-fix-agent` con el reporte como input y re-corre el review. *Cierre:* tope
   de 2 iteraciones; el reporte final enlaza al anterior; confirmación antes de escribir. Depende de T1.3.

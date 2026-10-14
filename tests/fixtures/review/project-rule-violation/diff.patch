@@ -1,0 +1,15 @@
+diff --git a/src/api/orders.ts b/src/api/orders.ts
+--- a/src/api/orders.ts
++++ b/src/api/orders.ts
+@@ -1,8 +1,12 @@
+ import { orderRepo } from "../repos/orders";
++import axios from "axios";
+ import type { Request, Response } from "express";
+ 
+ export async function getOrder(req: Request, res: Response) {
+   const order = await orderRepo.find(req.params.id);
++  console.log("order fetched", { id: order.id, customerEmail: order.customerEmail });
++  const rates = await axios.get(`https://fx.internal/rates?base=${order.currency}`);
++  order.fxRate = rates.data.rate;
+   res.json(order);
+ }

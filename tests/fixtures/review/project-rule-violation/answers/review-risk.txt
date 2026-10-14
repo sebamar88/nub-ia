@@ -1,0 +1,1 @@
+{"findings":[{"severity":"WARNING","location":"src/api/orders.ts:7","claim":"Customer email (PII) is written to the application log, which the project rules forbid and which leaks personal data into log retention","evidence":"`console.log(\"order fetched\", { id: order.id, customerEmail: order.customerEmail })`","suggestion":"Log the order id only"}]}
