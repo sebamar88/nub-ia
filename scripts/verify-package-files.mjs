@@ -83,6 +83,7 @@ const requiredPaths = [
   "lib/org-policy.ts",
   "prompts/skill-creation.md",
   "skills/branch-pr/SKILL.md",
+  "skills/nubia-grill-me/SKILL.md",
   "skills/chained-pr/SKILL.md",
   "skills/cognitive-doc-design/SKILL.md",
   "skills/comment-writer/SKILL.md",

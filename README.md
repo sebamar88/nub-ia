@@ -199,6 +199,10 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 `NUB_IA_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
 instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail@4.13.0`.
 
+### Skills del equipo
+
+Además de las heredadas de gentle-shell (`branch-pr`, `chained-pr`, `judgment-day`, `work-unit-commits`, …), el paquete trae **`nubia-grill-me`** (adaptada de [`grilling` de Matt Pocock](https://github.com/mattpocock/skills), MIT): "grill me" / "interrogame" dispara una entrevista por rondas que mapea el plan como árbol de decisiones, recomienda una respuesta por pregunta (un "sí" la acepta), busca los hechos por su cuenta y no implementa nada hasta que confirmás que el entendimiento es compartido. Usa `ask_user_question` cuando la ronda entra en 4 preguntas.
+
 ### Review 4R propio (`nub_review`)
 
 `extensions/nub-ia-review.ts` corre los cuatro revisores del paquete (risk, reliability, resilience, readability) **en
