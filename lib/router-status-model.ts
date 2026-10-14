@@ -23,6 +23,10 @@ export interface RouterStatusPayload {
 	excluded: RouterExclusion[];
 	/** Tiers that could not find any model the last time they were asked. */
 	unroutable: ModelTier[];
+	/** Budget line from lib/model-tier-budget.ts (describeBudget), when a budget is configured. */
+	budget?: { text: string; exceeded: boolean };
+	/** Tiers currently routed one step down because the budget was exceeded. */
+	degraded: Partial<Record<ModelTier, ModelTier>>;
 }
 
 const CAUSES: Array<[RegExp, string]> = [
@@ -44,14 +48,24 @@ export class RouterJournal {
 	private resolved: Partial<Record<ModelTier, string>> = {};
 	private excluded = new Map<string, RouterExclusion>();
 	private unroutable = new Set<ModelTier>();
+	private budgetLine: { text: string; exceeded: boolean } | undefined;
+	private degraded: Partial<Record<ModelTier, ModelTier>> = {};
 
 	reset(): void {
 		this.resolved = {};
 		this.excluded.clear();
 		this.unroutable.clear();
+		this.budgetLine = undefined;
+		this.degraded = {};
 	}
 
-	record(tier: ModelTier, decision: RouteDecision, failed: { provider: string; errorMessage?: string } | undefined, now: number): void {
+	budget(text: string, exceeded: boolean): void {
+		this.budgetLine = { text, exceeded };
+	}
+
+	record(tier: ModelTier, decision: RouteDecision, failed: { provider: string; errorMessage?: string } | undefined, now: number, degradedTo?: ModelTier): void {
+		if (degradedTo) this.degraded[tier] = degradedTo;
+		else delete this.degraded[tier];
 		if (decision.model) {
 			this.resolved[tier] = `${decision.model.provider}/${decision.model.id}`;
 			this.unroutable.delete(tier);
@@ -66,7 +80,7 @@ export class RouterJournal {
 	}
 
 	payload(): RouterStatusPayload {
-		return { schema: ROUTER_STATUS_EVENT, resolved: { ...this.resolved }, excluded: [...this.excluded.values()].sort((a, b) => a.at - b.at), unroutable: MODEL_TIERS.filter((tier) => this.unroutable.has(tier)) };
+		return { schema: ROUTER_STATUS_EVENT, resolved: { ...this.resolved }, excluded: [...this.excluded.values()].sort((a, b) => a.at - b.at), unroutable: MODEL_TIERS.filter((tier) => this.unroutable.has(tier)), ...(this.budgetLine ? { budget: { ...this.budgetLine } } : {}), degraded: { ...this.degraded } };
 	}
 }
 
@@ -89,7 +103,21 @@ export function parseRouterStatus(value: unknown): RouterStatusPayload | undefin
 		excluded.push({ provider: sanitizeTerminalText(item.provider).slice(0, 40), cause: sanitizeTerminalText(item.cause).slice(0, 40), at: item.at });
 	}
 	if (!record.unroutable.every(isTier)) return undefined;
-	return { schema: ROUTER_STATUS_EVENT, resolved, excluded, unroutable: record.unroutable };
+	const degraded: Partial<Record<ModelTier, ModelTier>> = {};
+	if (record.degraded !== undefined) {
+		if (typeof record.degraded !== "object" || record.degraded === null) return undefined;
+		for (const [from, to] of Object.entries(record.degraded as Record<string, unknown>)) {
+			if (!isTier(from) || !isTier(to)) return undefined;
+			degraded[from] = to;
+		}
+	}
+	let budget: RouterStatusPayload["budget"];
+	if (record.budget !== undefined) {
+		const raw = record.budget as { text?: unknown; exceeded?: unknown } | null;
+		if (typeof raw !== "object" || raw === null || typeof raw.text !== "string" || typeof raw.exceeded !== "boolean") return undefined;
+		budget = { text: sanitizeTerminalText(raw.text).slice(0, 160), exceeded: raw.exceeded };
+	}
+	return { schema: ROUTER_STATUS_EVENT, resolved, excluded, unroutable: record.unroutable, ...(budget ? { budget } : {}), degraded };
 }
 
 export interface RouterStatusLines {
@@ -106,10 +134,12 @@ function ago(at: number, now: number): string {
 /** The Status card "Router" block. `undefined` means no tier routed yet this session. */
 export function routerStatusLines(payload: RouterStatusPayload | undefined, now: number): RouterStatusLines {
 	const resolved = payload ? MODEL_TIERS.filter((tier) => payload.resolved[tier]) : [];
-	if (!payload || (resolved.length === 0 && payload.excluded.length === 0 && payload.unroutable.length === 0)) return { headline: "No tier routed yet", tone: "none", items: [] };
-	const items = resolved.map((tier) => `${tier} → ${payload.resolved[tier]}`);
+	if (!payload || (resolved.length === 0 && payload.excluded.length === 0 && payload.unroutable.length === 0 && !payload.budget)) return { headline: "No tier routed yet", tone: "none", items: [] };
+	const items = resolved.map((tier) => `${tier} → ${payload.resolved[tier]}${payload.degraded[tier] ? ` (as ${payload.degraded[tier]}, over budget)` : ""}`);
 	for (const tier of payload.unroutable) items.push(`${tier} → no model available`);
 	for (const exclusion of payload.excluded) items.push(`excluded ${exclusion.provider} · ${exclusion.cause} · ${ago(exclusion.at, now)}`);
-	const headline = payload.unroutable.length ? `${payload.unroutable.length} tier${payload.unroutable.length === 1 ? "" : "s"} unroutable` : payload.excluded.length ? `${payload.excluded.length} provider${payload.excluded.length === 1 ? "" : "s"} excluded this session` : `${resolved.length} tier${resolved.length === 1 ? "" : "s"} routed`;
-	return { headline, tone: payload.unroutable.length ? "bad" : payload.excluded.length ? "warn" : "ok", items };
+	if (payload.budget) items.push(payload.budget.text);
+	const overBudget = payload.budget?.exceeded === true;
+	const headline = payload.unroutable.length ? `${payload.unroutable.length} tier${payload.unroutable.length === 1 ? "" : "s"} unroutable` : overBudget ? "over budget" : payload.excluded.length ? `${payload.excluded.length} provider${payload.excluded.length === 1 ? "" : "s"} excluded this session` : `${resolved.length} tier${resolved.length === 1 ? "" : "s"} routed`;
+	return { headline, tone: payload.unroutable.length ? "bad" : overBudget || payload.excluded.length ? "warn" : "ok", items };
 }

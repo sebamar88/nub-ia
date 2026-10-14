@@ -9,7 +9,7 @@
 //
 // The selection logic itself lives in lib/model-tier-router.ts (pure, tested);
 // this file only wires it to Pi.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -23,6 +23,8 @@ import {
 	parseTierCatalog,
 } from "../lib/model-tier-router.ts";
 import { ROUTER_STATUS_EVENT, RouterJournal } from "../lib/router-status-model.ts";
+import { type BudgetSpend, budgetState, describeBudget, effectiveTier, readSpendLedger, spendLedgerName, tightestBudget, writeSpendLedger } from "../lib/model-tier-budget.ts";
+import { nubIaConfigHome } from "../lib/config-home.ts";
 
 export const NUB_IA_PROVIDER = "nub-ia";
 
@@ -60,6 +62,7 @@ const warnedProjectCatalogs = new Set<string>();
 export function loadTierCatalog(cwd: string, warn: (message: string) => void = (message) => console.warn(message)): TierCatalog {
 	const projectPath = join(cwd, ".pi", "nub-ia", "model-tiers.json");
 	const project = readCatalogFile(projectPath);
+	const packaged = readCatalogFile(PACKAGED_CATALOG_PATH) ?? EMPTY_CATALOG;
 	if (project) {
 		// Repository content decides which provider receives prompts and code
 		// (only providers the user holds credentials for, but still): say so once.
@@ -67,9 +70,34 @@ export function loadTierCatalog(cwd: string, warn: (message: string) => void = (
 			warnedProjectCatalogs.add(projectPath);
 			warn(`nub-ia: model routing for this repository comes from ${projectPath} (it overrides the packaged catalog)`);
 		}
-		return project;
+		// Routing is replaced; the budget can only get tighter than the team's.
+		const budget = tightestBudget(packaged.budget, project.budget);
+		return { ...project, ...(budget ? { budget } : {}) };
 	}
-	return readCatalogFile(PACKAGED_CATALOG_PATH) ?? EMPTY_CATALOG;
+	return packaged;
+}
+
+// --- spend tracking (roadmap T2.2) --------------------------------------------------
+
+const SPEND_DIR = (env: NodeJS.ProcessEnv = process.env) => join(nubIaConfigHome(env), "metrics");
+
+function readTodaySpend(now: Date): number {
+	try {
+		return readSpendLedger(readFileSync(join(SPEND_DIR(), spendLedgerName(now)), "utf8"));
+	} catch {
+		return 0;
+	}
+}
+
+function addTodaySpend(usd: number, now: Date): number {
+	const total = readTodaySpend(now) + usd;
+	try {
+		mkdirSync(SPEND_DIR(), { recursive: true });
+		writeFileSync(join(SPEND_DIR(), spendLedgerName(now)), writeSpendLedger(total), { encoding: "utf8", mode: 0o600 });
+	} catch {
+		// Spend tracking is advisory: a read-only home must never break routing.
+	}
+	return total;
 }
 
 export function toCatalogModel(model: { provider: string; id: string; api?: string; reasoning?: boolean; cost?: { input?: number; output?: number } }): CatalogModel {
@@ -99,7 +127,30 @@ export default function registerNubIaRouter(pi: ExtensionAPI): void {
 	// why (lib/router-status-model.ts). Per session; the shell reads the channel.
 	const journal = new RouterJournal();
 	const publish = () => pi.events.emit(ROUTER_STATUS_EVENT, journal.payload());
-	pi.on("session_start", () => { journal.reset(); publish(); });
+	// Spend: Pi prices each assistant message (usage.cost.total); the session
+	// total lives here, the day's total in the ledger shared by every session.
+	let sessionUsd = 0;
+	let warnedBudget: string | undefined;
+	const spend = (): BudgetSpend => ({ todayUsd: readTodaySpend(new Date()), sessionUsd });
+	pi.on("session_start", () => { journal.reset(); sessionUsd = 0; warnedBudget = undefined; publish(); });
+	pi.on("message_end", (event, ctx) => {
+		const message = (event as { message?: { role?: unknown; usage?: { cost?: { total?: unknown } } } }).message;
+		const cost = message?.role === "assistant" ? message.usage?.cost?.total : undefined;
+		if (typeof cost !== "number" || !Number.isFinite(cost) || cost <= 0) return;
+		sessionUsd += cost;
+		const today = addTodaySpend(cost, new Date());
+		const policy = loadTierCatalog(ctx.cwd).budget;
+		if (!policy) return;
+		const current = { todayUsd: today, sessionUsd };
+		const state = budgetState(policy, current);
+		journal.budget(describeBudget(policy, current, state), state.exceeded !== undefined);
+		publish();
+		// One notice per crossed limit per session; the Status card keeps the line.
+		if (state.exceeded && warnedBudget !== state.exceeded && ctx.hasUI) {
+			warnedBudget = state.exceeded;
+			ctx.ui.notify(`Nub-IA ${describeBudget(policy, current, state)}. Edit the budget in ${PACKAGED_CATALOG_PATH} (or .pi/nub-ia/model-tiers.json).`, "warning");
+		}
+	});
 	for (const tier of MODEL_TIERS) {
 		pi.registerVirtualModel<RouterState>({
 			provider: NUB_IA_PROVIDER,
@@ -108,8 +159,11 @@ export default function registerNubIaRouter(pi: ExtensionAPI): void {
 			thinkingLevels: THINKING_LEVELS,
 			route(request, ctx) {
 				const catalog = loadTierCatalog(ctx.cwd);
+				// Over budget with onExceed=degrade: route one tier down. Continuations
+				// are untouched by decideRoute anyway (they stay on the turn's model).
+				const routed = effectiveTier(tier, budgetState(catalog.budget, spend()));
 				const decision = decideRoute({
-					tier,
+					tier: routed.tier,
 					reason: request.reason,
 					available: availableModels(ctx),
 					catalog,
@@ -121,7 +175,7 @@ export default function registerNubIaRouter(pi: ExtensionAPI): void {
 					const available = availableModels(ctx);
 					console.error(`[nub-ia-router] ${tier} reason=${request.reason} previous=${request.previous ? `${request.previous.model.provider}/${request.previous.model.id}` : "-"} failed=${request.failed ? `${request.failed.model.provider}/${request.failed.model.id}` : "-"} providers=${[...new Set(available.map((m) => m.provider))].join(",")} → ${decision.why}`);
 				}
-				journal.record(tier, decision, request.failed ? { provider: request.failed.model.provider, errorMessage: errorMessageOf(request.failed.message) } : undefined, Date.now());
+				journal.record(tier, decision, request.failed ? { provider: request.failed.model.provider, errorMessage: errorMessageOf(request.failed.message) } : undefined, Date.now(), routed.degraded ? routed.tier : undefined);
 				publish();
 				if (!decision.model) {
 					throw new Error(`nub-ia/${tier}: no provider with credentials offers a model for this tier. Run /login, or edit ${PACKAGED_CATALOG_PATH}.`);

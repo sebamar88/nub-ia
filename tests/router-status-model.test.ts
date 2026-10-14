@@ -30,7 +30,7 @@ test("RouterJournal: remembers the last model per tier, exclusions with cause an
 	assert.deepEqual(journal.payload().excluded, []);
 	assert.deepEqual(journal.payload().unroutable, []);
 	journal.reset();
-	assert.deepEqual(journal.payload(), { schema: ROUTER_STATUS_EVENT, resolved: {}, excluded: [], unroutable: [] });
+	assert.deepEqual(journal.payload(), { schema: ROUTER_STATUS_EVENT, resolved: {}, excluded: [], unroutable: [], degraded: {} });
 });
 
 test("parseRouterStatus: round-trips its own payload and rejects off-shape input", () => {
@@ -59,4 +59,21 @@ test("routerStatusLines: headline and tone follow unroutable > excluded > routed
 	assert.equal(bad.headline, "1 tier unroutable");
 	assert.equal(bad.tone, "bad");
 	assert.ok(bad.items.includes("fast → no model available"));
+});
+
+test("RouterJournal: budget line and degraded tiers reach the Status block", () => {
+	const journal = new RouterJournal();
+	journal.budget("budget $25 / $20 today · over daily budget, routing degraded", true);
+	journal.record("strong", { model: model("github-copilot", "claude-sonnet-5.5"), state: undefined, why: "" }, undefined, NOW, "balanced");
+	const payload = journal.payload();
+	assert.deepEqual(payload.degraded, { strong: "balanced" });
+	assert.deepEqual(parseRouterStatus(JSON.parse(JSON.stringify(payload))), payload);
+	const lines = routerStatusLines(payload, NOW);
+	assert.equal(lines.headline, "over budget");
+	assert.equal(lines.tone, "warn");
+	assert.deepEqual(lines.items, ["strong → github-copilot/claude-sonnet-5.5 (as balanced, over budget)", "budget $25 / $20 today · over daily budget, routing degraded"]);
+	journal.record("strong", { model: model("github-copilot", "claude-opus-5.5"), state: undefined, why: "" }, undefined, NOW);
+	assert.deepEqual(journal.payload().degraded, {});
+	assert.equal(parseRouterStatus({ ...payload, budget: { text: 1 } }), undefined);
+	assert.equal(parseRouterStatus({ ...payload, degraded: { strong: "huge" } }), undefined);
 });

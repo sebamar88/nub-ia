@@ -75,10 +75,12 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   — rate limit / overloaded / server error / timeout / auth / network — y hora, tiers sin modelo), canal
   `nubia:router-status/v1`, `routerStatusLines`. Bloque "Router" en Status (toggle `modelDetails`). El texto del error
   nunca sale del router.
-- [ ] **T2.2 Presupuesto por sesión/día**
-  `assets/model-tiers.json`: `budget: { dailyUsd, onExceed: "warn"|"degrade" }`; el router lee el gasto del JSONL de
-  métricas y degrada `strong→balanced→fast`. *Cierre:* tests de umbral; aviso en footer; el override por repo solo
-  endurece. Depende de T0.2.
+- [x] **T2.2 Presupuesto por sesión/día**
+  `lib/model-tier-budget.ts`: `parseBudget`, `tightestBudget` (repo solo endurece), `budgetState`, `effectiveTier`
+  (`strong`/`strong-alt` → `balanced` → `fast`), ledger diario `metrics/spend-<fecha>.json`, `describeBudget`.
+  `model-tiers.json` acepta `budget`; el router suma `usage.cost.total` de cada mensaje del asistente, degrada en
+  `route()` cuando corresponde, avisa una vez por límite cruzado y publica la línea en el bloque Router. Se usó el gasto
+  que calcula Pi en lugar de reconstruirlo desde los tokens del JSONL (sin dependencia de T0.2).
 - [ ] **T2.3 `nub-ia doctor --models`**
   Por tier, qué modelo resuelve con los providers logueados; avisa si un tier no matchea nada. *Cierre:* salida tabular;
   test con catálogo fake sin matches.

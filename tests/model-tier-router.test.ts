@@ -189,3 +189,10 @@ test("llama.cpp matches whatever local model is loaded, and paid/cloud providers
 	assert.equal(pick("balanced", llamaCpp, { preferredProvider: "llama.cpp" }), "llama.cpp/Qwen3-Coder-30B-A3B-Q4_K_M");
 	assert.equal(pick("balanced", [...llamaCpp, ...opencodeGo], { preferredProvider: "llama.cpp" }), "llama.cpp/Qwen3-Coder-30B-A3B-Q4_K_M", "a session already on the local model stays local");
 });
+
+test("parseTierCatalog: an optional budget rides along; a malformed one is dropped, not fatal", () => {
+	const base = { providerPriority: [], tiers: { strong: [], "strong-alt": [], balanced: [], fast: [] } };
+	assert.deepEqual(parseTierCatalog({ ...base, budget: { dailyUsd: 20, onExceed: "degrade" } })!.budget, { dailyUsd: 20, onExceed: "degrade" });
+	assert.equal(parseTierCatalog({ ...base, budget: "lots" })!.budget, undefined);
+	assert.equal(parseTierCatalog(base)!.budget, undefined);
+});

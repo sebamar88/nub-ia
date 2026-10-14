@@ -10,6 +10,7 @@
 // Claude is preferred over GPT on GitHub Copilot). Among the models one
 // pattern matches, the newest version wins, then the cheapest output price.
 
+import { type BudgetPolicy, parseBudget } from "./model-tier-budget.ts";
 export const MODEL_TIERS = ["strong", "strong-alt", "balanced", "fast"] as const;
 export type ModelTier = (typeof MODEL_TIERS)[number];
 
@@ -31,6 +32,8 @@ export interface TierCatalog {
 	providerPriority: readonly string[];
 	/** Ordered regex sources matched against `provider/id` (case-insensitive). */
 	tiers: Record<ModelTier, readonly string[]>;
+	/** Optional spend ceiling (lib/model-tier-budget.ts). */
+	budget?: BudgetPolicy;
 }
 
 export interface SelectModelOptions {
@@ -218,5 +221,6 @@ export function parseTierCatalog(value: unknown): TierCatalog | undefined {
 		if (!Array.isArray(sources)) return undefined;
 		tiers[tier] = sources.filter((entry): entry is string => typeof entry === "string");
 	}
-	return { providerPriority: priority, tiers };
+	const budget = parseBudget(record.budget);
+	return { providerPriority: priority, tiers, ...(budget ? { budget } : {}) };
 }
