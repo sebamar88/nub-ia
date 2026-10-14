@@ -1881,3 +1881,8 @@ test("parseLauncherArgs recognises audit as a launcher command", () => {
 	assert.deepEqual(parsed.commandArgs, ["--month", "2026-02", "--json"]);
 	assert.match(helpText(), /nub-ia audit \[--month YYYY-MM\] \[--json\]/);
 });
+
+test("parseLauncherArgs recognises init as a launcher command", () => {
+	assert.equal(parseLauncherArgs(["init", "--no-review-gate"]).command, "init");
+	assert.match(helpText(), /nub-ia init \[--no-review-gate\]/);
+});

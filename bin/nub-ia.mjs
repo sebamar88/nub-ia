@@ -61,6 +61,7 @@ import {
 } from "../runtime/nubia-resume-hint.mjs";
 import { installIsolatedKeybindings } from "../scripts/install-keybindings.mjs";
 import { checkPackageSource, parseApprovedPackages } from "../scripts/approved-packages.mjs";
+import { initRepo } from "../scripts/init-repo.mjs";
 import { clearOrgPolicy, describeStatus as describeOrgPolicyStatus, fetchOrgPolicy, parseSource as parseOrgPolicySourceDescriptor, resolveSource as resolveOrgPolicySource, saveSource as saveOrgPolicySource } from "../scripts/org-policy-fetch.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
@@ -1110,6 +1111,14 @@ async function main() {
 	if (args.piSubcommand === "update") {
 		const configured = resolveOrgPolicySource();
 		if (configured) process.stderr.write(`nub-ia: ${fetchOrgPolicy(configured.source).message}\n`);
+	}
+
+	if (args.command === "init") {
+		const unknown = args.commandArgs.find((token) => token !== "--no-review-gate");
+		if (unknown) fail(`Unrecognized argument for 'nub-ia init': ${unknown}\nOnly --no-review-gate is accepted.`, 2);
+		const result = initRepo(process.cwd(), { reviewGate: !args.commandArgs.includes("--no-review-gate") });
+		process.stdout.write(`nub-ia: ${result.dir}\n${result.created.map((name) => `  created ${name}`).join("\n")}${result.created.length && result.kept.length ? "\n" : ""}${result.kept.map((name) => `  kept    ${name} (already present)`).join("\n")}\nEvery file is inert until edited; commit the ones you want the team to share.\n`);
+		return;
 	}
 
 	if (args.command === "audit") {

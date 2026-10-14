@@ -163,6 +163,12 @@ export function parseLauncherArgs(argv          )                     {
 			commandArgs = argv.slice(i + 1);
 			break;
 		}
+		// `nub-ia init [--no-review-gate]`: scaffold .pi/nub-ia/ in the current repository.
+		if (arg === "init" && command === undefined && passthrough.length === 0) {
+			command = "init";
+			commandArgs = argv.slice(i + 1);
+			break;
+		}
 		// `nub-ia audit [--month YYYY-MM] [--json]`: the local governance trail (lib/audit-log.ts).
 		if (arg === "audit" && command === undefined && passthrough.length === 0) {
 			command = "audit";
@@ -1157,6 +1163,7 @@ export function helpText()         {
 		"       nub-ia [home selectors] review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]",
 		"       nub-ia policy [status|pull|set <source>|clear]",
 		"       nub-ia audit [--month YYYY-MM] [--json]",
+		"       nub-ia init [--no-review-gate]",
 		"",
 		"Opens pi with the Nub-IA package loaded, without touching your",
 		"vanilla pi installation.",
@@ -1184,6 +1191,8 @@ export function helpText()         {
 		"  policy           Organisation policy (org-policy.json, above repo and user; only tightens).",
 		"                   status shows source and sections; pull fetches it now (update does too);",
 		"                   set <git:host/org/repo[#ref][:path] | url | dir> saves the source; clear removes both.",
+		"  init             Scaffold .pi/nub-ia/ in the current repository with commented, inert",
+		"                   policy files (guardrails, review gate, review rules, persona, tiers example).",
 		"  audit            Summarise the local governance trail (~/.pi/nub-ia/audit/audit-<month>.jsonl):",
 		"                   confirmations, denials, mode changes, gated pushes, review verdicts. --json dumps rows.",
 		"",

@@ -5,7 +5,7 @@ import { CHILD_PACKAGE_INJECTION_ENV, encodeChildPackageInjection, type ChildPac
 // env/fs/exec. `bin/nub-ia.mjs` (T2) wires these into the real process,
 // filesystem and child process so this module stays fully unit-testable.
 
-export type LauncherCommand = "home" | "setup" | "review" | "policy" | "audit";
+export type LauncherCommand = "home" | "setup" | "review" | "policy" | "audit" | "init";
 
 // pi's own package-management subcommands (see pi's cli/args.ts printHelp
 // "Commands" list): each is dispatched by pi itself, before pi's own flag
@@ -159,6 +159,12 @@ export function parseLauncherArgs(argv: string[]): ParsedLauncherArgs {
 		// (lib/org-policy.ts, scripts/org-policy-fetch.mjs). Not a pi subcommand.
 		if (arg === "policy" && command === undefined && passthrough.length === 0) {
 			command = "policy";
+			commandArgs = argv.slice(i + 1);
+			break;
+		}
+		// `nub-ia init [--no-review-gate]`: scaffold .pi/nub-ia/ in the current repository.
+		if (arg === "init" && command === undefined && passthrough.length === 0) {
+			command = "init";
 			commandArgs = argv.slice(i + 1);
 			break;
 		}
@@ -1156,6 +1162,7 @@ export function helpText(): string {
 		"       nub-ia [home selectors] review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]",
 		"       nub-ia policy [status|pull|set <source>|clear]",
 		"       nub-ia audit [--month YYYY-MM] [--json]",
+		"       nub-ia init [--no-review-gate]",
 		"",
 		"Opens pi with the Nub-IA package loaded, without touching your",
 		"vanilla pi installation.",
@@ -1183,6 +1190,8 @@ export function helpText(): string {
 		"  policy           Organisation policy (org-policy.json, above repo and user; only tightens).",
 		"                   status shows source and sections; pull fetches it now (update does too);",
 		"                   set <git:host/org/repo[#ref][:path] | url | dir> saves the source; clear removes both.",
+		"  init             Scaffold .pi/nub-ia/ in the current repository with commented, inert",
+		"                   policy files (guardrails, review gate, review rules, persona, tiers example).",
 		"  audit            Summarise the local governance trail (~/.pi/nub-ia/audit/audit-<month>.jsonl):",
 		"                   confirmations, denials, mode changes, gated pushes, review verdicts. --json dumps rows.",
 		"",

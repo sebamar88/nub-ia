@@ -123,6 +123,13 @@ referencia completa. Dentro de la sesión (`/nubia:commands` lista todo):
 
 El tema por defecto es `Nub-IA` (`themes/Nub-IA.json`); se cambia desde `/settings`.
 
+### Configuración por repositorio
+
+`nub-ia init` crea `.pi/nub-ia/` en el repo con archivos comentados e inertes hasta que los edites: `runtime-guardrails.json`
+(comandos guardados, tope de modo, rutas protegidas, reglas por agente, límites), `review-gate.json` (`confirm|strict`),
+`review-rules.md` (convenciones que revisa el 4R), `persona.json` y `model-tiers.json.example`. Todo lo que un repo
+declara **solo endurece** lo del usuario (ver [docs/governance.md](docs/governance.md)); commiteá lo que quieras compartir.
+
 ### Variables de entorno
 
 Todas se llaman `NUB_IA_*` (el launcher las pasa a los procesos hijos).

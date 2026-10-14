@@ -63,6 +63,7 @@ const requiredPaths = [
   "scripts/install-keybindings.mjs",
   "scripts/org-policy-fetch.mjs",
   "scripts/approved-packages.mjs",
+  "scripts/init-repo.mjs",
   "lib/approved-packages.ts",
   "lib/audit-log.ts",
   "lib/org-policy.ts",

@@ -89,9 +89,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 ## Fase 3 — Equipo y onboarding
 
-- [ ] **T3.1 Perfil por repo (`.pi/nub-ia/profile.json`)**
-  Persona, tier por defecto, skills activas, review-gate; precedencia "solo endurece" como `review-gate.json`.
-  *Cierre:* un clon con profile arranca configurado; test de precedencia.
+- [x] **T3.1 Perfil por repo**
+  No se inventó un `profile.json`: persona (`persona.json`), tier/ruteo (`model-tiers.json`), gate (`review-gate.json`),
+  modo/paths/agentes/límites (`runtime-guardrails.json`) y reglas de review (`review-rules.md`) ya viven en
+  `.pi/nub-ia/` con precedencia "solo endurece". Lo que faltaba era el arranque: `nub-ia init [--no-review-gate]`
+  (`scripts/init-repo.mjs`) escribe esos archivos como ejemplos comentados e inertes, sin pisar los existentes.
 - [ ] **T3.2 `/nubia:usage --month` y agregador CLI**
   `lib/runtime-metrics-report.ts` (nuevo): costo/tokens por agente, tier, persona, día; `nub-ia usage [--month] [--json]`.
   *Cierre:* lee los JSONL existentes; cero dependencias nuevas.
