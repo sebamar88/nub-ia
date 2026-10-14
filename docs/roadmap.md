@@ -1,0 +1,244 @@
+# Roadmap de Nub-IA
+
+Plan de mejoras acordado sobre el estado actual del fork (review 4R en proceso, router por tier, rtk, guardrails,
+gate de push). Cada tarea apunta a una PR propia (≤ ~400 líneas; las marcadas *grande* se parten). El orden de fases
+es por valor y dependencias; dentro de una fase las tareas sin dependencia declarada son independientes.
+
+Orden sugerido: **F0 → F6 → F1 → F7 → F2 → F8 → F3 → F4 → F5.**
+
+Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
+
+---
+
+## Fase 0 — Base de medición
+
+Prerrequisito de F1, F2.2, F3.2 y F3.3.
+
+- [x] **T0.1 Fixtures de review con diffs reales**
+  `tests/fixtures/review/<caso>/{diff.patch, expectations.json, answers/<lente>.txt}`, `lib/nub-review-fixtures.ts`,
+  `tests/nub-review-fixtures.test.ts`. Cinco casos (SQL por concatenación, secreto hardcodeado, fetch sin fallback,
+  `test.only` + código muerto, refactor limpio) con `mustFlag`/`mustNotFlag` por lente y veredicto esperado; las
+  respuestas grabadas pasan por el mismo parser que la extensión. `prompt-pins.json` fija el hash del prompt de cada
+  lente: editar un `assets/agents/review-*.md` rompe el test hasta re-validar los fixtures contra los modelos reales
+  (T1.7) y actualizar el pin. *Hecho:* 4 lentes × ≥ 3 casos, con al menos un positivo y un negativo cada uno.
+- [ ] **T0.2 Esquema de métricas de review**
+  `lib/runtime-metrics-schema.json`, `extensions/nub-ia-review.ts`. Eventos `review.finding` (lente, severidad, modelo,
+  diffHash) y `review.verdict`. *Cierre:* una fila por hallazgo en el JSONL; documentado en `docs/telemetry.md`.
+
+## Fase 1 — Review 4R: profundidad
+
+- [ ] **T1.1 Chunking de diffs grandes** *(grande)*
+  `lib/nub-review.ts`: `splitDiffByFile()` / por hunk cuando un archivo supera el límite; `consolidateChunks()`.
+  `extensions/nub-ia-review.ts`: lentes por chunk con concurrencia acotada, un solo reporte y un solo `diffHash` del
+  diff total; `DIFF_MAX_BYTES` pasa a ser límite por chunk. *Cierre:* un diff de 1 MiB produce reporte único sin error;
+  tests de split/merge. Depende de T0.1.
+- [ ] **T1.2 Contexto de repo para los lentes**
+  `assets/agents/review-*.md`: fomentar `read` sobre archivos tocados con presupuesto (N archivos / M líneas).
+  `extensions/nub-ia-review.ts`: pasar rutas tocadas y `cwd`. *Cierre:* fixture cuyo hallazgo correcto requiere ver el
+  callee; sin regresión en T0.1. Depende de T1.1.
+- [ ] **T1.3 Reglas de proyecto**
+  `lib/nub-review.ts`: cargar `.pi/nub-ia/review-rules.md` (y `AGENTS.md` si existe) como sección "Project rules" del
+  prompt de cada lente. *Cierre:* test con regla custom que genera WARNING; README actualizado.
+- [ ] **T1.4 `/nubia:review fix` — cerrar el ciclo**
+  Subcomando que delega BLOCKER/CRITICAL a `jd-fix-agent` con el reporte como input y re-corre el review. *Cierre:* tope
+  de 2 iteraciones; el reporte final enlaza al anterior; confirmación antes de escribir. Depende de T1.3.
+- [ ] **T1.5 Modo headless/CI y salida JSON**
+  `bin/nub-ia.mjs`: `nub-ia review --base <ref> [--json] [--fail-on block|warn]`; serializador JSON estable de
+  `ReviewReport`. *Cierre:* exit code 1 en BLOCK; ejemplo de job de GitHub Actions en `docs/`. Depende de T1.1.
+- [ ] **T1.6 Publicar reporte en el PR**
+  `/nubia:review --pr`: `gh pr comment` con el markdown, idempotente (edita el comentario anterior por marker).
+  *Cierre:* el guardrail pide confirmación; sin `gh` falla con mensaje claro. Depende de T1.5.
+- [ ] **T1.7 Calibración**
+  Usar T0.2 para medir hallazgos aceptados/descartados por lente y ajustar prompts/severidades. *Cierre:* informe en
+  `docs/` con la tasa por lente y los cambios aplicados.
+
+## Fase 2 — Router de modelos
+
+- [ ] **T2.1 Estado del router en `/nubia:status`**
+  `lib/model-tier-router.ts`: exponer providers excluidos en la sesión con causa (429/5xx) y timestamp;
+  `extensions/nubia-shell.ts`: bloque "Router". *Cierre:* tras un 429 simulado el panel muestra el provider excluido.
+- [ ] **T2.2 Presupuesto por sesión/día**
+  `assets/model-tiers.json`: `budget: { dailyUsd, onExceed: "warn"|"degrade" }`; el router lee el gasto del JSONL de
+  métricas y degrada `strong→balanced→fast`. *Cierre:* tests de umbral; aviso en footer; el override por repo solo
+  endurece. Depende de T0.2.
+- [ ] **T2.3 `nub-ia doctor --models`**
+  Por tier, qué modelo resuelve con los providers logueados; avisa si un tier no matchea nada. *Cierre:* salida tabular;
+  test con catálogo fake sin matches.
+
+## Fase 3 — Equipo y onboarding
+
+- [ ] **T3.1 Perfil por repo (`.pi/nub-ia/profile.json`)**
+  Persona, tier por defecto, skills activas, review-gate; precedencia "solo endurece" como `review-gate.json`.
+  *Cierre:* un clon con profile arranca configurado; test de precedencia.
+- [ ] **T3.2 `/nubia:usage --month` y agregador CLI**
+  `lib/runtime-metrics-report.ts` (nuevo): costo/tokens por agente, tier, persona, día; `nub-ia usage [--month] [--json]`.
+  *Cierre:* lee los JSONL existentes; cero dependencias nuevas.
+- [ ] **T3.3 Sink de métricas de equipo (opt-in)**
+  `NUB_IA_METRICS_ENDPOINT` + token; envío por lote, sin PII, apagado por defecto. *Cierre:* `docs/telemetry.md` lista
+  los campos que salen; test de redacción. Depende de T7.5.
+- [ ] **T3.4 Catálogo de skills Nubiral**
+  `skills/nubia-aws/`, `skills/nubia-terraform/`, `skills/nubia-bedrock/` (ajustar a los stacks reales). *Cierre:* pasan
+  `skill-registry`; frontmatter válido; ≤ 150 líneas cada una.
+
+## Fase 4 — Mantenibilidad del fork
+
+- [ ] **T4.1 Separar código propio de código upstream** *(grande)*
+  Mover lógica Nub-IA de `extensions/nubia-harness.ts` / `nubia-shell.ts` a módulos `lib/nubia-*.ts`; los archivos
+  upstream quedan con hooks mínimos. *Cierre:* `git diff upstream/main -- extensions/…` baja significativamente; tests
+  verdes. Hacer primero dentro de la fase.
+- [ ] **T4.2 Workflow de sincronización con upstream**
+  `.github/workflows/upstream-sync.yml`: semanal, `fetch upstream` + merge en `sync/upstream-<fecha>`; abre PR o issue
+  con conflictos. *Cierre:* dry-run exitoso.
+- [ ] **T4.3 Verificación de integridad en `nub-ia update`**
+  `git verify-commit` contra llaves en `assets/maintainers.gpg`; `NUB_IA_SKIP_VERIFY=1` como escape. *Cierre:* update
+  rechaza HEAD no firmado; se documenta el límite que se cierra.
+- [ ] **T4.4 Bump automático de rtk y ponytail**
+  `.github/workflows/pin-bumps.yml`: detecta release, recalcula SHA-256 por plataforma y abre PR; ídem versión de
+  ponytail en `lib/nubia-launcher.ts`. *Cierre:* PR generado con digests verificados.
+
+## Fase 5 — Pulido
+
+- [ ] **T5.1 `/nubia:doctor` ampliado**
+  rtk presente, tiers resolubles (T2.3), gate activo, política efectiva (T8.1), checkout vs `origin/main`.
+- [ ] **T5.2 Política de idioma**
+  `docs/CONTRIBUTING.md`: README/docs de usuario en español, código/comentarios/docs técnicos en inglés; revisar
+  inconsistencias existentes.
+
+## Fase 6 — UI: bloque "Subagentes" en Status
+
+Independiente del resto. Hacer antes de T7.10 (comparten el bloque de Status).
+
+- [ ] **T6.1 Fuente de datos compartida**
+  `lib/agents-status-model.ts` (nuevo): `activeAgentsSummary(tasks) → { running, queued, done, items }`, puro.
+  `extensions/nubia-agents.ts`: registra un getter en el estado compartido de la shell (como `tracker`/`usage`).
+  *Cierre:* tests de agregación (0, 1, N tareas; estados mezclados).
+- [ ] **T6.2 Título resumido de la tarea**
+  `taskHeadline(task)`: usa `label`; si falta, primera línea del `task` recortada a ~40 cols, sanitizada
+  (`sanitizeTerminalText`). `assets/orchestrator-delegation.md`: `label` obligatorio al delegar. *Cierre:* tests de
+  truncado/sanitización.
+- [ ] **T6.3 Render en Status**
+  `lib/shell-bar.ts`: `agents?: { headline; tone; items }` en `ShellBarModel`; `extensions/nubia-shell.ts`: llenarlo en
+  `footerModel()` y renderizar bajo "Review" como `◐ nubia-worker · "map footer data sources" · 2m`, máx. 3 filas +
+  "+N más"; toggle `agents` en `/nubia:customize` persistido en `visualSettings.visibility`. *Cierre:* snapshot con 0/2/5
+  subagentes; ancho angosto no rompe (`narrowStatusOwner`).
+- [ ] **T6.4 Refresco en vivo**
+  Invalidar footer en start/finish/cancel; tick de 1 s solo mientras haya tareas running. *Cierre:* sin timers vivos
+  cuando no hay subagentes (test).
+
+## Fase 7 — Permisos
+
+### Modos de permiso
+
+| Modo | read / bash read-only | write / edit | bash mutante | commit / push / PR | guardrails y data-loss |
+| --- | --- | --- | --- | --- | --- |
+| **Plan** | ✔ | ✖ (directiva: solo analizar y proponer) | ✖ | ✖ | — |
+| **Manual** | ✔ | pregunta | pregunta | pregunta | siempre |
+| **Accept edits** | ✔ | auto (dentro del repo, fuera de `paths.confirm/deny`) | pregunta | pregunta | siempre |
+| **Auto** | ✔ | auto | auto salvo guardados | pregunta | siempre |
+| **YOLO** | ✔ | auto | auto | auto (comportamiento actual) | siempre |
+
+Invariantes: guardrails `confirm`/`block`, frontera de pérdida de datos y `ask_user*` no se eximen en ningún modo. La
+política org/repo puede fijar `maxMode`. Los hijos heredan como mucho el modo del padre y nunca YOLO. YOLO nunca se
+persiste ni se activa por config/env/tool.
+
+- [ ] **T7.6 Máquina de modos (`lib/permission-mode-policy.ts`)**
+  `PERMISSION_MODE`, orden, `next(mode, maxMode)`, `decide({ mode, tool, args, cwd, pathPolicy, guardDecision }) →
+  allow|ask|deny`. Envuelve `YoloSessionPolicy` (entrar a `yolo` = `set(true, identity)` con sus requisitos; salir lo
+  revoca; `/nubia:yolo` sigue como alias). Modo por defecto al arrancar (`plan|manual|accept-edits|auto`) en
+  `~/.nub-ia/config.json`; reload/sesión nueva vuelve al default. *Cierre:* tests de tabla de decisión (5 modos × tipos
+  de tool), `maxMode`, YOLO falla cerrado, herencia a hijos.
+- [ ] **T7.7 Interceptor de herramientas**
+  `extensions/nubia-harness.ts`: en `tool_call` consultar `decide()` para `write`/`edit`/`bash`/`subagent_run`; `ask`
+  reutiliza el widget de confirmación del guard de bash (con recordatorio "Shift+Tab cambia de modo"); `deny` devuelve
+  al modelo el modo actual y que pida el cambio al humano (nunca una tool). Clasificación bash read-only: lista blanca
+  conservadora; `>`/`>>`/`tee`/`rm`/`mv`/`git push` degradan a mutante; lo no reconocido = mutante. *Cierre:* tests con
+  comandos compuestos, subshells y redirecciones; nunca clasificar como read-only algo que escribe. Depende de T7.6.
+- [ ] **T7.8 Directiva de sistema por modo**
+  `appendSystemPromptOnce` con bloque `<nubia-permission-mode>` por modo (análogo a `YOLO_DIRECTIVE`), reemplazado al
+  cambiar de modo con epoch. *Cierre:* test de una sola directiva activa a la vez. Depende de T7.7.
+- [ ] **T7.9 Shift+Tab y comando**
+  Atajo `nubia.cycleMode` (default `shift+tab`) en `KeybindingsManager` con prioridad de shortcut; verificar colisión con
+  Pi y entrega de `ESC [ Z` en Windows Terminal, iTerm, kitty, tmux; rebindeable. Ciclo Plan → Manual → Accept edits →
+  Auto → (YOLO si permitido) → Plan; entrar a YOLO por ciclo pide Enter (Escape lo salta). `/nubia:mode
+  [plan|manual|accept-edits|auto|yolo|status]` y entrada en `/nubia:customize` → Editor. *Cierre:* test de ciclo con
+  `maxMode`; el atajo no roba Tab ni autocompletado. Depende de T7.8.
+- [ ] **T7.10 Indicador en UI**
+  Footer: chip `⏸ Plan` / `✋ Manual` / `✎ Accept edits` / `▶ Auto` / `🚀 YOLO` con tono por modo (reemplaza el widget
+  YOLO cuando aplica). Status: fila "Modo" junto a "Review" y "Subagentes", con `(máx: … · org)` si hay tope.
+  `assets/orchestrator*.md`: el modo lo controla el humano. `docs/permission-modes.md` nuevo; `docs/yolo-mode.md` lo
+  presenta como 5.º modo. *Cierre:* snapshot del footer/status en los 5 modos; ancho angosto. Depende de T6.3, T7.9.
+
+### Políticas que alimentan los modos
+
+- [ ] **T7.1 Permisos por ruta**
+  `runtime-guardrails.json` → `paths: { readOnly, confirm, deny }` (globs: `.github/**`, `infra/**`, `*.lock`, `.env*`).
+  `lib/path-permission-policy.ts` (nuevo), aplicado en `write`/`edit`/`bash` (redirecciones, `rm`/`mv`). Repo solo
+  endurece; YOLO no exime `confirm`/`deny`. *Cierre:* tests de precedencia; bloqueo de `write` sobre `deny`. Depende de
+  T7.6.
+- [ ] **T7.2 Permisos por agente/herramienta**
+  `runtime-guardrails.json` → `agents: { "nubia-explore": { tools: { write: "deny", bash: "confirm" } }, … }`;
+  `extensions/nubia-agents.ts` aplica la política al lanzar el hijo (gana sobre el frontmatter si es más estricta).
+  *Cierre:* `nubia-explore` que intenta `write` recibe rechazo y el padre el evento. Depende de T7.6.
+- [ ] **T7.3 Allowlist de providers/modelos por repo**
+  `.pi/nub-ia/model-tiers.json` → `allowedProviders` / `deniedModels`, respetados también para `/model` manual.
+  *Cierre:* `/model` con provider denegado muestra motivo; test en `model-tier-router`.
+- [ ] **T7.4 Límites de delegación y gasto**
+  `limits: { maxConcurrentSubagents, maxSubagentsPerTurn, maxUsdPerSession }`. *Cierre:* al exceder, error claro al
+  orquestador y reflejo en Status (T6.3). Depende de T2.2.
+- [ ] **T7.5 Redacción de secretos**
+  `lib/secret-redaction.ts` (nuevo): AWS keys, tokens GitHub, JWT, valores de `.env`; aplicado a salida de bash,
+  reportes de review, métricas e historial de prompts. *Cierre:* fixtures redactados; hashes git intactos.
+
+## Fase 8 — Gobernanza
+
+- [ ] **T8.1 Política de organización centralizada**
+  `~/.pi/nub-ia/org-policy.json` apuntando a `NUB_IA_ORG_POLICY=git:…`; `nub-ia update` la refresca. Precedencia
+  **org > repo > usuario**, siempre "solo endurecer". Unifica guardrails, review-gate, allowlist de providers, skills
+  aprobadas, `maxMode` y modo por defecto. *Cierre:* tests de merge de tres niveles; `/nubia:status` muestra la fuente
+  de cada ajuste bloqueado. Depende de T7.1–T7.3, T7.6.
+- [ ] **T8.2 Roles**
+  `roles: { developer, lead }` + `NUB_IA_ROLE` o `git config user.email`. Un `lead` puede relajar el gate a `confirm`;
+  un `developer` no. *Cierre:* test de rol; el cambio de rol se audita (T8.4). Depende de T8.1.
+- [ ] **T8.3 Skills y paquetes aprobados**
+  `approvedPackages` / `approvedSkillSources`; `nub-ia install` y la carga de skills avisan (`warn`, default) o rechazan
+  (`enforce`). Hash del SKILL.md al instalar, aviso si cambia. *Cierre:* instalación fuera de lista rechazada con
+  mensaje; tests. Depende de T8.1.
+- [ ] **T8.4 Auditoría local**
+  `~/.pi/nub-ia/audit/<YYYY-MM>.jsonl`: confirmaciones aceptadas/rechazadas, bloqueos, overrides del gate, cambios de
+  modo, pushes con/sin review, delegaciones que exceden límites. Sin prompts; comando redactado. `nub-ia audit
+  [--month] [--json]`; bloque opcional en Status. Opt-in de envío al endpoint de T3.3. *Cierre:* esquema en
+  `docs/governance.md`; permisos 0600/0700.
+- [ ] **T8.5 Firma e integridad de políticas**
+  Políticas de org verificadas con la infraestructura de T4.3; una no firmada se ignora con aviso y nunca relaja nada.
+  *Cierre:* test con política manipulada. Depende de T4.3, T8.1.
+- [ ] **T8.6 Documentación de gobernanza**
+  `docs/governance.md`: precedencia, roles, modos y `maxMode`, qué se audita, cómo pedir excepciones; `/nubia:doctor`
+  reporta la política efectiva.
+
+---
+
+## Grafo de dependencias
+
+```
+T0.1, T0.2 ──► T1.1 ──► T1.2 ──► T1.3 ──► T1.4
+                └──────► T1.5 ──► T1.6
+T0.2 ──► T2.2 ──► T7.4
+T0.2 ──► T3.2
+T7.5 ──► T3.3
+T6.1 ──► T6.2 ──► T6.3 ──► T6.4
+T7.6 ──► T7.7 ──► T7.8 ──► T7.9 ──► T7.10 (también depende de T6.3)
+T7.6 ──► T7.1, T7.2
+T7.1, T7.2, T7.3, T7.6 ──► T8.1 ──► T8.2, T8.3, T8.5
+T4.3 ──► T8.5
+T2.1, T2.3, T8.1 ──► T5.1
+T4.1 primero dentro de F4
+```
+
+## Riesgos conocidos
+
+- **Shift+Tab** no llega igual en todos los terminales: `/nubia:mode` es siempre el camino alterno.
+- La clasificación read-only de bash es el punto débil de Plan / Accept edits: preferir falsos "mutante" a falsos
+  "read-only".
+- No romper la garantía de que YOLO no es activable por config/env/tool; el ciclo de teclado es acción humana en TUI
+  interactiva y los tests deben cubrirlo.
+- T4.1 toca los archivos más grandes del upstream; hacerlo en PRs chicas y antes de cualquier merge grande del upstream.
