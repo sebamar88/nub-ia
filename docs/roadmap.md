@@ -167,26 +167,24 @@ persiste ni se activa por config/env/tool.
   revoca; `/nubia:yolo` sigue como alias). Modo por defecto al arrancar (`plan|manual|accept-edits|auto`) en
   `~/.nub-ia/config.json`; reload/sesión nueva vuelve al default. *Cierre:* tests de tabla de decisión (5 modos × tipos
   de tool), `maxMode`, YOLO falla cerrado, herencia a hijos.
-- [ ] **T7.7 Interceptor de herramientas**
-  `extensions/nubia-harness.ts`: en `tool_call` consultar `decide()` para `write`/`edit`/`bash`/`subagent_run`; `ask`
-  reutiliza el widget de confirmación del guard de bash (con recordatorio "Shift+Tab cambia de modo"); `deny` devuelve
-  al modelo el modo actual y que pida el cambio al humano (nunca una tool). Clasificación bash read-only: lista blanca
-  conservadora; `>`/`>>`/`tee`/`rm`/`mv`/`git push` degradan a mutante; lo no reconocido = mutante. *Cierre:* tests con
-  comandos compuestos, subshells y redirecciones; nunca clasificar como read-only algo que escribe. Depende de T7.6.
-- [ ] **T7.8 Directiva de sistema por modo**
-  `appendSystemPromptOnce` con bloque `<nubia-permission-mode>` por modo (análogo a `YOLO_DIRECTIVE`), reemplazado al
-  cambiar de modo con epoch. *Cierre:* test de una sola directiva activa a la vez. Depende de T7.7.
-- [ ] **T7.9 Shift+Tab y comando**
-  Atajo `nubia.cycleMode` (default `shift+tab`) en `KeybindingsManager` con prioridad de shortcut; verificar colisión con
-  Pi y entrega de `ESC [ Z` en Windows Terminal, iTerm, kitty, tmux; rebindeable. Ciclo Plan → Manual → Accept edits →
-  Auto → (YOLO si permitido) → Plan; entrar a YOLO por ciclo pide Enter (Escape lo salta). `/nubia:mode
-  [plan|manual|accept-edits|auto|yolo|status]` y entrada en `/nubia:customize` → Editor. *Cierre:* test de ciclo con
-  `maxMode`; el atajo no roba Tab ni autocompletado. Depende de T7.8.
-- [ ] **T7.10 Indicador en UI**
-  Footer: chip `⏸ Plan` / `✋ Manual` / `✎ Accept edits` / `▶ Auto` / `🚀 YOLO` con tono por modo (reemplaza el widget
-  YOLO cuando aplica). Status: fila "Modo" junto a "Review" y "Subagentes", con `(máx: … · org)` si hay tope.
-  `assets/orchestrator*.md`: el modo lo controla el humano. `docs/permission-modes.md` nuevo; `docs/yolo-mode.md` lo
-  presenta como 5.º modo. *Cierre:* snapshot del footer/status en los 5 modos; ancho angosto. Depende de T6.3, T7.9.
+- [x] **T7.7 Interceptor de herramientas**
+  `extensions/nubia-permission-mode.ts` (extensión propia, no toca el guard del harness, que sigue corriendo después):
+  `tool_call` → `decide()`; `ask` usa `ctx.ui.confirm` con el preview del comando/ruta y emite
+  `pi-permission-system:permission-request`; `deny` devuelve al modelo el motivo y "pedile al humano (Shift+Tab o
+  /nubia:mode)"; sin UI, `ask` bloquea. `insideRepository` resuelve contra el toplevel de git.
+- [x] **T7.8 Directiva de sistema por modo**
+  `updateModePrompt` en `before_agent_start` (una sola directiva `<nubia-permission-mode>` a la vez).
+- [x] **T7.9 Shift+Tab y comando**
+  `registerShortcut("shift+tab")` + `/nubia:mode [modo|status|default <modo>]` (menú sin argumento) + fila en
+  `/nubia:customize` → Editor (debajo de YOLO). Pi reserva Shift+Tab para `app.thinking.cycle` y descarta atajos de
+  extensión sobre teclas reservadas: el home aislado escribe `keybindings.json` con `"app.thinking.cycle":
+  "ctrl+alt+t"` (`scripts/install-keybindings.mjs`, en el bootstrap y en `setup`; respeta una elección previa del
+  usuario). Entrar a yolo por atajo pide Enter. Verificado en vivo: sin diagnóstico de conflicto.
+- [x] **T7.10 Indicador en UI**
+  Chip en el footer vía `setStatus("nubia:mode")` (`✎ Accept edits · max Auto`), fila `Mode` en el bloque Project del
+  Status con el tope y su origen. `docs/permission-modes.md`; `docs/yolo-mode.md` lo presenta como 5.º modo.
+  *Pendiente menor:* `assets/orchestrator*.md` todavía no menciona que el modo lo controla el humano (la directiva de
+  sistema ya lo dice en cada turno).
 
 ### Políticas que alimentan los modos
 

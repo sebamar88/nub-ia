@@ -822,3 +822,10 @@ test("Status card shows the Router block after Subagents and hides it with model
 	const hidden = { ...DEFAULT_VISUAL_SETTINGS, visibility: { ...DEFAULT_VISUAL_SETTINGS.visibility, modelDetails: false } };
 	assert.doesNotMatch(renderShellSidebarBar(data, plainTheme, 70, hidden).join(""), /Router|excluded github-copilot/);
 });
+
+test("Status card shows the permission mode in the Project group with its cap", () => {
+	const text = renderShellSidebarBar(model({ mode: { chip: "✎ Accept edits", cap: "max Auto · repo", mode: "accept-edits" } }), plainTheme, 60).join("\n");
+	assert.match(text, /Mode ✎ Accept edits \(max Auto · repo\)/);
+	assert.ok(text.indexOf("Mode") < text.indexOf("Changes"));
+	assert.doesNotMatch(renderShellSidebarBar(model(), plainTheme, 60).join("\n"), /Mode/);
+});

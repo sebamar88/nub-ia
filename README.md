@@ -115,6 +115,7 @@ referencia completa. Dentro de la sesión (`/nubia:commands` lista todo):
 | `/nubia:review [staged\|working\|<ref>]` | Review 4R del diff (también la herramienta `nub_review`). |
 | `/nubia:review-mode` | Gate de push: `status`, `enable` (confirmar), `strict` (rechazar sin review), `disable`. |
 | `/nubia:models`, `/nubia:profiles` | Modelos por agente y perfiles (tecla `i` importa un preset de `assets/profiles/`). |
+| `/nubia:mode [plan\|manual\|accept-edits\|auto\|yolo\|status\|default <m>]` | Modo de permisos (**Shift+Tab** cicla): plan (solo lectura), manual (pregunta todo), accept-edits, auto (default), yolo. Ver [docs/permission-modes.md](docs/permission-modes.md). |
 | `/nubia:persona`, `/nubia:yolo`, `/nubia:background-subagents` | Persona del asistente, modo YOLO, subagentes en segundo plano. |
 | `/nubia:banner`, `/nubia:banner-color`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo` | Banner de inicio (isologo + wordmark, paleta `lime`). |
 | `/nubia:customize`, `/nubia:animations`, `/nubia:vim`, `/nubia:double-esc-cancel` | Apariencia y comportamiento de la shell. |
@@ -143,7 +144,7 @@ Todas se llaman `NUB_IA_*` (el launcher las pasa a los procesos hijos).
 
 ### Guardrails de comandos
 
-`.pi/nub-ia/runtime-guardrails.json` (versionado) define qué comandos del agente piden confirmación o se bloquean:
+`.pi/nub-ia/runtime-guardrails.json` (versionado) define qué comandos del agente piden confirmación o se bloquean (y, en `permissionMode`, el tope y default de los [modos de permiso](docs/permission-modes.md)):
 `npm publish` está bloqueado (el paquete nunca se publica). `git push`, `git rebase`, `git branch -D` y `pi remove` piden
 confirmación por defecto sin necesidad de declararlos (declararlos como `confirm` impide que el modo YOLO los exima).
 Se puede sobreescribir por usuario en `~/.pi/nub-ia/runtime-guardrails.json`.

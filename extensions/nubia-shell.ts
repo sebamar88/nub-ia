@@ -113,6 +113,8 @@ import { accountIdFromToken, CODEX_PROVIDER, CODEX_USAGE_URL, NAN_PROVIDER, NAN_
 import { UsageView } from "../lib/shell-usage-view.ts";
 import { AGENTS_STATUS_EVENT, type AgentsStatusPayload, agentsStatusLines, parseAgentsStatus } from "../lib/agents-status-model.ts";
 import { ROUTER_STATUS_EVENT, type RouterStatusPayload, parseRouterStatus, routerStatusLines } from "../lib/router-status-model.ts";
+import { modeChip, parsePermissionModePayload, PERMISSION_MODE_EVENT, PERMISSION_MODE_REQUEST, type PermissionModePayload } from "./nubia-permission-mode.ts";
+import { MODE_LABEL, PERMISSION_MODES } from "../lib/permission-mode-policy.ts";
 import { sidebarHeader, sidebarPart, sidebarState, VISUAL_SETTINGS_CHANGED, type SidebarRail } from "../lib/shell-sidebar.ts";
 import { installSidebar, invalidateSidebar, narrowStatusOwner, STATUS_OWNER } from "../lib/shell-sidebar-layout.ts";
 import { SessionChanges, SESSION_CHANGE_EVENT } from "../lib/session-changes.ts";
@@ -1697,6 +1699,11 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		const parsed = parseRouterStatus(payload);
 		if (parsed) routerStatus = parsed;
 	});
+	let permissionMode: PermissionModePayload | undefined;
+	pi.events.on(PERMISSION_MODE_EVENT, (payload) => {
+		const parsed = parsePermissionModePayload(payload);
+		if (parsed) permissionMode = parsed;
+	});
 	let shown = "";
 	const applyChanges = (ctx: ExtensionContext, model: ChangesModel) => {
 		const fingerprint = changesFingerprint(model);
@@ -1769,6 +1776,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				review: reviewStatus(ctx.cwd, tracker.model.files.length),
 				agents: agentsStatusLines(agentsStatus, deps.now()),
 				router: routerStatusLines(routerStatus, deps.now()),
+				...(permissionMode ? { mode: { chip: modeChip(permissionMode.mode), cap: permissionMode.max ? `max ${MODE_LABEL[permissionMode.max]} · ${permissionMode.source.max === "project-guardrails" ? "repo" : "user"}` : undefined, mode: permissionMode.mode } } : {}),
 			});
 			// At narrow fullscreen widths only one status row paints: a top header
 			// suppresses the bottom bar in the layout, and otherwise the bottom bar
@@ -2069,6 +2077,19 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 					}
 					await adapter.toggle();
 					await refreshYolo();
+				},
+			});
+			// Permission mode (extensions/nubia-permission-mode.ts): Enter cycles,
+			// the request carries this live context so only a real menu can ask.
+			rows.push({
+				category,
+				label: () => `Permission mode: ${permissionMode ? modeChip(permissionMode.mode, permissionMode.max) : "unknown"} · Shift+Tab cycles`,
+				preview: () => ({ title: "Permission mode", sample: "plan (read-only) · manual (asks) · accept edits · auto (guardrails only) · yolo" }),
+				action: async () => {
+					if (closed || !permissionMode) return;
+					const reachable = PERMISSION_MODES.filter((candidate) => !permissionMode?.max || PERMISSION_MODES.indexOf(candidate) <= PERMISSION_MODES.indexOf(permissionMode.max));
+					const next = reachable[(reachable.indexOf(permissionMode.mode) + 1) % reachable.length] ?? "plan";
+					pi.events.emit(PERMISSION_MODE_REQUEST, { mode: next, context: ctx });
 				},
 			});
 			category = "History";

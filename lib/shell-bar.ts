@@ -24,6 +24,8 @@ export interface ShellBarModel {
 	agents?: { headline: string; tone: "active" | "waiting" | "done" | "none"; items: string[] };
 	/** Tier router state (Status card "Router" block), from lib/router-status-model.ts. */
 	router?: { headline: string; tone: "ok" | "warn" | "bad" | "none"; items: string[] };
+	/** Permission mode (extensions/nubia-permission-mode.ts): chip text, optional cap note and the raw mode for colouring. */
+	mode?: { chip: string; cap?: string; mode: "plan" | "manual" | "accept-edits" | "auto" | "yolo" };
 	cwd: string;
 	branch: string | null;
 	dirty: number | undefined;
@@ -221,6 +223,7 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 				...(branch ? [branch] : []),
 				...(model.sessionName ? [`${label("Session")} ${value(model.sessionName)}`] : []),
 				...(model.profile ? [`${label("Profile")} ${value(sanitizeStatus(model.profile))}`] : []),
+				...(model.mode ? [`${label("Mode")} ${theme.fg(model.mode.mode === "yolo" ? "error" : model.mode.mode === "auto" ? "warning" : model.mode.mode === "accept-edits" ? "accent" : model.mode.mode === "plan" ? ROLE.LABEL : ROLE.VALUE, sanitizeStatus(model.mode.chip))}${model.mode.cap ? ` ${label(`(${sanitizeStatus(model.mode.cap)})`)}` : ""}`] : []),
 			],
 		},
 		...(presentation?.visibility.changes === false ? [] : [{

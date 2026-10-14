@@ -1,5 +1,7 @@
 # Permiso YOLO de sesión
 
+> YOLO es el quinto [modo de permiso](permission-modes.md): Shift+Tab o `/nubia:mode yolo` llegan al mismo grant que `/nubia:yolo enable`, con los mismos requisitos y límites.
+
 > 🚀 **Máxima velocidad, las acciones destructivas siguen preguntando.** YOLO deja que el agente implemente, commitee, pushee y abra PRs dentro de la tarea ya autorizada sin pedir permiso cada vez, útil para corridas largas y autónomas. Las operaciones destructivas siguen exigiendo confirmación nueva.
 
 Usá `/nubia:yolo enable` en la TUI primaria e interactiva de Pi para dejar de recibir preguntas de permiso repetidas en el trabajo ordinario **dentro de la tarea que ya autorizaste**. YOLO está **APAGADO** por defecto. El estado activo y un widget propio junto al editor indican **🚀 YOLO ON 🔥 — destructive confirmations remain**.

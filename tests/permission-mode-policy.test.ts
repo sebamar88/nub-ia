@@ -97,3 +97,27 @@ test("stored default: only plan|manual|accept-edits|auto round-trip; yolo and ga
 	assert.equal(parseStoredMode("nope"), undefined);
 	assert.equal(parseStoredMode(undefined), undefined);
 });
+
+// --- configuration layers (lib/permission-mode-config.ts) --------------------------------
+
+import { parsePermissionModeLayer, resolvePermissionModeConfig } from "../lib/permission-mode-config.ts";
+
+test("parsePermissionModeLayer: reads only valid max/default values from a guardrails file", () => {
+	assert.deepEqual(parsePermissionModeLayer(JSON.stringify({ permissionMode: { max: "accept-edits", default: "manual" } })), { max: "accept-edits", default: "manual" });
+	assert.deepEqual(parsePermissionModeLayer(JSON.stringify({ permissionMode: { max: "huge", default: "yolo" } })), {});
+	assert.deepEqual(parsePermissionModeLayer(JSON.stringify({ guardedCommands: {} })), {});
+	assert.deepEqual(parsePermissionModeLayer("nope"), {});
+	assert.deepEqual(parsePermissionModeLayer(undefined), {});
+});
+
+test("resolvePermissionModeConfig: user chooses, repository only tightens, cap wins over any default", () => {
+	assert.deepEqual(resolvePermissionModeConfig({}), { initial: "auto", sources: { initial: "default" } });
+	assert.deepEqual(resolvePermissionModeConfig({ userModeFile: '{"mode":"manual"}' }), { initial: "manual", sources: { initial: "user-file" } });
+	assert.deepEqual(resolvePermissionModeConfig({ userGuardrails: '{"permissionMode":{"default":"plan"}}', userModeFile: '{"mode":"accept-edits"}' }).initial, "accept-edits", "the explicit file beats the guardrails default");
+	const tightened = resolvePermissionModeConfig({ userModeFile: '{"mode":"auto"}', projectGuardrails: '{"permissionMode":{"max":"accept-edits"}}' });
+	assert.deepEqual(tightened, { initial: "accept-edits", max: "accept-edits", sources: { initial: "project-guardrails", max: "project-guardrails" } });
+	const loosened = resolvePermissionModeConfig({ userGuardrails: '{"permissionMode":{"max":"manual"}}', projectGuardrails: '{"permissionMode":{"max":"yolo","default":"auto"}}' });
+	assert.deepEqual(loosened, { initial: "manual", max: "manual", sources: { initial: "user-guardrails", max: "user-guardrails" } }, "a project cannot raise the user's cap or default");
+	const stricterDefault = resolvePermissionModeConfig({ userModeFile: '{"mode":"auto"}', projectGuardrails: '{"permissionMode":{"default":"manual"}}' });
+	assert.deepEqual(stricterDefault, { initial: "manual", sources: { initial: "project-guardrails" } });
+});

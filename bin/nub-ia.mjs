@@ -59,6 +59,7 @@ import {
 	RESUME_HANDOFF_ENV,
 	RESUME_HANDOFF_FILE,
 } from "../runtime/nubia-resume-hint.mjs";
+import { installIsolatedKeybindings } from "../scripts/install-keybindings.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -672,6 +673,9 @@ async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
 	// afterward if they changed it -- whether that theme was the isolated-home
 	// bootstrap's own default or the user's own earlier choice.
 	const trackTheme = home.mode !== "link";
+	// Same rule as the bootstrap: an isolated/path home frees Shift+Tab for the
+	// permission-mode cycle (idempotent; a user who bound thinking-cycle themselves wins).
+	if (home.mode !== "link") { try { installIsolatedKeybindings(home.dir); } catch { /* advisory */ } }
 	const settingsPath = join(home.dir, "settings.json");
 	const originalSettingsText = trackTheme ? safely("read your Pi settings file", settingsPath, undefined, () => readParsableJsonText(settingsPath)) : undefined;
 	try {
@@ -1047,6 +1051,8 @@ async function main() {
 	if ((home.mode === "isolated" || home.mode === "path") && !existsSync(home.dir)) {
 		mkdirSync(home.dir, { recursive: true });
 		await installIsolatedTuiModeSetting(home.dir);
+		// Frees Shift+Tab for the permission-mode cycle (extensions/nubia-permission-mode.ts).
+		try { installIsolatedKeybindings(home.dir); } catch { /* advisory: /nubia:mode always works */ }
 		writeHomeOwnershipMarker(home); // R3-001: lets a failed first auto-provision attempt still be retried later
 		process.stderr.write(`nub-ia: using a separate home at ${home.dir}. Run 'nub-ia --link' to reuse your pi sign-ins and chats.\n`);
 	}
