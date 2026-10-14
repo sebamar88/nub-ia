@@ -1874,3 +1874,10 @@ test("parseLauncherArgs recognises policy as a launcher command", () => {
 	assert.deepEqual(parsed.commandArgs, ["set", "git:github.com/org/repo"]);
 	assert.match(helpText(), /nub-ia policy \[status\|pull\|set <source>\|clear\]/);
 });
+
+test("parseLauncherArgs recognises audit as a launcher command", () => {
+	const parsed = parseLauncherArgs(["audit", "--month", "2026-02", "--json"]);
+	assert.equal(parsed.command, "audit");
+	assert.deepEqual(parsed.commandArgs, ["--month", "2026-02", "--json"]);
+	assert.match(helpText(), /nub-ia audit \[--month YYYY-MM\] \[--json\]/);
+});

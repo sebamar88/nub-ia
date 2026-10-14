@@ -1,7 +1,7 @@
 import { CustomEditor, type ExtensionAPI, type ExtensionContext, type KeybindingsManager } from "@earendil-works/pi-coding-agent";
 import { Editor, decodeKittyPrintable, isKeyRelease, matchesKey, parseKey, truncateToWidth, visibleWidth, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
 import { execFile, spawnSync } from "node:child_process";
-import { realpathSync, statSync } from "node:fs";
+import { readFileSync, realpathSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { profilesReadFilePath, profileRoleEntries, readProfilesFileResult } from "../lib/agent-profiles.ts";
 import { readSessionProfileBinding } from "../lib/session-profile-binding.ts";
@@ -115,6 +115,8 @@ import { AGENTS_STATUS_EVENT, type AgentsStatusPayload, agentsStatusLines, parse
 import { ROUTER_STATUS_EVENT, type RouterStatusPayload, parseRouterStatus, routerStatusLines } from "../lib/router-status-model.ts";
 import { modeChip, parsePermissionModePayload, PERMISSION_MODE_EVENT, PERMISSION_MODE_REQUEST, type PermissionModePayload } from "./nubia-permission-mode.ts";
 import { MODE_LABEL, PERMISSION_MODES } from "../lib/permission-mode-policy.ts";
+import { auditToday, parseAuditRows } from "../lib/audit-log.ts";
+import { metricsFilePath } from "../lib/runtime-metrics-sink.ts";
 import { sidebarHeader, sidebarPart, sidebarState, VISUAL_SETTINGS_CHANGED, type SidebarRail } from "../lib/shell-sidebar.ts";
 import { installSidebar, invalidateSidebar, narrowStatusOwner, STATUS_OWNER } from "../lib/shell-sidebar-layout.ts";
 import { SessionChanges, SESSION_CHANGE_EVENT } from "../lib/session-changes.ts";
@@ -1699,6 +1701,21 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		const parsed = parseRouterStatus(payload);
 		if (parsed) routerStatus = parsed;
 	});
+	// Status "Audit" line: today's approvals/denials from the local trail, re-read
+	// at most every 10 s so painting never hammers the disk.
+	let auditMemo: { at: number; text: string | undefined } | undefined;
+	const auditLine = (): string | undefined => {
+		const now = deps.now();
+		if (!auditMemo || now - auditMemo.at > 10_000) {
+			let text: string | undefined;
+			try { text = readFileSync(metricsFilePath("audit", env), "utf8"); } catch { text = undefined; }
+			auditMemo = { at: now, text };
+		}
+		if (!auditMemo.text) return undefined;
+		const today = auditToday(parseAuditRows(auditMemo.text).rows, new Date(now));
+		if (today.approved === 0 && today.denied === 0) return undefined;
+		return `${today.approved} approved · ${today.denied} denied today`;
+	};
 	let permissionMode: PermissionModePayload | undefined;
 	pi.events.on(PERMISSION_MODE_EVENT, (payload) => {
 		const parsed = parsePermissionModePayload(payload);
@@ -1776,6 +1793,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				review: reviewStatus(ctx.cwd, tracker.model.files.length),
 				agents: agentsStatusLines(agentsStatus, deps.now()),
 				router: routerStatusLines(routerStatus, deps.now()),
+				audit: auditLine(),
 				...(permissionMode ? { mode: { chip: modeChip(permissionMode.mode), cap: permissionMode.max ? `max ${MODE_LABEL[permissionMode.max]} · ${permissionMode.source.max === "project-guardrails" ? "repo" : "user"}` : undefined, mode: permissionMode.mode } } : {}),
 			});
 			// At narrow fullscreen widths only one status row paints: a top header

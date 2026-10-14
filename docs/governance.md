@@ -94,6 +94,24 @@ lead puede tener más margen que el default de la org); el repo y el usuario con
 endurecer". La identidad es una pista para elegir defaults de la org, no autenticación: nunca otorga nada que la
 persona no pudiera darse localmente. `/nubia:mode status` muestra el rol en vigor y de dónde salió.
 
+## Auditoría local
+
+Cada decisión de gobernanza deja una fila JSON en `~/.pi/nub-ia/audit/audit-<AAAA-MM>.jsonl` (schema `nub-ia.audit/v1`,
+archivo 0600): confirmaciones aceptadas/rechazadas por el humano (`tool.ask`), rechazos del modo (`tool.deny`), rutas
+protegidas (`path.deny`), reglas por agente, límites de delegación (`delegation.deny`), cambios de modo
+(`mode.change`, con rol), decisiones del gate de push (`push.gate`) y veredictos de review (`review.verdict`, solo hash
+y veredicto). Nunca contiene prompts; los comandos van redactados y recortados a 200 caracteres. Los hijos marcan sus
+filas con `child: true`.
+
+```bash
+nub-ia audit                 # resumen del mes y las últimas 20 filas
+nub-ia audit --month 2026-02 # otro mes
+nub-ia audit --json          # todas las filas
+```
+
+El panel Status muestra `Audit 2 approved · 1 denied today` cuando hubo decisiones hoy. `NUB_IA_METRICS=off` también
+apaga la auditoría (mismo sink local). El envío opcional al endpoint del equipo es T3.3.
+
 ## Lo que no es
 
 Ninguna de estas capas es un sandbox: son redes basadas en patrones sobre las herramientas del agente. Para contención

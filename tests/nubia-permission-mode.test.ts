@@ -22,7 +22,7 @@ test("parsePermissionModePayload: accepts the published shape and nothing else",
 
 // --- the extension against a fake Pi -----------------------------------------------
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import registerPermissionMode, { PERMISSION_MODE_ENV } from "../extensions/nubia-permission-mode.ts";
@@ -285,6 +285,34 @@ test("permission mode extension: an org role (NUB_IA_ROLE) replaces the org-leve
 		assert.deepEqual(lead.statuses.at(-1), ["nubia:mode", "▶ Auto · max Auto"], "the lead role lifts the org cap to auto");
 		await lead.commands.get("nubia:mode")!.handler("status", lead.ctx);
 		assert.match(lead.notices.at(-1)!, /Org policy: Org · role lead \(env\)/);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+test("permission mode extension: decisions leave redacted rows in the local audit trail", async () => {
+	const root = mkdtempSync(join(tmpdir(), "nubia-mode-"));
+	try {
+		const cwd = join(root, "repo");
+		const configHome = join(root, "config");
+		mkdirSync(cwd, { recursive: true });
+		mkdirSync(configHome, { recursive: true });
+		writeFileSync(join(configHome, "permission-mode.json"), '{"mode":"manual"}\n');
+		const h = harness({ cwd, configHome, confirm: true });
+		await h.fire("session_start", {});
+		await h.fire("tool_call", { toolName: "bash", input: { command: "export GITHUB_TOKEN=ghp_abcdefghijklmnopqrstuvwxyz0123456789 && rm x" } });
+		await h.commands.get("nubia:mode")!.handler("plan", h.ctx);
+		await h.fire("tool_call", { toolName: "write", input: { path: join(cwd, "a.ts") } });
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		const { readdirSync } = await import("node:fs");
+		const dir = join(configHome, "audit");
+		const file = readdirSync(dir).find((name) => name.startsWith("audit-"))!;
+		const rows = readFileSync(join(dir, file), "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+		assert.deepEqual(rows.map((row) => [row.kind, row.outcome, row.by]), [["tool.ask", "approved", "human"], ["mode.change", undefined, "human"], ["tool.deny", "denied", "mode"]]);
+		assert.equal(rows[0]!.subject, "export GITHUB_TOKEN=[redacted github token] && rm x");
+		assert.equal(rows[1]!.subject, "manual → plan (command)");
+		assert.equal(rows[2]!.mode, "plan");
+		assert.ok(!JSON.stringify(rows).includes("ghp_"));
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}

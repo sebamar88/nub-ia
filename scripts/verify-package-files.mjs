@@ -64,6 +64,7 @@ const requiredPaths = [
   "scripts/org-policy-fetch.mjs",
   "scripts/approved-packages.mjs",
   "lib/approved-packages.ts",
+  "lib/audit-log.ts",
   "lib/org-policy.ts",
   "prompts/skill-creation.md",
   "skills/branch-pr/SKILL.md",

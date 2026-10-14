@@ -238,11 +238,11 @@ persiste ni se activa por config/env/tool.
   `mode: enforce`; patrones sobre la fuente normalizada (sin versión/ref). `nub-ia install` avisa o rechaza (probado
   end-to-end); la shell avisa al inicio sobre paquetes del `settings.json` fuera de lista. *Pendiente:* hash de
   `SKILL.md` al instalar (integridad posterior), fuera de este corte.
-- [ ] **T8.4 Auditoría local**
-  `~/.pi/nub-ia/audit/<YYYY-MM>.jsonl`: confirmaciones aceptadas/rechazadas, bloqueos, overrides del gate, cambios de
-  modo, pushes con/sin review, delegaciones que exceden límites. Sin prompts; comando redactado. `nub-ia audit
-  [--month] [--json]`; bloque opcional en Status. Opt-in de envío al endpoint de T3.3. *Cierre:* esquema en
-  `docs/governance.md`; permisos 0600/0700.
+- [x] **T8.4 Auditoría local**
+  `lib/audit-log.ts` (`auditRow` redacta/recorta el sujeto, `parseAuditRows`, `summarizeAudit`, `auditToday`), sink
+  `audit/audit-<mes>.jsonl` (0600) vía el sink generalizado. Emisores: extensión de modos (ask/deny/paths/agentes/
+  límites/cambios de modo con rol), review (push gate, veredicto). `nub-ia audit [--month] [--json]`; línea `Audit` en
+  Status. Opt-in de envío: T3.3.
 - [ ] **T8.5 Firma e integridad de políticas**
   Políticas de org verificadas con la infraestructura de T4.3; una no firmada se ignora con aviso y nunca relaja nada.
   *Cierre:* test con política manipulada. Depende de T4.3, T8.1.

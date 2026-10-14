@@ -26,6 +26,8 @@ export interface ShellBarModel {
 	router?: { headline: string; tone: "ok" | "warn" | "bad" | "none"; items: string[] };
 	/** Permission mode (extensions/nubia-permission-mode.ts): chip text, optional cap note and the raw mode for colouring. */
 	mode?: { chip: string; cap?: string; mode: "plan" | "manual" | "accept-edits" | "auto" | "yolo" };
+	/** Today's governance decisions ("2 approved · 1 denied today"), from lib/audit-log.ts. */
+	audit?: string;
 	cwd: string;
 	branch: string | null;
 	dirty: number | undefined;
@@ -223,6 +225,7 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 				...(branch ? [branch] : []),
 				...(model.sessionName ? [`${label("Session")} ${value(model.sessionName)}`] : []),
 				...(model.profile ? [`${label("Profile")} ${value(sanitizeStatus(model.profile))}`] : []),
+				...(model.audit ? [`${label("Audit")} ${value(sanitizeStatus(model.audit))}`] : []),
 				...(model.mode ? [`${label("Mode")} ${theme.fg(model.mode.mode === "yolo" ? "error" : model.mode.mode === "auto" ? "warning" : model.mode.mode === "accept-edits" ? "accent" : model.mode.mode === "plan" ? ROLE.LABEL : ROLE.VALUE, sanitizeStatus(model.mode.chip))}${model.mode.cap ? ` ${label(`(${sanitizeStatus(model.mode.cap)})`)}` : ""}`] : []),
 			],
 		},

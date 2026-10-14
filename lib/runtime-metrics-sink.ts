@@ -11,7 +11,9 @@ import { nubIaConfigHome } from "./config-home.ts";
 
 export const RUNTIME_METRICS_MAX_BYTES = 20 * 1024 * 1024;
 
-export type MetricsFileName = "runtime" | "review";
+export type MetricsFileName = "runtime" | "review" | "audit";
+/** Where each named file lives under the config home. */
+const DIRECTORY: Record<MetricsFileName, string> = { runtime: "metrics", review: "metrics", audit: "audit" };
 
 export interface RuntimeMetricsSinkOptions {
 	configHome?: string;
@@ -26,7 +28,7 @@ export function runtimeMetricsSinkEnabled(env: NodeJS.ProcessEnv = process.env):
 export function metricsFilePath(name: MetricsFileName, env: NodeJS.ProcessEnv = process.env, options: RuntimeMetricsSinkOptions = {}): string {
 	const date = (options.now ?? (() => new Date()))();
 	const month = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-	return join(options.configHome ?? nubIaConfigHome(env), "metrics", `${name}-${month}.jsonl`);
+	return join(options.configHome ?? nubIaConfigHome(env), DIRECTORY[name], `${name}-${month}.jsonl`);
 }
 
 export function runtimeMetricsFilePath(env: NodeJS.ProcessEnv = process.env, options: RuntimeMetricsSinkOptions = {}): string {

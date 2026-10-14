@@ -1112,6 +1112,40 @@ async function main() {
 		if (configured) process.stderr.write(`nub-ia: ${fetchOrgPolicy(configured.source).message}\n`);
 	}
 
+	if (args.command === "audit") {
+		let month;
+		let json = false;
+		for (let i = 0; i < args.commandArgs.length; i += 1) {
+			const token = args.commandArgs[i];
+			if (token === "--json") json = true;
+			else if (token === "--month") month = args.commandArgs[++i];
+			else if (token.startsWith("--month=")) month = token.slice("--month=".length);
+			else fail(`Unrecognized argument for 'nub-ia audit': ${token}\nUse --month YYYY-MM and/or --json.`, 2);
+		}
+		if (month !== undefined && !/^\d{4}-\d{2}$/.test(month)) fail("nub-ia audit: --month must be YYYY-MM", 2);
+		const home = process.env.NUB_IA_CONFIG_HOME || join(homedir(), ".pi", "nub-ia");
+		const stamp = month ?? new Date().toISOString().slice(0, 7);
+		const path = join(home, "audit", `audit-${stamp}.jsonl`);
+		let text = "";
+		try { text = readFileSync(path, "utf8"); } catch { /* no rows yet */ }
+		const rows = text.split("\n").filter(Boolean).flatMap((line) => { try { const row = JSON.parse(line); return row?.schema === "nub-ia.audit/v1" ? [row] : []; } catch { return []; } });
+		if (json) { process.stdout.write(`${JSON.stringify(rows)}\n`); return; }
+		if (rows.length === 0) { process.stdout.write(`No audit rows in ${path}.\n`); return; }
+		const count = (predicate) => rows.filter(predicate).length;
+		const byKind = {};
+		for (const row of rows) byKind[row.kind] = (byKind[row.kind] ?? 0) + 1;
+		const times = rows.map((row) => row.at).sort();
+		process.stdout.write([
+			`Nub-IA audit · ${rows.length} row${rows.length === 1 ? "" : "s"} in ${path} · ${times[0].slice(0, 10)} → ${times.at(-1).slice(0, 10)}`,
+			`Approved ${count((row) => row.outcome === "approved")} · denied/blocked ${count((row) => row.outcome === "denied" || row.outcome === "blocked")} · mode changes ${byKind["mode.change"] ?? 0} · gated pushes ${byKind["push.gate"] ?? 0}`,
+			Object.entries(byKind).sort((a, b) => b[1] - a[1]).map(([kind, n]) => `${kind} ${n}`).join(" · "),
+			"",
+			...rows.slice(-20).map((row) => `${row.at.slice(0, 19).replace("T", " ")}  ${row.kind.padEnd(16)} ${(row.outcome ?? "").padEnd(8)} ${row.tool ? `${row.tool} ` : ""}${row.subject ?? row.verdict ?? row.mode ?? ""}`),
+			rows.length > 20 ? `(${rows.length - 20} earlier rows omitted; --json for everything)` : "",
+		].filter((line) => line !== undefined).join("\n") + "\n");
+		return;
+	}
+
 	if (args.command === "policy") {
 		const [action = "status", ...rest] = args.commandArgs;
 		if (action === "status") { for (const line of describeOrgPolicyStatus()) process.stdout.write(`${line}\n`); return; }

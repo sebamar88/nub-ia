@@ -5,7 +5,7 @@ import { CHILD_PACKAGE_INJECTION_ENV, encodeChildPackageInjection, type ChildPac
 // env/fs/exec. `bin/nub-ia.mjs` (T2) wires these into the real process,
 // filesystem and child process so this module stays fully unit-testable.
 
-export type LauncherCommand = "home" | "setup" | "review" | "policy";
+export type LauncherCommand = "home" | "setup" | "review" | "policy" | "audit";
 
 // pi's own package-management subcommands (see pi's cli/args.ts printHelp
 // "Commands" list): each is dispatched by pi itself, before pi's own flag
@@ -159,6 +159,12 @@ export function parseLauncherArgs(argv: string[]): ParsedLauncherArgs {
 		// (lib/org-policy.ts, scripts/org-policy-fetch.mjs). Not a pi subcommand.
 		if (arg === "policy" && command === undefined && passthrough.length === 0) {
 			command = "policy";
+			commandArgs = argv.slice(i + 1);
+			break;
+		}
+		// `nub-ia audit [--month YYYY-MM] [--json]`: the local governance trail (lib/audit-log.ts).
+		if (arg === "audit" && command === undefined && passthrough.length === 0) {
+			command = "audit";
 			commandArgs = argv.slice(i + 1);
 			break;
 		}
@@ -1149,6 +1155,7 @@ export function helpText(): string {
 		"       nub-ia [home selectors] setup [--dry-run]",
 		"       nub-ia [home selectors] review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]",
 		"       nub-ia policy [status|pull|set <source>|clear]",
+		"       nub-ia audit [--month YYYY-MM] [--json]",
 		"",
 		"Opens pi with the Nub-IA package loaded, without touching your",
 		"vanilla pi installation.",
@@ -1176,6 +1183,8 @@ export function helpText(): string {
 		"  policy           Organisation policy (org-policy.json, above repo and user; only tightens).",
 		"                   status shows source and sections; pull fetches it now (update does too);",
 		"                   set <git:host/org/repo[#ref][:path] | url | dir> saves the source; clear removes both.",
+		"  audit            Summarise the local governance trail (~/.pi/nub-ia/audit/audit-<month>.jsonl):",
+		"                   confirmations, denials, mode changes, gated pushes, review verdicts. --json dumps rows.",
 		"",
 		"Managing packages:",
 		"  nub-ia install npm:<pkg>   Run pi's own 'install' against the resolved home.",

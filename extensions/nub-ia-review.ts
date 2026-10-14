@@ -32,6 +32,7 @@ import { calibrate, parseMetricRows, renderCalibration } from "../lib/nub-review
 import { checkExpectations, currentPromptPins, describeFailures, loadReviewFixtures } from "../lib/nub-review-fixtures.ts";
 import { appendMetricRows, metricsFilePath } from "../lib/runtime-metrics-sink.ts";
 import { redactSecrets } from "../lib/secret-redaction.ts";
+import { auditRow } from "../lib/audit-log.ts";
 import {
 	type DiffScope,
 	type Finding,
@@ -354,6 +355,7 @@ export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind
 	// Calibration rows (lens, severity, model, timing; never paths or text) go
 	// to the local metrics sink. Best effort: a sink failure never fails a review.
 	void appendMetricRows("review", reviewMetricRows({ report, scopeKind: collected.scope.kind, diffBytes: Buffer.byteLength(collected.diff, "utf8"), when: new Date(), durationMs, lensDurationsMs })).catch(() => undefined);
+	void appendMetricRows("audit", [auditRow({ kind: "review.verdict", by: "review-gate", diffHash: report.diffHash, verdict: report.verdict, subject: report.scope, repository: ctx.cwd })]).catch(() => undefined);
 	// Reports embed the diff (which may be exactly the secret a lens flagged):
 	// owner-only permissions, and the directory is excluded from the user's
 	// repository through .git/info/exclude (never by editing their .gitignore).
@@ -602,9 +604,12 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 		if (gate.mode === "off") return;
 		const question = pushGateQuestion(readLastReview(ctx.cwd), await pushDiffHash(ctx.cwd), gate.mode);
 		if (question === undefined) return;
+		const auditPush = (outcome: "approved" | "denied" | "blocked") => void appendMetricRows("audit", [auditRow({ kind: "push.gate", outcome, by: outcome === "blocked" ? "review-gate" : "human", subject: question, detail: `gate ${gate.mode}`, repository: ctx.cwd })]).catch(() => undefined);
+		if (gate.mode === "strict") auditPush("blocked");
 		if (gate.mode === "strict") return { block: true, reason: `${question} Refused: the review gate is strict. Run nub_review until the verdict is APPROVE or WARN, or /nubia:review-mode enable to be asked instead.` };
 		if (!ctx.hasUI) return { block: true, reason: `${question} No UI to confirm the push; run nub_review first, or /nubia:review-mode disable.` };
 		const confirmed = await ctx.ui.confirm("Nub-IA push gate", `${question} Push anyway?`);
+		auditPush(confirmed ? "approved" : "denied");
 		if (!confirmed) return { block: true, reason: "Push cancelled at the Nub-IA review gate." };
 	});
 }

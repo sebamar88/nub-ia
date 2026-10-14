@@ -39,6 +39,8 @@ import { describeRedactions, redactSecrets } from "../lib/secret-redaction.ts";
 import { loadEffectiveOrgPolicy, sectionText, type OrgPolicy } from "../lib/org-policy.ts";
 import { parseApprovedPackages, unapprovedInSettings } from "../lib/approved-packages.ts";
 import { resolveGentlePiAgentHome } from "../lib/agent-home.ts";
+import { auditRow, type AuditRow } from "../lib/audit-log.ts";
+import { appendMetricRows } from "../lib/runtime-metrics-sink.ts";
 import { relative } from "node:path";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
@@ -143,6 +145,12 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 	let mode: PermissionMode = "auto";
 	let context: ExtensionContext | undefined;
 
+	// Audit trail (T8.4): best effort, never blocks a decision. Children mark their rows.
+	let repositoryRoot: string | undefined;
+	const audit = (row: Omit<Parameters<typeof auditRow>[0], "child" | "repository" | "mode"> & { mode?: string }) => {
+		void appendMetricRows("audit", [auditRow({ ...row, mode: row.mode ?? mode, ...(isChild ? { child: true } : {}), ...(repositoryRoot ? { repository: repositoryRoot } : {}) } as Parameters<typeof auditRow>[0])], env).catch(() => undefined);
+	};
+
 	const payload = (): PermissionModePayload => ({ schema: PERMISSION_MODE_EVENT, mode, ...(config.max ? { max: config.max } : {}), source: config.sources });
 	const publish = (ctx: ExtensionContext | undefined) => {
 		env[PERMISSION_MODE_ENV] = childMode(mode);
@@ -152,6 +160,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 
 	const initialise = (ctx: ExtensionContext) => {
 		context = ctx;
+		repositoryRoot = worktreeRoot(ctx.cwd);
 		config = loadConfig(ctx.cwd, env);
 		if (isChild) {
 			const inherited = readEnv(env, PERMISSION_MODE_ENV);
@@ -190,8 +199,10 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 		} else if (mode === "yolo") {
 			await syncYolo(ctx, false);
 		}
+		const previous = mode;
 		mode = next;
 		publish(ctx);
+		audit({ kind: "mode.change", by: "human", subject: `${previous} → ${next} (${how})`, mode: next, ...(loadEffectiveOrgPolicy(env, ctx.cwd).role ? { role: loadEffectiveOrgPolicy(env, ctx.cwd).role!.role } : {}) });
 		ctx.ui.notify(`Permission mode: ${modeChip(mode, config.max)}`, "info");
 	};
 
@@ -230,16 +241,18 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 		// Children are headless, so confirm fails closed with a report-back hint.
 		if (isChild && agentName) {
 			const rule = agentToolRule(loadAgentToolPolicy(ctx.cwd, env), agentName, event.toolName);
+			if (rule !== "allow") audit({ kind: "tool.deny", outcome: "blocked", by: "agent-policy", tool: event.toolName, subject: `${agentName}: ${rule}` });
 			if (rule === "deny") return { block: true, reason: `Policy: the ${agentName} agent may not use ${event.toolName} (agents.${agentName}.tools in runtime-guardrails.json). Report what you would do instead of doing it.` };
 			if (rule === "confirm") return { block: true, reason: `Policy: ${event.toolName} by the ${agentName} agent requires the human's confirmation, which a subagent cannot obtain. Report the exact action back to the orchestrator.` };
 		}
 		if (event.toolName === "subagent_run" && !isChild) {
 			const denied = delegationDenied(loadDelegationLimits(ctx.cwd, env), { active: activeSubagents, startedThisTurn, overBudget });
-			if (denied) return { block: true, reason: `Delegation limit: ${denied}` };
+			if (denied) { audit({ kind: "delegation.deny", outcome: "blocked", by: "limits", tool: "subagent_run", subject: denied }); return { block: true, reason: `Delegation limit: ${denied}` }; }
 			startedThisTurn += 1;
 		}
 		// Path policy first: it is independent of the mode and never waived by it.
 		const hit = evaluatePaths(loadPathPolicy(ctx.cwd, env), writtenPaths(ctx.cwd, event.toolName, input));
+		if (hit?.rule === "deny") audit({ kind: "path.deny", outcome: "blocked", by: "path-policy", tool: event.toolName, subject: `${hit.path} (${hit.glob})` });
 		if (hit?.rule === "deny") return { block: true, reason: `Path policy: ${hit.path} matches "${hit.glob}" (paths.deny in runtime-guardrails.json) and must not be changed by the agent. Leave it alone or ask the human to edit it.` };
 		const decision = decide({
 			mode,
@@ -247,7 +260,8 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 			input,
 			insideRepository: event.toolName === "write" || event.toolName === "edit" ? insideRepository(ctx.cwd, (input as { path?: unknown } | undefined)?.path) : undefined,
 		});
-		if (decision.action === "deny") return { block: true, reason: decision.reason };
+		const subjectOf = () => (event.toolName === "bash" ? String((input as { command?: unknown })?.command ?? "") : String((input as { path?: unknown })?.path ?? (input as { agent?: unknown })?.agent ?? ""));
+		if (decision.action === "deny") { audit({ kind: "tool.deny", outcome: "denied", by: "mode", tool: event.toolName, subject: subjectOf() }); return { block: true, reason: decision.reason }; }
 		const ask = decision.action === "ask" ? decision.reason : hit?.rule === "confirm" ? `${hit.path} is protected (paths.confirm: "${hit.glob}")` : undefined;
 		if (ask === undefined) return undefined;
 		if (!ctx.hasUI) return { block: true, reason: `${hit?.rule === "confirm" && decision.action === "allow" ? "The path policy" : `${MODE_LABEL[mode]} mode`} needs the human to confirm this ${event.toolName} call, and this session has no UI. Ask for the mode or the policy to be changed.` };
@@ -260,6 +274,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 			approved = (await ctx.ui.confirm(`${MODE_GLYPH[mode]} ${MODE_LABEL[mode]} · ${ask}`, `${preview}\n\n(Shift+Tab or /nubia:mode changes the mode)`)) === true;
 		} finally {
 			emit(approved ? "approved" : "denied");
+			audit({ kind: "tool.ask", outcome: approved ? "approved" : "denied", by: "human", tool: event.toolName, subject: subjectOf(), detail: hit?.rule === "confirm" && decision.action === "allow" ? `protected path ${hit.path}` : undefined });
 		}
 		return approved ? undefined : { block: true, reason: `The human declined this ${event.toolName} call${hit?.rule === "confirm" ? ` (protected path ${hit.path})` : ` in ${MODE_LABEL[mode]} mode`}. Do not retry it; propose an alternative or ask what to do.` };
 	});
