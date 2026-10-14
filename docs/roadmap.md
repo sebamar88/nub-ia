@@ -139,23 +139,10 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 ## Fase 5 — Pulido
 
-- [ ] **T5.1 `/nubia:doctor` ampliado**
-  rtk presente, tiers resolubles (T2.3), gate activo, política efectiva (T8.1), checkout vs `origin/main`.
-- [x] **T5.0 System prompt minimal**
-  `lib/prompt-profile.ts`: perfil `minimal` (default) | `full`, resuelto env > repo (`.pi/nub-ia/prompt-profile.json`)
-  > usuario > default; `buildMinimalPrompt` (identidad, persona, idioma, ODD en 8 reglas, líneas de delegación/review
-  solo si las tools existen, puntero a la skill `nubia`). Medido: **17 143 → 2 565 bytes (~4 300 → ~640 tokens)**.
-  `/nubia:prompt` muestra tamaños por perfil y cambia el guardado. Los tests que afirman el texto completo fijan
-  `NUB_IA_PROMPT_PROFILE=full`; `tests/prompt-profile.test.ts` protege el tope (< 3 000 bytes, < ¼ del full).
-- [ ] **T5.1 `/nubia:doctor` ampliado**
-  rtk presente, tiers resolubles (T2.3), gate activo, política efectiva (T8.1), checkout vs `origin/main`.
-- [ ] **T5.0 System prompt minimal** *(pedido del equipo)*
-  Mantener el prompt tan chico como el de Pi. Hoy el harness heredado agrega ~7,4 KB (~1 850 tokens) de orquestación
-  (`assets/orchestrator*.md`) + persona; lo propio de Nub-IA agrega 0 bytes en el modo default (la directiva de modo es
-  una línea y solo en plan/manual/accept-edits; YOLO ~1,1 KB solo cuando está activo). Tareas: (a) `/nubia:prompt`
-  que mida bytes por sección del system prompt efectivo; (b) perfil `promptProfile: minimal|full` (default `minimal`)
-  donde `minimal` conserva solo ruteo + triggers de delegación + seguridad y mueve el resto a skills cargadas bajo
-  demanda; (c) presupuesto en test (`tests/orchestrator-budget.test.ts` ya existe) bajado al nuevo tamaño.
+- [x] **T5.1 `/nubia:doctor` ampliado**
+  `lib/nubia-doctor.ts` (`nubiaDoctorLines`): rtk (binario del paquete / PATH / `RTK_DISABLED`), gate de review con su
+  origen, modo de permisos inicial y tope con capa, política de org con rol, perfil de prompt, y checkout del paquete
+  vs tracking branch (atrasado → "run nub-ia update"). Sumado al handler del doctor junto a los tiers (T2.3).
 - [ ] **T5.2 Política de idioma**
   `docs/CONTRIBUTING.md`: README/docs de usuario en español, código/comentarios/docs técnicos en inglés; revisar
   inconsistencias existentes.

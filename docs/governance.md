@@ -58,7 +58,7 @@ Ejemplo completo:
 }
 ```
 
-`/nubia:mode status`, `/nubia:review-mode status` y `/nubia:doctor` dicen de qué capa salió cada valor en vigor.
+`/nubia:mode status`, `/nubia:review-mode status` y `/nubia:doctor` (gate, modo inicial y tope, política de org y rol, perfil de prompt) dicen de qué capa salió cada valor en vigor.
 
 ## Paquetes aprobados
 

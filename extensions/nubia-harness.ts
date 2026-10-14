@@ -114,6 +114,8 @@ import { sanitizeTerminalText, stripAnsi } from "../lib/terminal-theme.ts";
 import { registerYoloSessionPolicy, updateYoloPrompt } from "../lib/yolo-session-policy.ts";
 import { configReadPath, projectConfigReadPath, projectConfigWritePath, readEnv, setLegacyHintNotifier } from "../lib/config-home.ts";
 import { routerDoctorLines } from "./nub-ia-router.ts";
+import { resolveRtkBinary } from "./rtk-rewrite.ts";
+import { nubiaDoctorLines } from "../lib/nubia-doctor.ts";
 import { buildMinimalPrompt, isPromptProfile, PROMPT_PROFILES, type PromptProfile, resolvePromptProfile, writePromptProfile } from "../lib/prompt-profile.ts";
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -4676,6 +4678,8 @@ function createGentleAiExtensionForTesting(
 				`${engramActive ? "pass" : "warn"}: Engram memory tools ${engramActive ? "active" : "not active in this session"}`,
 				// Nub-IA tier router: which model each nub-ia/<tier> resolves to today.
 				...routerDoctorLines(ctx),
+				// Nub-IA fork checks: rtk, review gate, permission mode, org policy, prompt profile, checkout.
+				...nubiaDoctorLines({ cwd: ctx.cwd, packageRoot: PACKAGE_ROOT, env: permissionEnvironment, rtkBinary: resolveRtkBinary(permissionEnvironment) }),
 			];
 			if (modelConfig.status === "invalid") {
 				lines.push(`remedy: fix or remove ${modelConfig.path}`);

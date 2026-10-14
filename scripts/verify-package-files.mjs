@@ -63,6 +63,7 @@ const requiredPaths = [
 	"lib/usage-report.ts",
 	"lib/team-metrics-sink.ts",
 	"lib/prompt-profile.ts",
+	"lib/nubia-doctor.ts",
 	"scripts/usage-cli.mjs",
   "scripts/install-tui-mode-setting.mjs",
   "scripts/install-keybindings.mjs",
