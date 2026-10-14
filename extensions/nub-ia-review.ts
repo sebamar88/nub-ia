@@ -40,7 +40,9 @@ import {
 	type ReviewLens,
 	type ReviewReport,
 	HEADLESS_ENV,
+	type GhRunner,
 	headlessExitCode,
+	publishPrComment,
 	parseHeadlessArgs,
 	reportToJson,
 	buildReport,
@@ -407,6 +409,23 @@ function parseScope(input: { scope?: string; baseRef?: string }): DiffScope | { 
 	}
 }
 
+/** `gh` with stdin, never through a shell; a missing binary is an ordinary failure. */
+function ghRunner(cwd: string): GhRunner {
+	return (args, stdin) => new Promise((resolve) => {
+		const child = execFile("gh", args, { cwd, maxBuffer: 4 * 1024 * 1024, windowsHide: true }, (error, stdout, stderr) => {
+			const failure = error as { code?: number | string } | null;
+			resolve({ code: failure ? (typeof failure.code === "number" ? failure.code : 1) : 0, stdout: String(stdout), stderr: failure && !stderr ? String((failure as Error).message ?? "") : String(stderr) });
+		});
+		if (child.stdin) { child.stdin.end(stdin ?? ""); }
+	});
+}
+
+async function publishToPr(ctx: ExtensionContext, result: Extract<ReviewRun, { ok: true }>): Promise<string> {
+	const published = await publishPrComment(ghRunner(ctx.cwd), result.report, result.reportPath || undefined);
+	if (published.ok) return `PR comment ${published.action}: ${published.url}`;
+	return `PR comment not published: ${"error" in published ? published.error : "unknown"}`;
+}
+
 /**
  * `nub-ia review …` (CI / scripts): the launcher starts pi in print mode with
  * the arguments in NUB_IA_REVIEW_HEADLESS; this runs the review as soon as the
@@ -429,7 +448,9 @@ async function runHeadless(ctx: ExtensionContext, raw: string): Promise<never> {
 		else process.stderr.write(`nub-ia review: ${result.error}\n`);
 		process.exit(2);
 	}
-	out(options.json ? JSON.stringify(reportToJson(result.report, result.reportPath || undefined)) : result.summary);
+	const pr = options.pr ? await publishToPr(ctx, result) : undefined;
+	if (pr) process.stderr.write(`nub-ia review: ${pr}\n`);
+	out(options.json ? JSON.stringify({ ...reportToJson(result.report, result.reportPath || undefined), ...(pr ? { prComment: pr } : {}) }) : result.summary);
 	process.exit(headlessExitCode(result.report.verdict, options.failOn));
 }
 
@@ -457,9 +478,11 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 	});
 
 	pi.registerCommand("nubia:review", {
-		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>), or `fix` to hand the last review's BLOCKER/CRITICAL findings to the agent and re-review.",
+		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>; add --pr to post the report on the branch's pull request), or `fix` to hand the last review's BLOCKER/CRITICAL findings to the agent and re-review.",
 		handler: async (args, ctx) => {
-			const arg = args.trim();
+			const tokens = args.trim().split(/\s+/).filter(Boolean);
+			const toPr = tokens.includes("--pr");
+			const arg = tokens.filter((token) => token !== "--pr").join(" ");
 			if (arg === "fix") {
 				// The fix itself goes through the orchestrator's ordinary route (its
 				// writer, guardrails and permission mode): this only composes the
@@ -476,8 +499,14 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 			if (ctx.hasUI) ctx.ui.notify("Nub-IA review started…", "info");
 			const result = await runReview(ctx, scope);
 			if (!ctx.hasUI) return;
-			if (result.ok) ctx.ui.notify(result.summary, result.findings.some((finding) => finding.severity === "BLOCKER" || finding.severity === "CRITICAL") ? "warning" : "info");
-			else ctx.ui.notify(result.error, "warning");
+			if (!result.ok) { ctx.ui.notify(result.error, "warning"); return; }
+			ctx.ui.notify(result.summary, result.findings.some((finding) => finding.severity === "BLOCKER" || finding.severity === "CRITICAL") ? "warning" : "info");
+			// Posting to the PR writes to GitHub on the user's behalf: it is only
+			// ever triggered by this explicit flag and confirmed first.
+			if (toPr && (await ctx.ui.confirm("Nub-IA review", "Post this report as a comment on the branch's pull request (gh)?"))) {
+				const outcome = await publishToPr(ctx, result);
+				ctx.ui.notify(outcome, outcome.startsWith("PR comment not") ? "warning" : "info");
+			}
 		},
 	});
 

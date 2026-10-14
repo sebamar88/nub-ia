@@ -56,9 +56,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   `setup`): arranca `pi -p --no-session` con los argumentos en `NUB_IA_REVIEW_HEADLESS`; la extensión los toma en
   `session_start` (solo sin UI), imprime y sale 0/1/2 (`headlessExitCode`; INCOMPLETE siempre falla). `reportToJson`
   (`nub-ia.review-report/v1`). Probado end-to-end con el home aislado; `docs/review-ci.md` con job de GitHub Actions.
-- [ ] **T1.6 Publicar reporte en el PR**
-  `/nubia:review --pr`: `gh pr comment` con el markdown, idempotente (edita el comentario anterior por marker).
-  *Cierre:* el guardrail pide confirmación; sin `gh` falla con mensaje claro. Depende de T1.5.
+- [x] **T1.6 Publicar reporte en el PR**
+  `prCommentBody` (marker `<!-- nub-ia-review -->`, tope 60 KiB) y `publishPrComment(gh, …)` (busca el comentario con
+  marker vía `gh pr view --json comments`, lo edita por id con `gh api PATCH`, si no crea con `gh pr comment
+  --body-file -`). `/nubia:review --pr` con confirmación; `nub-ia review --pr` en CI. `gh` se invoca con `execFile`
+  y stdin, nunca por shell. Documentado en `docs/review-ci.md`.
 - [ ] **T1.7 Calibración**
   Usar T0.2 para medir hallazgos aceptados/descartados por lente y ajustar prompts/severidades. *Cierre:* informe en
   `docs/` con la tasa por lente y los cambios aplicados.

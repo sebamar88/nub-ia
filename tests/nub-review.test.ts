@@ -326,9 +326,9 @@ test("severeFindings keeps BLOCKER and CRITICAL only; buildReport links the prev
 import { type HeadlessOptions, headlessExitCode, parseHeadlessArgs, reportToJson } from "../lib/nub-review.ts";
 
 test("parseHeadlessArgs: scope, --json and --fail-on, with validation of refs and levels", () => {
-	assert.deepEqual(parseHeadlessArgs([]), { scope: { kind: "auto" }, json: false, failOn: "block" });
-	assert.deepEqual(parseHeadlessArgs(["--base", "origin/main", "--json", "--fail-on", "warn"]), { scope: { kind: "base", ref: "origin/main" }, json: true, failOn: "warn" });
-	assert.deepEqual(parseHeadlessArgs(["--base=main", "--fail-on=never"]), { scope: { kind: "base", ref: "main" }, json: false, failOn: "never" });
+	assert.deepEqual(parseHeadlessArgs([]), { scope: { kind: "auto" }, json: false, failOn: "block", pr: false });
+	assert.deepEqual(parseHeadlessArgs(["--base", "origin/main", "--json", "--fail-on", "warn", "--pr"]), { scope: { kind: "base", ref: "origin/main" }, json: true, failOn: "warn", pr: true });
+	assert.deepEqual(parseHeadlessArgs(["--base=main", "--fail-on=never"]), { scope: { kind: "base", ref: "main" }, json: false, failOn: "never", pr: false });
 	assert.deepEqual((parseHeadlessArgs(["--staged"]) as HeadlessOptions).scope, { kind: "staged" });
 	assert.match((parseHeadlessArgs(["--base", "--output=x"]) as { error: string }).error, /--base needs a value/);
 	assert.match((parseHeadlessArgs(["--base=--output=x"]) as { error: string }).error, /invalid --base/);
@@ -361,4 +361,48 @@ test("reportToJson: stable shape with counts, findings and lens status, no markd
 	assert.deepEqual(json.lenses, [{ lens: "review-risk", model: "m", findings: 1 }, { lens: "review-readability", model: "n", findings: 0, error: "boom", dropped: 2 }]);
 	assert.ok(!JSON.stringify(json).includes("diff --git"));
 	assert.equal(reportToJson(report, undefined).reportPath, null);
+});
+
+// --- PR comment (roadmap T1.6) --------------------------------------------------
+
+import { type GhRunner, PR_COMMENT_MARKER, PR_COMMENT_MAX_BYTES, prCommentBody, publishPrComment } from "../lib/nub-review.ts";
+
+const sampleReport = () => buildReport({ scope: { kind: "base", ref: "main" }, diff: DIFF, lenses: [{ lens: "review-risk", model: "m", findings: [{ lens: "review-risk", severity: "WARNING", location: "x.ts:1", claim: "careful", evidence: "" }] }] });
+
+test("prCommentBody: marker first, full markdown, truncated with a pointer when huge", () => {
+	const body = prCommentBody(sampleReport(), "/r/x.md");
+	assert.ok(body.startsWith(`${PR_COMMENT_MARKER}\n# Nub-IA review`));
+	assert.match(body, /WARN — review the warnings/);
+	const huge = { ...sampleReport(), markdown: "y".repeat(PR_COMMENT_MAX_BYTES * 2) };
+	const truncated = prCommentBody(huge, "/r/x.md");
+	assert.ok(Buffer.byteLength(truncated) <= PR_COMMENT_MAX_BYTES);
+	assert.match(truncated, /…truncated; the full report is \/r\/x\.md/);
+});
+
+const fakeGh = (script: Record<string, { code?: number; stdout?: string; stderr?: string }>, calls: Array<{ args: string[]; stdin?: string }> = []): GhRunner => async (args, stdin) => {
+	calls.push({ args, stdin });
+	const key = args.slice(0, 2).join(" ");
+	const hit = script[key] ?? { code: 1, stderr: `unexpected gh ${key}` };
+	return { code: hit.code ?? 0, stdout: hit.stdout ?? "", stderr: hit.stderr ?? "" };
+};
+
+test("publishPrComment: creates a comment when none carries the marker, edits the exact previous one otherwise", async () => {
+	const created: Array<{ args: string[]; stdin?: string }> = [];
+	const first = await publishPrComment(fakeGh({ "pr view": { stdout: JSON.stringify({ number: 7, url: "https://x/pull/7", comments: [{ url: "https://x/pull/7#issuecomment-1", body: "someone else" }] }) }, "pr comment": { stdout: "https://x/pull/7#issuecomment-2\n" } }, created), sampleReport(), "/r/x.md");
+	assert.deepEqual(first, { ok: true, action: "created", url: "https://x/pull/7#issuecomment-2" });
+	assert.deepEqual(created[1]!.args, ["pr", "comment", "7", "--body-file", "-"]);
+	assert.ok(created[1]!.stdin!.startsWith(PR_COMMENT_MARKER));
+
+	const edited: Array<{ args: string[]; stdin?: string }> = [];
+	const second = await publishPrComment(fakeGh({ "pr view": { stdout: JSON.stringify({ number: 7, url: "https://x/pull/7", comments: [{ url: "https://x/pull/7#issuecomment-1", body: "other" }, { url: "https://x/pull/7#issuecomment-2", body: `${PR_COMMENT_MARKER}\nold` }] }) }, "api --method": { stdout: "{}" } }, edited), sampleReport(), undefined);
+	assert.deepEqual(second, { ok: true, action: "updated", url: "https://x/pull/7#issuecomment-2" });
+	assert.deepEqual(edited[1]!.args, ["api", "--method", "PATCH", "repos/{owner}/{repo}/issues/comments/2", "-f", "body=@-"]);
+});
+
+test("publishPrComment: no PR, no gh, or an API failure come back as messages", async () => {
+	assert.deepEqual(await publishPrComment(fakeGh({ "pr view": { code: 1, stderr: "no pull requests found for branch" } }), sampleReport(), undefined), { ok: false, error: "gh pr view failed: no pull requests found for branch" });
+	assert.deepEqual(await publishPrComment(fakeGh({ "pr view": { stdout: "{}" } }), sampleReport(), undefined), { ok: false, error: "no pull request found for this branch" });
+	assert.deepEqual(await publishPrComment(fakeGh({ "pr view": { stdout: "nope" } }), sampleReport(), undefined), { ok: false, error: "gh pr view returned no JSON" });
+	const failed = await publishPrComment(fakeGh({ "pr view": { stdout: JSON.stringify({ number: 1, comments: [] }) }, "pr comment": { code: 4, stderr: "HTTP 403" } }), sampleReport(), undefined);
+	assert.deepEqual(failed, { ok: false, error: "gh pr comment failed: HTTP 403" });
 });

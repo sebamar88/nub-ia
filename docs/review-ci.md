@@ -60,7 +60,21 @@ jobs:
         with: { name: nub-ia-review, path: review.json }
 ```
 
+## Comentario en el PR
+
+`--pr` (en CI) o `/nubia:review --pr` (en la shell, con confirmación) publica el reporte como comentario del pull request
+de la rama usando `gh`. Es idempotente: el comentario lleva un marcador oculto y una corrida posterior **edita** el mismo
+comentario en vez de agregar otro. Requiere `gh` autenticado (`GH_TOKEN` en CI, con permiso `pull-requests: write`); si
+no hay PR, `gh` falta o la API falla, lo informa y no afecta el código de salida del review.
+
+```yaml
+      - name: Review and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # …credenciales del provider…
+        run: nub-ia review --base "origin/${{ github.base_ref }}" --pr --fail-on block
+```
+
 Cómo se comporta internamente: el launcher arranca `pi` en modo print sin sesión y pasa los argumentos por
 `NUB_IA_REVIEW_HEADLESS`; la extensión del review los toma en `session_start`, corre los lentes, imprime y sale antes de
-que ningún prompt llegue a un modelo. Para publicar el resultado como comentario del PR ver `/nubia:review --pr`
-(roadmap T1.6).
+que ningún prompt llegue a un modelo.

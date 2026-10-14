@@ -426,6 +426,8 @@ export interface HeadlessOptions {
 	scope: DiffScope | { kind: "auto" };
 	json: boolean;
 	failOn: FailOn;
+	/** Also publish the report as the PR comment (gh). */
+	pr: boolean;
 }
 
 /** `nub-ia review [--base <ref>|--staged|--working] [--json] [--fail-on block|warn|never]`. */
@@ -433,6 +435,7 @@ export function parseHeadlessArgs(argv: readonly string[]): HeadlessOptions | { 
 	let scope: HeadlessOptions["scope"] = { kind: "auto" };
 	let json = false;
 	let failOn: FailOn = "block";
+	let pr = false;
 	for (let i = 0; i < argv.length; i += 1) {
 		const arg = argv[i]!;
 		const value = (flag: string): string | { error: string } => {
@@ -440,6 +443,7 @@ export function parseHeadlessArgs(argv: readonly string[]): HeadlessOptions | { 
 			return inline === undefined || inline.length === 0 || (inline.startsWith("-") && !arg.includes("=")) ? { error: `${flag} needs a value` } : inline;
 		};
 		if (arg === "--json") json = true;
+		else if (arg === "--pr") pr = true;
 		else if (arg === "--staged") scope = { kind: "staged" };
 		else if (arg === "--working") scope = { kind: "working" };
 		else if (arg === "--base" || arg.startsWith("--base=")) {
@@ -452,9 +456,9 @@ export function parseHeadlessArgs(argv: readonly string[]): HeadlessOptions | { 
 			if (typeof level !== "string") return level;
 			if (level !== "block" && level !== "warn" && level !== "never") return { error: `--fail-on must be block, warn, or never (got ${JSON.stringify(level)})` };
 			failOn = level;
-		} else return { error: `unknown argument ${JSON.stringify(arg)}; usage: nub-ia review [--base <ref>|--staged|--working] [--json] [--fail-on block|warn|never]` };
+		} else return { error: `unknown argument ${JSON.stringify(arg)}; usage: nub-ia review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]` };
 	}
-	return { scope, json, failOn };
+	return { scope, json, failOn, pr };
 }
 
 /** Exit status for CI: 0 passes, 1 fails the configured threshold, 2 could not review. */
@@ -477,6 +481,56 @@ export function reportToJson(report: ReviewReport, reportPath: string | undefine
 		findings: report.findings.map((finding) => ({ lens: finding.lens, severity: finding.severity, location: finding.location, claim: finding.claim, evidence: finding.evidence, ...(finding.suggestion ? { suggestion: finding.suggestion } : {}) })),
 		lenses: report.lenses.map((lens) => ({ lens: lens.lens, model: lens.model, findings: lens.findings.length, ...(lens.error ? { error: lens.error } : {}), ...(lens.dropped ? { dropped: lens.dropped } : {}) })),
 	};
+}
+
+// --- pull request comment --------------------------------------------------------
+
+export const PR_COMMENT_MARKER = "<!-- nub-ia-review -->";
+export const PR_COMMENT_MAX_BYTES = 60 * 1024;
+
+/**
+ * The PR comment body: the report markdown behind a stable marker (so a later
+ * run edits the same comment instead of adding one), trimmed to GitHub's
+ * comfortable size with a pointer to the full local report.
+ */
+export function prCommentBody(report: ReviewReport, reportPath: string | undefined): string {
+	const body = `${PR_COMMENT_MARKER}\n${report.markdown}`;
+	if (Buffer.byteLength(body, "utf8") <= PR_COMMENT_MAX_BYTES) return body;
+	const head = Buffer.from(body, "utf8").subarray(0, PR_COMMENT_MAX_BYTES - 200).toString("utf8").replace(/\uFFFD$/, "");
+	return `${head}\n\n_…truncated; the full report is ${reportPath ?? "in .pi/nub-ia/reviews/"}_`;
+}
+
+export interface GhRunner {
+	(args: string[], stdin?: string): Promise<{ code: number; stdout: string; stderr: string }>;
+}
+
+/**
+ * Creates or updates the Nub-IA comment on the current branch's PR with `gh`.
+ * The marker finds the previous comment; a missing `gh`, no PR, or an API
+ * error come back as a message, never as an exception.
+ */
+export async function publishPrComment(gh: GhRunner, report: ReviewReport, reportPath: string | undefined): Promise<{ ok: true; action: "created" | "updated"; url: string } | { ok: false; error: string }> {
+	const view = await gh(["pr", "view", "--json", "number,url,comments"]);
+	if (view.code !== 0) return { ok: false, error: `gh pr view failed: ${view.stderr.trim() || view.stdout.trim() || `exit ${view.code}`}` };
+	let pr: { number?: unknown; url?: unknown; comments?: unknown };
+	try { pr = JSON.parse(view.stdout) as typeof pr; } catch { return { ok: false, error: "gh pr view returned no JSON" }; }
+	if (typeof pr.number !== "number") return { ok: false, error: "no pull request found for this branch" };
+	const comments = Array.isArray(pr.comments) ? (pr.comments as Array<{ id?: unknown; url?: unknown; body?: unknown }>) : [];
+	const previous = comments.find((comment) => typeof comment.body === "string" && comment.body.startsWith(PR_COMMENT_MARKER));
+	const body = prCommentBody(report, reportPath);
+	if (previous && typeof previous.url === "string") {
+		// gh pr comment --edit-last edits the caller's own latest comment, which
+		// may not be ours; the REST call pins the exact comment id instead.
+		const id = /-(\d+)$/.exec(previous.url)?.[1] ?? (typeof previous.id === "string" ? previous.id : undefined);
+		if (id && /^\d+$/.test(id)) {
+			const edit = await gh(["api", "--method", "PATCH", `repos/{owner}/{repo}/issues/comments/${id}`, "-f", "body=@-"], body);
+			if (edit.code === 0) return { ok: true, action: "updated", url: previous.url };
+			return { ok: false, error: `gh api PATCH failed: ${edit.stderr.trim() || `exit ${edit.code}`}` };
+		}
+	}
+	const create = await gh(["pr", "comment", String(pr.number), "--body-file", "-"], body);
+	if (create.code !== 0) return { ok: false, error: `gh pr comment failed: ${create.stderr.trim() || `exit ${create.code}`}` };
+	return { ok: true, action: "created", url: create.stdout.trim() || String(pr.url ?? "") };
 }
 
 // --- push gate ----------------------------------------------------------------
