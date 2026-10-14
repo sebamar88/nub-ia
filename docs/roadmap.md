@@ -204,9 +204,11 @@ persiste ni se activa por config/env/tool.
   `lib/agent-tool-policy.ts` (`agents.<nombre|patrón>.tools.<tool|patrón>: allow|confirm|deny`, la más estricta gana
   entre capas). El runner pasa `NUB_IA_AGENT_NAME` al hijo; la extensión de modos lo aplica dentro del hijo antes de
   todo lo demás; `confirm` en un hijo (sin UI) falla cerrado con instrucción de reportar al orquestador.
-- [ ] **T7.3 Allowlist de providers/modelos por repo**
-  `.pi/nub-ia/model-tiers.json` → `allowedProviders` / `deniedModels`, respetados también para `/model` manual.
-  *Cierre:* `/model` con provider denegado muestra motivo; test en `model-tier-router`.
+- [x] **T7.3 Allowlist de providers/modelos por repo**
+  `allowedProviders` / `deniedModels` en `model-tiers.json` (`parseTierCatalog`, `modelDenied`, `permittedModels`,
+  `tightestAllowlist`: intersección / unión, el repo solo acota). El router filtra los modelos disponibles; en
+  `model_select` un modelo denegado se revierte (`pi.setModel`) al anterior permitido o a `nub-ia/balanced` con aviso.
+  `/nubia:doctor` lista la política.
 - [ ] **T7.4 Límites de delegación y gasto**
   `limits: { maxConcurrentSubagents, maxSubagentsPerTurn, maxUsdPerSession }`. *Cierre:* al exceder, error claro al
   orquestador y reflejo en Status (T6.3). Depende de T2.2.

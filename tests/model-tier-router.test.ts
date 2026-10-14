@@ -8,8 +8,11 @@ import {
 	fallbackModel,
 	isProviderFailure,
 	orderedProviders,
+	modelDenied,
 	parseTierCatalog,
+	permittedModels,
 	tierDoctorLines,
+	tightestAllowlist,
 	rankCandidates,
 	selectModel,
 	versionKey,
@@ -211,4 +214,19 @@ test("tierDoctorLines: pass per resolvable tier, warn when only the fallback ans
 	assert.ok(none.slice(1).every((line) => /^fail: Tier .* has no model at all$/.test(line)));
 	const budgeted = tierDoctorLines(copilot, { ...catalog, budget: { dailyUsd: 20, onExceed: "degrade" } });
 	assert.equal(budgeted.at(-1), "pass: Budget $20/day · on exceed: degrade");
+});
+
+test("model allowlist: allowedProviders and deniedModels filter the catalog; a repository can only narrow them", () => {
+	const base = parseTierCatalog({ providerPriority: [], tiers: { strong: [], "strong-alt": [], balanced: [], fast: [] }, allowedProviders: ["amazon-bedrock", "github-copilot"], deniedModels: ["gpt-5-mini"] })!;
+	assert.deepEqual(base.allowedProviders, ["amazon-bedrock", "github-copilot"]);
+	assert.equal(modelDenied(m("openai", "gpt-6-astra"), base), "provider openai is not in allowedProviders (amazon-bedrock, github-copilot)");
+	assert.equal(modelDenied(m("github-copilot", "gpt-5-mini"), base), "github-copilot/gpt-5-mini matches deniedModels pattern gpt-5-mini");
+	assert.equal(modelDenied(m("github-copilot", "claude-opus-5.5"), base), undefined);
+	assert.deepEqual(permittedModels([...copilot, ...bedrock, m("openai", "gpt-6-astra")], base).map((model) => model.provider).filter((provider) => provider === "openai"), []);
+	const override = parseTierCatalog({ providerPriority: [], tiers: { strong: [], "strong-alt": [], balanced: [], fast: [] }, allowedProviders: ["amazon-bedrock", "openai"], deniedModels: ["claude-haiku"] })!;
+	assert.deepEqual(tightestAllowlist(base, override), { allowedProviders: ["amazon-bedrock"], deniedModels: ["gpt-5-mini", "claude-haiku"] });
+	assert.deepEqual(tightestAllowlist({ ...base, allowedProviders: undefined, deniedModels: undefined }, override), { allowedProviders: ["amazon-bedrock", "openai"], deniedModels: ["claude-haiku"] });
+	assert.deepEqual(tightestAllowlist(base, { ...override, allowedProviders: undefined, deniedModels: undefined }), { allowedProviders: ["amazon-bedrock", "github-copilot"], deniedModels: ["gpt-5-mini"] });
+	assert.equal(modelDenied(m("x", "y"), { deniedModels: ["(unclosed"] }), undefined, "a broken pattern denies nothing rather than everything");
+	assert.equal(selectModel("strong", permittedModels([...copilot, ...bedrock], { allowedProviders: ["amazon-bedrock"] }), catalog)!.provider, "amazon-bedrock");
 });

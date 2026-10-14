@@ -22,6 +22,9 @@ import {
 	decideRoute,
 	parseTierCatalog,
 	tierDoctorLines,
+	modelDenied,
+	permittedModels,
+	tightestAllowlist,
 } from "../lib/model-tier-router.ts";
 import { ROUTER_STATUS_EVENT, RouterJournal } from "../lib/router-status-model.ts";
 import { type BudgetSpend, budgetState, describeBudget, effectiveTier, readSpendLedger, spendLedgerName, tightestBudget, writeSpendLedger } from "../lib/model-tier-budget.ts";
@@ -71,9 +74,9 @@ export function loadTierCatalog(cwd: string, warn: (message: string) => void = (
 			warnedProjectCatalogs.add(projectPath);
 			warn(`nub-ia: model routing for this repository comes from ${projectPath} (it overrides the packaged catalog)`);
 		}
-		// Routing is replaced; the budget can only get tighter than the team's.
+		// Routing is replaced; the budget and the allowlist can only get tighter than the team's.
 		const budget = tightestBudget(packaged.budget, project.budget);
-		return { ...project, ...(budget ? { budget } : {}) };
+		return { ...project, ...(budget ? { budget } : {}), ...tightestAllowlist(packaged, project) };
 	}
 	return packaged;
 }
@@ -107,10 +110,19 @@ export function toCatalogModel(model: { provider: string; id: string; api?: stri
 
 /** `/nubia:doctor` lines: tier resolution against the providers signed in right now. */
 export function routerDoctorLines(ctx: ExtensionContext): string[] {
-	return tierDoctorLines(availableModels(ctx), loadTierCatalog(ctx.cwd, () => {}));
+	const catalog = loadTierCatalog(ctx.cwd, () => {});
+	const lines = tierDoctorLines(availableModels(ctx), catalog);
+	if (catalog.allowedProviders) lines.push(`pass: Allowed providers: ${catalog.allowedProviders.join(", ")}`);
+	if (catalog.deniedModels?.length) lines.push(`pass: Denied model patterns: ${catalog.deniedModels.join(", ")}`);
+	return lines;
 }
 
+/** Models the session may use: the registry's, minus what the allowlist excludes. */
 function availableModels(ctx: ExtensionContext): CatalogModel[] {
+	return permittedModels(rawAvailableModels(ctx), loadTierCatalog(ctx.cwd, () => {}));
+}
+
+function rawAvailableModels(ctx: ExtensionContext): CatalogModel[] {
 	const registry = ctx.modelRegistry;
 	if (!registry) return [];
 	try {
@@ -139,6 +151,18 @@ export default function registerNubIaRouter(pi: ExtensionAPI): void {
 	let warnedBudget: string | undefined;
 	const spend = (): BudgetSpend => ({ todayUsd: readTodaySpend(new Date()), sessionUsd });
 	pi.on("session_start", () => { journal.reset(); sessionUsd = 0; warnedBudget = undefined; publish(); });
+	// /model (or a cycle) onto a denied model: put the session back on the
+	// previous permitted model, else the balanced tier, and say why.
+	const guardSelection = async (ctx: ExtensionContext, model: { provider: string; id: string }, previous: { provider: string; id: string } | undefined) => {
+		if (model.provider === NUB_IA_PROVIDER) return;
+		const catalog = loadTierCatalog(ctx.cwd, () => {});
+		const reason = modelDenied(model, catalog);
+		if (!reason) return;
+		const fallback = (previous && !modelDenied(previous, catalog) && previous.provider !== model.provider ? ctx.modelRegistry?.find(previous.provider, previous.id) : undefined) ?? ctx.modelRegistry?.find(NUB_IA_PROVIDER, "balanced");
+		if (fallback) await pi.setModel(fallback as never);
+		if (ctx.hasUI) ctx.ui.notify(`Model policy: ${reason}; using ${fallback ? `${fallback.provider}/${fallback.id}` : "no model"} instead (see ${PACKAGED_CATALOG_PATH} or .pi/nub-ia/model-tiers.json).`, "warning");
+	};
+	pi.on("model_select", (event, ctx) => { void guardSelection(ctx, event.model, event.previousModel); });
 	pi.on("message_end", (event, ctx) => {
 		const message = (event as { message?: { role?: unknown; usage?: { cost?: { total?: unknown } } } }).message;
 		const cost = message?.role === "assistant" ? message.usage?.cost?.total : undefined;

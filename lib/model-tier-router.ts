@@ -34,6 +34,10 @@ export interface TierCatalog {
 	tiers: Record<ModelTier, readonly string[]>;
 	/** Optional spend ceiling (lib/model-tier-budget.ts). */
 	budget?: BudgetPolicy;
+	/** Only these providers may serve the session (router and /model alike); absent = any. */
+	allowedProviders?: readonly string[];
+	/** Regex sources matched against `provider/id`; matching models are never used. */
+	deniedModels?: readonly string[];
 }
 
 export interface SelectModelOptions {
@@ -222,7 +226,34 @@ export function parseTierCatalog(value: unknown): TierCatalog | undefined {
 		tiers[tier] = sources.filter((entry): entry is string => typeof entry === "string");
 	}
 	const budget = parseBudget(record.budget);
-	return { providerPriority: priority, tiers, ...(budget ? { budget } : {}) };
+	const strings = (value: unknown): string[] | undefined => (Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0) : undefined);
+	const allowedProviders = strings(record.allowedProviders);
+	const deniedModels = strings(record.deniedModels);
+	return { providerPriority: priority, tiers, ...(budget ? { budget } : {}), ...(allowedProviders ? { allowedProviders } : {}), ...(deniedModels ? { deniedModels } : {}) };
+}
+
+// --- model allowlist (roadmap T7.3) ------------------------------------------------
+
+/** The repository override can only narrow: intersect allowed providers, union denied models. */
+export function tightestAllowlist(base: TierCatalog, override: TierCatalog): Pick<TierCatalog, "allowedProviders" | "deniedModels"> {
+	let allowedProviders: readonly string[] | undefined = base.allowedProviders;
+	if (override.allowedProviders) allowedProviders = allowedProviders ? allowedProviders.filter((provider) => override.allowedProviders!.includes(provider)) : override.allowedProviders;
+	const deniedModels = base.deniedModels || override.deniedModels ? [...new Set([...(base.deniedModels ?? []), ...(override.deniedModels ?? [])])] : undefined;
+	return { ...(allowedProviders ? { allowedProviders } : {}), ...(deniedModels ? { deniedModels } : {}) };
+}
+
+/** Why a model may not serve this session, or undefined when it may. */
+export function modelDenied(model: { provider: string; id: string }, catalog: Pick<TierCatalog, "allowedProviders" | "deniedModels">): string | undefined {
+	if (catalog.allowedProviders && !catalog.allowedProviders.includes(model.provider)) return `provider ${model.provider} is not in allowedProviders (${catalog.allowedProviders.join(", ")})`;
+	const label = `${model.provider}/${model.id}`;
+	for (const source of catalog.deniedModels ?? []) {
+		try { if (new RegExp(source, "i").test(label)) return `${label} matches deniedModels pattern ${source}`; } catch { /* a bad pattern denies nothing */ }
+	}
+	return undefined;
+}
+
+export function permittedModels<T extends { provider: string; id: string }>(models: readonly T[], catalog: Pick<TierCatalog, "allowedProviders" | "deniedModels">): T[] {
+	return models.filter((model) => modelDenied(model, catalog) === undefined);
 }
 
 // --- doctor (roadmap T2.3) ---------------------------------------------------------
