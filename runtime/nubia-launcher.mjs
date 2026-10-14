@@ -147,6 +147,15 @@ export function parseLauncherArgs(argv          )                     {
 			commandArgs = argv.slice(i + 1);
 			break;
 		}
+		// `nub-ia review …` is the headless 4R review for CI and scripts; like
+		// `setup`, it accepts the home selectors ahead of it and takes the rest
+		// of argv as its own arguments (bin/nub-ia.mjs turns them into a
+		// print-mode pi launch, see extensions/nub-ia-review.ts).
+		if (arg === "review" && command === undefined && passthrough.length === 0) {
+			command = "review";
+			commandArgs = argv.slice(i + 1);
+			break;
+		}
 		if (passthrough.length === 0 && isPiSubcommand(arg)) {
 			piSubcommand = arg;
 		}
@@ -1132,6 +1141,7 @@ export function helpText()         {
 		"Usage: nub-ia [options] [-- pi-args...]",
 		"       nub-ia home [link|isolated|<path>]",
 		"       nub-ia [home selectors] setup [--dry-run]",
+		"       nub-ia [home selectors] review [--base <ref>|--staged|--working] [--json] [--fail-on block|warn|never]",
 		"",
 		"Opens pi with the Nub-IA package loaded, without touching your",
 		"vanilla pi installation.",
@@ -1151,6 +1161,10 @@ export function helpText()         {
 		"                   the home does not declare yet, through pi's own 'install'.",
 		"                   Accepts --dry-run (report only). Accepts a home selector",
 		"                   (--link, --isolated, --home <dir>) before it.",
+		"  review           Headless 4R review for CI and scripts: prints the summary (or --json)",
+		"                   and exits 0 (pass), 1 (verdict at or below --fail-on, default block;",
+		"                   INCOMPLETE also fails) or 2 (nothing to review / error). Needs a",
+		"                   signed-in provider in the resolved home.",
 		"",
 		"Managing packages:",
 		"  nub-ia install npm:<pkg>   Run pi's own 'install' against the resolved home.",

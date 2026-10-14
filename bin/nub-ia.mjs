@@ -1056,6 +1056,18 @@ async function main() {
 		return;
 	}
 
+	// `nub-ia review [--base <ref>|--staged|--working] [--json] [--fail-on …]`:
+	// the headless 4R review. pi starts in print mode with no session; the
+	// review extension picks the arguments up from NUB_IA_REVIEW_HEADLESS on
+	// session_start, prints the result and exits with the CI status before the
+	// placeholder prompt ever reaches a model (extensions/nub-ia-review.ts).
+	// Everything else (home, packages, extension injection) is the plain launch.
+	const headlessReview = args.command === "review";
+	if (headlessReview) {
+		process.env.NUB_IA_REVIEW_HEADLESS = JSON.stringify(args.commandArgs);
+		args.passthrough = ["--no-session", "-p", "nub-ia headless review"];
+	}
+
 	// `nub-ia update` first updates this very package when it runs from a Git
 	// checkout made by install.sh/install.ps1 (the private repo cannot be
 	// managed by `pi install git:`), then falls through to pi's own `update`
@@ -1206,7 +1218,7 @@ async function main() {
 
 	// Only an interactive session ends with pi's exit resume hint, which
 	// nub-ia completes with its own line; a pi subcommand gets no handoff.
-	const resumeHandoff = args.piSubcommand === undefined ? createResumeHandoff() : undefined;
+	const resumeHandoff = args.piSubcommand === undefined && !headlessReview ? createResumeHandoff() : undefined;
 	const childEnv = resumeHandoff ? { ...invocation.env, [RESUME_HANDOFF_ENV]: resumeHandoff.path } : invocation.env;
 
 	const launchPlan = planSpawn({ command: invocation.command, args: invocation.args, platform: process.platform });

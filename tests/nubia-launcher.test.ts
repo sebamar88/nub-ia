@@ -1854,3 +1854,16 @@ test("findGentlePiDeclaration recognises a local path package named nub-ia", () 
 test("findGentlePiDeclaration recognises npm:nub-ia", () => {
 	assert.equal(findGentlePiDeclaration('{"packages":["npm:nub-ia@1.0.0"]}', { agentDir: "/agent", readPackageName: () => undefined })?.kind, "npm");
 });
+
+test("parseLauncherArgs recognises review as a launcher command with its own arguments, after home selectors, and not inside passthrough", () => {
+	const parsed = parseLauncherArgs(["--link", "review", "--base", "origin/main", "--json", "--fail-on", "warn"]);
+	assert.equal(parsed.command, "review");
+	assert.equal(parsed.link, true);
+	assert.deepEqual(parsed.commandArgs, ["--base", "origin/main", "--json", "--fail-on", "warn"]);
+	assert.deepEqual(parsed.passthrough, []);
+	assert.equal(parsed.piSubcommand, undefined);
+	const later = parseLauncherArgs(["install", "review"]);
+	assert.equal(later.command, undefined);
+	assert.deepEqual(later.passthrough, ["install", "review"]);
+	assert.match(helpText(), /nub-ia \[home selectors\] review \[--base <ref>/);
+});

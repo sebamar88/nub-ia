@@ -320,3 +320,45 @@ test("severeFindings keeps BLOCKER and CRITICAL only; buildReport links the prev
 	assert.match(report.markdown, /- Previous: \/r\/old\.md \(re-checked after a fix round\)/);
 	assert.doesNotMatch(buildReport({ scope: { kind: "working" }, diff: DIFF, lenses: [] }).markdown, /Previous:/);
 });
+
+// --- headless / CI (roadmap T1.5) -----------------------------------------------
+
+import { type HeadlessOptions, headlessExitCode, parseHeadlessArgs, reportToJson } from "../lib/nub-review.ts";
+
+test("parseHeadlessArgs: scope, --json and --fail-on, with validation of refs and levels", () => {
+	assert.deepEqual(parseHeadlessArgs([]), { scope: { kind: "auto" }, json: false, failOn: "block" });
+	assert.deepEqual(parseHeadlessArgs(["--base", "origin/main", "--json", "--fail-on", "warn"]), { scope: { kind: "base", ref: "origin/main" }, json: true, failOn: "warn" });
+	assert.deepEqual(parseHeadlessArgs(["--base=main", "--fail-on=never"]), { scope: { kind: "base", ref: "main" }, json: false, failOn: "never" });
+	assert.deepEqual((parseHeadlessArgs(["--staged"]) as HeadlessOptions).scope, { kind: "staged" });
+	assert.match((parseHeadlessArgs(["--base", "--output=x"]) as { error: string }).error, /--base needs a value/);
+	assert.match((parseHeadlessArgs(["--base=--output=x"]) as { error: string }).error, /invalid --base/);
+	assert.match((parseHeadlessArgs(["--fail-on", "maybe"]) as { error: string }).error, /must be block, warn, or never/);
+	assert.match((parseHeadlessArgs(["--yolo"]) as { error: string }).error, /unknown argument "--yolo"; usage/);
+});
+
+test("headlessExitCode: 0 pass, 1 below threshold, 2 unreviewable; incomplete never passes a gate", () => {
+	assert.equal(headlessExitCode("approve", "block"), 0);
+	assert.equal(headlessExitCode("warn", "block"), 0);
+	assert.equal(headlessExitCode("warn", "warn"), 1);
+	assert.equal(headlessExitCode("block", "block"), 1);
+	assert.equal(headlessExitCode("incomplete", "block"), 1);
+	assert.equal(headlessExitCode("block", "never"), 0);
+	assert.equal(headlessExitCode(undefined, "never"), 2);
+});
+
+test("reportToJson: stable shape with counts, findings and lens status, no markdown or diff", () => {
+	const lenses: LensResult[] = [
+		{ lens: "review-risk", model: "m", findings: [{ lens: "review-risk", severity: "BLOCKER", location: "a.ts:1", claim: "c", evidence: "e", suggestion: "s" }] },
+		{ lens: "review-readability", model: "n", findings: [], error: "boom", dropped: 2 },
+	];
+	const report = buildReport({ scope: { kind: "staged" }, diff: DIFF, lenses });
+	const json = reportToJson(report, "/r/x.md");
+	assert.equal(json.schema, "nub-ia.review-report/v1");
+	assert.equal(json.verdict, "block");
+	assert.equal(json.reportPath, "/r/x.md");
+	assert.deepEqual(json.counts, { BLOCKER: 1, CRITICAL: 0, WARNING: 0, SUGGESTION: 0 });
+	assert.deepEqual(json.findings, [{ lens: "review-risk", severity: "BLOCKER", location: "a.ts:1", claim: "c", evidence: "e", suggestion: "s" }]);
+	assert.deepEqual(json.lenses, [{ lens: "review-risk", model: "m", findings: 1 }, { lens: "review-readability", model: "n", findings: 0, error: "boom", dropped: 2 }]);
+	assert.ok(!JSON.stringify(json).includes("diff --git"));
+	assert.equal(reportToJson(report, undefined).reportPath, null);
+});

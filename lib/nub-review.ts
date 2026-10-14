@@ -417,6 +417,68 @@ export function summarizeReport(report: ReviewReport, reportPath?: string): stri
 	return [head, ...top, ...(report.findings.length > 5 ? [`- …and ${report.findings.length - 5} more`] : []), ...(reportPath ? [`Full report: ${reportPath}`] : [])].join("\n");
 }
 
+// --- headless / CI ---------------------------------------------------------------
+
+export const HEADLESS_ENV = "NUB_IA_REVIEW_HEADLESS";
+export type FailOn = "block" | "warn" | "never";
+
+export interface HeadlessOptions {
+	scope: DiffScope | { kind: "auto" };
+	json: boolean;
+	failOn: FailOn;
+}
+
+/** `nub-ia review [--base <ref>|--staged|--working] [--json] [--fail-on block|warn|never]`. */
+export function parseHeadlessArgs(argv: readonly string[]): HeadlessOptions | { error: string } {
+	let scope: HeadlessOptions["scope"] = { kind: "auto" };
+	let json = false;
+	let failOn: FailOn = "block";
+	for (let i = 0; i < argv.length; i += 1) {
+		const arg = argv[i]!;
+		const value = (flag: string): string | { error: string } => {
+			const inline = arg.startsWith(`${flag}=`) ? arg.slice(flag.length + 1) : argv[++i];
+			return inline === undefined || inline.length === 0 || (inline.startsWith("-") && !arg.includes("=")) ? { error: `${flag} needs a value` } : inline;
+		};
+		if (arg === "--json") json = true;
+		else if (arg === "--staged") scope = { kind: "staged" };
+		else if (arg === "--working") scope = { kind: "working" };
+		else if (arg === "--base" || arg.startsWith("--base=")) {
+			const ref = value("--base");
+			if (typeof ref !== "string") return ref;
+			if (!isSafeGitRef(ref)) return { error: `invalid --base ${JSON.stringify(ref)}: use a branch, tag, or commit id` };
+			scope = { kind: "base", ref };
+		} else if (arg === "--fail-on" || arg.startsWith("--fail-on=")) {
+			const level = value("--fail-on");
+			if (typeof level !== "string") return level;
+			if (level !== "block" && level !== "warn" && level !== "never") return { error: `--fail-on must be block, warn, or never (got ${JSON.stringify(level)})` };
+			failOn = level;
+		} else return { error: `unknown argument ${JSON.stringify(arg)}; usage: nub-ia review [--base <ref>|--staged|--working] [--json] [--fail-on block|warn|never]` };
+	}
+	return { scope, json, failOn };
+}
+
+/** Exit status for CI: 0 passes, 1 fails the configured threshold, 2 could not review. */
+export function headlessExitCode(verdict: Verdict | undefined, failOn: FailOn): 0 | 1 | 2 {
+	if (verdict === undefined) return 2;
+	if (failOn === "never") return 0;
+	if (verdict === "block" || verdict === "incomplete") return 1;
+	return verdict === "warn" && failOn === "warn" ? 1 : 0;
+}
+
+/** Stable machine-readable shape of a report (no markdown, no diff). */
+export function reportToJson(report: ReviewReport, reportPath: string | undefined): Record<string, unknown> {
+	return {
+		schema: "nub-ia.review-report/v1",
+		verdict: report.verdict,
+		diffHash: report.diffHash,
+		scope: report.scope,
+		reportPath: reportPath ?? null,
+		counts: Object.fromEntries(SEVERITIES.map((severity) => [severity, report.findings.filter((finding) => finding.severity === severity).length])),
+		findings: report.findings.map((finding) => ({ lens: finding.lens, severity: finding.severity, location: finding.location, claim: finding.claim, evidence: finding.evidence, ...(finding.suggestion ? { suggestion: finding.suggestion } : {}) })),
+		lenses: report.lenses.map((lens) => ({ lens: lens.lens, model: lens.model, findings: lens.findings.length, ...(lens.error ? { error: lens.error } : {}), ...(lens.dropped ? { dropped: lens.dropped } : {}) })),
+	};
+}
+
 // --- push gate ----------------------------------------------------------------
 
 export interface LastReview {

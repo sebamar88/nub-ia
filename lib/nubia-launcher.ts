@@ -5,7 +5,7 @@ import { CHILD_PACKAGE_INJECTION_ENV, encodeChildPackageInjection, type ChildPac
 // env/fs/exec. `bin/nub-ia.mjs` (T2) wires these into the real process,
 // filesystem and child process so this module stays fully unit-testable.
 
-export type LauncherCommand = "home" | "setup";
+export type LauncherCommand = "home" | "setup" | "review";
 
 // pi's own package-management subcommands (see pi's cli/args.ts printHelp
 // "Commands" list): each is dispatched by pi itself, before pi's own flag
@@ -143,6 +143,15 @@ export function parseLauncherArgs(argv: string[]): ParsedLauncherArgs {
 		// argument, same as "home" is.
 		if (arg === "setup" && command === undefined && passthrough.length === 0) {
 			command = "setup";
+			commandArgs = argv.slice(i + 1);
+			break;
+		}
+		// `nub-ia review …` is the headless 4R review for CI and scripts; like
+		// `setup`, it accepts the home selectors ahead of it and takes the rest
+		// of argv as its own arguments (bin/nub-ia.mjs turns them into a
+		// print-mode pi launch, see extensions/nub-ia-review.ts).
+		if (arg === "review" && command === undefined && passthrough.length === 0) {
+			command = "review";
 			commandArgs = argv.slice(i + 1);
 			break;
 		}
@@ -1131,6 +1140,7 @@ export function helpText(): string {
 		"Usage: nub-ia [options] [-- pi-args...]",
 		"       nub-ia home [link|isolated|<path>]",
 		"       nub-ia [home selectors] setup [--dry-run]",
+		"       nub-ia [home selectors] review [--base <ref>|--staged|--working] [--json] [--fail-on block|warn|never]",
 		"",
 		"Opens pi with the Nub-IA package loaded, without touching your",
 		"vanilla pi installation.",
@@ -1150,6 +1160,10 @@ export function helpText(): string {
 		"                   the home does not declare yet, through pi's own 'install'.",
 		"                   Accepts --dry-run (report only). Accepts a home selector",
 		"                   (--link, --isolated, --home <dir>) before it.",
+		"  review           Headless 4R review for CI and scripts: prints the summary (or --json)",
+		"                   and exits 0 (pass), 1 (verdict at or below --fail-on, default block;",
+		"                   INCOMPLETE also fails) or 2 (nothing to review / error). Needs a",
+		"                   signed-in provider in the resolved home.",
 		"",
 		"Managing packages:",
 		"  nub-ia install npm:<pkg>   Run pi's own 'install' against the resolved home.",

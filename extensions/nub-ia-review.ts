@@ -38,6 +38,11 @@ import {
 	LENS_OUTPUT_CONTRACT,
 	REVIEW_LENSES,
 	type ReviewLens,
+	type ReviewReport,
+	HEADLESS_ENV,
+	headlessExitCode,
+	parseHeadlessArgs,
+	reportToJson,
 	buildReport,
 	FIX_ROUNDS_MAX,
 	fixBrief,
@@ -297,7 +302,7 @@ async function runLens(ctx: ExtensionContext, agent: LensAgent, diff: string, co
 	}
 }
 
-export type ReviewRun = { ok: true; summary: string; reportPath: string; findings: Finding[]; error?: undefined } | { ok: false; error: string };
+export type ReviewRun = { ok: true; summary: string; reportPath: string; findings: Finding[]; report: ReviewReport; error?: undefined } | { ok: false; error: string };
 
 export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind: "auto" }, signal?: AbortSignal): Promise<ReviewRun> {
 	const effective = scope.kind === "auto" ? await gateAlignedScope(ctx.cwd) : scope;
@@ -366,9 +371,9 @@ export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind
 	} catch (error) {
 		// The lenses already answered: return their verdict, and say the record
 		// (which the push gate reads) could not be saved.
-		return { ok: true, summary: `${summarizeReport(report)}\nReport NOT saved (${error instanceof Error ? error.message : String(error)}); the push gate will not see this review.`, reportPath: "", findings: report.findings };
+		return { ok: true, summary: `${summarizeReport(report)}\nReport NOT saved (${error instanceof Error ? error.message : String(error)}); the push gate will not see this review.`, reportPath: "", findings: report.findings, report };
 	}
-	return { ok: true, summary: summarizeReport(report, reportPath), reportPath, findings: report.findings };
+	return { ok: true, summary: summarizeReport(report, reportPath), reportPath, findings: report.findings, report };
 }
 
 /**
@@ -402,7 +407,38 @@ function parseScope(input: { scope?: string; baseRef?: string }): DiffScope | { 
 	}
 }
 
+/**
+ * `nub-ia review …` (CI / scripts): the launcher starts pi in print mode with
+ * the arguments in NUB_IA_REVIEW_HEADLESS; this runs the review as soon as the
+ * session exists, prints the result to stdout and exits with the CI status
+ * before any prompt reaches a model. Only without a UI, so an interactive
+ * session that inherited the variable by accident is left alone.
+ */
+async function runHeadless(ctx: ExtensionContext, raw: string): Promise<never> {
+	const out = (text: string) => process.stdout.write(`${text}\n`);
+	let argv: unknown;
+	try { argv = JSON.parse(raw); } catch { argv = undefined; }
+	const options = Array.isArray(argv) && argv.every((item) => typeof item === "string") ? parseHeadlessArgs(argv) : { error: `${HEADLESS_ENV} must be a JSON array of arguments` };
+	if ("error" in options) {
+		process.stderr.write(`nub-ia review: ${options.error}\n`);
+		process.exit(2);
+	}
+	const result = await runReview(ctx, options.scope);
+	if (!result.ok) {
+		if (options.json) out(JSON.stringify({ schema: "nub-ia.review-report/v1", verdict: null, error: result.error }));
+		else process.stderr.write(`nub-ia review: ${result.error}\n`);
+		process.exit(2);
+	}
+	out(options.json ? JSON.stringify(reportToJson(result.report, result.reportPath || undefined)) : result.summary);
+	process.exit(headlessExitCode(result.report.verdict, options.failOn));
+}
+
 export default function registerNubIaReview(pi: ExtensionAPI): void {
+	pi.on("session_start", async (_event, ctx) => {
+		const raw = process.env[HEADLESS_ENV];
+		if (raw && !ctx.hasUI) await runHeadless(ctx, raw);
+	});
+
 	pi.registerTool({
 		name: "nub_review",
 		label: "Nub-IA review",

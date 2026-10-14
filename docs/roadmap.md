@@ -51,9 +51,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   severos del `last-review.json` (`fixBrief`), confirma con el humano, marca la línea (`fixRounds`, `fixPending`) y lo
   entrega al orquestador con `pi.sendUserMessage`, que implementa por su ruta ordinaria y vuelve a correr `nub_review`.
   Tope `FIX_ROUNDS_MAX = 2`; el re-chequeo enlaza al reporte anterior (`- Previous:`).
-- [ ] **T1.5 Modo headless/CI y salida JSON**
-  `bin/nub-ia.mjs`: `nub-ia review --base <ref> [--json] [--fail-on block|warn]`; serializador JSON estable de
-  `ReviewReport`. *Cierre:* exit code 1 en BLOCK; ejemplo de job de GitHub Actions en `docs/`. Depende de T1.1.
+- [x] **T1.5 Modo headless/CI y salida JSON**
+  `nub-ia review [--base <ref>|--staged|--working] [--json] [--fail-on block|warn|never]` (comando del launcher, como
+  `setup`): arranca `pi -p --no-session` con los argumentos en `NUB_IA_REVIEW_HEADLESS`; la extensión los toma en
+  `session_start` (solo sin UI), imprime y sale 0/1/2 (`headlessExitCode`; INCOMPLETE siempre falla). `reportToJson`
+  (`nub-ia.review-report/v1`). Probado end-to-end con el home aislado; `docs/review-ci.md` con job de GitHub Actions.
 - [ ] **T1.6 Publicar reporte en el PR**
   `/nubia:review --pr`: `gh pr comment` con el markdown, idempotente (edita el comentario anterior por marker).
   *Cierre:* el guardrail pide confirmación; sin `gh` falla con mensaje claro. Depende de T1.5.
