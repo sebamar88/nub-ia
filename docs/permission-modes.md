@@ -72,6 +72,17 @@ nombre en `NUB_IA_AGENT_NAME`; patrones con `*` para nombre y herramienta):
 `confirm` falla cerrado: el hijo recibe el motivo y debe reportar la acción al orquestador en vez de ejecutarla. El
 `tools:` del frontmatter del agente sigue aplicando primero; esto solo quita.
 
+## Límites de delegación
+
+```json
+{ "limits": { "maxConcurrentSubagents": 3, "maxSubagentsPerTurn": 6, "blockDelegationOverBudget": true } }
+```
+
+`subagent_run` se rechaza (con motivo y alternativa) cuando hay tantos subagentes vivos como `maxConcurrentSubagents`,
+cuando el turno ya lanzó `maxSubagentsPerTurn`, o, con `blockDelegationOverBudget`, cuando el presupuesto de modelos
+(`budget` en `model-tiers.json`) está excedido. Entre capas gana el número menor / el flag encendido. Distinto de
+`max_concurrency` en `subagents.json`, que encola en vez de rechazar.
+
 ## System prompt
 
 Los modos agregan al system prompt **una sola línea, y solo en `plan`, `manual` y `accept-edits`**; `auto` (el

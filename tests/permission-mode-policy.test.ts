@@ -129,3 +129,20 @@ test("resolvePermissionModeConfig: user chooses, repository only tightens, cap w
 	const stricterDefault = resolvePermissionModeConfig({ userModeFile: '{"mode":"auto"}', projectGuardrails: '{"permissionMode":{"default":"manual"}}' });
 	assert.deepEqual(stricterDefault, { initial: "manual", sources: { initial: "project-guardrails" } });
 });
+
+// --- delegation limits (roadmap T7.4) ------------------------------------------------------
+
+import { delegationDenied, parseDelegationLimits, tightestLimits } from "../lib/permission-mode-config.ts";
+
+test("delegation limits: parse, tighten across layers, and deny with an actionable reason", () => {
+	assert.deepEqual(parseDelegationLimits(JSON.stringify({ limits: { maxConcurrentSubagents: 3, maxSubagentsPerTurn: -1, blockDelegationOverBudget: true } })), { maxConcurrentSubagents: 3, blockDelegationOverBudget: true });
+	assert.deepEqual(parseDelegationLimits("x"), {});
+	assert.deepEqual(tightestLimits({ maxConcurrentSubagents: 5, maxSubagentsPerTurn: 10 }, { maxConcurrentSubagents: 2, blockDelegationOverBudget: true }), { maxConcurrentSubagents: 2, maxSubagentsPerTurn: 10, blockDelegationOverBudget: true });
+	assert.deepEqual(tightestLimits({ maxConcurrentSubagents: 2 }, { maxConcurrentSubagents: 9 }), { maxConcurrentSubagents: 2 });
+	const limits = { maxConcurrentSubagents: 2, maxSubagentsPerTurn: 3, blockDelegationOverBudget: true };
+	assert.equal(delegationDenied(limits, { active: 1, startedThisTurn: 0, overBudget: false }), undefined);
+	assert.match(delegationDenied(limits, { active: 2, startedThisTurn: 0, overBudget: false })!, /maxConcurrentSubagents = 2 reached \(2 active\)/);
+	assert.match(delegationDenied(limits, { active: 0, startedThisTurn: 3, overBudget: false })!, /maxSubagentsPerTurn = 3 reached this turn/);
+	assert.match(delegationDenied(limits, { active: 0, startedThisTurn: 0, overBudget: true })!, /budget is exceeded/);
+	assert.equal(delegationDenied({}, { active: 99, startedThisTurn: 99, overBudget: true }), undefined, "no limits, no denial");
+});

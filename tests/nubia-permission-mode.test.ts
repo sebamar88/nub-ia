@@ -63,7 +63,8 @@ function harness(options: { cwd: string; configHome: string; child?: boolean; co
 		for (const handler of handlers.get(name) ?? []) result = (await handler(event, ctx)) ?? result;
 		return result;
 	};
-	return { fire, commands, shortcuts, events, notices, statuses, ctx, env };
+	const emit = (name: string, payload: unknown) => pi.events.emit(name, payload);
+	return { fire, commands, shortcuts, events, notices, statuses, ctx, env, emit };
 }
 
 test("permission mode extension: starts in the configured mode, gates tools per mode, and the directive follows the mode", async () => {
@@ -192,6 +193,33 @@ test("permission mode extension: a child applies its agent's tool rules and fail
 		other.env.NUB_IA_AGENT_NAME = "nubia-worker";
 		await other.fire("session_start", {});
 		assert.equal(await other.fire("tool_call", { toolName: "write", input: { path: join(cwd, "a.ts") } }), undefined, "rules are per agent");
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+test("permission mode extension: delegation limits count live subagents and per-turn launches", async () => {
+	const root = mkdtempSync(join(tmpdir(), "nubia-mode-"));
+	try {
+		const cwd = join(root, "repo");
+		const configHome = join(root, "config");
+		mkdirSync(cwd, { recursive: true });
+		mkdirSync(configHome, { recursive: true });
+		writeFileSync(join(configHome, "runtime-guardrails.json"), JSON.stringify({ limits: { maxConcurrentSubagents: 2, maxSubagentsPerTurn: 2, blockDelegationOverBudget: true } }));
+		const h = harness({ cwd, configHome });
+		await h.fire("session_start", {});
+		await h.fire("turn_start", {});
+		const run = { toolName: "subagent_run", input: { agent: "nubia-worker", task: "x" } };
+		assert.equal(await h.fire("tool_call", run), undefined);
+		assert.equal(await h.fire("tool_call", run), undefined);
+		assert.match(((await h.fire("tool_call", run)) as { reason: string }).reason, /maxSubagentsPerTurn = 2 reached/);
+		await h.fire("turn_start", {});
+		h.emit("nubia:agents-status/v1", { schema: "nubia:agents-status/v1", running: 2, queued: 0, waiting: 0, finished: 0, items: [] });
+		assert.match(((await h.fire("tool_call", run)) as { reason: string }).reason, /maxConcurrentSubagents = 2 reached \(2 active\)/);
+		h.emit("nubia:agents-status/v1", { schema: "nubia:agents-status/v1", running: 0, queued: 0, waiting: 0, finished: 2, items: [] });
+		h.emit("nubia:router-status/v1", { schema: "nubia:router-status/v1", resolved: {}, excluded: [], unroutable: [], degraded: {}, budget: { text: "budget $25 / $20 today", exceeded: true } });
+		assert.match(((await h.fire("tool_call", run)) as { reason: string }).reason, /budget is exceeded/);
+		assert.equal(await h.fire("tool_call", { toolName: "read", input: { path: "a" } }), undefined, "limits only concern delegation");
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}

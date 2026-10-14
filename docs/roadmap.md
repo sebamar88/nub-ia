@@ -209,9 +209,11 @@ persiste ni se activa por config/env/tool.
   `tightestAllowlist`: intersección / unión, el repo solo acota). El router filtra los modelos disponibles; en
   `model_select` un modelo denegado se revierte (`pi.setModel`) al anterior permitido o a `nub-ia/balanced` con aviso.
   `/nubia:doctor` lista la política.
-- [ ] **T7.4 Límites de delegación y gasto**
-  `limits: { maxConcurrentSubagents, maxSubagentsPerTurn, maxUsdPerSession }`. *Cierre:* al exceder, error claro al
-  orquestador y reflejo en Status (T6.3). Depende de T2.2.
+- [x] **T7.4 Límites de delegación y gasto**
+  `limits.{maxConcurrentSubagents,maxSubagentsPerTurn,blockDelegationOverBudget}` en `runtime-guardrails.json`
+  (`parseDelegationLimits`, `tightestLimits`, `delegationDenied` en `lib/permission-mode-config.ts`). La extensión de
+  modos cuenta subagentes vivos (canal de agentes), lanzamientos por turno y el estado de presupuesto (canal del router)
+  y rechaza `subagent_run` con motivo. El tope en USD lo cubre `budget` de T2.2 + el flag.
 - [ ] **T7.5 Redacción de secretos**
   `lib/secret-redaction.ts` (nuevo): AWS keys, tokens GitHub, JWT, valores de `.env`; aplicado a salida de bash,
   reportes de review, métricas e historial de prompts. *Cierre:* fixtures redactados; hashes git intactos.

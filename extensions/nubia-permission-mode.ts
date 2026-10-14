@@ -15,7 +15,9 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { configReadPath, nubIaConfigHome, projectConfigReadPath, readEnv } from "../lib/config-home.ts";
-import { resolvePermissionModeConfig, type EffectivePermissionModeConfig } from "../lib/permission-mode-config.ts";
+import { delegationDenied, parseDelegationLimits, resolvePermissionModeConfig, tightestLimits, type DelegationLimits, type EffectivePermissionModeConfig } from "../lib/permission-mode-config.ts";
+import { AGENTS_STATUS_EVENT, parseAgentsStatus } from "../lib/agents-status-model.ts";
+import { ROUTER_STATUS_EVENT, parseRouterStatus } from "../lib/router-status-model.ts";
 import {
 	capMode,
 	childMode,
@@ -81,6 +83,11 @@ function loadConfig(cwd: string, env: NodeJS.ProcessEnv): EffectivePermissionMod
 function loadPathPolicy(cwd: string, env: NodeJS.ProcessEnv): PathPolicy {
 	const home = nubIaConfigHome(env);
 	return mergePathPolicies(parsePathPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parsePathPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))));
+}
+
+function loadDelegationLimits(cwd: string, env: NodeJS.ProcessEnv): DelegationLimits {
+	const home = nubIaConfigHome(env);
+	return tightestLimits(parseDelegationLimits(readText(configReadPath(home, "runtime-guardrails.json", env))), parseDelegationLimits(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))));
 }
 
 function loadAgentToolPolicy(cwd: string, env: NodeJS.ProcessEnv): AgentToolPolicy {
@@ -178,6 +185,14 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 		ctx.ui.notify(`Permission mode: ${modeChip(mode, config.max)}`, "info");
 	};
 
+	// Delegation limits (T7.4): live counts come from the agents and router channels.
+	let activeSubagents = 0;
+	let startedThisTurn = 0;
+	let overBudget = false;
+	pi.events.on(AGENTS_STATUS_EVENT, (payload) => { const parsed = parseAgentsStatus(payload); if (parsed) activeSubagents = parsed.running + parsed.queued + parsed.waiting; });
+	pi.events.on(ROUTER_STATUS_EVENT, (payload) => { const parsed = parseRouterStatus(payload); if (parsed) overBudget = parsed.budget?.exceeded === true; });
+	pi.on("turn_start", () => { startedThisTurn = 0; });
+
 	pi.on("session_start", (_event, ctx) => initialise(ctx));
 	pi.on("session_shutdown", () => { mode = config.initial; });
 
@@ -196,6 +211,11 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 			const rule = agentToolRule(loadAgentToolPolicy(ctx.cwd, env), agentName, event.toolName);
 			if (rule === "deny") return { block: true, reason: `Policy: the ${agentName} agent may not use ${event.toolName} (agents.${agentName}.tools in runtime-guardrails.json). Report what you would do instead of doing it.` };
 			if (rule === "confirm") return { block: true, reason: `Policy: ${event.toolName} by the ${agentName} agent requires the human's confirmation, which a subagent cannot obtain. Report the exact action back to the orchestrator.` };
+		}
+		if (event.toolName === "subagent_run" && !isChild) {
+			const denied = delegationDenied(loadDelegationLimits(ctx.cwd, env), { active: activeSubagents, startedThisTurn, overBudget });
+			if (denied) return { block: true, reason: `Delegation limit: ${denied}` };
+			startedThisTurn += 1;
 		}
 		// Path policy first: it is independent of the mode and never waived by it.
 		const hit = evaluatePaths(loadPathPolicy(ctx.cwd, env), writtenPaths(ctx.cwd, event.toolName, input));

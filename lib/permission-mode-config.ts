@@ -54,3 +54,54 @@ export function resolvePermissionModeConfig(input: { userModeFile?: string; user
 	if (max !== undefined && modeRank(initial) > modeRank(max)) { initial = max; initialSource = maxSource ?? initialSource; }
 	return { initial, ...(max !== undefined ? { max } : {}), sources: { initial: initialSource, ...(maxSource ? { max: maxSource } : {}) } };
 }
+
+// --- delegation limits (roadmap T7.4) -------------------------------------------------
+//
+//   "limits": { "maxConcurrentSubagents": 3, "maxSubagentsPerTurn": 6, "blockDelegationOverBudget": true }
+//
+// Each layer may only lower a number or switch the flag on.
+
+export interface DelegationLimits {
+	maxConcurrentSubagents?: number;
+	maxSubagentsPerTurn?: number;
+	blockDelegationOverBudget?: boolean;
+}
+
+const positive = (value: unknown): number | undefined => (typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined);
+
+export function parseDelegationLimits(text: string | undefined): DelegationLimits {
+	if (!text) return {};
+	try {
+		const parsed = JSON.parse(text) as { limits?: Record<string, unknown> };
+		const section = parsed.limits;
+		if (typeof section !== "object" || section === null) return {};
+		const maxConcurrentSubagents = positive(section.maxConcurrentSubagents);
+		const maxSubagentsPerTurn = positive(section.maxSubagentsPerTurn);
+		return {
+			...(maxConcurrentSubagents !== undefined ? { maxConcurrentSubagents } : {}),
+			...(maxSubagentsPerTurn !== undefined ? { maxSubagentsPerTurn } : {}),
+			...(section.blockDelegationOverBudget === true ? { blockDelegationOverBudget: true } : {}),
+		};
+	} catch {
+		return {};
+	}
+}
+
+export function tightestLimits(...layers: DelegationLimits[]): DelegationLimits {
+	const min = (key: "maxConcurrentSubagents" | "maxSubagentsPerTurn") => layers.map((layer) => layer[key]).filter((value): value is number => value !== undefined).reduce<number | undefined>((acc, value) => (acc === undefined ? value : Math.min(acc, value)), undefined);
+	const maxConcurrentSubagents = min("maxConcurrentSubagents");
+	const maxSubagentsPerTurn = min("maxSubagentsPerTurn");
+	return {
+		...(maxConcurrentSubagents !== undefined ? { maxConcurrentSubagents } : {}),
+		...(maxSubagentsPerTurn !== undefined ? { maxSubagentsPerTurn } : {}),
+		...(layers.some((layer) => layer.blockDelegationOverBudget) ? { blockDelegationOverBudget: true } : {}),
+	};
+}
+
+/** Why a new delegation must not start now, or undefined. */
+export function delegationDenied(limits: DelegationLimits, state: { active: number; startedThisTurn: number; overBudget: boolean }): string | undefined {
+	if (limits.maxConcurrentSubagents !== undefined && state.active >= limits.maxConcurrentSubagents) return `limits.maxConcurrentSubagents = ${limits.maxConcurrentSubagents} reached (${state.active} active). Wait for a subagent to finish (subagent_status) or do the work inline.`;
+	if (limits.maxSubagentsPerTurn !== undefined && state.startedThisTurn >= limits.maxSubagentsPerTurn) return `limits.maxSubagentsPerTurn = ${limits.maxSubagentsPerTurn} reached this turn. Finish with what is running; the human can raise the limit in runtime-guardrails.json.`;
+	if (limits.blockDelegationOverBudget && state.overBudget) return "the session or daily model budget is exceeded (limits.blockDelegationOverBudget); no new subagents until it resets. Continue inline or ask the human.";
+	return undefined;
+}
