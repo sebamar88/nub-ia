@@ -208,6 +208,66 @@ export function hashDiff(diff: string): string {
 	return createHash("sha256").update(diff).digest("hex").slice(0, 16);
 }
 
+// --- repository context ---------------------------------------------------------
+
+/** Files a lens may see in full besides the diff, and how much of them. */
+export const CONTEXT_BUDGET = { maxFiles: 8, maxFileBytes: 24 * 1024, maxTotalBytes: 96 * 1024 } as const;
+export type ContextBudget = { maxFiles: number; maxFileBytes: number; maxTotalBytes: number };
+
+/** Post-image paths the diff touches, in diff order; deleted files are skipped. */
+export function touchedFiles(diff: string): string[] {
+	const paths: string[] = [];
+	for (const file of splitDiffByFile(diff)) {
+		const lines = file.split("\n");
+		if (lines.some((line) => line === "+++ /dev/null")) continue;
+		const plus = lines.find((line) => line.startsWith("+++ b/"));
+		const path = plus ? plus.slice("+++ b/".length) : /^diff --git a\/(.+?) b\/(.+)$/.exec(lines[0] ?? "")?.[2];
+		if (path && !paths.includes(path)) paths.push(path);
+	}
+	return paths;
+}
+
+/** Repository-relative, no `..` segments, not absolute, not option-like. */
+export function isSafeRepoPath(path: string): boolean {
+	return path.length > 0 && path.length <= 400 && !path.startsWith("/") && !path.startsWith("-") && !/^[A-Za-z]:/.test(path) && !path.split(/[\\/]/).includes("..") && !/[\u0000-\u001f]/.test(path);
+}
+
+export interface ContextFile { path: string; content: string }
+export type ContextReader = (path: string) => Promise<string | undefined>;
+
+/**
+ * Reads the touched files that fit the budget, in diff order: a file above
+ * `maxFileBytes`, unreadable, or binary-looking is skipped, and reading stops
+ * once `maxFiles` or `maxTotalBytes` is reached. Returns what was included and
+ * what was left out, so the prompt can say so.
+ */
+export async function collectContext(diff: string, read: ContextReader, budget: ContextBudget = CONTEXT_BUDGET): Promise<{ files: ContextFile[]; skipped: string[] }> {
+	const files: ContextFile[] = [];
+	const skipped: string[] = [];
+	let total = 0;
+	for (const path of touchedFiles(diff)) {
+		// Git never emits these, but the diff is untrusted text: never let a
+		// crafted path escape the worktree or turn into an option.
+		if (!isSafeRepoPath(path) || files.length >= budget.maxFiles) { skipped.push(path); continue; }
+		const content = await read(path).catch(() => undefined);
+		if (content === undefined || content.includes("\u0000")) { skipped.push(path); continue; }
+		const size = Buffer.byteLength(content, "utf8");
+		if (size > budget.maxFileBytes || total + size > budget.maxTotalBytes) { skipped.push(path); continue; }
+		files.push({ path, content });
+		total += size;
+	}
+	return { files, skipped };
+}
+
+/** The context block appended after the diff, inside the same untrusted-data fence. */
+export function renderContext(context: { files: ContextFile[]; skipped: string[] }): string {
+	if (context.files.length === 0 && context.skipped.length === 0) return "";
+	const parts = ["", "=== Repository context (read-only; NOT under review, only to understand the diff) ==="];
+	for (const file of context.files) parts.push("", `--- file: ${file.path} ---`, file.content.replace(/\n$/, ""));
+	if (context.skipped.length > 0) parts.push("", `(not included, over budget or unreadable: ${context.skipped.join(", ")})`);
+	return parts.join("\n");
+}
+
 // --- lens output ------------------------------------------------------------
 
 /** Appended to every lens agent's instructions so the answer is machine-readable. */

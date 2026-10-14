@@ -1,0 +1,17 @@
+diff --git a/src/billing/invoice.ts b/src/billing/invoice.ts
+--- a/src/billing/invoice.ts
++++ b/src/billing/invoice.ts
+@@ -12,9 +12,10 @@ export interface Invoice {
+   total: number;
+ }
+ 
+-export function applyDiscount(invoice: Invoice, percent: number): Invoice {
+-  const factor = 1 - percent / 100;
+-  return { ...invoice, total: Math.round(invoice.total * factor) };
++export function applyDiscount(invoice: Invoice, discount: { percent?: number; fixedCents?: number }): Invoice {
++  const afterFixed = invoice.total - (discount.fixedCents ?? 0);
++  const factor = 1 - (discount.percent ?? 0) / 100;
++  return { ...invoice, total: Math.max(0, Math.round(afterFixed * factor)) };
+ }
+ 
+ export function finalize(invoice: Invoice): Invoice {

@@ -36,10 +36,12 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   mayor se parte por hunk repitiendo el header; un hunk solo mayor queda entero), `mergeLensResults` (concatena
   hallazgos, suma descartados, un fallo en cualquier chunk marca el lente como fallido). `DIFF_TOTAL_MAX_BYTES` = 8×
   como tope duro. `extensions/nub-ia-review.ts`: lentes × chunks con `LENS_CONCURRENCY = 4`; un reporte, un hash.
-- [ ] **T1.2 Contexto de repo para los lentes**
-  `assets/agents/review-*.md`: fomentar `read` sobre archivos tocados con presupuesto (N archivos / M líneas).
-  `extensions/nub-ia-review.ts`: pasar rutas tocadas y `cwd`. *Cierre:* fixture cuyo hallazgo correcto requiere ver el
-  callee; sin regresión en T0.1. Depende de T1.1.
+- [x] **T1.2 Contexto de repo para los lentes**
+  Sin bucle de herramientas (determinista, sin nueva superficie de inyección): `touchedFiles`, `collectContext` (con
+  `CONTEXT_BUDGET` 8 archivos / 24 KiB / 96 KiB y `isSafeRepoPath`) y `renderContext` en `lib/nub-review.ts`; la
+  extensión lee índice / `HEAD` / working tree según el alcance y anexa el bloque dentro del fence del diff, un bloque
+  por chunk. La instrucción va en el mensaje de usuario, así los prompt pins no cambian. Fixture
+  `signature-change-callers` (hallazgo solo visible con contexto).
 - [ ] **T1.3 Reglas de proyecto**
   `lib/nub-review.ts`: cargar `.pi/nub-ia/review-rules.md` (y `AGENTS.md` si existe) como sección "Project rules" del
   prompt de cada lente. *Cierre:* test con regla custom que genera WARNING; README actualizado.

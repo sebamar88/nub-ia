@@ -216,3 +216,47 @@ test("collectDiff: only the total cap refuses; a diff above one chunk but under 
 	const huge = await collectDiff(fakeGit({ "diff": { stdout: "x".repeat(DIFF_TOTAL_MAX_BYTES + 1) } }), { kind: "working" });
 	assert.match((huge as { error: string }).error, /above the 3200 KiB review bound/);
 });
+
+// --- repository context (roadmap T1.2) ------------------------------------------
+
+import { collectContext, renderContext, touchedFiles } from "../lib/nub-review.ts";
+
+test("touchedFiles: post-image paths in diff order, deleted files skipped, renames by their new name", () => {
+	const diff = [
+		fileDiff("src/a.ts", ["-1\n+2"]),
+		"diff --git a/gone.ts b/gone.ts\ndeleted file mode 100644\n--- a/gone.ts\n+++ /dev/null\n@@ -1 +0,0 @@\n-x\n",
+		"diff --git a/old.ts b/new.ts\nsimilarity index 90%\nrename from old.ts\nrename to new.ts\n--- a/old.ts\n+++ b/new.ts\n@@ -1 +1 @@\n-a\n+b\n",
+		fileDiff("src/a.ts", ["-3\n+4"]),
+	].join("");
+	assert.deepEqual(touchedFiles(diff), ["src/a.ts", "new.ts"]);
+});
+
+test("collectContext: reads touched files within the budget, skips oversized, binary and unreadable ones, and reports them", async () => {
+	const diff = ["a", "b", "c", "d"].map((name) => fileDiff(`${name}.ts`, ["-1\n+2"])).join("");
+	const contents: Record<string, string | undefined> = { "a.ts": "const a = 1;\n", "b.ts": "x".repeat(50), "c.ts": "bin\u0000ary", "d.ts": undefined };
+	const read = async (path: string) => { if (path === "d.ts") throw new Error("ENOENT"); return contents[path]; };
+	const context = await collectContext(diff, read, { maxFiles: 8, maxFileBytes: 40, maxTotalBytes: 100 });
+	assert.deepEqual(context.files, [{ path: "a.ts", content: "const a = 1;\n" }]);
+	assert.deepEqual(context.skipped, ["b.ts", "c.ts", "d.ts"]);
+	const capped = await collectContext(diff, async () => "ok", { maxFiles: 2, maxFileBytes: 40, maxTotalBytes: 100 });
+	assert.deepEqual(capped.files.map((file) => file.path), ["a.ts", "b.ts"]);
+	assert.deepEqual(capped.skipped, ["c.ts", "d.ts"]);
+	const total = await collectContext(diff, async () => "12345", { maxFiles: 8, maxFileBytes: 40, maxTotalBytes: 12 });
+	assert.deepEqual(total.files.map((file) => file.path), ["a.ts", "b.ts"]);
+});
+
+test("renderContext: labelled read-only block per file, a note for the skipped ones, empty when nothing to say", () => {
+	assert.equal(renderContext({ files: [], skipped: [] }), "");
+	const text = renderContext({ files: [{ path: "a.ts", content: "const a = 1;\n" }], skipped: ["big.lock"] });
+	assert.match(text, /=== Repository context \(read-only; NOT under review/);
+	assert.match(text, /--- file: a\.ts ---\nconst a = 1;\n/);
+	assert.match(text, /not included, over budget or unreadable: big\.lock/);
+});
+
+test("collectContext: paths that could escape the worktree or look like options are never read", async () => {
+	const diff = ["../../etc/passwd", "/abs.ts", "-flag.ts", "a/../b.ts", "ok/fine.ts"].map((p) => `diff --git a/${p} b/${p}\n--- a/${p}\n+++ b/${p}\n@@ -1 +1 @@\n-a\n+b\n`).join("");
+	const read: string[] = [];
+	const context = await collectContext(diff, async (path) => { read.push(path); return "x"; });
+	assert.deepEqual(read, ["ok/fine.ts"]);
+	assert.deepEqual(context.skipped, ["../../etc/passwd", "/abs.ts", "-flag.ts", "a/../b.ts"]);
+});

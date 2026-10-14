@@ -1,0 +1,19 @@
+{
+  "description": "applyDiscount changes its signature from a number to an options object. The diff alone looks fine; only the repository context (the rest of invoice.ts) shows finalize() and a coupon helper still calling applyDiscount(invoice, 10) with a number, which TypeScript would reject or, under a loose config, silently treat as percent undefined. Requires T1.2 context to be found.",
+  "verdict": "block",
+  "lenses": {
+    "review-reliability": {
+      "mustFlag": [
+        { "location": "src/billing/invoice.ts", "minSeverity": "CRITICAL", "claimPattern": "caller|call site|finalize|signature|still pass" }
+      ]
+    },
+    "review-readability": {
+      "mustNotFlag": [
+        { "location": "src/billing/invoice.ts", "claimPattern": "magic|100" }
+      ]
+    },
+    "review-risk": {
+      "mustNotFlag": [ { "location": "src/billing/invoice.ts" } ]
+    }
+  }
+}
