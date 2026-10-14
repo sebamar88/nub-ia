@@ -111,14 +111,8 @@ import {
 } from "../lib/double-esc-cancel-policy.ts";
 import { accountIdFromToken, CODEX_PROVIDER, CODEX_USAGE_URL, NAN_PROVIDER, NAN_QUOTA_URL, parseCodexUsage, parseNanQuota, parseProviderUsage, parseUsageHeaders, parseUsageSource, usageScopeProviders, UsageSourceRegistry, UsageStore, USAGE_SOURCE_EVENT, type ProviderUsage, type UsageSource } from "../lib/shell-usage.ts";
 import { UsageView } from "../lib/shell-usage-view.ts";
-import { AGENTS_STATUS_EVENT, type AgentsStatusPayload, agentsStatusLines, parseAgentsStatus } from "../lib/agents-status-model.ts";
-import { ROUTER_STATUS_EVENT, type RouterStatusPayload, parseRouterStatus, routerStatusLines } from "../lib/router-status-model.ts";
-import { modeChip, parsePermissionModePayload, PERMISSION_MODE_EVENT, PERMISSION_MODE_REQUEST, type PermissionModePayload } from "./nubia-permission-mode.ts";
-import { MODE_LABEL, PERMISSION_MODES } from "../lib/permission-mode-policy.ts";
-import { auditToday, parseAuditRows } from "../lib/audit-log.ts";
 import { buildUsageReport, renderUsageReport } from "../lib/usage-report.ts";
 import { collectUsageInputs } from "../scripts/usage-cli.mjs";
-import { metricsFilePath } from "../lib/runtime-metrics-sink.ts";
 import { sidebarHeader, sidebarPart, sidebarState, VISUAL_SETTINGS_CHANGED, type SidebarRail } from "../lib/shell-sidebar.ts";
 import { installSidebar, invalidateSidebar, narrowStatusOwner, STATUS_OWNER } from "../lib/shell-sidebar-layout.ts";
 import { SessionChanges, SESSION_CHANGE_EVENT } from "../lib/session-changes.ts";
@@ -127,25 +121,12 @@ import { SelectionEngine } from "../lib/selection-engine.ts";
 import { withOverlayRepaint } from "../lib/overlay-repaint.ts";
 import { readEnv } from "../lib/config-home.ts";
 
-// Status card "Review" block: the last nub_review on record versus the diff a
-// push would deliver. The deliverable hash is a git call, so it is memoised
-// per (session changes count, 10 s) and refreshed in the background; the
-// first paint shows the record without staleness until the hash arrives.
-import { reviewStatusLines } from "../lib/nub-review.ts";
-import { readLastReview, pushDiffHash } from "./nub-ia-review.ts";
-import { resolveReviewGate } from "../lib/review-gate-policy.ts";
-const reviewHashMemo = new Map<string, { key: string; at: number; hash: string | undefined; pending: boolean }>();
-function reviewStatus(cwd: string, changeCount: number): ShellBarModel["review"] {
-	const last = readLastReview(cwd);
-	const memo = reviewHashMemo.get(cwd);
-	const key = `${changeCount}`;
-	if (!memo || memo.key !== key || Date.now() - memo.at > 10_000) {
-		const next = { key, at: Date.now(), hash: memo?.hash, pending: true };
-		reviewHashMemo.set(cwd, next);
-		void pushDiffHash(cwd).then((hash) => { next.hash = hash; next.pending = false; }, () => { next.pending = false; });
-	}
-	return reviewStatusLines(last, reviewHashMemo.get(cwd)?.hash, resolveReviewGate(cwd).mode);
-}
+// Nub-IA's own Status blocks (Review, Subagents, Router, Mode, Audit) live in
+// lib/nubia-status-blocks.ts; this file only wires them in (see the footer model).
+import { NubiaStatusBlocks } from "../lib/nubia-status-blocks.ts";
+import { pushDiffHash, readLastReview } from "./nub-ia-review.ts";
+import { modeChip, PERMISSION_MODE_REQUEST } from "./nubia-permission-mode.ts";
+import { PERMISSION_MODES } from "../lib/permission-mode-policy.ts";
 
 
 // Gentle Shell: the visual layer gentle-pi puts on top of pi. It installs the
@@ -1698,39 +1679,8 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	let changes: SessionChanges | undefined;
 	let registry: SessionWorktreeRegistry | undefined;
 	let currentContext: ExtensionContext | undefined;
-	// Last subagents snapshot from nubia-agents; elapsed times are derived at
-	// paint time, so the frames the Agents widget already requests keep the
-	// Status block current without a second clock.
-	let agentsStatus: AgentsStatusPayload | undefined;
-	pi.events.on(AGENTS_STATUS_EVENT, (payload) => {
-		const parsed = parseAgentsStatus(payload);
-		if (parsed) agentsStatus = parsed;
-	});
-	let routerStatus: RouterStatusPayload | undefined;
-	pi.events.on(ROUTER_STATUS_EVENT, (payload) => {
-		const parsed = parseRouterStatus(payload);
-		if (parsed) routerStatus = parsed;
-	});
-	// Status "Audit" line: today's approvals/denials from the local trail, re-read
-	// at most every 10 s so painting never hammers the disk.
-	let auditMemo: { at: number; text: string | undefined } | undefined;
-	const auditLine = (): string | undefined => {
-		const now = deps.now();
-		if (!auditMemo || now - auditMemo.at > 10_000) {
-			let text: string | undefined;
-			try { text = readFileSync(metricsFilePath("audit", env), "utf8"); } catch { text = undefined; }
-			auditMemo = { at: now, text };
-		}
-		if (!auditMemo.text) return undefined;
-		const today = auditToday(parseAuditRows(auditMemo.text).rows, new Date(now));
-		if (today.approved === 0 && today.denied === 0) return undefined;
-		return `${today.approved} approved · ${today.denied} denied today`;
-	};
-	let permissionMode: PermissionModePayload | undefined;
-	pi.events.on(PERMISSION_MODE_EVENT, (payload) => {
-		const parsed = parsePermissionModePayload(payload);
-		if (parsed) permissionMode = parsed;
-	});
+	const nubiaStatus = new NubiaStatusBlocks({ env, now: () => deps.now(), readLastReview, pushDiffHash });
+	nubiaStatus.subscribe(pi);
 	let shown = "";
 	const applyChanges = (ctx: ExtensionContext, model: ChangesModel) => {
 		const fingerprint = changesFingerprint(model);
@@ -1800,11 +1750,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			const footerModel = (): ShellBarModel => ({
 				...buildShellBarModel(pi, ctx, footerData, { dirty: tracker.model.files.length, usage: usage.get(ctx.model?.provider ?? ""), profile: deps.activeProfile() }),
 				changes: { files: tracker.model.files.length, added: tracker.model.added, deleted: tracker.model.deleted, notice: tracker.model.notice },
-				review: reviewStatus(ctx.cwd, tracker.model.files.length),
-				agents: agentsStatusLines(agentsStatus, deps.now()),
-				router: routerStatusLines(routerStatus, deps.now()),
-				audit: auditLine(),
-				...(permissionMode ? { mode: { chip: modeChip(permissionMode.mode), cap: permissionMode.max ? `max ${MODE_LABEL[permissionMode.max]} · ${permissionMode.source.max === "project-guardrails" ? "repo" : "user"}` : undefined, mode: permissionMode.mode } } : {}),
+				...nubiaStatus.model(ctx.cwd, tracker.model.files.length),
 			});
 			// At narrow fullscreen widths only one status row paints: a top header
 			// suppresses the bottom bar in the layout, and otherwise the bottom bar
@@ -2111,12 +2057,13 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			// the request carries this live context so only a real menu can ask.
 			rows.push({
 				category,
-				label: () => `Permission mode: ${permissionMode ? modeChip(permissionMode.mode, permissionMode.max) : "unknown"} · Shift+Tab cycles`,
+				label: () => `Permission mode: ${nubiaStatus.mode ? modeChip(nubiaStatus.mode.mode, nubiaStatus.mode.max) : "unknown"} · Shift+Tab cycles`,
 				preview: () => ({ title: "Permission mode", sample: "plan (read-only) · manual (asks) · accept edits · auto (guardrails only) · yolo" }),
 				action: async () => {
-					if (closed || !permissionMode) return;
-					const reachable = PERMISSION_MODES.filter((candidate) => !permissionMode?.max || PERMISSION_MODES.indexOf(candidate) <= PERMISSION_MODES.indexOf(permissionMode.max));
-					const next = reachable[(reachable.indexOf(permissionMode.mode) + 1) % reachable.length] ?? "plan";
+					const current = nubiaStatus.mode;
+					if (closed || !current) return;
+					const reachable = PERMISSION_MODES.filter((candidate) => !current.max || PERMISSION_MODES.indexOf(candidate) <= PERMISSION_MODES.indexOf(current.max));
+					const next = reachable[(reachable.indexOf(current.mode) + 1) % reachable.length] ?? "plan";
 					pi.events.emit(PERMISSION_MODE_REQUEST, { mode: next, context: ctx });
 				},
 			});

@@ -84,7 +84,7 @@ function loadOrgPolicy(env: NodeJS.ProcessEnv, cwd?: string): OrgPolicy | undefi
 function loadConfig(cwd: string, env: NodeJS.ProcessEnv): EffectivePermissionModeConfig {
 	const home = nubIaConfigHome(env);
 	return resolvePermissionModeConfig({
-		userModeFile: readText(join(home, "permission-mode.json")),
+		userModeFile: readText(join(home, "permission-mode-default.json")),
 		userGuardrails: readText(configReadPath(home, "runtime-guardrails.json", env)),
 		projectGuardrails: readText(projectConfigReadPath(cwd, "runtime-guardrails.json")),
 		orgPolicy: sectionText(loadOrgPolicy(env, cwd), "permissionMode"),
@@ -322,7 +322,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 					`Startup mode: ${MODE_LABEL[config.initial]} (${config.sources.initial})${config.max ? ` · cap: ${MODE_LABEL[config.max]} (${config.sources.max})` : ""}`,
 					...(() => { const org = loadEffectiveOrgPolicy(env, ctx.cwd); return org.policy ? [`Org policy: ${org.policy.name ?? "unnamed"}${org.role ? ` · role ${org.role.role} (${org.role.source})` : ""}`] : []; })(),
 					"plan: read-only · manual: every write/command asks · accept-edits: edits run, commands ask · auto: guardrails only · yolo: + commits/push/PR",
-					`Shift+Tab cycles (isolated home); /nubia:mode <mode> sets; /nubia:mode default <mode> saves the startup mode in ${join(nubIaConfigHome(env), "permission-mode.json")}.`,
+					`Shift+Tab cycles (isolated home); /nubia:mode <mode> sets; /nubia:mode default <mode> saves the startup mode in ${join(nubIaConfigHome(env), "permission-mode-default.json")}.`,
 				];
 				ctx.ui.notify(lines.join("\n"), "info");
 				return;
@@ -330,7 +330,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 			if (action === "default") {
 				const wanted = tokens[1];
 				if (!isPersistableMode(wanted)) { ctx.ui.notify("Use /nubia:mode default plan|manual|accept-edits|auto (yolo is never a default).", "warning"); return; }
-				const path = join(nubIaConfigHome(env), "permission-mode.json");
+				const path = join(nubIaConfigHome(env), "permission-mode-default.json");
 				try {
 					mkdirSync(dirname(path), { recursive: true });
 					writeFileSync(path, serializeStoredMode(wanted), { encoding: "utf8", mode: 0o600 });

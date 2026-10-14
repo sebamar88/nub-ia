@@ -2,7 +2,8 @@
 // default and the optional cap, with the usual precedence — a repository can
 // only tighten what the user chose. Pure parsing; the extension reads files.
 //
-//   <configHome>/permission-mode.json           { "mode": "accept-edits" }        user default
+//   <configHome>/permission-mode-default.json   { "mode": "accept-edits" }   user default (named apart from
+//   upstream gentle-shell's permission-mode.json, which carries its own 3-mode schema)
 //   <configHome>/runtime-guardrails.json        { "permissionMode": { "max": "auto", "default": "manual" } }
 //   <repo>/.pi/nub-ia/runtime-guardrails.json   { "permissionMode": { "max": "accept-edits" } }   tighten-only
 

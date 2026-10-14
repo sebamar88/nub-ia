@@ -68,6 +68,8 @@ const requiredPaths = [
   "scripts/org-policy-fetch.mjs",
   "scripts/approved-packages.mjs",
   "scripts/init-repo.mjs",
+  "scripts/upstream-diff.mjs",
+  "lib/nubia-status-blocks.ts",
   "lib/approved-packages.ts",
   "lib/audit-log.ts",
   "lib/org-policy.ts",

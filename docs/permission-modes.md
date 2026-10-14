@@ -34,7 +34,7 @@ heredoc, `tee`, `sudo`, job en segundo plano (`&`), `sed -i`, o un programa/verb
 ## Configuración
 
 - **Modo de arranque:** `/nubia:mode default <plan|manual|accept-edits|auto>` lo guarda en
-  `~/.pi/nub-ia/permission-mode.json`. Reload y sesión nueva arrancan ahí.
+  `~/.pi/nub-ia/permission-mode-default.json`. Reload y sesión nueva arrancan ahí.
 - **Tope (`max`) y default por política:** sección `permissionMode` de `runtime-guardrails.json`:
 
   ```json

@@ -112,10 +112,14 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 ## Fase 4 — Mantenibilidad del fork
 
-- [ ] **T4.1 Separar código propio de código upstream** *(grande)*
-  Mover lógica Nub-IA de `extensions/nubia-harness.ts` / `nubia-shell.ts` a módulos `lib/nubia-*.ts`; los archivos
-  upstream quedan con hooks mínimos. *Cierre:* `git diff upstream/main -- extensions/…` baja significativamente; tests
-  verdes. Hacer primero dentro de la fase.
+- [x] **T4.1 Separar código propio de código upstream** *(primer corte)*
+  Todo lo de Nub-IA en el Status pasó a `lib/nubia-status-blocks.ts` (una clase: suscripción + `model()`); la shell
+  upstream quedó con 3 líneas de cableado. Agentes/runner/harness ya solo tienen imports y una llamada cada uno.
+  `scripts/upstream-diff.mjs` mide la divergencia real tras normalizar el rename (gentle → nubia): hoy ~6 100 líneas
+  en `nubia-harness.ts` porque **upstream avanzó mucho** (105 archivos nuevos allá) — ese es el trabajo de T4.2, no de
+  mover código. Hallazgo: upstream agregó su propio `lib/permission-mode-policy.ts` (`normal|auto|yolo`, archivo
+  `permission-mode.json`); el default nuestro se renombró a `permission-mode-default.json` para no colisionar, y la
+  conciliación de ambos modelos de modos queda anotada para el merge.
 - [ ] **T4.2 Workflow de sincronización con upstream**
   `.github/workflows/upstream-sync.yml`: semanal, `fetch upstream` + merge en `sync/upstream-<fecha>`; abre PR o issue
   con conflictos. *Cierre:* dry-run exitoso.

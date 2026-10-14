@@ -74,7 +74,7 @@ test("permission mode extension: starts in the configured mode, gates tools per 
 		const configHome = join(root, "config");
 		mkdirSync(cwd, { recursive: true });
 		mkdirSync(configHome, { recursive: true });
-		writeFileSync(join(configHome, "permission-mode.json"), '{"mode":"plan"}\n');
+		writeFileSync(join(configHome, "permission-mode-default.json"), '{"mode":"plan"}\n');
 		const h = harness({ cwd, configHome });
 		await h.fire("session_start", {});
 		assert.equal(h.env[PERMISSION_MODE_ENV], "plan", "children inherit the (capped) mode through the environment");
@@ -252,7 +252,7 @@ test("permission mode extension: the organisation policy caps the mode and prote
 		const configHome = join(root, "config");
 		mkdirSync(cwd, { recursive: true });
 		mkdirSync(configHome, { recursive: true });
-		writeFileSync(join(configHome, "permission-mode.json"), '{"mode":"auto"}\n');
+		writeFileSync(join(configHome, "permission-mode-default.json"), '{"mode":"auto"}\n');
 		writeFileSync(join(configHome, "org-policy.json"), JSON.stringify({ schema: "nub-ia.org-policy/v1", name: "Org", permissionMode: { max: "manual" }, paths: { deny: ["infra/**"] }, limits: { maxSubagentsPerTurn: 0 } }));
 		const h = harness({ cwd, configHome });
 		await h.fire("session_start", {});
@@ -297,21 +297,29 @@ test("permission mode extension: decisions leave redacted rows in the local audi
 		const configHome = join(root, "config");
 		mkdirSync(cwd, { recursive: true });
 		mkdirSync(configHome, { recursive: true });
-		writeFileSync(join(configHome, "permission-mode.json"), '{"mode":"manual"}\n');
+		writeFileSync(join(configHome, "permission-mode-default.json"), '{"mode":"manual"}\n');
 		const h = harness({ cwd, configHome, confirm: true });
 		await h.fire("session_start", {});
 		await h.fire("tool_call", { toolName: "bash", input: { command: "export GITHUB_TOKEN=ghp_abcdefghijklmnopqrstuvwxyz0123456789 && rm x" } });
 		await h.commands.get("nubia:mode")!.handler("plan", h.ctx);
 		await h.fire("tool_call", { toolName: "write", input: { path: join(cwd, "a.ts") } });
-		await new Promise((resolve) => setTimeout(resolve, 50));
-		const { readdirSync } = await import("node:fs");
+		// Audit writes are fire-and-forget appends: wait until all three rows landed (bounded).
+		const { readdirSync, existsSync } = await import("node:fs");
 		const dir = join(configHome, "audit");
-		const file = readdirSync(dir).find((name) => name.startsWith("audit-"))!;
-		const rows = readFileSync(join(dir, file), "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
-		assert.deepEqual(rows.map((row) => [row.kind, row.outcome, row.by]), [["tool.ask", "approved", "human"], ["mode.change", undefined, "human"], ["tool.deny", "denied", "mode"]]);
-		assert.equal(rows[0]!.subject, "export GITHUB_TOKEN=[redacted github token] && rm x");
-		assert.equal(rows[1]!.subject, "manual → plan (command)");
-		assert.equal(rows[2]!.mode, "plan");
+		let rows: Record<string, unknown>[] = [];
+		for (let attempt = 0; attempt < 200 && rows.length < 3; attempt += 1) {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			const file = existsSync(dir) ? readdirSync(dir).find((name) => name.startsWith("audit-")) : undefined;
+			if (file) rows = readFileSync(join(dir, file), "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line) as Record<string, unknown>);
+		}
+		// Appends are concurrent, so compare as a set.
+		const byKind = Object.fromEntries(rows.map((row) => [row.kind, row]));
+		assert.deepEqual(Object.keys(byKind).sort(), ["mode.change", "tool.ask", "tool.deny"]);
+		assert.equal(byKind["tool.ask"]!.outcome, "approved");
+		assert.equal(byKind["tool.ask"]!.subject, "export GITHUB_TOKEN=[redacted github token] && rm x");
+		assert.equal(byKind["mode.change"]!.subject, "manual → plan (command)");
+		assert.equal(byKind["tool.deny"]!.by, "mode");
+		assert.equal(byKind["tool.deny"]!.mode, "plan");
 		assert.ok(!JSON.stringify(rows).includes("ghp_"));
 	} finally {
 		rmSync(root, { recursive: true, force: true });

@@ -18,7 +18,7 @@ modelo no pueden aflojar lo que el equipo fijó, y el equipo no puede aflojar lo
 
 | Política | Usuario | Repo | Org (`org-policy.json`) | Regla de fusión |
 | --- | --- | --- | --- | --- |
-| Modo de permisos ([doc](permission-modes.md)) | `permission-mode.json`, `runtime-guardrails.json → permissionMode` | `permissionMode` | `permissionMode` | tope: el menor; default: el más estricto gana al del usuario |
+| Modo de permisos ([doc](permission-modes.md)) | `permission-mode-default.json`, `runtime-guardrails.json → permissionMode` | `permissionMode` | `permissionMode` | tope: el menor; default: el más estricto gana al del usuario |
 | Rutas protegidas | `runtime-guardrails.json → paths` | `paths` | `paths` | unión |
 | Reglas por agente | `→ agents` | `agents` | `agents` | la más estricta por herramienta |
 | Límites de delegación | `→ limits` | `limits` | `limits` | el menor / flag encendido |
