@@ -268,8 +268,13 @@ poder hacer merge de cambios del upstream.
 ```bash
 git remote add upstream https://github.com/Gentleman-Programming/gentle-shell.git
 git fetch upstream
-git merge upstream/main
+node scripts/upstream-diff.mjs          # divergencia real tras normalizar el rename gentle → nubia
+git merge -X find-renames upstream/main
 ```
+
+El workflow `.github/workflows/upstream-sync.yml` lo intenta cada lunes (y a demanda): si el merge es limpio abre un PR
+`sync/upstream-<fecha>` con el reporte de divergencia; si hay conflictos abre o actualiza un issue "Upstream sync has
+conflicts" con los archivos en conflicto. Nunca toca `main`.
 
 ## Desarrollo
 

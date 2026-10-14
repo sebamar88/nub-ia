@@ -120,9 +120,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   mover código. Hallazgo: upstream agregó su propio `lib/permission-mode-policy.ts` (`normal|auto|yolo`, archivo
   `permission-mode.json`); el default nuestro se renombró a `permission-mode-default.json` para no colisionar, y la
   conciliación de ambos modelos de modos queda anotada para el merge.
-- [ ] **T4.2 Workflow de sincronización con upstream**
-  `.github/workflows/upstream-sync.yml`: semanal, `fetch upstream` + merge en `sync/upstream-<fecha>`; abre PR o issue
-  con conflictos. *Cierre:* dry-run exitoso.
+- [x] **T4.2 Workflow de sincronización con upstream**
+  `.github/workflows/upstream-sync.yml`: lunes 06:17 UTC o manual; `fetch upstream`, `scripts/upstream-diff.mjs`,
+  `merge -X find-renames` en `sync/upstream-<fecha>` → PR con el reporte, o issue (creado/actualizado) con los archivos
+  en conflicto. Nunca escribe en `main`. YAML validado; la lógica git se probó localmente con el propio repo como
+  upstream (behind 0 → "nothing to merge").
 - [ ] **T4.3 Verificación de integridad en `nub-ia update`**
   `git verify-commit` contra llaves en `assets/maintainers.gpg`; `NUB_IA_SKIP_VERIFY=1` como escape. *Cierre:* update
   rechaza HEAD no firmado; se documenta el límite que se cierra.

@@ -1,0 +1,87 @@
+name: Upstream sync
+
+# Weekly attempt to merge gentle-shell (upstream) into a branch. A clean merge
+# opens a pull request; conflicts open (or update) one issue listing the
+# conflicting files, so the divergence is visible instead of discovered months
+# later. Nothing is ever pushed to main by this job.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/Gentleman-Programming/gentle-shell.git
+          git fetch upstream main --tags
+          echo "UPSTREAM_SHA=$(git rev-parse --short upstream/main)" >> "$GITHUB_ENV"
+          echo "BEHIND=$(git rev-list --count HEAD..upstream/main)" >> "$GITHUB_ENV"
+
+      - name: Nothing to merge
+        if: env.BEHIND == '0'
+        run: echo "Already up to date with upstream/main."
+
+      - name: Setup Node.js
+        if: env.BEHIND != '0'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+
+      - name: Measure divergence before merging
+        if: env.BEHIND != '0'
+        run: node scripts/upstream-diff.mjs upstream/main | tee divergence.txt
+
+      - name: Try the merge on a sync branch
+        if: env.BEHIND != '0'
+        id: merge
+        run: |
+          git config user.name "nub-ia-bot"
+          git config user.email "nub-ia-bot@users.noreply.github.com"
+          BRANCH="sync/upstream-$(date -u +%Y-%m-%d)"
+          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
+          git checkout -b "$BRANCH"
+          if git merge --no-ff --no-edit -X find-renames upstream/main; then
+            echo "result=clean" >> "$GITHUB_OUTPUT"
+          else
+            git diff --name-only --diff-filter=U | tee conflicts.txt
+            echo "result=conflicts" >> "$GITHUB_OUTPUT"
+            git merge --abort
+          fi
+
+      - name: Push the sync branch and open the PR (clean merge)
+        if: steps.merge.outputs.result == 'clean'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git push origin "$BRANCH"
+          BODY=$(printf 'Automatic merge of gentle-shell `upstream/main` (%s, %s commits behind) into `%s`.\n\nCI runs on this PR; review the divergence report before merging:\n\n```\n%s\n```\n' "$UPSTREAM_SHA" "$BEHIND" "$BRANCH" "$(head -c 6000 divergence.txt)")
+          gh pr create --base main --head "$BRANCH" --title "chore: sync upstream gentle-shell ($UPSTREAM_SHA)" --body "$BODY"
+
+      - name: Open or update the conflict issue
+        if: steps.merge.outputs.result == 'conflicts'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="Upstream sync has conflicts"
+          BODY=$(printf 'Merging gentle-shell `upstream/main` (%s, %s commits behind) conflicts in:\n\n```\n%s\n```\n\nDivergence after rename normalisation (`node scripts/upstream-diff.mjs`):\n\n```\n%s\n```\n\nResolve locally:\n\n```bash\ngit fetch upstream\ngit checkout -b sync/upstream-manual\ngit merge -X find-renames upstream/main\n```\n' "$UPSTREAM_SHA" "$BEHIND" "$(cat conflicts.txt)" "$(head -c 5000 divergence.txt)")
+          NUMBER=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number')
+          if [ -n "$NUMBER" ]; then
+            gh issue comment "$NUMBER" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
