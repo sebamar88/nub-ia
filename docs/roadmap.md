@@ -188,11 +188,11 @@ persiste ni se activa por config/env/tool.
 
 ### Políticas que alimentan los modos
 
-- [ ] **T7.1 Permisos por ruta**
-  `runtime-guardrails.json` → `paths: { readOnly, confirm, deny }` (globs: `.github/**`, `infra/**`, `*.lock`, `.env*`).
-  `lib/path-permission-policy.ts` (nuevo), aplicado en `write`/`edit`/`bash` (redirecciones, `rm`/`mv`). Repo solo
-  endurece; YOLO no exime `confirm`/`deny`. *Cierre:* tests de precedencia; bloqueo de `write` sobre `deny`. Depende de
-  T7.6.
+- [x] **T7.1 Permisos por ruta**
+  `lib/path-permission-policy.ts`: `parsePathPolicy` (`paths.deny|confirm|readOnly`), `mergePathPolicies` (unión:
+  el repo solo agrega), `matchesGlob` (`**`, `*`, `?`, `{a,b}`, basename sin `/`), `evaluatePaths` (deny > confirm),
+  `bashWriteTargets` (redirecciones, `tee`, operandos de rm/mv/cp/touch/sed -i/git checkout…). Aplicado en la
+  extensión de modos antes de `decide()`: deny bloquea en todo modo, confirm pregunta en todo modo (yolo incluido).
 - [ ] **T7.2 Permisos por agente/herramienta**
   `runtime-guardrails.json` → `agents: { "nubia-explore": { tools: { write: "deny", bash: "confirm" } }, … }`;
   `extensions/nubia-agents.ts` aplica la política al lanzar el hijo (gana sobre el frontmatter si es más estricta).

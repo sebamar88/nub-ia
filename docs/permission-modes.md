@@ -45,6 +45,20 @@ heredoc, `tee`, `sudo`, job en segundo plano (`&`), `sed -i`, o un programa/verb
   tope o el default, nunca subirlos. Shift+Tab salta los modos por encima del tope y `/nubia:mode status` muestra de
   dónde sale cada valor. El bloque Project del panel Status muestra `Mode ✎ Accept edits (max Auto · repo)`.
 
+## Rutas protegidas
+
+La sección `paths` de `runtime-guardrails.json` protege rutas del repo con globs (`**`, `*`, `?`, `{a,b}`; un patrón sin
+`/` matchea por nombre en cualquier carpeta):
+
+```json
+{ "paths": { "deny": [".github/**", "infra/**", "*.lock"], "confirm": ["package.json", "migrations/**"], "readOnly": ["vendor/**"] } }
+```
+
+- `deny` (y `readOnly`, su alias): el agente nunca escribe ahí, en ningún modo; `write`/`edit` se rechazan y en bash se
+  detectan redirecciones (`>`, `>>`, `tee`) y los operandos de `rm`, `mv`, `cp`, `touch`, `sed -i`, `git checkout --`…
+- `confirm`: siempre pregunta, incluso en `auto` y `yolo`.
+- El archivo del usuario y el del repo se **unen**: un repo solo puede agregar rutas protegidas, nunca quitarlas.
+
 ## Shift+Tab
 
 Pi reserva Shift+Tab para `app.thinking.cycle`, y un atajo de extensión sobre una tecla reservada se ignora. Por eso el

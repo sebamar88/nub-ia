@@ -143,3 +143,30 @@ test("permission mode extension: a repository cap blocks higher modes and a chil
 		rmSync(root, { recursive: true, force: true });
 	}
 });
+
+test("permission mode extension: the path policy denies or confirms regardless of mode, from user and repository files", async () => {
+	const root = mkdtempSync(join(tmpdir(), "nubia-mode-"));
+	try {
+		const cwd = join(root, "repo");
+		const configHome = join(root, "config");
+		mkdirSync(join(cwd, ".pi", "nub-ia"), { recursive: true });
+		mkdirSync(configHome, { recursive: true });
+		writeFileSync(join(configHome, "runtime-guardrails.json"), JSON.stringify({ paths: { confirm: ["package.json"] } }));
+		writeFileSync(join(cwd, ".pi", "nub-ia", "runtime-guardrails.json"), JSON.stringify({ paths: { deny: [".github/**", "*.lock"] } }));
+		const h = harness({ cwd, configHome, confirm: true });
+		await h.fire("session_start", {});
+		assert.deepEqual(h.statuses.at(-1), ["nubia:mode", "▶ Auto"]);
+		const denied = (await h.fire("tool_call", { toolName: "edit", input: { path: ".github/workflows/ci.yml" } })) as { block: boolean; reason: string };
+		assert.equal(denied.block, true);
+		assert.match(denied.reason, /Path policy: \.github\/workflows\/ci\.yml matches "\.github\/\*\*"/);
+		const viaBash = (await h.fire("tool_call", { toolName: "bash", input: { command: "echo x > pnpm-lock.yaml.lock" } })) as { block: boolean };
+		assert.equal(viaBash.block, true, "a redirection into a denied path is caught too");
+		assert.equal(await h.fire("tool_call", { toolName: "write", input: { path: join(cwd, "package.json"), content: "{}" } }), undefined, "confirm in auto mode asks (the fake approves)");
+		const states = h.events.filter((event) => event.name === "pi-permission-system:permission-request").map((event) => (event.payload as { state: string }).state);
+		assert.deepEqual(states, ["waiting", "approved"]);
+		assert.equal(await h.fire("tool_call", { toolName: "write", input: { path: join(cwd, "src", "a.ts"), content: "x" } }), undefined, "unprotected paths pass silently in auto");
+		assert.equal(h.events.filter((event) => event.name === "pi-permission-system:permission-request").length, 2);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});

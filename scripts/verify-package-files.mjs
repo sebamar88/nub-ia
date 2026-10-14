@@ -42,6 +42,7 @@ const requiredPaths = [
   "extensions/nub-ia-review.ts",
   "extensions/nubia-permission-mode.ts",
   "lib/permission-mode-policy.ts",
+  "lib/path-permission-policy.ts",
   "lib/nub-review.ts",
   "scripts/rtk-installer.mjs",
   "scripts/install-rtk.mjs",

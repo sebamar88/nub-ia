@@ -31,6 +31,8 @@ import {
 	updateModePrompt,
 } from "../lib/permission-mode-policy.ts";
 import { discoverYoloUiAdapter, YOLO_DISPLAY } from "../lib/yolo-session-policy.ts";
+import { bashWriteTargets, evaluatePaths, mergePathPolicies, parsePathPolicy, type PathPolicy } from "../lib/path-permission-policy.ts";
+import { relative } from "node:path";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
 /** Trusted inter-extension request: `{ mode, context }` from the shell's customize menu. */
@@ -72,6 +74,28 @@ function loadConfig(cwd: string, env: NodeJS.ProcessEnv): EffectivePermissionMod
 		userGuardrails: readText(configReadPath(home, "runtime-guardrails.json", env)),
 		projectGuardrails: readText(projectConfigReadPath(cwd, "runtime-guardrails.json")),
 	});
+}
+
+/** `paths` of the user's and the repository's guardrails files: the union (a repo can only add). */
+function loadPathPolicy(cwd: string, env: NodeJS.ProcessEnv): PathPolicy {
+	const home = nubIaConfigHome(env);
+	return mergePathPolicies(parsePathPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parsePathPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))));
+}
+
+/** Repository-relative form of a tool path (absolute or cwd-relative); outside the worktree it is returned as given. */
+function repoRelative(cwd: string, path: string): string {
+	const root = worktreeRoot(cwd);
+	const target = isAbsolute(path) ? resolve(path) : resolve(cwd, path);
+	const rel = relative(root, target);
+	return rel.startsWith("..") || isAbsolute(rel) ? path : rel;
+}
+
+/** The paths a tool call would write, repository-relative, for the path policy. */
+export function writtenPaths(cwd: string, toolName: string, input: unknown): string[] {
+	const record = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
+	if (toolName === "write" || toolName === "edit") return typeof record.path === "string" ? [repoRelative(cwd, record.path)] : [];
+	if (toolName === "bash" && typeof record.command === "string") return bashWriteTargets(record.command).map((target) => repoRelative(cwd, target));
+	return [];
 }
 
 function worktreeRoot(cwd: string): string {
@@ -159,26 +183,30 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 
 	pi.on("tool_call", async (event, ctx) => {
 		const input = event.input;
+		// Path policy first: it is independent of the mode and never waived by it.
+		const hit = evaluatePaths(loadPathPolicy(ctx.cwd, env), writtenPaths(ctx.cwd, event.toolName, input));
+		if (hit?.rule === "deny") return { block: true, reason: `Path policy: ${hit.path} matches "${hit.glob}" (paths.deny in runtime-guardrails.json) and must not be changed by the agent. Leave it alone or ask the human to edit it.` };
 		const decision = decide({
 			mode,
 			toolName: event.toolName,
 			input,
 			insideRepository: event.toolName === "write" || event.toolName === "edit" ? insideRepository(ctx.cwd, (input as { path?: unknown } | undefined)?.path) : undefined,
 		});
-		if (decision.action === "allow") return undefined;
 		if (decision.action === "deny") return { block: true, reason: decision.reason };
-		if (!ctx.hasUI) return { block: true, reason: `${MODE_LABEL[mode]} mode needs the human to confirm this ${event.toolName} call, and this session has no UI. Ask for the mode to be changed.` };
+		const ask = decision.action === "ask" ? decision.reason : hit?.rule === "confirm" ? `${hit.path} is protected (paths.confirm: "${hit.glob}")` : undefined;
+		if (ask === undefined) return undefined;
+		if (!ctx.hasUI) return { block: true, reason: `${hit?.rule === "confirm" && decision.action === "allow" ? "The path policy" : `${MODE_LABEL[mode]} mode`} needs the human to confirm this ${event.toolName} call, and this session has no UI. Ask for the mode or the policy to be changed.` };
 		const requestId = randomUUID();
 		const emit = (state: "waiting" | "approved" | "denied") => pi.events.emit("pi-permission-system:permission-request", { requestId, state, source: "tool_call", message: `${MODE_LABEL[mode]} mode asks before this tool call.`, toolName: event.toolName });
 		emit("waiting");
 		let approved = false;
 		try {
 			const preview = event.toolName === "bash" ? String((input as { command?: unknown })?.command ?? "").slice(0, 400) : String((input as { path?: unknown })?.path ?? "");
-			approved = (await ctx.ui.confirm(`${MODE_GLYPH[mode]} ${MODE_LABEL[mode]} · ${decision.reason}`, `${preview}\n\n(Shift+Tab or /nubia:mode changes the mode)`)) === true;
+			approved = (await ctx.ui.confirm(`${MODE_GLYPH[mode]} ${MODE_LABEL[mode]} · ${ask}`, `${preview}\n\n(Shift+Tab or /nubia:mode changes the mode)`)) === true;
 		} finally {
 			emit(approved ? "approved" : "denied");
 		}
-		return approved ? undefined : { block: true, reason: `The human declined this ${event.toolName} call in ${MODE_LABEL[mode]} mode. Do not retry it; propose an alternative or ask what to do.` };
+		return approved ? undefined : { block: true, reason: `The human declined this ${event.toolName} call${hit?.rule === "confirm" ? ` (protected path ${hit.path})` : ` in ${MODE_LABEL[mode]} mode`}. Do not retry it; propose an alternative or ask what to do.` };
 	});
 
 	// Shift+Tab (the isolated home moves Pi's thinking-cycle to Ctrl+Alt+T so
