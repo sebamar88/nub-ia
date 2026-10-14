@@ -22,6 +22,8 @@ export interface ShellBarModel {
 	review?: { headline: string; tone: "ok" | "warn" | "bad" | "none"; detail?: string };
 	/** Live subagents of this session (Status card "Subagents" block), from lib/agents-status-model.ts. */
 	agents?: { headline: string; tone: "active" | "waiting" | "done" | "none"; items: string[] };
+	/** Tier router state (Status card "Router" block), from lib/router-status-model.ts. */
+	router?: { headline: string; tone: "ok" | "warn" | "bad" | "none"; items: string[] };
 	cwd: string;
 	branch: string | null;
 	dirty: number | undefined;
@@ -246,6 +248,14 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 			lines: [
 				theme.fg(model.agents.tone === "active" ? "accent" : model.agents.tone === "waiting" ? "warning" : model.agents.tone === "done" ? "success" : ROLE.LABEL, sanitizeStatus(model.agents.headline)),
 				...model.agents.items.map((item) => label(sanitizeStatus(item))),
+			],
+		}]),
+		// Follows the modelDetails visibility key: it is the model story of the session.
+		...(presentation?.visibility.modelDetails === false || !model.router ? [] : [{
+			title: "Router",
+			lines: [
+				theme.fg(model.router.tone === "ok" ? "success" : model.router.tone === "bad" ? "error" : model.router.tone === "warn" ? "warning" : ROLE.LABEL, sanitizeStatus(model.router.headline)),
+				...model.router.items.map((item) => label(sanitizeStatus(item))),
 			],
 		}]),
 		{ title: "Integrations", lines: model.statuses.length

@@ -810,3 +810,15 @@ test("Status card lists live subagents under Review and shares the agents visibi
 	// A quiet session still shows the block (so the user knows where it lives), with its "none" headline.
 	assert.match(renderShellSidebarBar(model({ agents: { headline: "No subagents", tone: "none", items: [] } }), plainTheme, 60).join("\n"), /Subagents[^\n]*\n[^\n]*No subagents/);
 });
+
+test("Status card shows the Router block after Subagents and hides it with modelDetails", () => {
+	const router = { headline: "1 provider excluded this session", tone: "warn" as const, items: ["balanced → amazon-bedrock/us.anthropic.claude-sonnet-5-5", "excluded github-copilot · rate limit · 3 min ago"] };
+	const data = model({ agents: { headline: "No subagents", tone: "none", items: [] }, router });
+	const text = renderShellSidebarBar(data, plainTheme, 70).join("\n");
+	assert.ok(text.indexOf("Subagents") < text.indexOf("Router") && text.indexOf("Router") < text.indexOf("Integrations"));
+	assert.match(text, /1 provider excluded this session/);
+	assert.match(text, /excluded github-copilot · rate limit · 3 min ago/);
+	for (const width of [1, 8, 24, 70]) assert.ok(renderShellSidebarBar(data, plainTheme, width).every((line) => visibleWidth(line) <= width));
+	const hidden = { ...DEFAULT_VISUAL_SETTINGS, visibility: { ...DEFAULT_VISUAL_SETTINGS.visibility, modelDetails: false } };
+	assert.doesNotMatch(renderShellSidebarBar(data, plainTheme, 70, hidden).join(""), /Router|excluded github-copilot/);
+});

@@ -22,6 +22,7 @@ import {
 	decideRoute,
 	parseTierCatalog,
 } from "../lib/model-tier-router.ts";
+import { ROUTER_STATUS_EVENT, RouterJournal } from "../lib/router-status-model.ts";
 
 export const NUB_IA_PROVIDER = "nub-ia";
 
@@ -94,6 +95,11 @@ function errorMessageOf(message: unknown): string | undefined {
 }
 
 export default function registerNubIaRouter(pi: ExtensionAPI): void {
+	// Status card "Router" block: last model per tier, excluded providers and
+	// why (lib/router-status-model.ts). Per session; the shell reads the channel.
+	const journal = new RouterJournal();
+	const publish = () => pi.events.emit(ROUTER_STATUS_EVENT, journal.payload());
+	pi.on("session_start", () => { journal.reset(); publish(); });
 	for (const tier of MODEL_TIERS) {
 		pi.registerVirtualModel<RouterState>({
 			provider: NUB_IA_PROVIDER,
@@ -115,6 +121,8 @@ export default function registerNubIaRouter(pi: ExtensionAPI): void {
 					const available = availableModels(ctx);
 					console.error(`[nub-ia-router] ${tier} reason=${request.reason} previous=${request.previous ? `${request.previous.model.provider}/${request.previous.model.id}` : "-"} failed=${request.failed ? `${request.failed.model.provider}/${request.failed.model.id}` : "-"} providers=${[...new Set(available.map((m) => m.provider))].join(",")} → ${decision.why}`);
 				}
+				journal.record(tier, decision, request.failed ? { provider: request.failed.model.provider, errorMessage: errorMessageOf(request.failed.message) } : undefined, Date.now());
+				publish();
 				if (!decision.model) {
 					throw new Error(`nub-ia/${tier}: no provider with credentials offers a model for this tier. Run /login, or edit ${PACKAGED_CATALOG_PATH}.`);
 				}

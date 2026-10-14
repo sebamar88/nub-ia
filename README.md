@@ -170,7 +170,7 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 
 - Los agentes del paquete declaran `model: nub-ia/<tier>` en su frontmatter; funcionan igual para cualquier integrante sin configurar nada.
 - Un home nuevo arranca con `defaultProvider: nub-ia`, `defaultModel: balanced`; se cambia con `/model`.
-- El footer muestra `balanced • medium → claude-sonnet-5.5 • medium`; `/session` desglosa costos por modelo físico.
+- El footer muestra `balanced • medium → claude-sonnet-5.5 • medium`; `/session` desglosa costos por modelo físico; el bloque "Router" del panel Status lista el modelo resuelto por tier y los providers excluidos en la sesión con su causa (rate limit, overloaded, auth…).
 - Para cambiar la política: editar `assets/model-tiers.json`, o sobreescribirlo por repo en `.pi/nub-ia/model-tiers.json`.
 - Para fijar un modelo concreto a un agente: `/nubia:models` o `/nubia:profiles` (gana sobre el tier).
 - Cada integrante hace `/login` una vez por provider que tenga (Copilot, OpenAI, o variables `AWS_*` para Bedrock).

@@ -70,9 +70,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 ## Fase 2 — Router de modelos
 
-- [ ] **T2.1 Estado del router en `/nubia:status`**
-  `lib/model-tier-router.ts`: exponer providers excluidos en la sesión con causa (429/5xx) y timestamp;
-  `extensions/nubia-shell.ts`: bloque "Router". *Cierre:* tras un 429 simulado el panel muestra el provider excluido.
+- [x] **T2.1 Estado del router en `/nubia:status`**
+  `lib/router-status-model.ts`: `RouterJournal` (modelo resuelto por tier, providers excluidos con causa clasificada
+  — rate limit / overloaded / server error / timeout / auth / network — y hora, tiers sin modelo), canal
+  `nubia:router-status/v1`, `routerStatusLines`. Bloque "Router" en Status (toggle `modelDetails`). El texto del error
+  nunca sale del router.
 - [ ] **T2.2 Presupuesto por sesión/día**
   `assets/model-tiers.json`: `budget: { dailyUsd, onExceed: "warn"|"degrade" }`; el router lee el gasto del JSONL de
   métricas y degrada `strong→balanced→fast`. *Cierre:* tests de umbral; aviso en footer; el override por repo solo

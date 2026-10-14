@@ -112,6 +112,7 @@ import {
 import { accountIdFromToken, CODEX_PROVIDER, CODEX_USAGE_URL, NAN_PROVIDER, NAN_QUOTA_URL, parseCodexUsage, parseNanQuota, parseProviderUsage, parseUsageHeaders, parseUsageSource, usageScopeProviders, UsageSourceRegistry, UsageStore, USAGE_SOURCE_EVENT, type ProviderUsage, type UsageSource } from "../lib/shell-usage.ts";
 import { UsageView } from "../lib/shell-usage-view.ts";
 import { AGENTS_STATUS_EVENT, type AgentsStatusPayload, agentsStatusLines, parseAgentsStatus } from "../lib/agents-status-model.ts";
+import { ROUTER_STATUS_EVENT, type RouterStatusPayload, parseRouterStatus, routerStatusLines } from "../lib/router-status-model.ts";
 import { sidebarHeader, sidebarPart, sidebarState, VISUAL_SETTINGS_CHANGED, type SidebarRail } from "../lib/shell-sidebar.ts";
 import { installSidebar, invalidateSidebar, narrowStatusOwner, STATUS_OWNER } from "../lib/shell-sidebar-layout.ts";
 import { SessionChanges, SESSION_CHANGE_EVENT } from "../lib/session-changes.ts";
@@ -1691,6 +1692,11 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		const parsed = parseAgentsStatus(payload);
 		if (parsed) agentsStatus = parsed;
 	});
+	let routerStatus: RouterStatusPayload | undefined;
+	pi.events.on(ROUTER_STATUS_EVENT, (payload) => {
+		const parsed = parseRouterStatus(payload);
+		if (parsed) routerStatus = parsed;
+	});
 	let shown = "";
 	const applyChanges = (ctx: ExtensionContext, model: ChangesModel) => {
 		const fingerprint = changesFingerprint(model);
@@ -1762,6 +1768,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				changes: { files: tracker.model.files.length, added: tracker.model.added, deleted: tracker.model.deleted, notice: tracker.model.notice },
 				review: reviewStatus(ctx.cwd, tracker.model.files.length),
 				agents: agentsStatusLines(agentsStatus, deps.now()),
+				router: routerStatusLines(routerStatus, deps.now()),
 			});
 			// At narrow fullscreen widths only one status row paints: a top header
 			// suppresses the bottom bar in the layout, and otherwise the bottom bar
