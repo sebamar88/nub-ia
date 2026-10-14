@@ -41,6 +41,7 @@ export const COMMAND_PALETTE_CATALOG: readonly CommandPaletteCatalogGroup[] = [
 			{ command: "nubia:yolo", label: "🚀 YOLO 🔥 session permission" },
 			{ command: "nubia:changes", label: "Browse captured changes" },
 			{ command: "nubia:review", label: "4R code review of the current diff" },
+			{ command: "nubia:grill", label: "Grill me about a plan (alias /nubia:quiz)" },
 			{ command: "nubia:agents", label: "Subagents" },
 			{ command: "nubia:usage", label: "Subscription usage" },
 		],

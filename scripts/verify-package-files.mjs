@@ -41,6 +41,7 @@ const requiredPaths = [
   "extensions/rtk-rewrite.ts",
   "extensions/nub-ia-review.ts",
   "extensions/nubia-permission-mode.ts",
+  "extensions/nubia-grill.ts",
   "lib/permission-mode-policy.ts",
   "lib/path-permission-policy.ts",
   "lib/agent-tool-policy.ts",

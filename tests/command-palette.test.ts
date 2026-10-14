@@ -374,7 +374,7 @@ test("COMMAND_PALETTE_CATALOG matches the curated command set, in order", () => 
 		"nubia:toggle-rose",
 		"nubia:toggle-text-logo",
 	]);
-	assert.deepEqual(byTitle("Session"), ["nubia:yolo", "nubia:changes", "nubia:review", "nubia:agents", "nubia:usage"]);
+	assert.deepEqual(byTitle("Session"), ["nubia:yolo", "nubia:changes", "nubia:review", "nubia:grill", "nubia:agents", "nubia:usage"]);
 	assert.deepEqual(byTitle("Diagnostics"), ["nubia:status", "nubia:doctor"]);
 	assert.equal(byTitle("SDD"), undefined);
 	assert.deepEqual(byTitle("Skills"), ["skill-registry:refresh"]);

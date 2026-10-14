@@ -115,6 +115,7 @@ referencia completa. Dentro de la sesión (`/nubia:commands` lista todo):
 | `/nubia:review [staged\|working\|<ref>]` | Review 4R del diff (también la herramienta `nub_review`). |
 | `/nubia:review-mode` | Gate de push: `status`, `enable` (confirmar), `strict` (rechazar sin review), `disable`. |
 | `/nubia:models`, `/nubia:profiles` | Modelos por agente y perfiles (tecla `i` importa un preset de `assets/profiles/`). |
+| `/nubia:grill [tema]` (alias `/nubia:quiz`) | Lanza la skill `nubia-grill-me`: entrevista por rondas sobre el plan o la decisión indicada (o la que se está discutiendo) hasta compartir el entendimiento; nada se implementa hasta confirmar. |
 | `/nubia:mode [plan\|manual\|accept-edits\|auto\|yolo\|status\|default <m>]` | Modo de permisos (**Shift+Tab** cicla): plan (solo lectura), manual (pregunta todo), accept-edits, auto (default), yolo. Ver [docs/permission-modes.md](docs/permission-modes.md). |
 | `/nubia:persona`, `/nubia:yolo`, `/nubia:background-subagents` | Persona del asistente, modo YOLO, subagentes en segundo plano. |
 | `/nubia:banner`, `/nubia:banner-color`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo` | Banner de inicio (isologo + wordmark, paleta `lime`). |
@@ -201,7 +202,7 @@ instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail@4.13.0`
 
 ### Skills del equipo
 
-Además de las heredadas de gentle-shell (`branch-pr`, `chained-pr`, `judgment-day`, `work-unit-commits`, …), el paquete trae **`nubia-grill-me`** (adaptada de [`grilling` de Matt Pocock](https://github.com/mattpocock/skills), MIT): "grill me" / "interrogame" dispara una entrevista por rondas que mapea el plan como árbol de decisiones, recomienda una respuesta por pregunta (un "sí" la acepta), busca los hechos por su cuenta y no implementa nada hasta que confirmás que el entendimiento es compartido. Usa `ask_user_question` cuando la ronda entra en 4 preguntas.
+Además de las heredadas de gentle-shell (`branch-pr`, `chained-pr`, `judgment-day`, `work-unit-commits`, …), el paquete trae **`nubia-grill-me`** (adaptada de [`grilling` de Matt Pocock](https://github.com/mattpocock/skills), MIT): "grill me" / "interrogame" dispara una entrevista por rondas que mapea el plan como árbol de decisiones, recomienda una respuesta por pregunta (un "sí" la acepta), busca los hechos por su cuenta y no implementa nada hasta que confirmás que el entendimiento es compartido. Usa `ask_user_question` cuando la ronda entra en 4 preguntas. Se lanza con `/nubia:grill [tema]` o `/nubia:quiz`.
 
 ### Review 4R propio (`nub_review`)
 
