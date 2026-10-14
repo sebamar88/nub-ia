@@ -1,0 +1,3 @@
+```json
+{"findings":[{"severity":"WARNING","location":"src/api/users.ts:13","claim":"Magic number 50 as the page size hides a business rule","evidence":"`LIMIT \" + 50` inline in the query string","suggestion":"Name it, e.g. `const SEARCH_PAGE_SIZE = 50`"}]}
+```

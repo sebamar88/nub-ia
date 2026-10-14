@@ -1,0 +1,1 @@
+{"findings":[{"severity":"SUGGESTION","location":"src/config.ts:4","claim":"The comment 'temporary while the CI role is being provisioned' describes an intent with no owner or deadline","evidence":"`// temporary while the CI role is being provisioned`","suggestion":"Link the tracking ticket or remove once the role exists"}]}

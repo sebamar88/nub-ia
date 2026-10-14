@@ -1,0 +1,29 @@
+{
+  "description": "Parameterized queries replaced by string concatenation in two handlers; a React component renders user text through default escaping (not a sink).",
+  "verdict": "block",
+  "lenses": {
+    "review-risk": {
+      "mustFlag": [
+        { "location": "src/api/users.ts", "minSeverity": "BLOCKER", "claimPattern": "sql|inject|concaten|parameter" }
+      ],
+      "mustNotFlag": [
+        { "location": "src/components/UserCard.tsx" }
+      ]
+    },
+    "review-readability": {
+      "mustFlag": [
+        { "location": "src/api/users.ts", "claimPattern": "magic|50|constant" }
+      ]
+    },
+    "review-reliability": {
+      "mustFlag": [
+        { "location": "src/api/users.ts", "claimPattern": "test" }
+      ]
+    },
+    "review-resilience": {
+      "mustNotFlag": [
+        { "location": "src/components/UserCard.tsx" }
+      ]
+    }
+  }
+}

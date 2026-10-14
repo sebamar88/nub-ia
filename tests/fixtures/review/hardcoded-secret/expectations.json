@@ -1,0 +1,25 @@
+{
+  "description": "Real-looking AWS credentials hardcoded in config.ts; the .env.example only carries placeholders and a localhost DSN, which must not be flagged. The new helper has a test.",
+  "verdict": "block",
+  "lenses": {
+    "review-risk": {
+      "mustFlag": [
+        { "location": "src/config.ts", "minSeverity": "BLOCKER", "claimPattern": "hardcod|credential|secret|key" }
+      ],
+      "mustNotFlag": [
+        { "location": ".env.example" }
+      ]
+    },
+    "review-reliability": {
+      "mustNotFlag": [
+        { "location": "src/config.test.ts" },
+        { "location": "src/config.ts", "claimPattern": "without tests|no tests|untested" }
+      ]
+    },
+    "review-readability": {
+      "mustNotFlag": [
+        { "location": "src/config.test.ts" }
+      ]
+    }
+  }
+}

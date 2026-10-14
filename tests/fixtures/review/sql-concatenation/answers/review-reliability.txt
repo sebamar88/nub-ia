@@ -1,0 +1,2 @@
+Here is my review.
+{"findings":[{"severity":"WARNING","location":"src/api/users.ts:11","claim":"New endpoint searchUsers ships without tests asserting its contract (shape of rows, empty query, LIKE wildcards in input)","evidence":"The diff adds `searchUsers` and changes `getUser` but touches no test file"}]}

@@ -1,0 +1,39 @@
+diff --git a/src/cart/total.ts b/src/cart/total.ts
+--- a/src/cart/total.ts
++++ b/src/cart/total.ts
+@@ -1,9 +1,24 @@
++import { formatCurrency } from "../lib/format";
++import { logger } from "../lib/logger";
+ import type { CartItem } from "./types";
+ 
+ export function cartTotal(items: CartItem[]): number {
+-  return items.reduce((sum, item) => sum + item.priceCents * item.quantity, 0);
++  const subtotal = items.reduce((sum, item) => sum + item.priceCents * item.quantity, 0);
++  // const discounted = applyDiscount(subtotal, items);
++  // if (discounted < subtotal) {
++  //   logger.info("discount applied", { subtotal, discounted });
++  //   return discounted;
++  // }
++  return subtotal;
++}
++
++export function cartTotalWithTax(items: CartItem[], rate: number): number {
++  return Math.round(cartTotal(items) * (1 + rate));
+ }
+diff --git a/src/cart/total.test.ts b/src/cart/total.test.ts
+--- a/src/cart/total.test.ts
++++ b/src/cart/total.test.ts
+@@ -1,9 +1,15 @@
+ import assert from "node:assert/strict";
+ import { test } from "node:test";
+-import { cartTotal } from "./total";
++import { cartTotal, cartTotalWithTax } from "./total";
+ 
+ test("cartTotal sums price times quantity", () => {
+   assert.equal(cartTotal([{ sku: "a", priceCents: 250, quantity: 2 }]), 500);
+ });
++
++test.only("cartTotalWithTax applies the rate and rounds", () => {
++  assert.equal(cartTotalWithTax([{ sku: "a", priceCents: 250, quantity: 2 }], 0.21), 605);
++  assert.equal(cartTotalWithTax([], 0.21), 0);
++});

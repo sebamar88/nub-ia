@@ -1,0 +1,28 @@
+{
+  "description": "A commented-out block and two unused imports land in production code; the new test is committed with test.only, which silences the rest of the file in CI.",
+  "verdict": "block",
+  "lenses": {
+    "review-reliability": {
+      "mustFlag": [
+        { "location": "src/cart/total.test.ts", "minSeverity": "BLOCKER", "claimPattern": "test\\.only|only" }
+      ]
+    },
+    "review-readability": {
+      "mustFlag": [
+        { "location": "src/cart/total.ts", "claimPattern": "commented|dead" },
+        { "location": "src/cart/total.ts", "claimPattern": "unused|import" }
+      ]
+    },
+    "review-risk": {
+      "mustNotFlag": [
+        { "location": "src/cart/total.ts" },
+        { "location": "src/cart/total.test.ts" }
+      ]
+    },
+    "review-resilience": {
+      "mustNotFlag": [
+        { "location": "src/cart/total.ts" }
+      ]
+    }
+  }
+}

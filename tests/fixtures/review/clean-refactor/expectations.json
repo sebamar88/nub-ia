@@ -1,0 +1,10 @@
+{
+  "description": "Rename of a cryptic helper with a named constant, a doc comment and behaviour tests covering edges. Every lens should come back clean; the local constant is not a magic-number finding.",
+  "verdict": "approve",
+  "lenses": {
+    "review-risk": { "mustNotFlag": [ { "location": "src/" } ] },
+    "review-reliability": { "mustNotFlag": [ { "location": "src/" } ] },
+    "review-resilience": { "mustNotFlag": [ { "location": "src/" } ] },
+    "review-readability": { "mustNotFlag": [ { "location": "src/lib/slug.ts", "claimPattern": "magic|constant|80" } ] }
+  }
+}

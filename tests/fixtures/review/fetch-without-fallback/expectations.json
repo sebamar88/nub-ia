@@ -1,0 +1,22 @@
+{
+  "description": "A scheduled job loses its retry, its non-2xx guard and its metrics; the tests covering those paths are deleted. replaceAll on a bad response can wipe the table.",
+  "verdict": "block",
+  "lenses": {
+    "review-resilience": {
+      "mustFlag": [
+        { "location": "src/jobs/sync-prices.ts", "minSeverity": "CRITICAL", "claimPattern": "retry|fallback|fail|non-2xx|ok" },
+        { "location": "src/jobs/sync-prices.ts", "claimPattern": "metric|observab|visib|alert" }
+      ]
+    },
+    "review-reliability": {
+      "mustFlag": [
+        { "location": "src/jobs/sync-prices.test.ts", "minSeverity": "WARNING", "claimPattern": "test|coverage|deleted|removed" }
+      ]
+    },
+    "review-risk": {
+      "mustNotFlag": [
+        { "location": "src/jobs/sync-prices.ts" }
+      ]
+    }
+  }
+}

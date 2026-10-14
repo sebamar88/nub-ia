@@ -1,0 +1,49 @@
+diff --git a/src/lib/slug.ts b/src/lib/slug.ts
+--- a/src/lib/slug.ts
++++ b/src/lib/slug.ts
+@@ -1,7 +1,12 @@
+-export function s(t: string): string {
+-  return t.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
++const MAX_SLUG_LENGTH = 80;
++
++/** URL-safe slug: lowercase ASCII words joined by single dashes, at most MAX_SLUG_LENGTH chars. */
++export function slugify(title: string): string {
++  const words = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
++  return words.replace(/^-|-$/g, "").slice(0, MAX_SLUG_LENGTH);
+ }
+diff --git a/src/posts/create.ts b/src/posts/create.ts
+--- a/src/posts/create.ts
++++ b/src/posts/create.ts
+@@ -1,8 +1,8 @@
+-import { s } from "../lib/slug";
++import { slugify } from "../lib/slug";
+ import { postRepo } from "../repos/posts";
+ 
+ export async function createPost(input: { title: string; body: string }) {
+-  const slug = s(input.title);
++  const slug = slugify(input.title);
+   return postRepo.insert({ ...input, slug });
+ }
+diff --git a/src/lib/slug.test.ts b/src/lib/slug.test.ts
+--- a/src/lib/slug.test.ts
++++ b/src/lib/slug.test.ts
+@@ -0,0 +1,19 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++import { slugify } from "./slug";
++
++test("slugify lowercases and joins words with single dashes", () => {
++  assert.equal(slugify("Hello,  World!"), "hello-world");
++});
++
++test("slugify trims leading and trailing dashes", () => {
++  assert.equal(slugify("--Already--"), "already");
++});
++
++test("slugify caps the length at 80 characters", () => {
++  assert.equal(slugify("a".repeat(100)).length, 80);
++});
++
++test("slugify returns an empty string for input without alphanumerics", () => {
++  assert.equal(slugify("!!!"), "");
++});
