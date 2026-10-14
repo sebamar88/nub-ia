@@ -287,6 +287,7 @@ pnpm run install:rtk            # (re)descarga el binario rtk pinneado
 node scripts/trace-brand.mjs isologo|wordmark   # regenera el arte del banner desde assets/brand/
 ```
 
+Qué es, qué trae, comparativa y benchmarks medidos (system prompt, tokens, rtk): [docs/nub-ia-overview.md](docs/nub-ia-overview.md).
 Cómo contribuir (idioma, tests, precedencia, mergeabilidad): [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
 Documentación: [referencia técnica](docs/readme-reference.md) (incluye [Organic Driven Development](docs/readme-reference.md#organic-driven-development)),

@@ -74,6 +74,8 @@ const requiredPaths = [
   "scripts/upstream-diff.mjs",
   "scripts/verify-signature.mjs",
   "scripts/bump-pins.mjs",
+  "scripts/bench-prompt.mjs",
+  "docs/nub-ia-overview.md",
   "assets/maintainers.allowed_signers",
   "lib/nubia-status-blocks.ts",
   "lib/approved-packages.ts",

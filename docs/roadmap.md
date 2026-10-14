@@ -272,6 +272,16 @@ persiste ni se activa por config/env/tool.
 
 ---
 
+## Seguimiento abierto (fuera del plan original)
+
+- **Dieta de schemas de herramientas.** `docs/nub-ia-overview.md` midió que las 26 herramientas registradas pesan ~21 KB
+  (~5 300 tokens) por turno frío, más que todo el harness en `minimal`. Candidatos: exponer `orchestrator_*` y los
+  `subagent_*` secundarios de forma diferida (codemode / deferred), y recortar descripciones de `orchestrator_session_id`
+  (3,3 KB), `subagent_run` (2,2 KB) y `orchestrator_list` (1,8 KB).
+- **Re-medir rtk 1.0.1** cuando el PR de bumps lo proponga: con 0.51.0 solo `git status` y `ls` comprimen.
+- **Merge con upstream** gentle-shell (105 archivos nuevos allá, modelo de modos distinto).
+- **Skills del equipo** cuando se confirmen los stacks (T3.4).
+
 ## Grafo de dependencias
 
 ```
