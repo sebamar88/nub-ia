@@ -104,9 +104,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   `reportPath`, `sessionId`, `cwd`, `path` y redacta strings, `teamBatches` ≤ 64 filas / 256 KiB, `sendTeamBatches`
   best effort sin reintento). Enganchado en `appendMetricRows` para runtime, review y audit. Documentado el campo a
   campo en `docs/telemetry.md`.
-- [ ] **T3.4 Catálogo de skills Nubiral**
-  `skills/nubia-aws/`, `skills/nubia-terraform/`, `skills/nubia-bedrock/` (ajustar a los stacks reales). *Cierre:* pasan
-  `skill-registry`; frontmatter válido; ≤ 150 líneas cada una.
+- [x] **T3.4 Catálogo de skills Nubiral**
+  `skills/nubia-bedrock`, `skills/nubia-terraform`, `skills/nubia-aws` (≤ 50 líneas cada una, estructura de la guía de
+  estilo, atadas a los modos de permiso / allowlist / redacción de Nub-IA). Test de frontmatter, orden de secciones y
+  tamaño. *Ajustar a los stacks reales del equipo cuando se confirmen* (hoy: AWS/Bedrock/Terraform por el contexto de
+  Nubiral).
 
 ## Fase 4 — Mantenibilidad del fork
 
