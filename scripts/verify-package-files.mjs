@@ -61,6 +61,7 @@ const requiredPaths = [
 	"runtime/nubia-resume-hint.mjs",
 	"runtime/usage-report.mjs",
 	"lib/usage-report.ts",
+	"lib/team-metrics-sink.ts",
 	"scripts/usage-cli.mjs",
   "scripts/install-tui-mode-setting.mjs",
   "scripts/install-keybindings.mjs",

@@ -1,6 +1,7 @@
 import { appendFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { nubIaConfigHome } from "./config-home.ts";
+import { sendTeamBatches, teamBatches, teamSinkConfig, type Fetcher } from "./team-metrics-sink.ts";
 
 // Local JSONL sink for in-process metrics: one JSON line per row at
 // `<configHome>/metrics/<name>-<YYYY-MM>.jsonl`. The runtime collector writes
@@ -19,6 +20,10 @@ export interface RuntimeMetricsSinkOptions {
 	configHome?: string;
 	now?: () => Date;
 	maxBytes?: number;
+	/** Test hook for the optional team sink (defaults to globalThis.fetch). */
+	fetcher?: Fetcher;
+	/** Receives the team-sink outcome; absent means fire-and-forget. */
+	onTeamSink?: (result: { sent: number; failed: number }) => void;
 }
 
 export function runtimeMetricsSinkEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -60,6 +65,17 @@ export async function appendMetricRows(
 		return 0;
 	}
 	await appendFile(path, rows.map((row) => `${JSON.stringify(row)}\n`).join(""), { mode: 0o600 });
+	// Optional team mirror (lib/team-metrics-sink.ts): same rows, sanitized,
+	// best effort, never awaited by the caller's decision path.
+	const team = teamSinkConfig(env);
+	if (team) {
+		const fetcher: Fetcher | undefined = options.fetcher ?? (typeof globalThis.fetch === "function" ? (url, init) => globalThis.fetch(url, init) : undefined);
+		if (fetcher) {
+			const outcome = sendTeamBatches(teamBatches(name, rows, team, (options.now ?? (() => new Date()))()), team, fetcher).catch(() => ({ sent: 0, failed: 1 }));
+			if (options.onTeamSink) options.onTeamSink(await outcome);
+			else void outcome;
+		}
+	}
 	return rows.length;
 }
 

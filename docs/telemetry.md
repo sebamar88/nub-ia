@@ -6,7 +6,7 @@ Nub-IA agrega en proceso métricas de uso del runtime (tokens, duraciones, model
 ~/.pi/nub-ia/metrics/runtime-<YYYY-MM>.jsonl
 ```
 
-Un archivo por mes, una fila JSON por línea. Los datos no salen de tu máquina: nada se envía a ningún servicio.
+Un archivo por mes, una fila JSON por línea. Por defecto los datos no salen de tu máquina: nada se envía a ningún servicio (ver "Espejo de equipo" para el opt-in).
 
 - **Apagado:** `NUB_IA_METRICS=off` desactiva la escritura por completo.
 - Los hijos delegados reportan a través del padre (`lib/runtime-metrics-children.ts`); nunca escriben por su cuenta.
@@ -32,3 +32,13 @@ contenido del diff**; `diffHash` solo agrupa las filas de una corrida. Esquema: 
 `nub-ia usage [--month AAAA-MM] [--json]` (o `/nubia:usage --month [AAAA-MM]` en la shell) resume el mes: respuestas y
 tokens por clase de agente y por modelo, gasto por día (de los ledgers `spend-<fecha>.json` que alimenta el presupuesto
 del router), veredictos de review y conteos de auditoría. Todo local.
+
+## Espejo de equipo (opt-in)
+
+Con `NUB_IA_METRICS_ENDPOINT=https://…` (y opcionalmente `NUB_IA_METRICS_TOKEN`, enviado como `Authorization: Bearer`,
+y `NUB_IA_METRICS_INSTALLATION` como etiqueta estable no identificatoria), cada lote de filas que se escribe localmente
+(runtime, review, audit) se envía también por `POST` en JSON (`nub-ia.team-metrics/v1`, ≤ 64 filas / 256 KiB por lote,
+5 s de timeout, sin reintentos ni cola: el archivo local es el registro, el envío es un espejo). Solo `https://`
+(`http://` únicamente a localhost). Antes de salir, cada fila pasa por la redacción de secretos y se le quitan los campos
+locales `repository`, `reportPath`, `sessionId`, `cwd`, `path`. `NUB_IA_METRICS=off` apaga también el espejo. Apagado por
+defecto; nadie lo activa por vos.

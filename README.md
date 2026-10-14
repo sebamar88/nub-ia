@@ -142,7 +142,8 @@ Todas se llaman `NUB_IA_*` (el launcher las pasa a los procesos hijos).
 | `NUB_IA_TEAM_PACKAGES` | Paquetes Pi que `setup` instala (default: la lista del paquete; vacío = ninguno). |
 | `NUB_IA_CONFIG_HOME` | Config global (default `~/.pi/nub-ia`; lo que solo exista en `~/.pi/gentle-ai` se sigue leyendo). |
 | `NUB_IA_REVIEW_GATE` | `confirm` \| `strict` \| `off` para la sesión (los archivos de política tienen prioridad). |
-| `NUB_IA_METRICS=off` | Desactiva el sink local de métricas (`~/.pi/nub-ia/metrics/runtime-<AAAA-MM>.jsonl`). |
+| `NUB_IA_METRICS=off` | Desactiva métricas, review y auditoría locales (`~/.pi/nub-ia/{metrics,audit}/`). |
+| `NUB_IA_METRICS_ENDPOINT`, `NUB_IA_METRICS_TOKEN` | Opt-in: espejo de esas filas (sin rutas ni secretos) a un endpoint `https://` del equipo; ver [docs/telemetry.md](docs/telemetry.md). |
 | `NUB_IA_NO_SELF_UPDATE=1` | `nub-ia update` no actualiza el checkout del paquete. |
 | `NUB_IA_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` (postinstall y auto-reparación al arrancar). |
 | `NUB_IA_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |

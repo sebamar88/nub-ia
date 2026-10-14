@@ -99,9 +99,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   día desde los ledgers, veredictos de review, conteos de auditoría) + `scripts/usage-cli.mjs`; `nub-ia usage
   [--month] [--json]` (vía copia runtime generada) y `/nubia:usage --month`. Las filas runtime no tienen timestamp ni
   costo, por eso el detalle diario sale del ledger de gasto y los tokens quedan por mes.
-- [ ] **T3.3 Sink de métricas de equipo (opt-in)**
-  `NUB_IA_METRICS_ENDPOINT` + token; envío por lote, sin PII, apagado por defecto. *Cierre:* `docs/telemetry.md` lista
-  los campos que salen; test de redacción. Depende de T7.5.
+- [x] **T3.3 Sink de métricas de equipo (opt-in)**
+  `lib/team-metrics-sink.ts` (`teamSinkConfig` solo https/localhost, `sanitizeForTeam` quita `repository`,
+  `reportPath`, `sessionId`, `cwd`, `path` y redacta strings, `teamBatches` ≤ 64 filas / 256 KiB, `sendTeamBatches`
+  best effort sin reintento). Enganchado en `appendMetricRows` para runtime, review y audit. Documentado el campo a
+  campo en `docs/telemetry.md`.
 - [ ] **T3.4 Catálogo de skills Nubiral**
   `skills/nubia-aws/`, `skills/nubia-terraform/`, `skills/nubia-bedrock/` (ajustar a los stacks reales). *Cierre:* pasan
   `skill-registry`; frontmatter válido; ≤ 150 líneas cada una.
