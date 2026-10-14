@@ -31,11 +31,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 ## Fase 1 — Review 4R: profundidad
 
-- [ ] **T1.1 Chunking de diffs grandes** *(grande)*
-  `lib/nub-review.ts`: `splitDiffByFile()` / por hunk cuando un archivo supera el límite; `consolidateChunks()`.
-  `extensions/nub-ia-review.ts`: lentes por chunk con concurrencia acotada, un solo reporte y un solo `diffHash` del
-  diff total; `DIFF_MAX_BYTES` pasa a ser límite por chunk. *Cierre:* un diff de 1 MiB produce reporte único sin error;
-  tests de split/merge. Depende de T0.1.
+- [x] **T1.1 Chunking de diffs grandes**
+  `lib/nub-review.ts`: `splitDiffByFile`, `splitDiff` (empaqueta archivos enteros bajo `DIFF_MAX_BYTES`; un archivo
+  mayor se parte por hunk repitiendo el header; un hunk solo mayor queda entero), `mergeLensResults` (concatena
+  hallazgos, suma descartados, un fallo en cualquier chunk marca el lente como fallido). `DIFF_TOTAL_MAX_BYTES` = 8×
+  como tope duro. `extensions/nub-ia-review.ts`: lentes × chunks con `LENS_CONCURRENCY = 4`; un reporte, un hash.
 - [ ] **T1.2 Contexto de repo para los lentes**
   `assets/agents/review-*.md`: fomentar `read` sobre archivos tocados con presupuesto (N archivos / M líneas).
   `extensions/nub-ia-review.ts`: pasar rutas tocadas y `cwd`. *Cierre:* fixture cuyo hallazgo correcto requiere ver el

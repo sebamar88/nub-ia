@@ -78,7 +78,10 @@ function diffArgs(scope: DiffScope): string[] {
 	return [...common, "--end-of-options", `${scope.ref}...HEAD`];
 }
 
+/** Largest diff a single lens call receives; bigger diffs are split (splitDiff). */
 export const DIFF_MAX_BYTES = 400 * 1024;
+/** Hard cap on the whole diff: beyond this the review refuses rather than fan out dozens of calls. */
+export const DIFF_TOTAL_MAX_BYTES = 8 * DIFF_MAX_BYTES;
 
 /**
  * The unified diff for `scope`, or an explanation of why there is nothing to
@@ -97,10 +100,108 @@ export async function collectDiff(git: GitRunner, scope: DiffScope | { kind: "au
 	if (result.code !== 0) return { error: `git diff failed: ${result.stderr.trim() || `exit ${result.code}`}` };
 	const diff = result.stdout;
 	if (diff.trim().length === 0) return { error: `nothing to review: no ${describeScope(resolved)}` };
-	if (Buffer.byteLength(diff, "utf8") > DIFF_MAX_BYTES) {
-		return { error: `diff is ${Math.round(Buffer.byteLength(diff, "utf8") / 1024)} KiB, above the ${DIFF_MAX_BYTES / 1024} KiB review bound; review a smaller range (nub_review with baseRef) or split the change` };
+	if (Buffer.byteLength(diff, "utf8") > DIFF_TOTAL_MAX_BYTES) {
+		return { error: `diff is ${Math.round(Buffer.byteLength(diff, "utf8") / 1024)} KiB, above the ${DIFF_TOTAL_MAX_BYTES / 1024} KiB review bound; review a smaller range (nub_review with baseRef) or split the change` };
 	}
 	return { scope: resolved, diff };
+}
+
+// --- chunking -----------------------------------------------------------------
+
+const bytes = (text: string): number => Buffer.byteLength(text, "utf8");
+
+/** The per-file sections of a unified diff, each starting at its `diff --git` line. */
+export function splitDiffByFile(diff: string): string[] {
+	const files: string[] = [];
+	let current: string[] = [];
+	for (const line of diff.split("\n")) {
+		if (line.startsWith("diff --git ") && current.length > 0) {
+			files.push(current.join("\n"));
+			current = [];
+		}
+		current.push(line);
+	}
+	if (current.length > 0) files.push(current.join("\n"));
+	return files.filter((file) => file.trim().length > 0).map((file) => (file.endsWith("\n") ? file : `${file}\n`));
+}
+
+/**
+ * Splits one file section whose body exceeds `maxBytes` at hunk boundaries,
+ * repeating the file header on every piece so each stays a valid diff. A
+ * single hunk above the bound is left whole: it is still the smallest unit a
+ * lens can judge, and the model gets to see all of it.
+ */
+function splitFileByHunk(file: string, maxBytes: number): string[] {
+	const lines = file.split("\n");
+	const firstHunk = lines.findIndex((line) => line.startsWith("@@"));
+	if (firstHunk === -1) return [file];
+	const header = `${lines.slice(0, firstHunk).join("\n")}\n`;
+	const hunks: string[] = [];
+	let current: string[] = [];
+	for (const line of lines.slice(firstHunk)) {
+		if (line.startsWith("@@") && current.length > 0) {
+			hunks.push(`${current.join("\n")}\n`);
+			current = [];
+		}
+		current.push(line);
+	}
+	if (current.length > 0) hunks.push(current.join("\n").replace(/\n*$/, "\n"));
+	const pieces: string[] = [];
+	let body = "";
+	for (const hunk of hunks) {
+		if (body.length > 0 && bytes(header) + bytes(body) + bytes(hunk) > maxBytes) {
+			pieces.push(header + body);
+			body = "";
+		}
+		body += hunk;
+	}
+	if (body.length > 0) pieces.push(header + body);
+	return pieces;
+}
+
+/**
+ * Chunks the diff so no lens call exceeds `maxBytes`: whole files are packed
+ * greedily in order, and a file larger than the bound is split by hunk. The
+ * result is a list of valid unified diffs whose concatenation covers the input.
+ */
+export function splitDiff(diff: string, maxBytes: number = DIFF_MAX_BYTES): string[] {
+	const units = splitDiffByFile(diff).flatMap((file) => (bytes(file) > maxBytes ? splitFileByHunk(file, maxBytes) : [file]));
+	const chunks: string[] = [];
+	let current = "";
+	for (const unit of units) {
+		if (current.length > 0 && bytes(current) + bytes(unit) > maxBytes) {
+			chunks.push(current);
+			current = "";
+		}
+		current += unit;
+	}
+	if (current.length > 0) chunks.push(current);
+	return chunks;
+}
+
+/**
+ * Merges the per-chunk answers of the lenses back into one result per lens:
+ * findings are concatenated, malformed-entry counts summed, and a lens that
+ * failed on any chunk is reported failed (so the verdict goes INCOMPLETE
+ * unless a blocker was found elsewhere) with every chunk's error listed.
+ */
+export function mergeLensResults(perChunk: readonly (readonly LensResult[])[]): LensResult[] {
+	const byLens = new Map<ReviewLens, LensResult[]>();
+	for (const chunk of perChunk) for (const result of chunk) byLens.set(result.lens, [...(byLens.get(result.lens) ?? []), result]);
+	return [...byLens.entries()].map(([lens, results]) => {
+		const failures = results.map((result, index) => (result.error ? `chunk ${index + 1}/${results.length}: ${result.error}` : undefined)).filter((entry): entry is string => entry !== undefined);
+		const dropped = results.reduce((sum, result) => sum + (result.dropped ?? 0), 0);
+		const model = results.find((result) => result.error === undefined)?.model ?? results[0]!.model;
+		const rawExcerpt = results.find((result) => result.rawExcerpt)?.rawExcerpt;
+		return {
+			lens,
+			model,
+			findings: results.flatMap((result) => result.findings),
+			...(failures.length ? { error: results.length === 1 ? results[0]!.error : failures.join("; ") } : {}),
+			...(rawExcerpt ? { rawExcerpt } : {}),
+			...(dropped ? { dropped } : {}),
+		};
+	});
 }
 
 export function hashDiff(diff: string): string {

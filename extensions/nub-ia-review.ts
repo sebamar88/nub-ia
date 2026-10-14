@@ -42,8 +42,10 @@ import {
 	collectDiff,
 	hashDiff,
 	isGitPush,
+	mergeLensResults,
 	parseLensOutputDetailed,
 	pushGateQuestion,
+	splitDiff,
 	summarizeReport,
 } from "../lib/nub-review.ts";
 
@@ -52,6 +54,22 @@ const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
 
 const LENS_TIMEOUT_MS = 6 * 60_000;
+// Lens calls in flight at once across all chunks: four lenses on a one-chunk
+// diff keep today's full parallelism; a split diff queues the rest.
+const LENS_CONCURRENCY = 4;
+
+async function mapBounded<T, R>(items: readonly T[], limit: number, run: (item: T) => Promise<R>): Promise<R[]> {
+	const results: R[] = new Array(items.length);
+	let next = 0;
+	const worker = async () => {
+		while (next < items.length) {
+			const index = next++;
+			results[index] = await run(items[index]!);
+		}
+	};
+	await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+	return results;
+}
 // The diff is untrusted content: it is wrapped in a fence the diff itself
 // cannot close (a long random marker), and the lens is told that nothing
 // inside the fence is an instruction.
@@ -260,17 +278,24 @@ export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind
 	const { agents, missing } = discoverLensAgents(ctx);
 	if (agents.length === 0) return { ok: false, error: `no review lens agents found (expected ${REVIEW_LENSES.join(", ")} under the agent home)` };
 
-	if (ctx.hasUI) ctx.ui.setStatus("nub-review", `reviewing ${collected.scope.kind} diff with ${agents.length} lenses…`);
+	// A diff above the per-call bound is reviewed in file/hunk chunks; every
+	// lens sees every chunk and the answers are merged back per lens. The
+	// report, its hash and the push gate still refer to the whole diff.
+	const chunks = splitDiff(collected.diff);
+	if (ctx.hasUI) ctx.ui.setStatus("nub-review", `reviewing ${collected.scope.kind} diff with ${agents.length} lenses${chunks.length > 1 ? ` in ${chunks.length} chunks` : ""}…`);
 	let lenses: LensResult[];
 	const started = performance.now();
 	const lensDurationsMs: Partial<Record<ReviewLens, number>> = {};
 	try {
-		lenses = await Promise.all(agents.map(async (agent) => {
+		const calls = chunks.flatMap((chunk, index) => agents.map((agent) => ({ agent, chunk, index })));
+		const answers = await mapBounded(calls, LENS_CONCURRENCY, async ({ agent, chunk, index }) => {
 			const lensStarted = performance.now();
-			const result = await runLens(ctx, agent, collected.diff, signal);
-			lensDurationsMs[agent.lens] = performance.now() - lensStarted;
-			return result;
-		}));
+			const result = await runLens(ctx, agent, chunk, signal);
+			lensDurationsMs[agent.lens] = (lensDurationsMs[agent.lens] ?? 0) + (performance.now() - lensStarted);
+			return { index, result };
+		});
+		const perChunk = chunks.map((_, index) => answers.filter((answer) => answer.index === index).map((answer) => answer.result));
+		lenses = mergeLensResults(perChunk);
 	} finally {
 		if (ctx.hasUI) ctx.ui.setStatus("nub-review", "");
 	}

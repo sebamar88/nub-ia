@@ -38,7 +38,7 @@ test("collectDiff: empty diffs, git failures, and oversized diffs are explained,
 	assert.deepEqual(await collectDiff(fakeGit({ "diff --no-color --no-ext-diff -U8 --find-renames --cached": { stdout: "\n" } }), { kind: "staged" }), { error: "nothing to review: no staged changes" });
 	const failed = await collectDiff(fakeGit({ "diff --no-color --no-ext-diff -U8 --find-renames --end-of-options nope...HEAD": { code: 128, stderr: "fatal: bad revision" } }), { kind: "base", ref: "nope" });
 	assert.ok("error" in failed && failed.error.includes("bad revision"));
-	const huge = await collectDiff(fakeGit({ "diff --no-color --no-ext-diff -U8 --find-renames --end-of-options HEAD": { stdout: "x".repeat(500 * 1024) } }), { kind: "working" });
+	const huge = await collectDiff(fakeGit({ "diff --no-color --no-ext-diff -U8 --find-renames --end-of-options HEAD": { stdout: "x".repeat(DIFF_TOTAL_MAX_BYTES + 1) } }), { kind: "working" });
 	assert.ok("error" in huge && /KiB review bound/.test(huge.error));
 });
 
@@ -137,4 +137,82 @@ test("parseLensOutputDetailed counts malformed entries instead of hiding them", 
 	assert.equal(parsed.dropped, 2);
 	const report = buildReport({ scope: { kind: "staged" }, diff: DIFF, lenses: [{ lens: "review-risk", model: "m", findings: parsed.findings, dropped: parsed.dropped }] });
 	assert.match(report.markdown, /risk \(m, 2 malformed dropped\)/);
+});
+
+// --- chunking (roadmap T1.1) ---------------------------------------------------
+
+import { DIFF_MAX_BYTES, DIFF_TOTAL_MAX_BYTES, mergeLensResults, splitDiff, splitDiffByFile } from "../lib/nub-review.ts";
+
+const fileDiff = (path: string, hunks: string[]): string =>
+	`diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n${hunks.map((body, index) => `@@ -${index * 10 + 1},1 +${index * 10 + 1},2 @@\n${body}\n`).join("")}`;
+
+test("splitDiffByFile: one section per file, each a valid diff starting at its header", () => {
+	const a = fileDiff("a.ts", ["-x\n+y"]);
+	const b = fileDiff("dir/b.ts", ["-1\n+2", "-3\n+4"]);
+	const files = splitDiffByFile(a + b);
+	assert.deepEqual(files, [a, b]);
+	assert.deepEqual(splitDiffByFile(""), []);
+	assert.deepEqual(splitDiffByFile(a), [a]);
+});
+
+test("splitDiff: packs whole files greedily under the bound and keeps order", () => {
+	const files = ["a", "b", "c", "d"].map((name) => fileDiff(`${name}.ts`, [`-${name}\n+${name.toUpperCase()}`]));
+	const diff = files.join("");
+	const size = Buffer.byteLength(files[0]!);
+	const chunks = splitDiff(diff, size * 2 + 5);
+	assert.deepEqual(chunks, [files[0]! + files[1]!, files[2]! + files[3]!]);
+	assert.equal(chunks.join(""), diff, "chunks cover the diff exactly");
+	assert.deepEqual(splitDiff(diff, 10 * size), [diff], "a small diff stays in one chunk");
+});
+
+test("splitDiff: a file above the bound is split by hunk with its header repeated; a lone huge hunk stays whole", () => {
+	const hunks = [1, 2, 3].map((n) => `-${"x".repeat(100)}\n+${"y".repeat(100)} ${n}`);
+	const big = fileDiff("big.ts", hunks);
+	const small = fileDiff("small.ts", ["-s\n+t"]);
+	const chunks = splitDiff(small + big, 350);
+	assert.equal(chunks[0], small);
+	assert.ok(chunks.length >= 3, `expected the big file split, got ${chunks.length} chunks`);
+	for (const chunk of chunks.slice(1)) {
+		assert.ok(chunk.startsWith("diff --git a/big.ts b/big.ts\n--- a/big.ts\n+++ b/big.ts\n@@"), chunk.slice(0, 80));
+		assert.ok(Buffer.byteLength(chunk) <= 350, `chunk of ${Buffer.byteLength(chunk)} bytes`);
+	}
+	const bodies = chunks.slice(1).map((chunk) => chunk.split("\n").filter((line) => line.startsWith("+") && !line.startsWith("+++")).join("\n"));
+	assert.deepEqual(bodies, hunks.map((hunk) => hunk.split("\n")[1]));
+	const huge = fileDiff("huge.ts", [`-a\n+${"z".repeat(1000)}`]);
+	assert.deepEqual(splitDiff(huge, 100), [huge]);
+});
+
+test("mergeLensResults: concatenates findings, sums dropped, and a failure on any chunk marks the lens failed", () => {
+	const finding = (lens: "review-risk" | "review-readability", claim: string) => ({ lens, severity: "WARNING" as const, location: "x.ts:1", claim, evidence: "" });
+	const merged = mergeLensResults([
+		[
+			{ lens: "review-risk", model: "openai/gpt-6-astra", findings: [finding("review-risk", "one")], dropped: 1 },
+			{ lens: "review-readability", model: "(none)", findings: [], error: "not installed" },
+		],
+		[
+			{ lens: "review-risk", model: "openai/gpt-6-astra", findings: [finding("review-risk", "two")], dropped: 2 },
+			{ lens: "review-readability", model: "openai/gpt-6-sol", findings: [finding("review-readability", "three")] },
+		],
+		[
+			{ lens: "review-risk", model: "openai/gpt-6-astra", findings: [], error: "timed out", rawExcerpt: "Sorry" },
+		],
+	]);
+	const risk = merged.find((lens) => lens.lens === "review-risk")!;
+	assert.deepEqual(risk.findings.map((entry) => entry.claim), ["one", "two"]);
+	assert.equal(risk.dropped, 3);
+	assert.equal(risk.error, "chunk 3/3: timed out");
+	assert.equal(risk.rawExcerpt, "Sorry");
+	const readability = merged.find((lens) => lens.lens === "review-readability")!;
+	assert.equal(readability.model, "openai/gpt-6-sol", "the model that answered wins over a placeholder");
+	assert.equal(readability.error, "chunk 1/2: not installed");
+	assert.equal(computeVerdict(merged), "incomplete");
+	assert.deepEqual(mergeLensResults([[{ lens: "review-risk", model: "m", findings: [] }]]), [{ lens: "review-risk", model: "m", findings: [] }]);
+});
+
+test("collectDiff: only the total cap refuses; a diff above one chunk but under the cap is accepted for splitting", async () => {
+	const medium = "x".repeat(DIFF_MAX_BYTES + 10);
+	const ok = await collectDiff(fakeGit({ "diff": { stdout: medium } }), { kind: "working" });
+	assert.ok("diff" in ok);
+	const huge = await collectDiff(fakeGit({ "diff": { stdout: "x".repeat(DIFF_TOTAL_MAX_BYTES + 1) } }), { kind: "working" });
+	assert.match((huge as { error: string }).error, /above the 3200 KiB review bound/);
 });
