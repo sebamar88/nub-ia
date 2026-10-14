@@ -27,6 +27,8 @@ import { resolveAgentHomeDirectory } from "../lib/agent-model-resolution.ts";
 import { type CatalogModel, decideRoute, isModelTier, isProviderFailure } from "../lib/model-tier-router.ts";
 import { REVIEW_MODE_ACTIONS, describeReviewGate, resolveReviewGate, writeGlobalReviewGate } from "../lib/review-gate-policy.ts";
 import { loadTierCatalog, toCatalogModel } from "./nub-ia-router.ts";
+import { reviewMetricRows } from "../lib/nub-review-metrics.ts";
+import { appendMetricRows } from "../lib/runtime-metrics-sink.ts";
 import {
 	type DiffScope,
 	type Finding,
@@ -260,14 +262,25 @@ export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind
 
 	if (ctx.hasUI) ctx.ui.setStatus("nub-review", `reviewing ${collected.scope.kind} diff with ${agents.length} lenses…`);
 	let lenses: LensResult[];
+	const started = performance.now();
+	const lensDurationsMs: Partial<Record<ReviewLens, number>> = {};
 	try {
-		lenses = await Promise.all(agents.map((agent) => runLens(ctx, agent, collected.diff, signal)));
+		lenses = await Promise.all(agents.map(async (agent) => {
+			const lensStarted = performance.now();
+			const result = await runLens(ctx, agent, collected.diff, signal);
+			lensDurationsMs[agent.lens] = performance.now() - lensStarted;
+			return result;
+		}));
 	} finally {
 		if (ctx.hasUI) ctx.ui.setStatus("nub-review", "");
 	}
+	const durationMs = performance.now() - started;
 	for (const lens of missing) lenses.push({ lens, model: "(none)", findings: [], error: "agent definition not installed" });
 
 	const report = buildReport({ scope: collected.scope, diff: collected.diff, lenses });
+	// Calibration rows (lens, severity, model, timing; never paths or text) go
+	// to the local metrics sink. Best effort: a sink failure never fails a review.
+	void appendMetricRows("review", reviewMetricRows({ report, scopeKind: collected.scope.kind, diffBytes: Buffer.byteLength(collected.diff, "utf8"), when: new Date(), durationMs, lensDurationsMs })).catch(() => undefined);
 	// Reports embed the diff (which may be exactly the secret a lens flagged):
 	// owner-only permissions, and the directory is excluded from the user's
 	// repository through .git/info/exclude (never by editing their .gitignore).

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "nub-ia.review-metrics/v1",
+  "description": "One JSON line per row in <configHome>/metrics/review-<YYYY-MM>.jsonl, written locally by the Nub-IA 4R review after each run (lib/nub-review-metrics.ts). A run writes one `verdict` row followed by one `finding` row per finding. Rows carry no file paths, claims, evidence or diff content; diffHash only groups the rows of one run.",
+  "oneOf": [{ "$ref": "#/$defs/verdict" }, { "$ref": "#/$defs/finding" }],
+  "$defs": {
+    "lens": { "enum": ["review-risk", "review-reliability", "review-resilience", "review-readability"] },
+    "severity": { "enum": ["BLOCKER", "CRITICAL", "WARNING", "SUGGESTION"] },
+    "model": {
+      "type": "object", "additionalProperties": false, "required": ["provider", "id"],
+      "description": "Normalised like runtime rows (lib/runtime-metrics.ts normalizeRuntimeModel): public family ids only, otherwise custom/unknown.",
+      "properties": { "provider": { "type": "string", "maxLength": 32 }, "id": { "type": "string", "maxLength": 64 } }
+    },
+    "durationMs": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+    "verdict": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "kind", "at", "diffHash", "scope", "verdict", "diffBytes", "durationMs", "findings", "lenses"],
+      "properties": {
+        "schema": { "const": "nub-ia.review-metrics/v1" },
+        "kind": { "const": "verdict" },
+        "at": { "type": "string", "format": "date-time" },
+        "diffHash": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+        "scope": { "enum": ["staged", "working", "base"] },
+        "verdict": { "enum": ["approve", "warn", "block", "incomplete"] },
+        "diffBytes": { "type": "integer", "minimum": 0 },
+        "durationMs": { "$ref": "#/$defs/durationMs" },
+        "findings": {
+          "type": "object", "additionalProperties": false,
+          "required": ["BLOCKER", "CRITICAL", "WARNING", "SUGGESTION"],
+          "properties": {
+            "BLOCKER": { "type": "integer", "minimum": 0 }, "CRITICAL": { "type": "integer", "minimum": 0 },
+            "WARNING": { "type": "integer", "minimum": 0 }, "SUGGESTION": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "lenses": {
+          "type": "array", "maxItems": 4,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["lens", "model", "outcome", "findings", "dropped", "durationMs"],
+            "properties": {
+              "lens": { "$ref": "#/$defs/lens" },
+              "model": { "$ref": "#/$defs/model" },
+              "outcome": { "enum": ["ok", "failed"] },
+              "findings": { "type": "integer", "minimum": 0 },
+              "dropped": { "type": "integer", "minimum": 0 },
+              "durationMs": { "$ref": "#/$defs/durationMs" }
+            }
+          }
+        }
+      }
+    },
+    "finding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "kind", "at", "diffHash", "lens", "severity", "model", "located", "hasSuggestion"],
+      "properties": {
+        "schema": { "const": "nub-ia.review-metrics/v1" },
+        "kind": { "const": "finding" },
+        "at": { "type": "string", "format": "date-time" },
+        "diffHash": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+        "lens": { "$ref": "#/$defs/lens" },
+        "severity": { "$ref": "#/$defs/severity" },
+        "model": { "$ref": "#/$defs/model" },
+        "located": { "type": "boolean" },
+        "hasSuggestion": { "type": "boolean" }
+      }
+    }
+  }
+}

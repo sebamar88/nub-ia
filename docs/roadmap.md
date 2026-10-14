@@ -21,9 +21,13 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   respuestas grabadas pasan por el mismo parser que la extensión. `prompt-pins.json` fija el hash del prompt de cada
   lente: editar un `assets/agents/review-*.md` rompe el test hasta re-validar los fixtures contra los modelos reales
   (T1.7) y actualizar el pin. *Hecho:* 4 lentes × ≥ 3 casos, con al menos un positivo y un negativo cada uno.
-- [ ] **T0.2 Esquema de métricas de review**
-  `lib/runtime-metrics-schema.json`, `extensions/nub-ia-review.ts`. Eventos `review.finding` (lente, severidad, modelo,
-  diffHash) y `review.verdict`. *Cierre:* una fila por hallazgo en el JSONL; documentado en `docs/telemetry.md`.
+- [x] **T0.2 Esquema de métricas de review**
+  `lib/nub-review-metrics.ts` + `lib/nub-review-metrics-schema.json` (`nub-ia.review-metrics/v1`): una fila `verdict`
+  por corrida (veredicto, tamaño, duración, por lente: modelo normalizado, ok/failed, hallazgos, descartados, duración) y
+  una fila `finding` por hallazgo (lente, severidad, modelo, located, hasSuggestion). Sin rutas, claims ni diff. Archivo
+  propio `metrics/review-<AAAA-MM>.jsonl` vía `appendMetricRows("review", …)` en el sink generalizado; mismo
+  interruptor `NUB_IA_METRICS=off`. Emitido best-effort desde `extensions/nub-ia-review.ts`. Documentado en
+  `docs/telemetry.md`.
 
 ## Fase 1 — Review 4R: profundidad
 
