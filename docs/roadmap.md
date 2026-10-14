@@ -214,9 +214,11 @@ persiste ni se activa por config/env/tool.
   (`parseDelegationLimits`, `tightestLimits`, `delegationDenied` en `lib/permission-mode-config.ts`). La extensión de
   modos cuenta subagentes vivos (canal de agentes), lanzamientos por turno y el estado de presupuesto (canal del router)
   y rechaza `subagent_run` con motivo. El tope en USD lo cubre `budget` de T2.2 + el flag.
-- [ ] **T7.5 Redacción de secretos**
-  `lib/secret-redaction.ts` (nuevo): AWS keys, tokens GitHub, JWT, valores de `.env`; aplicado a salida de bash,
-  reportes de review, métricas e historial de prompts. *Cierre:* fixtures redactados; hashes git intactos.
+- [x] **T7.5 Redacción de secretos**
+  `lib/secret-redaction.ts` (AWS, GitHub, OpenAI/Anthropic, Slack, Google, Stripe, npm, JWT, llaves privadas, URL
+  con credenciales, Bearer, `*_SECRET=`), aplicado en `tool_result` de bash/read/grep (con nota de qué se redactó), al
+  escribir el reporte de review y al publicarlo en el PR, y en la captura del historial de prompts. Las métricas ya no
+  llevan texto. Hashes git, UUIDs y rutas quedan intactos (test).
 
 ## Fase 8 — Gobernanza
 

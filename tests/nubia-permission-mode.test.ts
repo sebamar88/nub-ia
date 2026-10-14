@@ -224,3 +224,23 @@ test("permission mode extension: delegation limits count live subagents and per-
 		rmSync(root, { recursive: true, force: true });
 	}
 });
+
+test("permission mode extension: bash/read output is redacted before the model sees it; other tools untouched", async () => {
+	const root = mkdtempSync(join(tmpdir(), "nubia-mode-"));
+	try {
+		const cwd = join(root, "repo");
+		const configHome = join(root, "config");
+		mkdirSync(cwd, { recursive: true });
+		mkdirSync(configHome, { recursive: true });
+		const h = harness({ cwd, configHome });
+		await h.fire("session_start", {});
+		const leaked = (await h.fire("tool_result", { toolName: "bash", input: {}, content: [{ type: "text", text: "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nok" }, { type: "image", data: "x", mimeType: "image/png" }], isError: false })) as { content: Array<{ type: string; text?: string }> };
+		assert.doesNotMatch(leaked.content[0]!.text!, /AKIAIOSFODNN7EXAMPLE/);
+		assert.match(leaked.content[0]!.text!, /\[nub-ia: 1 aws-access-key redacted from this output\]/);
+		assert.equal(leaked.content[1]!.type, "image");
+		assert.equal(await h.fire("tool_result", { toolName: "bash", input: {}, content: [{ type: "text", text: "all clean" }], isError: false }), undefined, "clean output is passed through untouched");
+		assert.equal(await h.fire("tool_result", { toolName: "write", input: {}, content: [{ type: "text", text: "ghp_abcdefghijklmnopqrstuvwxyz0123456789" }], isError: false }), undefined);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});

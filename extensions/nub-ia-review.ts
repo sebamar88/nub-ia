@@ -31,6 +31,7 @@ import { reviewMetricRows } from "../lib/nub-review-metrics.ts";
 import { calibrate, parseMetricRows, renderCalibration } from "../lib/nub-review-calibration.ts";
 import { checkExpectations, currentPromptPins, describeFailures, loadReviewFixtures } from "../lib/nub-review-fixtures.ts";
 import { appendMetricRows, metricsFilePath } from "../lib/runtime-metrics-sink.ts";
+import { redactSecrets } from "../lib/secret-redaction.ts";
 import {
 	type DiffScope,
 	type Finding,
@@ -361,7 +362,8 @@ export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind
 	try {
 		mkdirSync(dir, { recursive: true, mode: 0o700 });
 		excludeFromRepository(ctx.cwd, ".pi/nub-ia/reviews/");
-		writeFileSync(reportPath, `${report.markdown}\n`, { encoding: "utf8", mode: 0o600 });
+		// The report quotes evidence, which may be the very secret a lens flagged.
+		writeFileSync(reportPath, `${redactSecrets(report.markdown).text}\n`, { encoding: "utf8", mode: 0o600 });
 		const last: LastReview = {
 			diffHash: report.diffHash,
 			verdict: report.verdict,
@@ -423,7 +425,7 @@ function ghRunner(cwd: string): GhRunner {
 }
 
 async function publishToPr(ctx: ExtensionContext, result: Extract<ReviewRun, { ok: true }>): Promise<string> {
-	const published = await publishPrComment(ghRunner(ctx.cwd), result.report, result.reportPath || undefined);
+	const published = await publishPrComment(ghRunner(ctx.cwd), { ...result.report, markdown: redactSecrets(result.report.markdown).text }, result.reportPath || undefined);
 	if (published.ok) return `PR comment ${published.action}: ${published.url}`;
 	return `PR comment not published: ${"error" in published ? published.error : "unknown"}`;
 }

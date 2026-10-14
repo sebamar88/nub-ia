@@ -35,6 +35,7 @@ import {
 import { discoverYoloUiAdapter, YOLO_DISPLAY } from "../lib/yolo-session-policy.ts";
 import { bashWriteTargets, evaluatePaths, mergePathPolicies, parsePathPolicy, type PathPolicy } from "../lib/path-permission-policy.ts";
 import { agentToolRule, mergeAgentToolPolicies, parseAgentToolPolicy, type AgentToolPolicy } from "../lib/agent-tool-policy.ts";
+import { describeRedactions, redactSecrets } from "../lib/secret-redaction.ts";
 import { relative } from "node:path";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
@@ -241,6 +242,22 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 			emit(approved ? "approved" : "denied");
 		}
 		return approved ? undefined : { block: true, reason: `The human declined this ${event.toolName} call${hit?.rule === "confirm" ? ` (protected path ${hit.path})` : ` in ${MODE_LABEL[mode]} mode`}. Do not retry it; propose an alternative or ask what to do.` };
+	});
+
+	// Tool output is where secrets leak into the transcript (cat .env, printenv,
+	// a log line with a token): redact bash/read/grep results before the model
+	// sees them. Images and structured content are left as they are.
+	pi.on("tool_result", (event) => {
+		if (!["bash", "read", "grep"].includes(event.toolName)) return undefined;
+		let touched = 0;
+		const content = event.content.map((part) => {
+			if (part.type !== "text") return part;
+			const redacted = redactSecrets(part.text);
+			if (redacted.redactions.length === 0) return part;
+			touched += redacted.redactions.reduce((sum, entry) => sum + entry.count, 0);
+			return { ...part, text: `${redacted.text}\n[nub-ia: ${describeRedactions(redacted.redactions)} redacted from this output]` };
+		});
+		return touched ? { content } : undefined;
 	});
 
 	// Shift+Tab (the isolated home moves Pi's thinking-cycle to Ctrl+Alt+T so

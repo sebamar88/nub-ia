@@ -44,6 +44,7 @@ const requiredPaths = [
   "lib/permission-mode-policy.ts",
   "lib/path-permission-policy.ts",
   "lib/agent-tool-policy.ts",
+  "lib/secret-redaction.ts",
   "lib/nub-review.ts",
   "scripts/rtk-installer.mjs",
   "scripts/install-rtk.mjs",

@@ -22,6 +22,7 @@ import {
   listSessionFiles,
   type ExtractedPrompt,
 } from "./session-scan.ts";
+import { redactSecrets } from "../../lib/secret-redaction.ts";
 
 // ===========================================================================
 // Paths (formerly store-paths.ts)
@@ -248,7 +249,8 @@ export function appendSessionCapture(
   if (typeof text !== "string" || text.trim().length === 0) return;
   if (isLikelyCommand(text)) return;
 
-  const entry: StoreEntry = { v: 1, text };
+  // A pasted token must not outlive the prompt (lib/secret-redaction.ts).
+  const entry: StoreEntry = { v: 1, text: redactSecrets(text).text };
   if (ts !== undefined) entry.ts = ts;
   fs.mkdirSync(path.dirname(state.filePath), { recursive: true });
   fs.appendFileSync(state.filePath, serializeEntry(entry) + "\n", "utf8");
