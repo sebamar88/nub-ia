@@ -39,6 +39,8 @@ import {
 	REVIEW_LENSES,
 	type ReviewLens,
 	buildReport,
+	FIX_ROUNDS_MAX,
+	fixBrief,
 	collectContext,
 	collectDiff,
 	type ContextReader,
@@ -50,6 +52,7 @@ import {
 	mergeLensResults,
 	parseLensOutputDetailed,
 	pushGateQuestion,
+	severeFindings,
 	splitDiff,
 	summarizeReport,
 } from "../lib/nub-review.ts";
@@ -333,7 +336,11 @@ export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind
 	const durationMs = performance.now() - started;
 	for (const lens of missing) lenses.push({ lens, model: "(none)", findings: [], error: "agent definition not installed" });
 
-	const report = buildReport({ scope: collected.scope, diff: collected.diff, lenses });
+	// A review that follows `/nubia:review fix` is the re-check of that report:
+	// it links back to it and inherits the round count, so the cap holds.
+	const previous = readLastReview(ctx.cwd);
+	const recheck = previous?.fixPending ? previous : undefined;
+	const report = buildReport({ scope: collected.scope, diff: collected.diff, lenses, previousReport: recheck?.reportPath });
 	// Calibration rows (lens, severity, model, timing; never paths or text) go
 	// to the local metrics sink. Best effort: a sink failure never fails a review.
 	void appendMetricRows("review", reviewMetricRows({ report, scopeKind: collected.scope.kind, diffBytes: Buffer.byteLength(collected.diff, "utf8"), when: new Date(), durationMs, lensDurationsMs })).catch(() => undefined);
@@ -346,7 +353,15 @@ export async function runReview(ctx: ExtensionContext, scope: DiffScope | { kind
 		mkdirSync(dir, { recursive: true, mode: 0o700 });
 		excludeFromRepository(ctx.cwd, ".pi/nub-ia/reviews/");
 		writeFileSync(reportPath, `${report.markdown}\n`, { encoding: "utf8", mode: 0o600 });
-		const last: LastReview = { diffHash: report.diffHash, verdict: report.verdict, reportPath, when: new Date().toISOString() };
+		const last: LastReview = {
+			diffHash: report.diffHash,
+			verdict: report.verdict,
+			reportPath,
+			when: new Date().toISOString(),
+			severe: severeFindings(report.findings).slice(0, 50),
+			fixRounds: recheck?.fixRounds ?? 0,
+			...(recheck ? { previousReport: recheck.reportPath } : {}),
+		};
 		writeFileSync(lastReviewPath(ctx.cwd), `${JSON.stringify(last, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
 	} catch (error) {
 		// The lenses already answered: return their verdict, and say the record
@@ -406,9 +421,21 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 	});
 
 	pi.registerCommand("nubia:review", {
-		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>).",
+		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>), or `fix` to hand the last review's BLOCKER/CRITICAL findings to the agent and re-review.",
 		handler: async (args, ctx) => {
 			const arg = args.trim();
+			if (arg === "fix") {
+				// The fix itself goes through the orchestrator's ordinary route (its
+				// writer, guardrails and permission mode): this only composes the
+				// brief, confirms it with the human, and marks the lineage.
+				const last = readLastReview(ctx.cwd);
+				const plan = fixBrief(last);
+				if ("reason" in plan) { if (ctx.hasUI) ctx.ui.notify(plan.reason, "warning"); return; }
+				if (!ctx.hasUI || !(await ctx.ui.confirm("Nub-IA review fix", `Hand ${last!.severe!.length} severe finding(s) to the agent (round ${plan.round} of ${FIX_ROUNDS_MAX}) and re-review afterwards?`))) return;
+				writeFileSync(lastReviewPath(ctx.cwd), `${JSON.stringify({ ...last, fixRounds: plan.round, fixPending: true } satisfies LastReview, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+				pi.sendUserMessage(plan.brief, { deliverAs: "followUp" });
+				return;
+			}
 			const scope: DiffScope | { kind: "auto" } = arg === "" || arg === "auto" ? { kind: "auto" } : arg === "staged" || arg === "working" ? { kind: arg } : { kind: "base", ref: arg };
 			if (ctx.hasUI) ctx.ui.notify("Nub-IA review started…", "info");
 			const result = await runReview(ctx, scope);

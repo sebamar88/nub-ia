@@ -372,7 +372,7 @@ const VERDICT_LABEL: Record<Verdict, string> = {
 	incomplete: "INCOMPLETE — a lens did not answer; rerun or review that area by hand",
 };
 
-export function buildReport(input: { scope: DiffScope; diff: string; lenses: LensResult[]; when?: Date }): ReviewReport {
+export function buildReport(input: { scope: DiffScope; diff: string; lenses: LensResult[]; when?: Date; previousReport?: string }): ReviewReport {
 	const findings = input.lenses.flatMap((lens) => lens.findings).sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || a.location.localeCompare(b.location));
 	const verdict = computeVerdict(input.lenses);
 	const diffHash = hashDiff(input.diff);
@@ -385,6 +385,7 @@ export function buildReport(input: { scope: DiffScope; diff: string; lenses: Len
 		`- Diff: ${diffHash} · ${when}`,
 		`- Findings: ${counts.length === 0 ? "none" : counts.map(([severity, count]) => `${count} ${severity}`).join(", ")}`,
 		`- Lenses: ${input.lenses.map((lens) => `${lens.lens.replace("review-", "")} (${lens.model}${lens.error ? ", failed" : ""}${lens.dropped ? `, ${lens.dropped} malformed dropped` : ""})`).join(", ")}`,
+		...(input.previousReport ? [`- Previous: ${input.previousReport} (re-checked after a fix round)`] : []),
 		"",
 	];
 	for (const severity of SEVERITIES) {
@@ -423,6 +424,49 @@ export interface LastReview {
 	verdict: Verdict;
 	reportPath: string;
 	when: string;
+	/** Severe findings kept for `/nubia:review fix`; absent in records written before T1.4. */
+	severe?: Finding[];
+	/** How many fix rounds this lineage has used (the fix brief caps them). */
+	fixRounds?: number;
+	/** The report this review re-checked after a fix round. */
+	previousReport?: string;
+	/** Set by `/nubia:review fix`: the next review is the re-check of this one. */
+	fixPending?: boolean;
+}
+
+// --- fix loop -------------------------------------------------------------------
+
+export const FIX_ROUNDS_MAX = 2;
+
+export function severeFindings(findings: readonly Finding[]): Finding[] {
+	return findings.filter((finding) => finding.severity === "BLOCKER" || finding.severity === "CRITICAL");
+}
+
+/**
+ * The brief `/nubia:review fix` hands to the orchestrator: the severe findings
+ * of the last review, the files they name (the writer's scope), and the order
+ * to run nub_review again. Returns a reason instead when there is nothing to
+ * fix or the lineage has used its rounds.
+ */
+export function fixBrief(last: LastReview | undefined): { brief: string; round: number } | { reason: string } {
+	if (!last) return { reason: "No Nub-IA review on record. Run /nubia:review first." };
+	const severe = last.severe ?? [];
+	if (severe.length === 0) return { reason: last.verdict === "block" ? `The last review (${last.reportPath}) predates fix support; run /nubia:review again, then /nubia:review fix.` : `The last review was ${last.verdict.toUpperCase()}: nothing BLOCKER/CRITICAL to fix.` };
+	const round = (last.fixRounds ?? 0) + 1;
+	if (round > FIX_ROUNDS_MAX) return { reason: `This change already used ${FIX_ROUNDS_MAX} fix rounds (${last.reportPath}). Fix the remaining findings by hand or split the change.` };
+	const files = [...new Set(severe.map((finding) => finding.location.split(":")[0]!).filter((path) => path !== "(unspecified)"))];
+	const lines = [
+		`## Nub-IA review fix · round ${round} of ${FIX_ROUNDS_MAX}`,
+		`Report: ${last.reportPath} (diff ${last.diffHash}).`,
+		"",
+		`Fix exactly these ${severe.length} finding${severe.length === 1 ? "" : "s"}; do not refactor or touch anything else:`,
+		...severe.map((finding, index) => `${index + 1}. [${finding.severity}] ${finding.location} — ${finding.claim}${finding.suggestion ? `\n   Suggested: ${finding.suggestion}` : ""}`),
+		"",
+		files.length ? `Scope: ${files.join(", ")} (plus their tests).` : "Scope: the files the findings describe.",
+		"Delegate the edits to a writer when more than one file is involved; keep the existing tests passing and add one per fixed finding when behaviour changed.",
+		"When done, run `nub_review` again (same scope) so the report is re-checked, and stop after reporting its verdict.",
+	];
+	return { brief: lines.join("\n"), round };
 }
 
 export function isGitPush(command: string): boolean {

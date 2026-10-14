@@ -46,9 +46,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   `loadProjectRules` (`.pi/nub-ia/review-rules.md` > `AGENTS.md`, 16 KiB, truncado con marcador) y
   `renderProjectRules` en `lib/nub-review.ts`; anexado al mensaje de usuario de cada lente como datos (los prompt pins
   no cambian). Fixture `project-rule-violation` (WARNINGs que solo salen de las reglas del repo). README actualizado.
-- [ ] **T1.4 `/nubia:review fix` — cerrar el ciclo**
-  Subcomando que delega BLOCKER/CRITICAL a `jd-fix-agent` con el reporte como input y re-corre el review. *Cierre:* tope
-  de 2 iteraciones; el reporte final enlaza al anterior; confirmación antes de escribir. Depende de T1.3.
+- [x] **T1.4 `/nubia:review fix` — cerrar el ciclo**
+  No lanza un hijo directamente (`jd-fix-agent` exige la forma de dispatch de Judgment Day): compone un brief con los
+  severos del `last-review.json` (`fixBrief`), confirma con el humano, marca la línea (`fixRounds`, `fixPending`) y lo
+  entrega al orquestador con `pi.sendUserMessage`, que implementa por su ruta ordinaria y vuelve a correr `nub_review`.
+  Tope `FIX_ROUNDS_MAX = 2`; el re-chequeo enlaza al reporte anterior (`- Previous:`).
 - [ ] **T1.5 Modo headless/CI y salida JSON**
   `bin/nub-ia.mjs`: `nub-ia review --base <ref> [--json] [--fail-on block|warn]`; serializador JSON estable de
   `ReviewReport`. *Cierre:* exit code 1 en BLOCK; ejemplo de job de GitHub Actions en `docs/`. Depende de T1.1.
