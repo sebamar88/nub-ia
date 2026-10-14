@@ -141,6 +141,14 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 - [ ] **T5.1 `/nubia:doctor` ampliado**
   rtk presente, tiers resolubles (T2.3), gate activo, política efectiva (T8.1), checkout vs `origin/main`.
+- [x] **T5.0 System prompt minimal**
+  `lib/prompt-profile.ts`: perfil `minimal` (default) | `full`, resuelto env > repo (`.pi/nub-ia/prompt-profile.json`)
+  > usuario > default; `buildMinimalPrompt` (identidad, persona, idioma, ODD en 8 reglas, líneas de delegación/review
+  solo si las tools existen, puntero a la skill `nubia`). Medido: **17 143 → 2 565 bytes (~4 300 → ~640 tokens)**.
+  `/nubia:prompt` muestra tamaños por perfil y cambia el guardado. Los tests que afirman el texto completo fijan
+  `NUB_IA_PROMPT_PROFILE=full`; `tests/prompt-profile.test.ts` protege el tope (< 3 000 bytes, < ¼ del full).
+- [ ] **T5.1 `/nubia:doctor` ampliado**
+  rtk presente, tiers resolubles (T2.3), gate activo, política efectiva (T8.1), checkout vs `origin/main`.
 - [ ] **T5.0 System prompt minimal** *(pedido del equipo)*
   Mantener el prompt tan chico como el de Pi. Hoy el harness heredado agrega ~7,4 KB (~1 850 tokens) de orquestación
   (`assets/orchestrator*.md`) + persona; lo propio de Nub-IA agrega 0 bytes en el modo default (la directiva de modo es

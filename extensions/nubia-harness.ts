@@ -114,6 +114,7 @@ import { sanitizeTerminalText, stripAnsi } from "../lib/terminal-theme.ts";
 import { registerYoloSessionPolicy, updateYoloPrompt } from "../lib/yolo-session-policy.ts";
 import { configReadPath, projectConfigReadPath, projectConfigWritePath, readEnv, setLegacyHintNotifier } from "../lib/config-home.ts";
 import { routerDoctorLines } from "./nub-ia-router.ts";
+import { buildMinimalPrompt, isPromptProfile, PROMPT_PROFILES, type PromptProfile, resolvePromptProfile, writePromptProfile } from "../lib/prompt-profile.ts";
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const ASSETS_DIR = join(PACKAGE_ROOT, "assets");
@@ -655,6 +656,7 @@ function buildGentlePrompt(
 	cwd: string = process.cwd(),
 	activeTools?: readonly string[],
 	hostMode?: string,
+	profile: PromptProfile = "full",
 ): string {
 	const personaPrompt =
 		persona === "neutral" ? NEUTRAL_PERSONA_PROMPT : GENTLEMAN_PERSONA_PROMPT;
@@ -662,6 +664,17 @@ function buildGentlePrompt(
 		persona === "neutral"
 			? "Language: neutral/professional Spanish when the user writes Spanish. Do NOT use voseo or Rioplatense regional expressions."
 			: "Language: natural Rioplatense Spanish with voseo when the user writes Spanish.";
+	// T5.0: the minimal profile keeps Pi's system prompt lean; the full text
+	// below stays available with `/nubia:prompt full`.
+	if (profile === "minimal") {
+		return buildMinimalPrompt({
+			persona,
+			personaPrompt,
+			languageBoundary,
+			subagentsAvailable: activeTools === undefined || activeTools.includes("subagent_run"),
+			reviewAvailable: activeTools === undefined || activeTools.includes("nub_review"),
+		});
+	}
 	return `## Nub-IA Identity and Harness
 
 Current persona mode: ${persona}
@@ -4546,6 +4559,7 @@ function createGentleAiExtensionForTesting(
 					ctx.cwd,
 					readActiveToolNames(pi),
 					ctx.mode,
+					resolvePromptProfile({ env: permissionEnvironment, cwd: ctx.cwd }).profile,
 				)}`;
 		// pi-claude-bridge drops a handler-returned systemPrompt and forwards
 		// only systemPromptOptions, so the harness is delivered through the
@@ -4614,6 +4628,32 @@ function createGentleAiExtensionForTesting(
 		description: "Switch Nub-IA persona between gentleman and neutral.",
 		handler: async (_args, ctx) => {
 			await handlePersonaCommand(ctx);
+		},
+	});
+
+	// T5.0: how much Nub-IA adds to Pi's system prompt, and the switch.
+	pi.registerCommand("nubia:prompt", {
+		description: "Show the size of the Nub-IA system-prompt addition and its profile, or set it: minimal (default, ~0.6k tokens) | full (complete harness text, ~4k tokens). Saved per user; a repository can pin one in .pi/nub-ia/prompt-profile.json.",
+		handler: async (args, ctx) => {
+			const action = args.trim();
+			const current = resolvePromptProfile({ env: permissionEnvironment, cwd: ctx.cwd });
+			if (action === "") {
+				const sizes = PROMPT_PROFILES.map((profile) => {
+					const text = buildGentlePrompt(readPersonaMode(ctx.cwd), ctx.cwd, readActiveToolNames(pi), ctx.mode, profile);
+					const bytes = Buffer.byteLength(text, "utf8");
+					return `  ${profile.padEnd(8)} ${String(bytes).padStart(6)} bytes ≈ ${String(Math.round(bytes / 4)).padStart(5)} tokens${profile === current.profile ? "  ← active" : ""}`;
+				});
+				ctx.ui.notify([`Nub-IA prompt profile: ${current.profile} (${current.source})`, "Addition to Pi's own system prompt per profile:", ...sizes, "Mode and YOLO directives add a line only while active. /nubia:prompt minimal|full switches (next turn)."].join("\n"), "info");
+				return;
+			}
+			if (!isPromptProfile(action)) { ctx.ui.notify("Use /nubia:prompt minimal|full (no argument shows sizes).", "warning"); return; }
+			try {
+				const path = writePromptProfile(action);
+				const after = resolvePromptProfile({ env: permissionEnvironment, cwd: ctx.cwd });
+				ctx.ui.notify(`Prompt profile saved: ${action} (${path}).${after.profile !== action ? ` This session still uses ${after.profile} from ${after.source}.` : " Applies from the next turn."}`, "info");
+			} catch (error) {
+				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+			}
 		},
 	});
 

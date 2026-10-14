@@ -247,6 +247,9 @@ async function run() {
 			PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,
 			XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
 			NUB_IA_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0",
+			// The harness asserts the complete orchestrator text; the runtime
+			// default is the minimal profile (T5.0, tests/prompt-profile.test.ts).
+			NUB_IA_PROMPT_PROFILE: "full",
 		},
 	};
 	const globalModelsPath = join(globalConfigHome, "models.json");

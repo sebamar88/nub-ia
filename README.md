@@ -119,6 +119,7 @@ referencia completa. Dentro de la sesión (`/nubia:commands` lista todo):
 | `/nubia:persona`, `/nubia:yolo`, `/nubia:background-subagents` | Persona del asistente, modo YOLO, subagentes en segundo plano. |
 | `/nubia:banner`, `/nubia:banner-color`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo` | Banner de inicio (isologo + wordmark, paleta `lime`). |
 | `/nubia:customize`, `/nubia:animations`, `/nubia:vim`, `/nubia:double-esc-cancel` | Apariencia y comportamiento de la shell. |
+| `/nubia:prompt [minimal\|full]` | Cuánto agrega Nub-IA al system prompt de Pi y el perfil activo. **`minimal` (default, ~0,6k tokens)** mantiene identidad, persona y ODD en 8 reglas; `full` (~4k tokens) agrega el texto completo del harness. Un repo puede fijarlo en `.pi/nub-ia/prompt-profile.json`; `NUB_IA_PROMPT_PROFILE` por sesión. |
 | `/nubia:changes`, `/nubia:agents`, `/nubia:usage`, `/nubia:stats`, `/nubia:status`, `/nubia:doctor` | Paneles de estado y diagnóstico. El panel Status incluye Review y Subagentes (tareas delegadas en vivo con su título). |
 
 El tema por defecto es `Nub-IA` (`themes/Nub-IA.json`); se cambia desde `/settings`.
@@ -145,6 +146,7 @@ Todas se llaman `NUB_IA_*` (el launcher las pasa a los procesos hijos).
 | `NUB_IA_METRICS=off` | Desactiva métricas, review y auditoría locales (`~/.pi/nub-ia/{metrics,audit}/`). |
 | `NUB_IA_METRICS_ENDPOINT`, `NUB_IA_METRICS_TOKEN` | Opt-in: espejo de esas filas (sin rutas ni secretos) a un endpoint `https://` del equipo; ver [docs/telemetry.md](docs/telemetry.md). |
 | `NUB_IA_NO_SELF_UPDATE=1` | `nub-ia update` no actualiza el checkout del paquete. |
+| `NUB_IA_PROMPT_PROFILE` | `minimal` \| `full` para la sesión (gana sobre repo y usuario). |
 | `NUB_IA_SKIP_VERIFY=1` | Saltear (una vez, con aviso) la verificación de firma de `nub-ia update` y de la política de org. |
 | `NUB_IA_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` (postinstall y auto-reparación al arrancar). |
 | `NUB_IA_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |

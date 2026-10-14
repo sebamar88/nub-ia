@@ -34,6 +34,8 @@ before(async () => {
 		NUB_IA_AGENT_HOME: join(home, "agents"),
 		PI_CODING_AGENT_DIR: join(home, "pi"),
 		XDG_CONFIG_HOME: join(home, "xdg"),
+		// These tests exercise the complete harness text; the runtime default is the minimal profile (T5.0).
+		NUB_IA_PROMPT_PROFILE: "full",
 	});
 	for (const [key, value] of Object.entries(fixtureEnvironment)) {
 		previousEnvironment.set(key, process.env[key]);
@@ -155,3 +157,17 @@ for (const scenario of ["child", "named-agent"] as const) {
 		assert.doesNotMatch(event.systemPromptOptions.appendSystemPrompt, /Nub-IA Identity and Harness/);
 	});
 }
+
+test("without NUB_IA_PROMPT_PROFILE the runtime appends the minimal Nub-IA block", async () => {
+	const saved = process.env.NUB_IA_PROMPT_PROFILE;
+	delete process.env.NUB_IA_PROMPT_PROFILE;
+	try {
+		const { __testing } = await import("../extensions/nubia-harness.ts");
+		const full = __testing.buildGentlePrompt("gentleman", fixtureCwd, undefined, undefined, "full");
+		const minimal = __testing.buildGentlePrompt("gentleman", fixtureCwd, undefined, undefined, "minimal");
+		assert.ok(Buffer.byteLength(minimal) * 4 < Buffer.byteLength(full));
+		assert.match(minimal, /^## Nub-IA\n/);
+	} finally {
+		if (saved !== undefined) process.env.NUB_IA_PROMPT_PROFILE = saved;
+	}
+});

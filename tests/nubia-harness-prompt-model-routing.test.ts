@@ -35,6 +35,7 @@ before(() => {
 		NUB_IA_AGENT_HOME: agentHome,
 		PI_CODING_AGENT_DIR: join(home, "pi"),
 		XDG_CONFIG_HOME: join(home, "xdg"),
+		NUB_IA_PROMPT_PROFILE: "full", // exercise the complete harness text (runtime default is minimal, T5.0)
 	});
 	for (const [key, value] of Object.entries(fixtureEnvironment)) {
 		previousEnvironment.set(key, process.env[key]);
