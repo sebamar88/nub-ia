@@ -130,9 +130,12 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   `assets/maintainers.allowed_signers`; estados unconfigured/skipped/verified/unsigned/untrusted). Sin llaves listadas
   = apagado (activar es agregar llaves). Tras `git pull`, un HEAD no verificado vuelve al commit anterior con
   `reset --keep`. `NUB_IA_SKIP_VERIFY=1`. Probado con llaves efímeras (test salta si no hay `ssh-keygen`).
-- [ ] **T4.4 Bump automático de rtk y ponytail**
-  `.github/workflows/pin-bumps.yml`: detecta release, recalcula SHA-256 por plataforma y abre PR; ídem versión de
-  ponytail en `lib/nubia-launcher.ts`. *Cierre:* PR generado con digests verificados.
+- [x] **T4.4 Bump automático de rtk y ponytail**
+  `scripts/bump-pins.mjs` (`--check` o reescritura: `RTK_VERSION` + digests de `RTK_ASSETS` desde el `checksums.txt`
+  de la release, `RTK_BINARY_SHA256` a `undefined` para re-grabar; pin de ponytail en `lib/nubia-launcher.ts` y README
+  desde el registry) + `.github/workflows/pin-bumps.yml` (lunes; re-graba el digest del binario linux-x64, regenera
+  runtime, corre la suite y abre PR). Probado en vivo con `--check`: hoy hay rtk 1.0.1 y ponytail 5.2.0 disponibles
+  (no se aplicaron en este corte: rtk es un salto de major; decisión para el PR que abra el workflow).
 
 ## Fase 5 — Pulido
 

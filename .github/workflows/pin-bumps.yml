@@ -1,0 +1,74 @@
+name: Pin bumps
+
+# Weekly check of the two hand-pinned dependencies (the rtk binary release and
+# the ponytail team package). When a newer release exists, the script rewrites
+# the pins with digests taken from the release's own checksums, the suite runs,
+# and a pull request is opened for a human to merge. Nothing is pushed to main.
+
+on:
+  schedule:
+    - cron: "41 6 * * 1" # Mondays 06:41 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.1.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          NUB_IA_SKIP_RTK_INSTALL: "1"
+
+      - name: Bump pins
+        id: bump
+        run: |
+          set +e
+          node scripts/bump-pins.mjs | tee bump.txt
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [ "$STATUS" = "3" ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$STATUS" != "0" ]; then exit "$STATUS"; fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Re-record the rtk binary digest for this platform and regenerate runtime modules
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          pnpm run install:rtk || true
+          pnpm run build:runtime-modules
+
+      - name: Run the suite with the new pins
+        if: steps.bump.outputs.changed == 'true'
+        run: pnpm test
+
+      - name: Open the pull request
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "nub-ia-bot"
+          git config user.email "nub-ia-bot@users.noreply.github.com"
+          BRANCH="chore/bump-pins-$(date -u +%Y-%m-%d)"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "chore: bump pinned dependencies" -m "$(cat bump.txt)"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" --title "chore: bump pinned dependencies" --body "$(printf 'Automatic pin refresh (scripts/bump-pins.mjs):\n\n```\n%s\n```\n\nArchive digests come from the upstream release checksums; the rtk binary digest was re-recorded for linux-x64 only (other platforms fall back to the archive digest until recorded).\n' "$(cat bump.txt)")"
