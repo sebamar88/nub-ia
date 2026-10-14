@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { describeVerification, verifyCommit } from "./verify-signature.mjs";
 
 export const ORG_POLICY_SCHEMA = "nub-ia.org-policy/v1";
 export const ORG_POLICY_FILE = "org-policy.json";
@@ -73,6 +74,15 @@ export function fetchOrgPolicy(source, env = process.env, deps = {}) {
 			return { ok: false, message: `could not clone ${source.repository}${source.ref ? `#${source.ref}` : ""}: ${(clone.stderr ?? "").trim() || `exit ${clone.status}`}; keeping ${existsSync(target) ? "the previous policy" : "no policy"}` };
 		}
 		commit = (run("git", ["-C", checkout, "rev-parse", "HEAD"]).stdout ?? "").trim() || undefined;
+		// T8.5: a policy that can tighten every session must come from a maintainer.
+		if (deps.signersPath) {
+			const verification = verifyCommit(checkout, "HEAD", deps.signersPath, env);
+			if (!verification.ok) {
+				rmSync(temp, { recursive: true, force: true });
+				return { ok: false, message: `org policy at ${source.repository}${commit ? `@${commit.slice(0, 7)}` : ""} rejected: ${describeVerification(verification)}; keeping ${existsSync(target) ? "the previous policy" : "no policy"}` };
+			}
+			if (verification.status !== "unconfigured") process.stderr.write(`nub-ia: org policy ${describeVerification(verification)}\n`);
+		}
 	}
 	try {
 		const file = join(checkout, source.path);

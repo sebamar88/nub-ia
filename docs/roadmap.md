@@ -125,9 +125,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   `merge -X find-renames` en `sync/upstream-<fecha>` → PR con el reporte, o issue (creado/actualizado) con los archivos
   en conflicto. Nunca escribe en `main`. YAML validado; la lógica git se probó localmente con el propio repo como
   upstream (behind 0 → "nothing to merge").
-- [ ] **T4.3 Verificación de integridad en `nub-ia update`**
-  `git verify-commit` contra llaves en `assets/maintainers.gpg`; `NUB_IA_SKIP_VERIFY=1` como escape. *Cierre:* update
-  rechaza HEAD no firmado; se documenta el límite que se cierra.
+- [x] **T4.3 Verificación de integridad en `nub-ia update`**
+  `scripts/verify-signature.mjs` (`verifyCommit` con `git verify-commit` + `gpg.format=ssh` +
+  `assets/maintainers.allowed_signers`; estados unconfigured/skipped/verified/unsigned/untrusted). Sin llaves listadas
+  = apagado (activar es agregar llaves). Tras `git pull`, un HEAD no verificado vuelve al commit anterior con
+  `reset --keep`. `NUB_IA_SKIP_VERIFY=1`. Probado con llaves efímeras (test salta si no hay `ssh-keygen`).
 - [ ] **T4.4 Bump automático de rtk y ponytail**
   `.github/workflows/pin-bumps.yml`: detecta release, recalcula SHA-256 por plataforma y abre PR; ídem versión de
   ponytail en `lib/nubia-launcher.ts`. *Cierre:* PR generado con digests verificados.
@@ -257,12 +259,12 @@ persiste ni se activa por config/env/tool.
   `audit/audit-<mes>.jsonl` (0600) vía el sink generalizado. Emisores: extensión de modos (ask/deny/paths/agentes/
   límites/cambios de modo con rol), review (push gate, veredicto). `nub-ia audit [--month] [--json]`; línea `Audit` en
   Status. Opt-in de envío: T3.3.
-- [ ] **T8.5 Firma e integridad de políticas**
-  Políticas de org verificadas con la infraestructura de T4.3; una no firmada se ignora con aviso y nunca relaja nada.
-  *Cierre:* test con política manipulada. Depende de T4.3, T8.1.
-- [ ] **T8.6 Documentación de gobernanza**
-  `docs/governance.md`: precedencia, roles, modos y `maxMode`, qué se audita, cómo pedir excepciones; `/nubia:doctor`
-  reporta la política efectiva.
+- [x] **T8.5 Firma e integridad de políticas**
+  El fetch de `org-policy.json` verifica el HEAD del clon con el mismo `allowed_signers`; una política no firmada o
+  firmada por un desconocido se rechaza y se conserva la anterior (nunca relaja nada). Probado end-to-end.
+- [x] **T8.6 Documentación de gobernanza**
+  `docs/governance.md`: capas y fusión por política, política de org, paquetes aprobados, roles, auditoría, cómo pedir
+  excepciones (tabla por capa), límites. La política efectiva en `/nubia:doctor` se agrega en T5.1.
 
 ---
 

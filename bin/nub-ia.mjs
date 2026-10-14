@@ -62,6 +62,7 @@ import {
 import { installIsolatedKeybindings } from "../scripts/install-keybindings.mjs";
 import { checkPackageSource, parseApprovedPackages } from "../scripts/approved-packages.mjs";
 import { initRepo } from "../scripts/init-repo.mjs";
+import { ALLOWED_SIGNERS_FILE, describeVerification, SKIP_VERIFY_ENV, verifyCommit } from "../scripts/verify-signature.mjs";
 import { collectUsageInputs, parseUsageArgs } from "../scripts/usage-cli.mjs";
 import { clearOrgPolicy, describeStatus as describeOrgPolicyStatus, fetchOrgPolicy, parseSource as parseOrgPolicySourceDescriptor, resolveSource as resolveOrgPolicySource, saveSource as saveOrgPolicySource } from "../scripts/org-policy-fetch.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
@@ -996,6 +997,16 @@ async function selfUpdatePackage(root) {
 		process.stderr.write("nub-ia: package already up to date\n");
 		return;
 	}
+	// Integrity: the new HEAD must be signed by a listed maintainer once keys
+	// exist (assets/maintainers.allowed_signers). On failure the checkout goes
+	// back to the previous commit; the tree was clean, so --keep loses nothing.
+	const verification = verifyCommit(root, "HEAD", join(root, "assets", ALLOWED_SIGNERS_FILE));
+	process.stderr.write(`nub-ia: ${describeVerification(verification)}\n`);
+	if (!verification.ok) {
+		spawnSync("git", ["-C", root, "reset", "--keep", "--quiet", before], { stdio: "ignore", windowsHide: true });
+		process.stderr.write(`nub-ia: self-update rejected; back on ${before}. Verify the remote, or set ${SKIP_VERIFY_ENV}=1 to accept this once.\n`);
+		return;
+	}
 	process.stderr.write(`nub-ia: package updated ${before} -> ${after}; installing dependencies\n`);
 	const pm = ["pnpm", ["install", "--frozen-lockfile"]];
 	const plan = planSpawn({ command: pm[0], args: pm[1], platform: process.platform });
@@ -1111,7 +1122,7 @@ async function main() {
 	// configured; a failed fetch keeps the previous policy and only warns.
 	if (args.piSubcommand === "update") {
 		const configured = resolveOrgPolicySource();
-		if (configured) process.stderr.write(`nub-ia: ${fetchOrgPolicy(configured.source).message}\n`);
+		if (configured) process.stderr.write(`nub-ia: ${fetchOrgPolicy(configured.source, process.env, { signersPath: join(packageRoot, "assets", ALLOWED_SIGNERS_FILE) }).message}\n`);
 	}
 
 	if (args.command === "usage") {
@@ -1173,7 +1184,7 @@ async function main() {
 		if (action === "pull") {
 			const configured = resolveOrgPolicySource();
 			if (!configured) fail("nub-ia policy pull: no source configured. Run: nub-ia policy set git:github.com/<org>/<repo>", 2);
-			const result = fetchOrgPolicy(configured.source);
+			const result = fetchOrgPolicy(configured.source, process.env, { signersPath: join(packageRoot, "assets", ALLOWED_SIGNERS_FILE) });
 			process.stderr.write(`nub-ia: ${result.message}\n`);
 			process.exit(result.ok ? 0 : 1);
 		}
@@ -1182,7 +1193,7 @@ async function main() {
 			if (!parseOrgPolicySourceDescriptor(descriptor)) fail("nub-ia policy set: expected git:host/org/repo[#ref][:path], a Git URL, a directory, or a JSON descriptor", 2);
 			const saved = saveOrgPolicySource(descriptor);
 			process.stderr.write(`nub-ia: org policy source saved to ${saved}\n`);
-			const result = fetchOrgPolicy(parseOrgPolicySourceDescriptor(descriptor));
+			const result = fetchOrgPolicy(parseOrgPolicySourceDescriptor(descriptor), process.env, { signersPath: join(packageRoot, "assets", ALLOWED_SIGNERS_FILE) });
 			process.stderr.write(`nub-ia: ${result.message}\n`);
 			process.exit(result.ok ? 0 : 1);
 		}

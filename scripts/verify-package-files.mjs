@@ -69,6 +69,8 @@ const requiredPaths = [
   "scripts/approved-packages.mjs",
   "scripts/init-repo.mjs",
   "scripts/upstream-diff.mjs",
+  "scripts/verify-signature.mjs",
+  "assets/maintainers.allowed_signers",
   "lib/nubia-status-blocks.ts",
   "lib/approved-packages.ts",
   "lib/audit-log.ts",

@@ -1,0 +1,9 @@
+# Maintainer signing keys for `nub-ia update` and the organisation policy fetch
+# (scripts/verify-signature.mjs). Git allowed-signers format, one key per line:
+#
+#   maintainer@nubiral.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... laptop
+#
+# While this file lists no keys, signature verification is off. Once a key is
+# listed, every update must be a commit signed by one of these keys
+# (git config gpg.format ssh; git config user.signingkey ~/.ssh/id_ed25519.pub;
+# git commit -S), and NUB_IA_SKIP_VERIFY=1 is the only (loud) escape.

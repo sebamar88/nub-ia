@@ -145,6 +145,7 @@ Todas se llaman `NUB_IA_*` (el launcher las pasa a los procesos hijos).
 | `NUB_IA_METRICS=off` | Desactiva métricas, review y auditoría locales (`~/.pi/nub-ia/{metrics,audit}/`). |
 | `NUB_IA_METRICS_ENDPOINT`, `NUB_IA_METRICS_TOKEN` | Opt-in: espejo de esas filas (sin rutas ni secretos) a un endpoint `https://` del equipo; ver [docs/telemetry.md](docs/telemetry.md). |
 | `NUB_IA_NO_SELF_UPDATE=1` | `nub-ia update` no actualiza el checkout del paquete. |
+| `NUB_IA_SKIP_VERIFY=1` | Saltear (una vez, con aviso) la verificación de firma de `nub-ia update` y de la política de org. |
 | `NUB_IA_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` (postinstall y auto-reparación al arrancar). |
 | `NUB_IA_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |
 | `RTK_DISABLED=1` | Apagar la reescritura de comandos con rtk en la sesión. |
@@ -231,7 +232,8 @@ Política de organización por encima del repo y del usuario (`nub-ia policy set
 - Redacción de secretos (`lib/secret-redaction.ts`): claves AWS, tokens de GitHub/OpenAI/Slack/Stripe/npm, JWT, llaves privadas, credenciales en URLs, `Authorization: Bearer` y variables `*_SECRET|TOKEN|PASSWORD|API_KEY=` se reemplazan por `[redacted]` en la salida de `bash`/`read`/`grep` antes de llegar al modelo, en los reportes de review (y su comentario de PR) y en el historial de prompts. Es por patrones: no reemplaza un sandbox ni un escáner de secretos.
 - Los reportes de review (contienen el diff) se escriben con permisos 0600 en un directorio 0700 y se excluyen del repo del usuario vía `.git/info/exclude`.
 - Dependencias: rtk con SHA-256 pinneado por plataforma; ponytail pinneado a una versión exacta; `pnpm audit` limpio (override de `brace-expansion` en `pnpm-workspace.yaml`); `minimumReleaseAge` de 3 días para todo lo nuevo.
-- Límites conocidos: los guardrails de bash y el gate son redes de seguridad basadas en patrones, no un sandbox; `nub-ia update` confía en el remoto `origin` (no verifica firmas).
+- Integridad de `nub-ia update` y de la política de org: cuando `assets/maintainers.allowed_signers` lista llaves SSH de maintainers, el nuevo HEAD (y el commit de la política descargada) debe estar firmado por una de ellas (`git verify-commit` con `gpg.format=ssh`); si no, el checkout vuelve al commit anterior / se conserva la política previa. Con el archivo sin llaves la verificación está apagada (hay que activarla a propósito agregando llaves); `NUB_IA_SKIP_VERIFY=1` la saltea una vez, a los gritos.
+- Límites conocidos: los guardrails de bash y el gate son redes de seguridad basadas en patrones, no un sandbox.
 
 ### RTK: menos tokens por comando
 

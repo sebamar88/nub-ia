@@ -112,8 +112,25 @@ nub-ia audit --json          # todas las filas
 El panel Status muestra `Audit 2 approved · 1 denied today` cuando hubo decisiones hoy. `NUB_IA_METRICS=off` también
 apaga la auditoría (mismo sink local). El envío opcional al endpoint del equipo es T3.3.
 
+## Cómo pedir una excepción
+
+Las capas solo endurecen, así que una excepción nunca se consigue "apagando" algo localmente: se pide en la capa que lo
+fijó.
+
+| Lo que bloquea | Quién lo cambia | Cómo |
+| --- | --- | --- |
+| Tope de modo, ruta protegida, límite, gate, allowlist de la **org** | quien mantiene el repo de política | PR a `org-policy.json` (o un rol en `roles.definitions` + tu email en `members`); `nub-ia update` lo trae |
+| Lo mismo fijado por el **repo** | el equipo del repo | PR al `.pi/nub-ia/*.json` versionado |
+| Paquete fuera de `approvedPackages` | quien mantiene la política | agregar la fuente a `sources` |
+| Un commit/política sin firma válida | un maintainer listado | firmar el commit, o agregar su llave a `assets/maintainers.allowed_signers` |
+| Una decisión puntual (comando, ruta `confirm`) | vos, en el diálogo | confirmar; queda en la auditoría |
+
+`/nubia:mode status`, `/nubia:review-mode status`, `/nubia:doctor` y `nub-ia policy status` dicen qué capa fijó cada
+valor, para que el pedido vaya al lugar correcto.
+
 ## Lo que no es
 
 Ninguna de estas capas es un sandbox: son redes basadas en patrones sobre las herramientas del agente. Para contención
-real usá aislamiento del SO/contenedor y credenciales de alcance mínimo. Tampoco se verifica todavía la firma de la
-política descargada (roadmap T8.5, junto con la verificación de `nub-ia update`).
+real usá aislamiento del SO/contenedor y credenciales de alcance mínimo. La firma de la política descargada se verifica igual que la de `nub-ia update`: con llaves en
+`assets/maintainers.allowed_signers`, un commit sin firma o firmado por alguien fuera de la lista se rechaza y la política
+anterior se conserva.
