@@ -59,6 +59,25 @@ La sección `paths` de `runtime-guardrails.json` protege rutas del repo con glob
 - `confirm`: siempre pregunta, incluso en `auto` y `yolo`.
 - El archivo del usuario y el del repo se **unen**: un repo solo puede agregar rutas protegidas, nunca quitarlas.
 
+## Reglas por agente
+
+La sección `agents` de `runtime-guardrails.json` limita qué herramientas puede usar cada subagente (el padre le pasa su
+nombre en `NUB_IA_AGENT_NAME`; patrones con `*` para nombre y herramienta):
+
+```json
+{ "agents": { "nubia-explore": { "tools": { "write": "deny", "edit": "deny", "bash": "confirm" } }, "review-*": { "tools": { "bash": "deny" } } } }
+```
+
+`allow < confirm < deny`; entre el archivo del usuario y el del repo gana la más estricta. Un hijo no tiene UI, así que
+`confirm` falla cerrado: el hijo recibe el motivo y debe reportar la acción al orquestador en vez de ejecutarla. El
+`tools:` del frontmatter del agente sigue aplicando primero; esto solo quita.
+
+## System prompt
+
+Los modos agregan al system prompt **una sola línea, y solo en `plan`, `manual` y `accept-edits`**; `auto` (el
+default) y `yolo` no agregan nada (YOLO ya tiene su directiva propia). Las rutas protegidas y las reglas por agente no
+tocan el prompt: actúan sobre la llamada a la herramienta.
+
 ## Shift+Tab
 
 Pi reserva Shift+Tab para `app.thinking.cycle`, y un atajo de extensión sobre una tecla reservada se ignora. Por eso el

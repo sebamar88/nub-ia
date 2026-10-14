@@ -122,6 +122,13 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 - [ ] **T5.1 `/nubia:doctor` ampliado**
   rtk presente, tiers resolubles (T2.3), gate activo, política efectiva (T8.1), checkout vs `origin/main`.
+- [ ] **T5.0 System prompt minimal** *(pedido del equipo)*
+  Mantener el prompt tan chico como el de Pi. Hoy el harness heredado agrega ~7,4 KB (~1 850 tokens) de orquestación
+  (`assets/orchestrator*.md`) + persona; lo propio de Nub-IA agrega 0 bytes en el modo default (la directiva de modo es
+  una línea y solo en plan/manual/accept-edits; YOLO ~1,1 KB solo cuando está activo). Tareas: (a) `/nubia:prompt`
+  que mida bytes por sección del system prompt efectivo; (b) perfil `promptProfile: minimal|full` (default `minimal`)
+  donde `minimal` conserva solo ruteo + triggers de delegación + seguridad y mueve el resto a skills cargadas bajo
+  demanda; (c) presupuesto en test (`tests/orchestrator-budget.test.ts` ya existe) bajado al nuevo tamaño.
 - [ ] **T5.2 Política de idioma**
   `docs/CONTRIBUTING.md`: README/docs de usuario en español, código/comentarios/docs técnicos en inglés; revisar
   inconsistencias existentes.
@@ -193,10 +200,10 @@ persiste ni se activa por config/env/tool.
   el repo solo agrega), `matchesGlob` (`**`, `*`, `?`, `{a,b}`, basename sin `/`), `evaluatePaths` (deny > confirm),
   `bashWriteTargets` (redirecciones, `tee`, operandos de rm/mv/cp/touch/sed -i/git checkout…). Aplicado en la
   extensión de modos antes de `decide()`: deny bloquea en todo modo, confirm pregunta en todo modo (yolo incluido).
-- [ ] **T7.2 Permisos por agente/herramienta**
-  `runtime-guardrails.json` → `agents: { "nubia-explore": { tools: { write: "deny", bash: "confirm" } }, … }`;
-  `extensions/nubia-agents.ts` aplica la política al lanzar el hijo (gana sobre el frontmatter si es más estricta).
-  *Cierre:* `nubia-explore` que intenta `write` recibe rechazo y el padre el evento. Depende de T7.6.
+- [x] **T7.2 Permisos por agente/herramienta**
+  `lib/agent-tool-policy.ts` (`agents.<nombre|patrón>.tools.<tool|patrón>: allow|confirm|deny`, la más estricta gana
+  entre capas). El runner pasa `NUB_IA_AGENT_NAME` al hijo; la extensión de modos lo aplica dentro del hijo antes de
+  todo lo demás; `confirm` en un hijo (sin UI) falla cerrado con instrucción de reportar al orquestador.
 - [ ] **T7.3 Allowlist de providers/modelos por repo**
   `.pi/nub-ia/model-tiers.json` → `allowedProviders` / `deniedModels`, respetados también para `/model` manual.
   *Cierre:* `/model` con provider denegado muestra motivo; test en `model-tier-router`.

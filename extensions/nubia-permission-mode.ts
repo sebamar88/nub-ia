@@ -32,6 +32,7 @@ import {
 } from "../lib/permission-mode-policy.ts";
 import { discoverYoloUiAdapter, YOLO_DISPLAY } from "../lib/yolo-session-policy.ts";
 import { bashWriteTargets, evaluatePaths, mergePathPolicies, parsePathPolicy, type PathPolicy } from "../lib/path-permission-policy.ts";
+import { agentToolRule, mergeAgentToolPolicies, parseAgentToolPolicy, type AgentToolPolicy } from "../lib/agent-tool-policy.ts";
 import { relative } from "node:path";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
@@ -80,6 +81,11 @@ function loadConfig(cwd: string, env: NodeJS.ProcessEnv): EffectivePermissionMod
 function loadPathPolicy(cwd: string, env: NodeJS.ProcessEnv): PathPolicy {
 	const home = nubIaConfigHome(env);
 	return mergePathPolicies(parsePathPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parsePathPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))));
+}
+
+function loadAgentToolPolicy(cwd: string, env: NodeJS.ProcessEnv): AgentToolPolicy {
+	const home = nubIaConfigHome(env);
+	return mergeAgentToolPolicies(parseAgentToolPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parseAgentToolPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))));
 }
 
 /** Repository-relative form of a tool path (absolute or cwd-relative); outside the worktree it is returned as given. */
@@ -183,6 +189,14 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 
 	pi.on("tool_call", async (event, ctx) => {
 		const input = event.input;
+		const agentName = readEnv(env, "NUB_IA_AGENT_NAME");
+		// A delegated child: the per-agent tool rules apply before anything else.
+		// Children are headless, so confirm fails closed with a report-back hint.
+		if (isChild && agentName) {
+			const rule = agentToolRule(loadAgentToolPolicy(ctx.cwd, env), agentName, event.toolName);
+			if (rule === "deny") return { block: true, reason: `Policy: the ${agentName} agent may not use ${event.toolName} (agents.${agentName}.tools in runtime-guardrails.json). Report what you would do instead of doing it.` };
+			if (rule === "confirm") return { block: true, reason: `Policy: ${event.toolName} by the ${agentName} agent requires the human's confirmation, which a subagent cannot obtain. Report the exact action back to the orchestrator.` };
+		}
 		// Path policy first: it is independent of the mode and never waived by it.
 		const hit = evaluatePaths(loadPathPolicy(ctx.cwd, env), writtenPaths(ctx.cwd, event.toolName, input));
 		if (hit?.rule === "deny") return { block: true, reason: `Path policy: ${hit.path} matches "${hit.glob}" (paths.deny in runtime-guardrails.json) and must not be changed by the agent. Leave it alone or ask the human to edit it.` };

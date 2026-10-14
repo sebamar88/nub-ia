@@ -198,20 +198,23 @@ export function decide(input: DecideInput): Decision {
 const DIRECTIVE_OPEN = "<nubia-permission-mode";
 const DIRECTIVE_CLOSE = "</nubia-permission-mode>";
 
+/**
+ * One line, only when the mode changes what the agent may do. `auto` is the
+ * default behaviour and adds nothing, so the system prompt stays as lean as Pi's.
+ */
 export function modeDirective(mode: PermissionMode): string | undefined {
-	const common = "The human controls this mode (Shift+Tab or /nubia:mode); you cannot change it and must never pretend a different mode is active. Guardrail confirmations, destructive-command checks and ask_user tools apply in every mode.";
+	const tail = "The human changes it (Shift+Tab or /nubia:mode); guardrails and ask_user still apply.";
 	switch (mode) {
 		case "plan":
-			return `${DIRECTIVE_OPEN} mode="plan">\nPermission mode is PLAN: this session is read-only. Investigate with read/grep/find/codegraph and read-only commands, then deliver analysis, a plan, or a proposed change as text. Do not write or edit files, do not run commands that change files or state, do not delegate writers; tool calls that would do so are rejected. ${common}\n${DIRECTIVE_CLOSE}`;
+			return `${DIRECTIVE_OPEN} mode="plan">Permission mode PLAN: read-only. Analyse and propose as text; write/edit, mutating commands and writer delegation are rejected. ${tail}${DIRECTIVE_CLOSE}`;
 		case "manual":
-			return `${DIRECTIVE_OPEN} mode="manual">\nPermission mode is MANUAL: every write/edit, every command that may change state and every non-exploration delegation is confirmed by the human before it runs. Group related edits so each confirmation is meaningful, say briefly what each one does, and do not ask for permission again in prose: the confirmation dialog is the permission. ${common}\n${DIRECTIVE_CLOSE}`;
+			return `${DIRECTIVE_OPEN} mode="manual">Permission mode MANUAL: writes, mutating commands and writer delegation are confirmed by the human in a dialog; do not also ask in prose. ${tail}${DIRECTIVE_CLOSE}`;
 		case "accept-edits":
-			return `${DIRECTIVE_OPEN} mode="accept-edits">\nPermission mode is ACCEPT EDITS: writes and edits inside this repository run without asking; commands that may change state are confirmed by the human. Prefer edits over scripts for file changes and keep command runs to tests, builds and checks. Do not ask for permission in prose for edits. ${common}\n${DIRECTIVE_CLOSE}`;
+			return `${DIRECTIVE_OPEN} mode="accept-edits">Permission mode ACCEPT EDITS: edits inside the repository run; mutating commands are confirmed by the human. ${tail}${DIRECTIVE_CLOSE}`;
 		case "auto":
-			return `${DIRECTIVE_OPEN} mode="auto">\nPermission mode is AUTO: edits and commands run without asking; only guardrail-listed and destructive commands confirm. Commits, pushes and PR creation still require the human's explicit go-ahead unless YOLO is on. ${common}\n${DIRECTIVE_CLOSE}`;
+			return undefined;
 		case "yolo":
-			// YOLO's own directive (lib/yolo-session-policy.ts) carries the grant; this only names the mode.
-			return `${DIRECTIVE_OPEN} mode="yolo">\nPermission mode is YOLO: see the YOLO session directive for what it grants; destructive confirmations remain. ${common}\n${DIRECTIVE_CLOSE}`;
+			return undefined; // the YOLO session directive already carries the grant
 		default:
 			return undefined;
 	}

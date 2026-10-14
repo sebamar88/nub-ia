@@ -481,6 +481,9 @@ export class AgentRunner {
 			...request.env,
 			[CHILD_MARKER]: "1",
 			[IPC_MARKER]: `${this.deps.now()}-${Math.random().toString(36).slice(2)}`,
+			// Lets the child's permission-mode extension apply the per-agent tool
+			// rules of runtime-guardrails.json (lib/agent-tool-policy.ts).
+			NUB_IA_AGENT_NAME: request.agent.name,
 		});
 		// Do not forward stale legacy child selection or authorization.
 		delete env.NUB_IA_SDD_REMEDIATION_PLAN;

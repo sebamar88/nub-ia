@@ -2087,7 +2087,7 @@ test("default Node spawn adapter launches IPC-only children, canonical Git or no
 			assert.equal(captured[index]?.command, "/fixture/pi");
 			assert.deepEqual(captured[index]?.args, args);
 			assert.equal(captured[index]?.options.cwd, index === 2 ? canonicalGitCwd : nonGitCwd);
-			assert.deepEqual(captured[index]?.options.env, { PATH: "/bin", FIXTURE: fixture, NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: ownedIpc });
+			assert.deepEqual(captured[index]?.options.env, { PATH: "/bin", FIXTURE: fixture, NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: ownedIpc, NUB_IA_AGENT_NAME: "explore" });
 			assert.equal(captured[index]?.options.shell, undefined, "the adapter does not invoke a shell");
 			assert.equal(captured[index]?.options.windowsHide, true, "the adapter always hides a Windows console");
 			assert.equal(captured[index]?.options.detached, process.platform !== "win32", "the adapter forwards the runner's platform selection");

@@ -78,7 +78,13 @@ test("nextMode and capMode: cycle in order, wrap, skip above the cap and an unav
 });
 
 test("modeDirective and updateModePrompt: one directive at a time, replaced on change, naming the human as the owner", () => {
-	for (const mode of PERMISSION_MODES) assert.match(modeDirective(mode)!, /<nubia-permission-mode mode="[a-z-]+">[\s\S]*Shift\+Tab or \/nubia:mode[\s\S]*<\/nubia-permission-mode>/);
+	for (const mode of ["plan", "manual", "accept-edits"] as const) {
+		const directive = modeDirective(mode)!;
+		assert.match(directive, /^<nubia-permission-mode mode="[a-z-]+">.*Shift\+Tab or \/nubia:mode.*<\/nubia-permission-mode>$/);
+		assert.ok(directive.length < 300, `${mode} directive stays one short line (${directive.length} bytes)`);
+	}
+	assert.equal(modeDirective("auto"), undefined, "the default mode adds nothing to the system prompt");
+	assert.equal(modeDirective("yolo"), undefined, "YOLO's own directive already carries the grant");
 	assert.match(modeDirective("plan")!, /read-only/);
 	const options = { appendSystemPrompt: "base" };
 	updateModePrompt(options, "plan");
@@ -88,6 +94,8 @@ test("modeDirective and updateModePrompt: one directive at a time, replaced on c
 	assert.match(options.appendSystemPrompt!, /mode="manual"/);
 	assert.doesNotMatch(options.appendSystemPrompt!, /mode="plan"/);
 	assert.ok(options.appendSystemPrompt!.startsWith("base"));
+	updateModePrompt(options, "auto");
+	assert.equal(options.appendSystemPrompt, "base", "switching back to auto removes the directive entirely");
 	updateModePrompt(undefined, "plan");
 });
 

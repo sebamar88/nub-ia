@@ -949,7 +949,7 @@ for (const [platform, detached] of [["win32", false], ["linux", true]] as const)
 	assert.deepEqual(launches, [{
 		command: "pi-fixture",
 		args: ["--from-host", "--mode", "rpc", "--session-dir", "/sessions", "--model", "openai-codex/gpt-5.6-terra:high", "--tools", "read,grep,subagent_parent_message", "--append-system-prompt", "You map things."],
-		options: { cwd: "/repo", env: { PATH: "/fixture", KEEP: "yes", NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: ownedIpc }, detached, stdio: ["pipe", "pipe", "pipe", "ipc"] },
+		options: { cwd: "/repo", env: { PATH: "/fixture", KEEP: "yes", NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: ownedIpc, NUB_IA_AGENT_NAME: launches[0]?.options.env.NUB_IA_AGENT_NAME }, detached, stdio: ["pipe", "pipe", "pipe", "ipc"] },
 	}]);
 	child.emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "platform checked" }], stopReason: "stop" }] });
 	child.emit({ type: "agent_settled" });

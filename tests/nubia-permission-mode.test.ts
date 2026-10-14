@@ -170,3 +170,29 @@ test("permission mode extension: the path policy denies or confirms regardless o
 		rmSync(root, { recursive: true, force: true });
 	}
 });
+
+test("permission mode extension: a child applies its agent's tool rules and fails closed on confirm", async () => {
+	const root = mkdtempSync(join(tmpdir(), "nubia-mode-"));
+	try {
+		const cwd = join(root, "repo");
+		const configHome = join(root, "config");
+		mkdirSync(join(cwd, ".pi", "nub-ia"), { recursive: true });
+		mkdirSync(configHome, { recursive: true });
+		writeFileSync(join(cwd, ".pi", "nub-ia", "runtime-guardrails.json"), JSON.stringify({ agents: { "nubia-explore": { tools: { write: "deny", bash: "confirm" } } } }));
+		const child = harness({ cwd, configHome, child: true, hasUI: false });
+		child.env.NUB_IA_AGENT_NAME = "nubia-explore";
+		await child.fire("session_start", {});
+		const denied = (await child.fire("tool_call", { toolName: "write", input: { path: join(cwd, "a.ts") } })) as { block: boolean; reason: string };
+		assert.match(denied.reason, /nubia-explore agent may not use write/);
+		const confirm = (await child.fire("tool_call", { toolName: "bash", input: { command: "git status" } })) as { block: boolean; reason: string };
+		assert.match(confirm.reason, /requires the human's confirmation, which a subagent cannot obtain/);
+		assert.equal(await child.fire("tool_call", { toolName: "read", input: { path: "a.ts" } }), undefined);
+		child.env.NUB_IA_AGENT_NAME = "nubia-worker";
+		const other = harness({ cwd, configHome, child: true, hasUI: false });
+		other.env.NUB_IA_AGENT_NAME = "nubia-worker";
+		await other.fire("session_start", {});
+		assert.equal(await other.fire("tool_call", { toolName: "write", input: { path: join(cwd, "a.ts") } }), undefined, "rules are per agent");
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
