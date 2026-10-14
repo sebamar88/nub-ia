@@ -118,7 +118,7 @@ referencia completa. Dentro de la sesión (`/nubia:commands` lista todo):
 | `/nubia:persona`, `/nubia:yolo`, `/nubia:background-subagents` | Persona del asistente, modo YOLO, subagentes en segundo plano. |
 | `/nubia:banner`, `/nubia:banner-color`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo` | Banner de inicio (isologo + wordmark, paleta `lime`). |
 | `/nubia:customize`, `/nubia:animations`, `/nubia:vim`, `/nubia:double-esc-cancel` | Apariencia y comportamiento de la shell. |
-| `/nubia:changes`, `/nubia:agents`, `/nubia:usage`, `/nubia:stats`, `/nubia:status`, `/nubia:doctor` | Paneles de estado y diagnóstico. |
+| `/nubia:changes`, `/nubia:agents`, `/nubia:usage`, `/nubia:stats`, `/nubia:status`, `/nubia:doctor` | Paneles de estado y diagnóstico. El panel Status incluye Review y Subagentes (tareas delegadas en vivo con su título). |
 
 El tema por defecto es `Nub-IA` (`themes/Nub-IA.json`); se cambia desde `/settings`.
 

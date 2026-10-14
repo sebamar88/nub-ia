@@ -112,22 +112,20 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 Independiente del resto. Hacer antes de T7.10 (comparten el bloque de Status).
 
-- [ ] **T6.1 Fuente de datos compartida**
-  `lib/agents-status-model.ts` (nuevo): `activeAgentsSummary(tasks) → { running, queued, done, items }`, puro.
-  `extensions/nubia-agents.ts`: registra un getter en el estado compartido de la shell (como `tracker`/`usage`).
-  *Cierre:* tests de agregación (0, 1, N tareas; estados mezclados).
-- [ ] **T6.2 Título resumido de la tarea**
-  `taskHeadline(task)`: usa `label`; si falta, primera línea del `task` recortada a ~40 cols, sanitizada
-  (`sanitizeTerminalText`). `assets/orchestrator-delegation.md`: `label` obligatorio al delegar. *Cierre:* tests de
-  truncado/sanitización.
-- [ ] **T6.3 Render en Status**
-  `lib/shell-bar.ts`: `agents?: { headline; tone; items }` en `ShellBarModel`; `extensions/nubia-shell.ts`: llenarlo en
-  `footerModel()` y renderizar bajo "Review" como `◐ nubia-worker · "map footer data sources" · 2m`, máx. 3 filas +
-  "+N más"; toggle `agents` en `/nubia:customize` persistido en `visualSettings.visibility`. *Cierre:* snapshot con 0/2/5
-  subagentes; ancho angosto no rompe (`narrowStatusOwner`).
-- [ ] **T6.4 Refresco en vivo**
-  Invalidar footer en start/finish/cancel; tick de 1 s solo mientras haya tareas running. *Cierre:* sin timers vivos
-  cuando no hay subagentes (test).
+- [x] **T6.1 Fuente de datos compartida**
+  `lib/agents-status-model.ts`: `agentsStatusPayload(tasks, now)` (conteos + ítems saneados, reusa `widgetTasks` del
+  widget Agents existente) publicado por `extensions/nubia-agents.ts` en el canal `pi.events` `nubia:agents-status/v1`
+  en cada cambio del store y cada tick del reloj; `parseAgentsStatus` valida del lado de la shell.
+- [x] **T6.2 Título resumido de la tarea**
+  `taskHeadline(task)`: `label` o primera línea no vacía del prompt, saneada y recortada a 40 caracteres.
+  *Pendiente menor:* reforzar en `assets/orchestrator-delegation.md` que `label` sea obligatorio al delegar.
+- [x] **T6.3 Render en Status**
+  `ShellBarModel.agents` + bloque "Subagents" entre Review e Integrations (`◐ nubia-worker · "título" · 2m04s`, máx. 3
+  filas + `+N more · /nubia:agents`). Comparte el toggle `agents` de `/nubia:customize` con el widget Agents (sin clave
+  nueva ni migración). Tests de render y de ancho angosto en `tests/shell-bar.test.ts`.
+- [x] **T6.4 Refresco en vivo**
+  Sin reloj nuevo: la shell calcula el tiempo transcurrido al pintar y el `tickClock` del widget Agents ya pide un frame
+  por segundo mientras hay tareas y uno más cuando expira la última terminada.
 
 ## Fase 7 — Permisos
 

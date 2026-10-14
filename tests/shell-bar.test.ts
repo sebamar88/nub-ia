@@ -790,3 +790,23 @@ test("the narrow-layout bottom-only bar stays unchanged in the float style", (t)
 	useCardStyle(t, CARD_STYLE.FLOAT);
 	assert.deepEqual(renderShellBottomOnlyBar(data, theme, 100, "alt+u"), neon);
 });
+
+test("Status card lists live subagents under Review and shares the agents visibility key", () => {
+	const agents = { headline: "1 running · 1 queued", tone: "active" as const, items: ['◐ nubia-worker · "map footer data sources" · 2m04s', '○ nubia-explore · "find callers"', "+1 more · /nubia:agents"] };
+	const data = model({ review: { headline: "APPROVE · 3 min ago", tone: "ok" }, agents });
+	const text = renderShellSidebarBar(data, plainTheme, 60).join("\n");
+	let previous = -1;
+	for (const heading of ["Project", "Review", "Subagents", "Integrations"]) {
+		const index = text.indexOf(heading);
+		assert.ok(index > previous, heading);
+		previous = index;
+	}
+	assert.match(text, /1 running · 1 queued/);
+	assert.match(text, /◐ nubia-worker · "map footer data sources" · 2m04s/);
+	assert.match(text, /\+1 more · \/nubia:agents/);
+	for (const width of [1, 8, 24, 60]) assert.ok(renderShellSidebarBar(data, plainTheme, width).every((line) => visibleWidth(line) <= width));
+	const hidden = { ...DEFAULT_VISUAL_SETTINGS, visibility: { ...DEFAULT_VISUAL_SETTINGS.visibility, agents: false } };
+	assert.doesNotMatch(renderShellSidebarBar(data, plainTheme, 60, hidden).join(""), /Subagents|nubia-worker/);
+	// A quiet session still shows the block (so the user knows where it lives), with its "none" headline.
+	assert.match(renderShellSidebarBar(model({ agents: { headline: "No subagents", tone: "none", items: [] } }), plainTheme, 60).join("\n"), /Subagents[^\n]*\n[^\n]*No subagents/);
+});

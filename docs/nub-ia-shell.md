@@ -22,7 +22,8 @@ Con 140 columnas o más, fullscreen muestra un header en vivo sobre una divisió
 
 - **Header:** identidad de la sesión a la izquierda (marca, cwd, rama, cantidad de modificados, modelo · esfuerzo · perfil) y dos contadores a la derecha (gauge de contexto y costo). No muestra el estado working/thinking. Si no entra, se degradan primero perfil, luego esfuerzo, luego el grupo cwd/rama/dirty; debajo de eso solo queda la marca.
 - **Rail derecho:** desplaza **Status → Changes → TODO**. Las cards cachean su render hasta que cambia su digest.
-- **Status:** Project (cwd, rama, nombre de sesión, perfil activo), Changes e Integrations (estados de otras extensiones).
+- **Status:** Project (cwd, rama, nombre de sesión, perfil activo), Changes, Review (último `nub_review`), Subagentes e Integrations (estados de otras extensiones).
+- **Subagentes:** resumen en vivo de las tareas delegadas de la sesión (`1 running · 1 queued`) y hasta tres filas `◐ nubia-worker · "título" · 2m04s`; el título es el `label` que pasó el orquestador o, si falta, la primera línea de la tarea. Las terminadas quedan un minuto. Comparte el toggle **agents** de `/nubia:customize` con el widget Agents del editor; `/nubia:agents` abre la vista completa.
 - **Agents** no está en el rail: su card queda sobre el editor, con columnas fijas alineadas a la derecha (`modelo · esfuerzo`, tokens, costo, tiempo); una tarea encolada completa solo la columna de tiempo con `queued`.
 - Debajo de 140 columnas no hay sidebar: un header superior configurado se encarga del estado; si no, la barra inferior. El modo regular conserva la barra compacta de una línea y el widget de Agents sobre el editor.
 

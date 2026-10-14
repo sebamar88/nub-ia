@@ -20,6 +20,8 @@ export interface ShellBarModel {
 	changes?: { files: number; added: number; deleted: number; notice?: string };
 	/** Last `nub_review` for the current deliverable diff (Status card "Review" block). */
 	review?: { headline: string; tone: "ok" | "warn" | "bad" | "none"; detail?: string };
+	/** Live subagents of this session (Status card "Subagents" block), from lib/agents-status-model.ts. */
+	agents?: { headline: string; tone: "active" | "waiting" | "done" | "none"; items: string[] };
 	cwd: string;
 	branch: string | null;
 	dirty: number | undefined;
@@ -236,6 +238,14 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 			lines: [
 				theme.fg(model.review.tone === "ok" ? "success" : model.review.tone === "bad" ? "error" : model.review.tone === "warn" ? "warning" : ROLE.LABEL, sanitizeStatus(model.review.headline)),
 				...(model.review.detail ? [label(sanitizeStatus(model.review.detail))] : []),
+			],
+		}]),
+		// Shares the `agents` visibility key with the Agents widget by the editor.
+		...(presentation?.visibility.agents === false || !model.agents ? [] : [{
+			title: "Subagents",
+			lines: [
+				theme.fg(model.agents.tone === "active" ? "accent" : model.agents.tone === "waiting" ? "warning" : model.agents.tone === "done" ? "success" : ROLE.LABEL, sanitizeStatus(model.agents.headline)),
+				...model.agents.items.map((item) => label(sanitizeStatus(item))),
 			],
 		}]),
 		{ title: "Integrations", lines: model.statuses.length

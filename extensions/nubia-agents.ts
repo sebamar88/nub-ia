@@ -47,6 +47,7 @@ import { createRpcActivityPublisher, type RpcActivityPublisher } from "../lib/ag
 import { isInteractiveRpcHost } from "../lib/rpc-host.ts";
 import { createNativeFullscreenInteraction } from "../lib/native-fullscreen-interaction.ts";
 import { AGENTS_GLYPH, renderAgentsCard, widgetExpiryMs, widgetRows } from "../lib/agents-widget.ts";
+import { AGENTS_STATUS_EVENT, agentsStatusPayload } from "../lib/agents-status-model.ts";
 import { CARD_TONE, renderCard } from "../lib/shell-card.ts";
 import { openInExternalEditor } from "./nubia-shell.ts";
 import { gentlePiConfigHome } from "../lib/agent-home.ts";
@@ -616,6 +617,14 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 		}, RENDER_COALESCE_MS);
 	};
 
+	// The Status card's "Subagents" block (nubia-shell) reads this channel: a
+	// sanitized snapshot of the active session's tasks, re-sent on every store
+	// change and clock tick so finished rows leave it on the same schedule as
+	// the Agents widget. Nothing here carries prompts, results or paths.
+	const publishStatus = (tasks: readonly TaskRecord[]) => {
+		pi.events.emit(AGENTS_STATUS_EVENT, agentsStatusPayload(tasks, deps.now()));
+	};
+
 	// The elapsed column ticks once a second while something runs. Once every
 	// task is done, one frame is due when the next finished row leaves the
 	// card, so an idle terminal still sees it clear.
@@ -624,6 +633,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 		cancelClock = undefined;
 		if (!sessions) return;
 		const tasks = visibleTasks();
+		publishStatus(tasks);
 		if (tasks.some((task) => !isFinished(task.status))) {
 			cancelClock = deps.schedule(() => {
 				requestRender();
