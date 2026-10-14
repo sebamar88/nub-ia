@@ -28,7 +28,9 @@ import { type CatalogModel, decideRoute, isModelTier, isProviderFailure } from "
 import { REVIEW_MODE_ACTIONS, describeReviewGate, resolveReviewGate, writeGlobalReviewGate } from "../lib/review-gate-policy.ts";
 import { loadTierCatalog, toCatalogModel } from "./nub-ia-router.ts";
 import { reviewMetricRows } from "../lib/nub-review-metrics.ts";
-import { appendMetricRows } from "../lib/runtime-metrics-sink.ts";
+import { calibrate, parseMetricRows, renderCalibration } from "../lib/nub-review-calibration.ts";
+import { checkExpectations, currentPromptPins, describeFailures, loadReviewFixtures } from "../lib/nub-review-fixtures.ts";
+import { appendMetricRows, metricsFilePath } from "../lib/runtime-metrics-sink.ts";
 import {
 	type DiffScope,
 	type Finding,
@@ -454,6 +456,46 @@ async function runHeadless(ctx: ExtensionContext, raw: string): Promise<never> {
 	process.exit(headlessExitCode(result.report.verdict, options.failOn));
 }
 
+/** `/nubia:review stats`: what the local review metrics say about each lens. */
+function reviewStats(): string {
+	const path = metricsFilePath("review");
+	let text = "";
+	try { text = readFileSync(path, "utf8"); } catch { /* no file yet */ }
+	const parsed = parseMetricRows(text);
+	return renderCalibration(calibrate(parsed.rows, parsed.skipped), path);
+}
+
+/**
+ * `/nubia:review eval`: runs the packaged fixtures (tests/fixtures/review) through
+ * the real lenses and checks their mustFlag/mustNotFlag expectations. This is
+ * how a prompt change gets validated before its pin is updated; it spends
+ * model calls (fixtures × lenses), so it only runs on request.
+ */
+async function reviewEval(ctx: ExtensionContext, signal: AbortSignal | undefined): Promise<string> {
+	const fixtures = loadReviewFixtures(join(PACKAGE_ROOT, "tests", "fixtures", "review"));
+	if (fixtures.length === 0) return "No review fixtures found in this package.";
+	const { agents, missing } = discoverLensAgents(ctx);
+	if (missing.length) return `Cannot evaluate: lens agents missing (${missing.join(", ")}).`;
+	const lines: string[] = [];
+	let failedCases = 0;
+	for (const fixture of fixtures) {
+		if (ctx.hasUI) ctx.ui.setStatus("nub-review", `eval ${fixture.name}…`);
+		const lenses = await Promise.all(agents.map((agent) => runLens(ctx, agent, fixture.diff, "", signal)));
+		const report = buildReport({ scope: { kind: "working" }, diff: fixture.diff, lenses });
+		const failures = checkExpectations(fixture, report.findings);
+		const errors = lenses.filter((lens) => lens.error).map((lens) => `${lens.lens}: ${lens.error}`);
+		const ok = failures.length === 0 && errors.length === 0 && report.verdict === fixture.verdict;
+		if (!ok) failedCases += 1;
+		lines.push(`${ok ? "✓" : "✗"} ${fixture.name} → ${report.verdict.toUpperCase()} (expected ${fixture.verdict.toUpperCase()}, ${report.findings.length} findings)`);
+		if (failures.length) lines.push(...describeFailures(failures).split("\n").map((line) => `    ${line}`));
+		if (errors.length) lines.push(...errors.map((line) => `    lens failed — ${line}`));
+	}
+	if (ctx.hasUI) ctx.ui.setStatus("nub-review", "");
+	const pins = currentPromptPins(join(PACKAGE_ROOT, "assets", "agents"));
+	lines.push("", `${fixtures.length - failedCases}/${fixtures.length} fixtures satisfied with the current prompts.`, failedCases === 0 ? `Prompt pins to record in tests/fixtures/review/prompt-pins.json: ${JSON.stringify(pins)}` : "Adjust the prompts or the fixture expectations before updating the prompt pins.");
+	return lines.join("\n");
+}
+
 export default function registerNubIaReview(pi: ExtensionAPI): void {
 	pi.on("session_start", async (_event, ctx) => {
 		const raw = process.env[HEADLESS_ENV];
@@ -478,11 +520,17 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 	});
 
 	pi.registerCommand("nubia:review", {
-		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>; add --pr to post the report on the branch's pull request), or `fix` to hand the last review's BLOCKER/CRITICAL findings to the agent and re-review.",
+		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>; add --pr to post the report on the branch's pull request). Also: `fix` (hand the last BLOCKER/CRITICAL findings to the agent and re-review), `stats` (per-lens calibration from local metrics), `eval` (run the packaged fixtures through the real lenses).",
 		handler: async (args, ctx) => {
 			const tokens = args.trim().split(/\s+/).filter(Boolean);
 			const toPr = tokens.includes("--pr");
 			const arg = tokens.filter((token) => token !== "--pr").join(" ");
+			if (arg === "stats") { if (ctx.hasUI) ctx.ui.notify(reviewStats(), "info"); return; }
+			if (arg === "eval") {
+				if (!ctx.hasUI || !(await ctx.ui.confirm("Nub-IA review eval", "Run every packaged review fixture through the real lenses (fixtures × 4 model calls)?"))) return;
+				ctx.ui.notify(await reviewEval(ctx, undefined), "info");
+				return;
+			}
 			if (arg === "fix") {
 				// The fix itself goes through the orchestrator's ordinary route (its
 				// writer, guardrails and permission mode): this only composes the

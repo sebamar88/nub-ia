@@ -61,9 +61,12 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   marker vía `gh pr view --json comments`, lo edita por id con `gh api PATCH`, si no crea con `gh pr comment
   --body-file -`). `/nubia:review --pr` con confirmación; `nub-ia review --pr` en CI. `gh` se invoca con `execFile`
   y stdin, nunca por shell. Documentado en `docs/review-ci.md`.
-- [ ] **T1.7 Calibración**
-  Usar T0.2 para medir hallazgos aceptados/descartados por lente y ajustar prompts/severidades. *Cierre:* informe en
-  `docs/` con la tasa por lente y los cambios aplicados.
+- [x] **T1.7 Calibración (herramientas)**
+  `lib/nub-review-calibration.ts`: `parseMetricRows`, `calibrate` (por lente: corridas, fallos, hallazgos por severidad,
+  descartados, duración media, modelos) y `renderCalibration` con avisos (sobre-severo > 1.5 B/C por corrida; falla
+  > 20 %). `/nubia:review stats` lo muestra; `/nubia:review eval` corre los fixtures contra los lentes reales y
+  propone los prompt pins. *Pendiente con datos reales:* el informe con tasas por lente y los ajustes de prompts; no
+  hay señal de "hallazgo aceptado/descartado" todavía (requeriría feedback explícito del usuario, fuera de alcance).
 
 ## Fase 2 — Router de modelos
 
