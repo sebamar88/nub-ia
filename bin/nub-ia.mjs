@@ -62,6 +62,7 @@ import {
 import { installIsolatedKeybindings } from "../scripts/install-keybindings.mjs";
 import { checkPackageSource, parseApprovedPackages } from "../scripts/approved-packages.mjs";
 import { initRepo } from "../scripts/init-repo.mjs";
+import { collectUsageInputs, parseUsageArgs } from "../scripts/usage-cli.mjs";
 import { clearOrgPolicy, describeStatus as describeOrgPolicyStatus, fetchOrgPolicy, parseSource as parseOrgPolicySourceDescriptor, resolveSource as resolveOrgPolicySource, saveSource as saveOrgPolicySource } from "../scripts/org-policy-fetch.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
@@ -1111,6 +1112,17 @@ async function main() {
 	if (args.piSubcommand === "update") {
 		const configured = resolveOrgPolicySource();
 		if (configured) process.stderr.write(`nub-ia: ${fetchOrgPolicy(configured.source).message}\n`);
+	}
+
+	if (args.command === "usage") {
+		const parsed = parseUsageArgs(args.commandArgs);
+		if (parsed.error) fail(parsed.error, 2);
+		const inputs = collectUsageInputs(parsed.month);
+		// The report lives in TypeScript; the generated runtime copy keeps the launcher free of a TS loader.
+		const { buildUsageReport, renderUsageReport } = await import("../runtime/usage-report.mjs");
+		const report = buildUsageReport(inputs);
+		process.stdout.write(parsed.json ? `${JSON.stringify(report)}\n` : `${renderUsageReport(report, inputs.source)}\n`);
+		return;
 	}
 
 	if (args.command === "init") {

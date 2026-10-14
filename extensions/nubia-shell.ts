@@ -116,6 +116,8 @@ import { ROUTER_STATUS_EVENT, type RouterStatusPayload, parseRouterStatus, route
 import { modeChip, parsePermissionModePayload, PERMISSION_MODE_EVENT, PERMISSION_MODE_REQUEST, type PermissionModePayload } from "./nubia-permission-mode.ts";
 import { MODE_LABEL, PERMISSION_MODES } from "../lib/permission-mode-policy.ts";
 import { auditToday, parseAuditRows } from "../lib/audit-log.ts";
+import { buildUsageReport, renderUsageReport } from "../lib/usage-report.ts";
+import { collectUsageInputs } from "../scripts/usage-cli.mjs";
 import { metricsFilePath } from "../lib/runtime-metrics-sink.ts";
 import { sidebarHeader, sidebarPart, sidebarState, VISUAL_SETTINGS_CHANGED, type SidebarRail } from "../lib/shell-sidebar.ts";
 import { installSidebar, invalidateSidebar, narrowStatusOwner, STATUS_OWNER } from "../lib/shell-sidebar-layout.ts";
@@ -1631,8 +1633,16 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			{ overlay: true, overlayOptions: { width: "70%", minWidth: 60, anchor: "center" } },
 		);
 	pi.registerCommand(USAGE_COMMAND_NAME, {
-		description: "Show subscription usage windows for the connected providers. Press r to refetch.",
-		handler: async (_args, ctx) => openUsage(ctx),
+		description: "Show subscription usage windows for the connected providers (press r to refetch); `--month [YYYY-MM]` shows the local month report instead (tokens by agent/model, spend by day, reviews, audit).",
+		handler: async (args, ctx) => {
+			const tokens = args.trim().split(/\s+/).filter(Boolean);
+			const monthFlag = tokens.indexOf("--month");
+			if (monthFlag === -1) return openUsage(ctx);
+			const month = tokens[monthFlag + 1] ?? new Date().toISOString().slice(0, 7);
+			if (!/^\d{4}-\d{2}$/.test(month)) { ctx.ui.notify("Use /nubia:usage --month YYYY-MM", "warning"); return; }
+			const inputs = collectUsageInputs(month, env);
+			ctx.ui.notify(renderUsageReport(buildUsageReport(inputs), inputs.source), "info");
+		},
 	});
 	const usageShortcutKey = usageShortcut(env);
 	if (usageShortcutKey) {

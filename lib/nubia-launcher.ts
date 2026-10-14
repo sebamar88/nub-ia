@@ -5,7 +5,7 @@ import { CHILD_PACKAGE_INJECTION_ENV, encodeChildPackageInjection, type ChildPac
 // env/fs/exec. `bin/nub-ia.mjs` (T2) wires these into the real process,
 // filesystem and child process so this module stays fully unit-testable.
 
-export type LauncherCommand = "home" | "setup" | "review" | "policy" | "audit" | "init";
+export type LauncherCommand = "home" | "setup" | "review" | "policy" | "audit" | "init" | "usage";
 
 // pi's own package-management subcommands (see pi's cli/args.ts printHelp
 // "Commands" list): each is dispatched by pi itself, before pi's own flag
@@ -159,6 +159,12 @@ export function parseLauncherArgs(argv: string[]): ParsedLauncherArgs {
 		// (lib/org-policy.ts, scripts/org-policy-fetch.mjs). Not a pi subcommand.
 		if (arg === "policy" && command === undefined && passthrough.length === 0) {
 			command = "policy";
+			commandArgs = argv.slice(i + 1);
+			break;
+		}
+		// `nub-ia usage [--month YYYY-MM] [--json]`: the month's local usage report (lib/usage-report.ts).
+		if (arg === "usage" && command === undefined && passthrough.length === 0) {
+			command = "usage";
 			commandArgs = argv.slice(i + 1);
 			break;
 		}
@@ -1163,6 +1169,7 @@ export function helpText(): string {
 		"       nub-ia policy [status|pull|set <source>|clear]",
 		"       nub-ia audit [--month YYYY-MM] [--json]",
 		"       nub-ia init [--no-review-gate]",
+		"       nub-ia usage [--month YYYY-MM] [--json]",
 		"",
 		"Opens pi with the Nub-IA package loaded, without touching your",
 		"vanilla pi installation.",
@@ -1192,6 +1199,8 @@ export function helpText(): string {
 		"                   set <git:host/org/repo[#ref][:path] | url | dir> saves the source; clear removes both.",
 		"  init             Scaffold .pi/nub-ia/ in the current repository with commented, inert",
 		"                   policy files (guardrails, review gate, review rules, persona, tiers example).",
+		"  usage            Month report from the local metrics: tokens by agent and model, spend by",
+		"                   day, review verdicts and audit counts. Nothing leaves the machine.",
 		"  audit            Summarise the local governance trail (~/.pi/nub-ia/audit/audit-<month>.jsonl):",
 		"                   confirmations, denials, mode changes, gated pushes, review verdicts. --json dumps rows.",
 		"",

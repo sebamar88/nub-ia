@@ -94,9 +94,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   modo/paths/agentes/límites (`runtime-guardrails.json`) y reglas de review (`review-rules.md`) ya viven en
   `.pi/nub-ia/` con precedencia "solo endurece". Lo que faltaba era el arranque: `nub-ia init [--no-review-gate]`
   (`scripts/init-repo.mjs`) escribe esos archivos como ejemplos comentados e inertes, sin pisar los existentes.
-- [ ] **T3.2 `/nubia:usage --month` y agregador CLI**
-  `lib/runtime-metrics-report.ts` (nuevo): costo/tokens por agente, tier, persona, día; `nub-ia usage [--month] [--json]`.
-  *Cierre:* lee los JSONL existentes; cero dependencias nuevas.
+- [x] **T3.2 `/nubia:usage --month` y agregador CLI**
+  `lib/usage-report.ts` (`buildUsageReport`, `renderUsageReport`: tokens por agentClass y provider/modelo, gasto por
+  día desde los ledgers, veredictos de review, conteos de auditoría) + `scripts/usage-cli.mjs`; `nub-ia usage
+  [--month] [--json]` (vía copia runtime generada) y `/nubia:usage --month`. Las filas runtime no tienen timestamp ni
+  costo, por eso el detalle diario sale del ledger de gasto y los tokens quedan por mes.
 - [ ] **T3.3 Sink de métricas de equipo (opt-in)**
   `NUB_IA_METRICS_ENDPOINT` + token; envío por lote, sin PII, apagado por defecto. *Cierre:* `docs/telemetry.md` lista
   los campos que salen; test de redacción. Depende de T7.5.
