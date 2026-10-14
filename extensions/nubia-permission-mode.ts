@@ -37,6 +37,8 @@ import { bashWriteTargets, evaluatePaths, mergePathPolicies, parsePathPolicy, ty
 import { agentToolRule, mergeAgentToolPolicies, parseAgentToolPolicy, type AgentToolPolicy } from "../lib/agent-tool-policy.ts";
 import { describeRedactions, redactSecrets } from "../lib/secret-redaction.ts";
 import { loadEffectiveOrgPolicy, sectionText, type OrgPolicy } from "../lib/org-policy.ts";
+import { parseApprovedPackages, unapprovedInSettings } from "../lib/approved-packages.ts";
+import { resolveGentlePiAgentHome } from "../lib/agent-home.ts";
 import { relative } from "node:path";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
@@ -201,7 +203,18 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 	pi.events.on(ROUTER_STATUS_EVENT, (payload) => { const parsed = parseRouterStatus(payload); if (parsed) overBudget = parsed.budget?.exceeded === true; });
 	pi.on("turn_start", () => { startedThisTurn = 0; });
 
-	pi.on("session_start", (_event, ctx) => initialise(ctx));
+	pi.on("session_start", (_event, ctx) => {
+		initialise(ctx);
+		// Approved packages (T8.3): the home's settings.json is compared with the
+		// org list once per session; loaded packages cannot be unloaded here, so
+		// this is a notice (and a refusal at `nub-ia install` time).
+		if (!isChild && ctx.hasUI) {
+			const org = loadEffectiveOrgPolicy(env, ctx.cwd).policy;
+			const approved = org ? parseApprovedPackages({ approvedPackages: org.sections.approvedPackages }) : undefined;
+			const unapproved = unapprovedInSettings(readText(join(resolveGentlePiAgentHome(env), "settings.json")), approved);
+			if (unapproved.length) ctx.ui.notify(`Org policy${approved?.mode === "enforce" ? " (enforce)" : ""}: packages not in the approved list are loaded: ${unapproved.join(", ")}. Remove them with nub-ia remove <source> or ask to have them approved.`, "warning");
+		}
+	});
 	pi.on("session_shutdown", () => { mode = config.initial; });
 
 	// The directive rides on the system prompt and is swapped on every change.

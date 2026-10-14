@@ -62,6 +62,8 @@ const requiredPaths = [
   "scripts/install-tui-mode-setting.mjs",
   "scripts/install-keybindings.mjs",
   "scripts/org-policy-fetch.mjs",
+  "scripts/approved-packages.mjs",
+  "lib/approved-packages.ts",
   "lib/org-policy.ts",
   "prompts/skill-creation.md",
   "skills/branch-pr/SKILL.md",

@@ -25,7 +25,7 @@ modelo no pueden aflojar lo que el equipo fijó, y el equipo no puede aflojar lo
 | Comandos guardados | `→ guardedCommands` | `guardedCommands` | — | el más estricto (ya existente) |
 | Gate de review | `review-gate.json`, `NUB_IA_REVIEW_GATE` | `review-gate.json` | `reviewGate: confirm\|strict` | el más estricto (`off` no es válido para la org) |
 | Modelos | — | `model-tiers.json` (ruteo + allowlist + budget) | `modelTiers: { allowedProviders, deniedModels, budget }` | intersección / unión / menor |
-| Paquetes aprobados | — | — | `approvedPackages` | (T8.3) |
+| Paquetes aprobados | — | — | `approvedPackages` (lista → avisa; `{ "mode": "enforce", "sources": [...] }` → `nub-ia install` rechaza) | — |
 
 ## Política de organización
 
@@ -59,6 +59,18 @@ Ejemplo completo:
 ```
 
 `/nubia:mode status`, `/nubia:review-mode status` y `/nubia:doctor` dicen de qué capa salió cada valor en vigor.
+
+## Paquetes aprobados
+
+```json
+"approvedPackages": { "mode": "enforce", "sources": ["npm:@dietrichgebert/ponytail", "npm:gentle-*", "git:github.com/nubiral/*"] }
+```
+
+Los patrones se comparan con la fuente sin versión ni ref (`npm:x@1.2.3` → `npm:x`); `*` comodín. `nub-ia install
+<source>` avisa (`warn`, default si es una lista) o rechaza (`enforce`) antes de llamar a `pi install`. Al iniciar una
+sesión, la shell avisa una vez si el `settings.json` del home ya declara paquetes fuera de la lista (no puede
+descargarlos; `nub-ia remove <source>` los quita). Sin política, todo está aprobado. *Pendiente:* hash de `SKILL.md` al
+instalar para detectar cambios posteriores.
 
 ## Roles
 

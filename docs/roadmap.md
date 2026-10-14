@@ -233,10 +233,11 @@ persiste ni se activa por config/env/tool.
   → `*@dominio` → default; `applyRole` sustituye secciones de nivel org). `loadEffectiveOrgPolicy(env, cwd)` es el
   único cargador (lee `git config user.email` solo si hay `members`) y lo usan modos, paths, agentes, límites, gate y
   tiers. `/nubia:mode status` muestra el rol. *Auditoría del cambio de rol:* en T8.4.
-- [ ] **T8.3 Skills y paquetes aprobados**
-  `approvedPackages` / `approvedSkillSources`; `nub-ia install` y la carga de skills avisan (`warn`, default) o rechazan
-  (`enforce`). Hash del SKILL.md al instalar, aviso si cambia. *Cierre:* instalación fuera de lista rechazada con
-  mensaje; tests. Depende de T8.1.
+- [x] **T8.3 Skills y paquetes aprobados**
+  `scripts/approved-packages.mjs` (+ `lib/approved-packages.ts`): `approvedPackages` lista → warn u objeto con
+  `mode: enforce`; patrones sobre la fuente normalizada (sin versión/ref). `nub-ia install` avisa o rechaza (probado
+  end-to-end); la shell avisa al inicio sobre paquetes del `settings.json` fuera de lista. *Pendiente:* hash de
+  `SKILL.md` al instalar (integridad posterior), fuera de este corte.
 - [ ] **T8.4 Auditoría local**
   `~/.pi/nub-ia/audit/<YYYY-MM>.jsonl`: confirmaciones aceptadas/rechazadas, bloqueos, overrides del gate, cambios de
   modo, pushes con/sin review, delegaciones que exceden límites. Sin prompts; comando redactado. `nub-ia audit

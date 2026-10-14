@@ -60,6 +60,7 @@ import {
 	RESUME_HANDOFF_FILE,
 } from "../runtime/nubia-resume-hint.mjs";
 import { installIsolatedKeybindings } from "../scripts/install-keybindings.mjs";
+import { checkPackageSource, parseApprovedPackages } from "../scripts/approved-packages.mjs";
 import { clearOrgPolicy, describeStatus as describeOrgPolicyStatus, fetchOrgPolicy, parseSource as parseOrgPolicySourceDescriptor, resolveSource as resolveOrgPolicySource, saveSource as saveOrgPolicySource } from "../scripts/org-policy-fetch.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
@@ -960,6 +961,17 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 // `origin` remote; a Pi-managed install (`pi install git:`) or an npm install
 // is left to its own manager. Never fails the launch: every problem is a
 // notice, and the pi `update` that follows still runs.
+/** approvedPackages of the fetched org policy, or undefined (no policy = everything approved). */
+function readApprovedPackages() {
+	try {
+		const home = process.env.NUB_IA_CONFIG_HOME || join(homedir(), ".pi", "nub-ia");
+		const policy = JSON.parse(readFileSync(join(home, "org-policy.json"), "utf8"));
+		return policy?.schema === "nub-ia.org-policy/v1" ? parseApprovedPackages(policy) : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 async function selfUpdatePackage(root) {
 	const probe = spawnSync("git", ["-C", root, "rev-parse", "--is-inside-work-tree"], { stdio: "ignore", windowsHide: true });
 	if (probe.status !== 0) return;
@@ -1079,6 +1091,17 @@ async function main() {
 	// checkout made by install.sh/install.ps1 (the private repo cannot be
 	// managed by `pi install git:`), then falls through to pi's own `update`
 	// for the home's packages (ponytail, …). Opt out with NUB_IA_NO_SELF_UPDATE=1.
+	// `nub-ia install <source>`: the organisation's approved package sources
+	// (org-policy.json → approvedPackages) warn or refuse before pi runs.
+	if (args.piSubcommand === "install") {
+		const approved = readApprovedPackages();
+		for (const source of args.passthrough.slice(1).filter((token) => !token.startsWith("-"))) {
+			const check = checkPackageSource(source, approved);
+			if (check.approved) continue;
+			if (check.mode === "enforce") fail(`nub-ia: ${check.message}. Ask the policy owner to approve it (nub-ia policy status).`, 2);
+			process.stderr.write(`nub-ia: warning: ${check.message}\n`);
+		}
+	}
 	if (args.piSubcommand === "update" && process.env.NUB_IA_NO_SELF_UPDATE !== "1") {
 		await selfUpdatePackage(packageRoot);
 	}
