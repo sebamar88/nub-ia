@@ -133,14 +133,14 @@ convenciones aprendidas (OpenCode/Anthropic: 300 bytes) y largos para los que la
 
 ### 3. rtk: compresión de salida de bash
 
-Medido en este repo con el binario pinneado (rtk 0.51.0), bytes de salida crudos vs. `rtk <comando>`:
+Medido en este repo con el binario pinneado (rtk 1.0.1; con 0.51.0 los resultados fueron equivalentes), bytes de salida crudos vs. `rtk <comando>`:
 
 | Comando | Crudo | Con rtk | Ahorro |
 | --- | ---: | ---: | ---: |
-| `git status` | 302 B | 60 B | 80 % |
+| `git status` | 537 B | 146 B | 72 % |
 | `ls -la lib` | 9 903 B | 1 697 B | 82 % |
-| `git log --oneline -30` | 2 519 B | 2 519 B | 0 % |
-| `git diff HEAD~3 --stat` | 734 B | 734 B | 0 % |
+| `git log --oneline -30` | 2 593 B | 2 593 B | 0 % |
+| `git diff HEAD~3 --stat` | 770 B | 770 B | 0 % |
 | `grep -rn … lib extensions` | 1 477 B | 1 477 B | 0 % |
 | `node --test <1 archivo>` | 3 207 B | 3 208 B | 0 % |
 | `pnpm run typecheck` | 385 B | 385 B | 0 % |
@@ -148,8 +148,7 @@ Medido en este repo con el binario pinneado (rtk 0.51.0), bytes de salida crudos
 
 rtk promete "60–90 % en comandos comunes de desarrollo" (descripción del repo) y aclara que sus porcentajes son
 confiables pero los tokens absolutos son estimados (`bytes / 4`). En nuestra medición el ahorro es grande en comandos de
-estado/listado y **nulo en los demás con esta versión**; rtk 1.0.1 ya está disponible (lo propone el workflow de bumps)
-y habría que re-medir. Nub-IA no inventa reglas: solo delega en rtk y verifica que la reescritura sea el comando original
+estado/listado y **nulo en los demás**, tanto con 0.51.0 como con 1.0.1. Nub-IA no inventa reglas: solo delega en rtk y verifica que la reescritura sea el comando original
 con `rtk` adelante.
 
 ### 4. Reproducir

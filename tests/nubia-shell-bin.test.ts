@@ -20,6 +20,7 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { TEAM_PACKAGE_SOURCES } from "../lib/nubia-launcher.ts";
 
 // Integration tests for the thin bin/nub-ia.mjs entry: they run the real
 // file via spawnSync with an isolated HOME and a fake pi script standing in for
@@ -628,10 +629,11 @@ test("nub-ia setup installs the packaged team packages via pi's own install, in 
 
 	const result = run(env, ["setup"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.match(result.stderr, /nub-ia: installing team package npm:@dietrichgebert\/ponytail@4\.13\.0 into /);
+	assert.match(result.stderr, new RegExp(`nub-ia: installing team package ${TEAM_PACKAGE_SOURCES[0].replace(/[.@/]/g, "\\$&")} into `));
 	const records = jsonRecords(result.stdout);
 	assert.equal(records.length, 1, result.stdout);
-	assert.deepEqual(records[0].args, ["install", "npm:@dietrichgebert/ponytail@4.13.0"]);
+	// The exact pin lives in lib/nubia-launcher.ts (TEAM_PACKAGE_SOURCES); the test follows it.
+	assert.deepEqual(records[0].args, ["install", TEAM_PACKAGE_SOURCES[0]]);
 	assert.equal(records[0].PI_CODING_AGENT_DIR, f.gentleShellHome);
 });
 

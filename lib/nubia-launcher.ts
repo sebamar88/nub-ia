@@ -569,7 +569,7 @@ export const TEAM_PACKAGE_SOURCES: readonly string[] = [
 	// Pinned on purpose: this runs as an extension in every teammate's agent
 	// with their privileges, so a new version is adopted by bumping here after
 	// reading its diff, never implicitly on install.
-	"npm:@dietrichgebert/ponytail@4.13.0",
+	"npm:@dietrichgebert/ponytail@5.2.0",
 ];
 
 export function resolveTeamPackageSources(env: NodeJS.ProcessEnv): string[] {

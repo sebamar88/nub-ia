@@ -195,10 +195,10 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 
 `nub-ia setup` (y el primer arranque automático) instala en el home los paquetes Pi de
 `TEAM_PACKAGE_SOURCES` en `lib/nubia-launcher.ts`. Hoy: [`ponytail`](https://github.com/DietrichGebert/ponytail)
-(`npm:@dietrichgebert/ponytail@4.13.0`, pinneado a propósito; modo "lazy senior dev": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`,
+(`npm:@dietrichgebert/ponytail@5.2.0`, pinneado a propósito; modo "lazy senior dev": YAGNI, stdlib primero; skills `/ponytail`, `/ponytail-review`,
 `/ponytail-audit`, `/ponytail-debt`). Se actualizan con `nub-ia update`. Para agregar otro, sumá su source a la tabla;
 `NUB_IA_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
-instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail@4.13.0`.
+instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail@5.2.0`.
 
 ### Skills del equipo
 

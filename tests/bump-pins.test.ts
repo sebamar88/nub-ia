@@ -30,7 +30,7 @@ test("rewriteRtkInstaller bumps the version, swaps every matched archive digest 
 });
 
 test("rewritePonytailPin and currentPonytailVersion", () => {
-	assert.equal(currentPonytailVersion(launcher), "4.13.0");
+	assert.match(currentPonytailVersion(launcher)!, /^\d+\.\d+\.\d+$/);
 	assert.match(rewritePonytailPin("x npm:@dietrichgebert/ponytail@4.13.0 y npm:@dietrichgebert/ponytail@4.13.0", "5.0.1"), /^x npm:@dietrichgebert\/ponytail@5\.0\.1 y npm:@dietrichgebert\/ponytail@5\.0\.1$/);
 });
 
