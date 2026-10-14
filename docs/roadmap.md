@@ -81,9 +81,11 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   `model-tiers.json` acepta `budget`; el router suma `usage.cost.total` de cada mensaje del asistente, degrada en
   `route()` cuando corresponde, avisa una vez por límite cruzado y publica la línea en el bloque Router. Se usó el gasto
   que calcula Pi en lugar de reconstruirlo desde los tokens del JSONL (sin dependencia de T0.2).
-- [ ] **T2.3 `nub-ia doctor --models`**
-  Por tier, qué modelo resuelve con los providers logueados; avisa si un tier no matchea nada. *Cierre:* salida tabular;
-  test con catálogo fake sin matches.
+- [x] **T2.3 Doctor de modelos**
+  `tierDoctorLines(available, catalog)` en `lib/model-tier-router.ts` (providers con credenciales; por tier pass /
+  warn "solo fallback, actualizá los patrones" / fail; línea de budget), expuesto como `routerDoctorLines(ctx)` y
+  sumado a `/nubia:doctor` (una línea en el handler del harness). No se agregó un flag al CLI: el doctor de la shell
+  es donde ya vive el diagnóstico.
 
 ## Fase 3 — Equipo y onboarding
 

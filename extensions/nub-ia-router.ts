@@ -21,6 +21,7 @@ import {
 	type TierCatalog,
 	decideRoute,
 	parseTierCatalog,
+	tierDoctorLines,
 } from "../lib/model-tier-router.ts";
 import { ROUTER_STATUS_EVENT, RouterJournal } from "../lib/router-status-model.ts";
 import { type BudgetSpend, budgetState, describeBudget, effectiveTier, readSpendLedger, spendLedgerName, tightestBudget, writeSpendLedger } from "../lib/model-tier-budget.ts";
@@ -102,6 +103,11 @@ function addTodaySpend(usd: number, now: Date): number {
 
 export function toCatalogModel(model: { provider: string; id: string; api?: string; reasoning?: boolean; cost?: { input?: number; output?: number } }): CatalogModel {
 	return { provider: model.provider, id: model.id, api: model.api, reasoning: model.reasoning, cost: model.cost };
+}
+
+/** `/nubia:doctor` lines: tier resolution against the providers signed in right now. */
+export function routerDoctorLines(ctx: ExtensionContext): string[] {
+	return tierDoctorLines(availableModels(ctx), loadTierCatalog(ctx.cwd, () => {}));
 }
 
 function availableModels(ctx: ExtensionContext): CatalogModel[] {

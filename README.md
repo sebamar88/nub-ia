@@ -173,6 +173,7 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 - El footer muestra `balanced • medium → claude-sonnet-5.5 • medium`; `/session` desglosa costos por modelo físico; el bloque "Router" del panel Status lista el modelo resuelto por tier y los providers excluidos en la sesión con su causa (rate limit, overloaded, auth…).
 - Presupuesto opcional: `"budget": { "dailyUsd": 20, "sessionUsd": 5, "onExceed": "warn"|"degrade" }` en `model-tiers.json`. El gasto es el que Pi calcula por mensaje; el diario se comparte entre sesiones de la máquina. Al superarlo, `warn` avisa una vez y lo muestra en el bloque Router del Status; `degrade` además baja un tier (`strong`/`strong-alt` → `balanced` → `fast`). El override por repo solo puede endurecerlo.
 - Para cambiar la política: editar `assets/model-tiers.json`, o sobreescribirlo por repo en `.pi/nub-ia/model-tiers.json`.
+- `/nubia:doctor` lista, por tier, qué modelo resuelve con los providers logueados y avisa (`warn`) cuando ningún patrón del tier matchea y solo responde el fallback genérico (señal de que el provider renombró modelos), o (`fail`) cuando no hay ningún modelo.
 - Para fijar un modelo concreto a un agente: `/nubia:models` o `/nubia:profiles` (gana sobre el tier).
 - Cada integrante hace `/login` una vez por provider que tenga (Copilot, OpenAI, o variables `AWS_*` para Bedrock).
 

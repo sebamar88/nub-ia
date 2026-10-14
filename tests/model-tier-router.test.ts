@@ -9,6 +9,7 @@ import {
 	isProviderFailure,
 	orderedProviders,
 	parseTierCatalog,
+	tierDoctorLines,
 	rankCandidates,
 	selectModel,
 	versionKey,
@@ -195,4 +196,19 @@ test("parseTierCatalog: an optional budget rides along; a malformed one is dropp
 	assert.deepEqual(parseTierCatalog({ ...base, budget: { dailyUsd: 20, onExceed: "degrade" } })!.budget, { dailyUsd: 20, onExceed: "degrade" });
 	assert.equal(parseTierCatalog({ ...base, budget: "lots" })!.budget, undefined);
 	assert.equal(parseTierCatalog(base)!.budget, undefined);
+});
+
+test("tierDoctorLines: pass per resolvable tier, warn when only the fallback answers, fail without providers", () => {
+	const lines = tierDoctorLines(copilot, catalog);
+	assert.equal(lines[0], "pass: Providers with credentials: github-copilot");
+	assert.match(lines[1]!, /^pass: Tier strong → github-copilot\/claude-opus-5\.5$/);
+	assert.ok(lines.slice(1, 5).every((line) => line.startsWith("pass: Tier ")));
+	const renamed = [m("github-copilot", "claude-next-1"), m("github-copilot", "gpt-7-nova")];
+	const stale = tierDoctorLines(renamed, catalog);
+	assert.ok(stale.slice(1).every((line) => /^warn: Tier .* matches no model of your providers; falls back to github-copilot\/.*Update the tier patterns/.test(line)), stale.join("\n"));
+	const none = tierDoctorLines([], catalog);
+	assert.equal(none[0], "fail: No provider with credentials; run /login");
+	assert.ok(none.slice(1).every((line) => /^fail: Tier .* has no model at all$/.test(line)));
+	const budgeted = tierDoctorLines(copilot, { ...catalog, budget: { dailyUsd: 20, onExceed: "degrade" } });
+	assert.equal(budgeted.at(-1), "pass: Budget $20/day · on exceed: degrade");
 });

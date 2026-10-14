@@ -113,6 +113,7 @@ import { createNativeFullscreenInteraction } from "../lib/native-fullscreen-inte
 import { sanitizeTerminalText, stripAnsi } from "../lib/terminal-theme.ts";
 import { registerYoloSessionPolicy, updateYoloPrompt } from "../lib/yolo-session-policy.ts";
 import { configReadPath, projectConfigReadPath, projectConfigWritePath, readEnv, setLegacyHintNotifier } from "../lib/config-home.ts";
+import { routerDoctorLines } from "./nub-ia-router.ts";
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const ASSETS_DIR = join(PACKAGE_ROOT, "assets");
@@ -4633,13 +4634,15 @@ function createGentleAiExtensionForTesting(
 				`${modelConfig.status === "invalid" ? "fail" : "pass"}: Global model config ${modelConfig.status}`,
 				"pass: Sensitive-path guard active for read/write/edit tools",
 				`${engramActive ? "pass" : "warn"}: Engram memory tools ${engramActive ? "active" : "not active in this session"}`,
+				// Nub-IA tier router: which model each nub-ia/<tier> resolves to today.
+				...routerDoctorLines(ctx),
 			];
 			if (modelConfig.status === "invalid") {
 				lines.push(`remedy: fix or remove ${modelConfig.path}`);
 			}
 			ctx.ui.notify(
 				lines.join("\n"),
-				lines.some((line) => line.startsWith("fail:")) || assetLines.some((line) => line.startsWith("warn:")) ? "warning" : "info",
+				lines.some((line) => line.startsWith("fail:") || line.startsWith("warn:")) ? "warning" : "info",
 			);
 		},
 	});

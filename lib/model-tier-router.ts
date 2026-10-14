@@ -224,3 +224,29 @@ export function parseTierCatalog(value: unknown): TierCatalog | undefined {
 	const budget = parseBudget(record.budget);
 	return { providerPriority: priority, tiers, ...(budget ? { budget } : {}) };
 }
+
+// --- doctor (roadmap T2.3) ---------------------------------------------------------
+
+/**
+ * One line per tier for `/nubia:doctor`: which physical model the tier
+ * resolves to with the providers that have credentials right now, whether
+ * that came from a tier pattern or only from the generic fallback (a sign the
+ * catalog patterns no longer match the provider's model names), or nothing.
+ */
+export function tierDoctorLines(available: readonly CatalogModel[], catalog: TierCatalog): string[] {
+	const physical = physicalModels(available);
+	const providers = [...new Set(physical.map((model) => model.provider))].sort();
+	const lines = [providers.length ? `pass: Providers with credentials: ${providers.join(", ")}` : "fail: No provider with credentials; run /login"];
+	for (const tier of MODEL_TIERS) {
+		const matched = selectModel(tier, physical, catalog);
+		if (matched) {
+			lines.push(`pass: Tier ${tier} → ${matched.provider}/${matched.id}`);
+			continue;
+		}
+		const fallback = fallbackModel(physical, catalog);
+		if (fallback) lines.push(`warn: Tier ${tier} matches no model of your providers; falls back to ${fallback.provider}/${fallback.id}. Update the tier patterns in model-tiers.json.`);
+		else lines.push(`fail: Tier ${tier} has no model at all`);
+	}
+	if (catalog.budget) lines.push(`pass: Budget ${[catalog.budget.dailyUsd !== undefined ? `$${catalog.budget.dailyUsd}/day` : "", catalog.budget.sessionUsd !== undefined ? `$${catalog.budget.sessionUsd}/session` : ""].filter(Boolean).join(" · ")} · on exceed: ${catalog.budget.onExceed}`);
+	return lines;
+}
