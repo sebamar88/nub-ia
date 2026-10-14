@@ -6,7 +6,7 @@ es por valor y dependencias; dentro de una fase las tareas sin dependencia decla
 
 Orden sugerido: **F0 → F6 → F1 → F7 → F2 → F8 → F3 → F4 → F5.**
 
-Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
+Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho. **Todas las tareas del plan están cerradas** (ver cada ítem para lo que quedó anotado como seguimiento).
 
 ---
 
@@ -139,13 +139,21 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
 
 ## Fase 5 — Pulido
 
+- [x] **T5.0 System prompt minimal** *(pedido del equipo)*
+  `lib/prompt-profile.ts`: perfil `minimal` (default) | `full`, resuelto env > repo (`.pi/nub-ia/prompt-profile.json`)
+  > usuario > default; `buildMinimalPrompt` (identidad, persona, idioma, ODD en 8 reglas, líneas de delegación/review
+  solo si las tools existen, puntero a la skill `nubia`). Medido: **17 143 → 2 565 bytes (~4 300 → ~640 tokens)**.
+  `/nubia:prompt` muestra tamaños por perfil y cambia el guardado. Los tests que afirman el texto completo fijan
+  `NUB_IA_PROMPT_PROFILE=full`; `tests/prompt-profile.test.ts` protege el tope (< 3 000 bytes, < ¼ del full). Lo propio
+  de Nub-IA (modos, paths, agentes, review, router) no agrega nada al prompt en el modo default.
 - [x] **T5.1 `/nubia:doctor` ampliado**
   `lib/nubia-doctor.ts` (`nubiaDoctorLines`): rtk (binario del paquete / PATH / `RTK_DISABLED`), gate de review con su
   origen, modo de permisos inicial y tope con capa, política de org con rol, perfil de prompt, y checkout del paquete
   vs tracking branch (atrasado → "run nub-ia update"). Sumado al handler del doctor junto a los tiers (T2.3).
-- [ ] **T5.2 Política de idioma**
-  `docs/CONTRIBUTING.md`: README/docs de usuario en español, código/comentarios/docs técnicos en inglés; revisar
-  inconsistencias existentes.
+- [x] **T5.2 Política de idioma**
+  `docs/CONTRIBUTING.md`: español para README/docs de uso, inglés para código, prompts, TUI, `--help`, tests, skills y
+  commits; regla práctica ("quién lo lee"); checklist de cambios (tests, verify-package-files, runtime modules, prompt
+  pins) y mergeabilidad. Las inconsistencias existentes se corrigen al tocar cada archivo, no en un barrido.
 
 ## Fase 6 — UI: bloque "Subagentes" en Status
 
@@ -182,12 +190,11 @@ Invariantes: guardrails `confirm`/`block`, frontera de pérdida de datos y `ask_
 política org/repo puede fijar `maxMode`. Los hijos heredan como mucho el modo del padre y nunca YOLO. YOLO nunca se
 persiste ni se activa por config/env/tool.
 
-- [ ] **T7.6 Máquina de modos (`lib/permission-mode-policy.ts`)**
-  `PERMISSION_MODE`, orden, `next(mode, maxMode)`, `decide({ mode, tool, args, cwd, pathPolicy, guardDecision }) →
-  allow|ask|deny`. Envuelve `YoloSessionPolicy` (entrar a `yolo` = `set(true, identity)` con sus requisitos; salir lo
-  revoca; `/nubia:yolo` sigue como alias). Modo por defecto al arrancar (`plan|manual|accept-edits|auto`) en
-  `~/.nub-ia/config.json`; reload/sesión nueva vuelve al default. *Cierre:* tests de tabla de decisión (5 modos × tipos
-  de tool), `maxMode`, YOLO falla cerrado, herencia a hijos.
+- [x] **T7.6 Máquina de modos (`lib/permission-mode-policy.ts`)**
+  `PERMISSION_MODES` (plan/manual/accept-edits/auto/yolo), `decide()` (tabla por tipo de tool), `classifyBashCommand`
+  (lista blanca conservadora), `nextMode` con tope, `childMode` (nunca yolo), directivas de una línea solo en
+  plan/manual/accept-edits, default persistible (`permission-mode-default.json`; yolo nunca). Default `auto` =
+  comportamiento previo. YOLO sigue siendo el grant de `lib/yolo-session-policy.ts`.
 - [x] **T7.7 Interceptor de herramientas**
   `extensions/nubia-permission-mode.ts` (extensión propia, no toca el guard del harness, que sigue corriendo después):
   `tool_call` → `decide()`; `ask` usa `ctx.ui.confirm` con el preview del comando/ruta y emite

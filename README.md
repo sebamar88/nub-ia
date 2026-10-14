@@ -291,6 +291,8 @@ pnpm run install:rtk            # (re)descarga el binario rtk pinneado
 node scripts/trace-brand.mjs isologo|wordmark   # regenera el arte del banner desde assets/brand/
 ```
 
+Cómo contribuir (idioma, tests, precedencia, mergeabilidad): [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
+
 Documentación: [referencia técnica](docs/readme-reference.md) (incluye [Organic Driven Development](docs/readme-reference.md#organic-driven-development)),
 [la shell](docs/nub-ia-shell.md), [actividad de agentes](docs/gentle-agents-activity.md), [YOLO](docs/yolo-mode.md),
 [métricas](docs/telemetry.md). El README original de gentle-shell queda archivado en [`docs/UPSTREAM-README.md`](docs/UPSTREAM-README.md).
