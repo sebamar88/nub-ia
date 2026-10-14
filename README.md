@@ -199,10 +199,6 @@ provider devuelve 429/5xx/overloaded, el retry salta al siguiente provider y lo 
 `NUB_IA_TEAM_PACKAGES="npm:a,git:github.com/x/y"` la reemplaza (vacío = ninguno). Con `--link` no corre setup:
 instalalo a mano con `nub-ia --link install npm:@dietrichgebert/ponytail@4.13.0`.
 
-### Skills del equipo
-
-Además de las skills heredadas (`branch-pr`, `chained-pr`, `judgment-day`, …), el paquete trae tres para el stack de Nubiral: **`nubia-bedrock`** (Amazon Bedrock como provider, allowlist "solo Bedrock", CI), **`nubia-terraform`** (plan libre, apply solo con el humano, estado y `infra/` protegidos) y **`nubia-aws`** (CLI de solo lectura por defecto, destructivos confirmados, nada de credenciales en el transcript). Siguen `docs/skill-style-guide.md`.
-
 ### Review 4R propio (`nub_review`)
 
 `extensions/nub-ia-review.ts` corre los cuatro revisores del paquete (risk, reliability, resilience, readability) **en
