@@ -29,6 +29,7 @@ import {
 import { ROUTER_STATUS_EVENT, RouterJournal } from "../lib/router-status-model.ts";
 import { type BudgetSpend, budgetState, describeBudget, effectiveTier, readSpendLedger, spendLedgerName, tightestBudget, writeSpendLedger } from "../lib/model-tier-budget.ts";
 import { nubIaConfigHome } from "../lib/config-home.ts";
+import { ORG_POLICY_FILE, orgModelTiersText, parseOrgPolicy } from "../lib/org-policy.ts";
 
 export const NUB_IA_PROVIDER = "nub-ia";
 
@@ -46,6 +47,10 @@ const PACKAGED_CATALOG_PATH = join(PACKAGE_ROOT, "assets", "model-tiers.json");
 
 /** An empty catalog still routes: `fallbackModel` picks something sensible. */
 const EMPTY_CATALOG: TierCatalog = { providerPriority: [], tiers: { strong: [], "strong-alt": [], balanced: [], fast: [] } };
+
+function readTextQuiet(path: string): string | undefined {
+	try { return readFileSync(path, "utf8"); } catch { return undefined; }
+}
 
 function readCatalogFile(path: string): TierCatalog | undefined {
 	if (!existsSync(path)) return undefined;
@@ -66,7 +71,14 @@ const warnedProjectCatalogs = new Set<string>();
 export function loadTierCatalog(cwd: string, warn: (message: string) => void = (message) => console.warn(message)): TierCatalog {
 	const projectPath = join(cwd, ".pi", "nub-ia", "model-tiers.json");
 	const project = readCatalogFile(projectPath);
-	const packaged = readCatalogFile(PACKAGED_CATALOG_PATH) ?? EMPTY_CATALOG;
+	let packaged = readCatalogFile(PACKAGED_CATALOG_PATH) ?? EMPTY_CATALOG;
+	// The organisation policy's modelTiers (allowlist and budget only) tightens the packaged catalog first.
+	const orgText = orgModelTiersText(parseOrgPolicy(readTextQuiet(join(nubIaConfigHome(), ORG_POLICY_FILE))));
+	const org = orgText ? parseTierCatalog(JSON.parse(orgText)) : undefined;
+	if (org) {
+		const budget = tightestBudget(packaged.budget, org.budget);
+		packaged = { ...packaged, ...(budget ? { budget } : {}), ...tightestAllowlist(packaged, org) };
+	}
 	if (project) {
 		// Repository content decides which provider receives prompts and code
 		// (only providers the user holds credentials for, but still): say so once.

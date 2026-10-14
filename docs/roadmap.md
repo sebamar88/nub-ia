@@ -222,11 +222,12 @@ persiste ni se activa por config/env/tool.
 
 ## Fase 8 — Gobernanza
 
-- [ ] **T8.1 Política de organización centralizada**
-  `~/.pi/nub-ia/org-policy.json` apuntando a `NUB_IA_ORG_POLICY=git:…`; `nub-ia update` la refresca. Precedencia
-  **org > repo > usuario**, siempre "solo endurecer". Unifica guardrails, review-gate, allowlist de providers, skills
-  aprobadas, `maxMode` y modo por defecto. *Cierre:* tests de merge de tres niveles; `/nubia:status` muestra la fuente
-  de cada ajuste bloqueado. Depende de T7.1–T7.3, T7.6.
+- [x] **T8.1 Política de organización centralizada**
+  `lib/org-policy.ts` (`parseOrgPolicy` con schema `nub-ia.org-policy/v1`, `sectionText` que reusa los parsers
+  existentes, `orgModelTiersText`, `orgReviewGate`, `parseOrgPolicySource`) + `scripts/org-policy-fetch.mjs`
+  (`git clone --depth 1`, valida schema, escribe `org-policy.json` con procedencia; un fallo conserva la anterior).
+  `nub-ia policy status|pull|set|clear`; `nub-ia update` refresca. Capa org cableada en modos, paths, agentes, límites,
+  review gate (`source: org_policy`) y model tiers (allowlist + budget). `docs/governance.md`.
 - [ ] **T8.2 Roles**
   `roles: { developer, lead }` + `NUB_IA_ROLE` o `git config user.email`. Un `lead` puede relajar el gate a `confirm`;
   un `developer` no. *Cierre:* test de rol; el cambio de rol se audita (T8.4). Depende de T8.1.

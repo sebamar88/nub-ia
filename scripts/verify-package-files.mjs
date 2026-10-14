@@ -61,6 +61,8 @@ const requiredPaths = [
 	"runtime/nubia-resume-hint.mjs",
   "scripts/install-tui-mode-setting.mjs",
   "scripts/install-keybindings.mjs",
+  "scripts/org-policy-fetch.mjs",
+  "lib/org-policy.ts",
   "prompts/skill-creation.md",
   "skills/branch-pr/SKILL.md",
   "skills/chained-pr/SKILL.md",

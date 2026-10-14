@@ -5,7 +5,7 @@ import { CHILD_PACKAGE_INJECTION_ENV, encodeChildPackageInjection, type ChildPac
 // env/fs/exec. `bin/nub-ia.mjs` (T2) wires these into the real process,
 // filesystem and child process so this module stays fully unit-testable.
 
-export type LauncherCommand = "home" | "setup" | "review";
+export type LauncherCommand = "home" | "setup" | "review" | "policy";
 
 // pi's own package-management subcommands (see pi's cli/args.ts printHelp
 // "Commands" list): each is dispatched by pi itself, before pi's own flag
@@ -152,6 +152,13 @@ export function parseLauncherArgs(argv: string[]): ParsedLauncherArgs {
 		// print-mode pi launch, see extensions/nub-ia-review.ts).
 		if (arg === "review" && command === undefined && passthrough.length === 0) {
 			command = "review";
+			commandArgs = argv.slice(i + 1);
+			break;
+		}
+		// `nub-ia policy status|pull|set <source>|clear`: the organisation policy
+		// (lib/org-policy.ts, scripts/org-policy-fetch.mjs). Not a pi subcommand.
+		if (arg === "policy" && command === undefined && passthrough.length === 0) {
+			command = "policy";
 			commandArgs = argv.slice(i + 1);
 			break;
 		}
@@ -1141,6 +1148,7 @@ export function helpText(): string {
 		"       nub-ia home [link|isolated|<path>]",
 		"       nub-ia [home selectors] setup [--dry-run]",
 		"       nub-ia [home selectors] review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]",
+		"       nub-ia policy [status|pull|set <source>|clear]",
 		"",
 		"Opens pi with the Nub-IA package loaded, without touching your",
 		"vanilla pi installation.",
@@ -1165,6 +1173,9 @@ export function helpText(): string {
 		"                   INCOMPLETE also fails) or 2 (nothing to review / error). Needs a",
 		"                   signed-in provider in the resolved home. --pr also posts (or updates)",
 		"                   the report as the branch's pull-request comment through gh.",
+		"  policy           Organisation policy (org-policy.json, above repo and user; only tightens).",
+		"                   status shows source and sections; pull fetches it now (update does too);",
+		"                   set <git:host/org/repo[#ref][:path] | url | dir> saves the source; clear removes both.",
 		"",
 		"Managing packages:",
 		"  nub-ia install npm:<pkg>   Run pi's own 'install' against the resolved home.",

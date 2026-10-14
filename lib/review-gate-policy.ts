@@ -19,6 +19,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gentlePiConfigHome } from "./agent-home.ts";
 import { configReadPath, projectConfigReadPath } from "./config-home.ts";
+import { ORG_POLICY_FILE, orgReviewGate, parseOrgPolicy } from "./org-policy.ts";
 
 export const REVIEW_GATE_MODES = ["confirm", "strict", "off"] as const;
 export type ReviewGateMode = (typeof REVIEW_GATE_MODES)[number];
@@ -27,7 +28,7 @@ export const REVIEW_GATE_FILE = "review-gate.json";
 export const REVIEW_GATE_ENV = "NUB_IA_REVIEW_GATE";
 export const DEFAULT_REVIEW_GATE_MODE: ReviewGateMode = "confirm";
 
-export type ReviewGateSource = "project_file" | "global_file" | "environment" | "default";
+export type ReviewGateSource = "org_policy" | "project_file" | "global_file" | "environment" | "default";
 
 export interface ReviewGateResolution {
 	mode: ReviewGateMode;
@@ -92,10 +93,18 @@ export function resolveReviewGate(cwd: string, options: ResolveReviewGateOptions
 		const mode: ReviewGateMode = user.mode === "off" ? "confirm" : user.mode;
 		return { mode, source: "project_file", malformed: true, projectFile, globalFile };
 	}
+	let resolved: ReviewGateResolution = { ...user, projectFile, globalFile };
 	if (project.present && project.mode !== undefined && STRICTNESS[project.mode] > STRICTNESS[user.mode]) {
-		return { mode: project.mode, source: "project_file", malformed: false, projectFile, globalFile };
+		resolved = { mode: project.mode, source: "project_file", malformed: false, projectFile, globalFile };
 	}
-	return { ...user, projectFile, globalFile };
+	// The organisation sits above both and, like them, can only raise the bar.
+	const org = orgReviewGate(parseOrgPolicy(readTextQuiet(join(configHome, ORG_POLICY_FILE))));
+	if (org && STRICTNESS[org] > STRICTNESS[resolved.mode]) resolved = { ...resolved, mode: org, source: "org_policy", malformed: false };
+	return resolved;
+}
+
+function readTextQuiet(path: string): string | undefined {
+	try { return readFileSync(path, "utf8"); } catch { return undefined; }
 }
 
 /** Writes the global policy file (always the nub-ia config home), returning its path. */
@@ -108,12 +117,13 @@ export function writeGlobalReviewGate(mode: ReviewGateMode, configHome: string =
 
 export function describeReviewGate(resolution: ReviewGateResolution): string {
 	const where =
-		resolution.source === "project_file" ? `project file ${resolution.projectFile}`
+		resolution.source === "org_policy" ? "the organisation policy (org-policy.json)"
+		: resolution.source === "project_file" ? `project file ${resolution.projectFile}`
 		: resolution.source === "global_file" ? `global file ${resolution.globalFile}`
 		: resolution.source === "environment" ? `${REVIEW_GATE_ENV} environment variable`
 		: "default";
 	const broken = resolution.malformed ? " (file malformed: failed closed to confirm)" : "";
-	const note = resolution.source === "project_file" ? " A repository file can only tighten your setting, never relax it." : "";
+	const note = resolution.source === "project_file" ? " A repository file can only tighten your setting, never relax it." : resolution.source === "org_policy" ? " The organisation policy can only tighten your setting, never relax it." : "";
 	return `Review gate: ${resolution.mode} — decided by ${where}${broken}.${note}`;
 }
 

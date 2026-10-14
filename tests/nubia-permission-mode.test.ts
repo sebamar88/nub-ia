@@ -244,3 +244,26 @@ test("permission mode extension: bash/read output is redacted before the model s
 		rmSync(root, { recursive: true, force: true });
 	}
 });
+
+test("permission mode extension: the organisation policy caps the mode and protects paths above repo and user", async () => {
+	const root = mkdtempSync(join(tmpdir(), "nubia-mode-"));
+	try {
+		const cwd = join(root, "repo");
+		const configHome = join(root, "config");
+		mkdirSync(cwd, { recursive: true });
+		mkdirSync(configHome, { recursive: true });
+		writeFileSync(join(configHome, "permission-mode.json"), '{"mode":"auto"}\n');
+		writeFileSync(join(configHome, "org-policy.json"), JSON.stringify({ schema: "nub-ia.org-policy/v1", name: "Org", permissionMode: { max: "manual" }, paths: { deny: ["infra/**"] }, limits: { maxSubagentsPerTurn: 0 } }));
+		const h = harness({ cwd, configHome });
+		await h.fire("session_start", {});
+		assert.deepEqual(h.statuses.at(-1), ["nubia:mode", "✋ Manual · max Manual"], "the user's auto default is capped by the org");
+		await h.commands.get("nubia:mode")!.handler("auto", h.ctx);
+		assert.match(h.notices.at(-1)!, /above this repository's cap \(Manual, from org-policy\)/);
+		const denied = (await h.fire("tool_call", { toolName: "write", input: { path: join(cwd, "infra", "main.tf") } })) as { reason: string };
+		assert.match(denied.reason, /Path policy: infra\/main\.tf/);
+		await h.fire("turn_start", {});
+		assert.match(((await h.fire("tool_call", { toolName: "subagent_run", input: { agent: "nubia-worker", task: "x" } })) as { reason: string }).reason, /maxSubagentsPerTurn = 0/);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});

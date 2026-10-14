@@ -207,6 +207,10 @@ en JSON; se consolidan en un reporte markdown en `.pi/nub-ia/reviews/<fecha>-<ha
 - **Gate de push**: antes de un `git push`, si los cambios a entregar no tienen review, el review fue de otro diff, o el veredicto fue BLOCK/INCOMPLETE, actúa según `/nubia:review-mode`: `confirm` (default) pide confirmación, `strict` rechaza el push hasta que haya un review APPROVE/WARN del diff, `disable` lo apaga. Se guarda en `~/.pi/nub-ia/review-gate.json`; un `.pi/nub-ia/review-gate.json` en el repo lo fija para el equipo y `NUB_IA_REVIEW_GATE` lo fuerza por sesión.
 - **Status**: el panel muestra el bloque "Review" con el último veredicto, su antigüedad y si el diff cambió desde entonces; se oculta desde `/nubia:customize` (sección review).
 
+### Gobernanza
+
+Política de organización por encima del repo y del usuario (`nub-ia policy set git:github.com/<org>/<repo>`, refrescada por `nub-ia update`), con la regla de siempre: cada capa solo endurece. Cubre modos de permiso, rutas protegidas, reglas por agente, límites de delegación, gate de review, allowlist/presupuesto de modelos. Ver [docs/governance.md](docs/governance.md).
+
 ### Seguridad
 
 - Los archivos de política dentro de un repo (`.pi/nub-ia/review-gate.json`) solo pueden **endurecer** la configuración del usuario, nunca relajarla: un clon o el propio modelo no pueden apagar el gate de push.

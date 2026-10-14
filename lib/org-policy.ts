@@ -1,0 +1,111 @@
+// Organisation policy (roadmap T8.1): one document the team distributes
+// (through `nub-ia update`, from a Git repository named in NUB_IA_ORG_POLICY or
+// <configHome>/org-policy.source) that sits above the repository and the user
+// in every policy the shell already has. Precedence is org > repo > user and,
+// as everywhere else, a layer can only tighten what the layers below it chose.
+//
+//   {
+//     "schema": "nub-ia.org-policy/v1",
+//     "name": "Nubiral",
+//     "permissionMode": { "max": "auto", "default": "accept-edits" },
+//     "paths": { "deny": [".github/**"], "confirm": ["package.json"] },
+//     "agents": { "nubia-explore": { "tools": { "write": "deny" } } },
+//     "limits": { "maxConcurrentSubagents": 4 },
+//     "reviewGate": "confirm",
+//     "modelTiers": { "allowedProviders": ["amazon-bedrock"], "deniedModels": [], "budget": { "dailyUsd": 30, "onExceed": "warn" } },
+//     "approvedPackages": ["npm:@dietrichgebert/ponytail"],
+//     "roles": { ... }                                  (T8.2)
+//   }
+//
+// The sections reuse the existing per-policy parsers unchanged: `sectionText`
+// re-serialises one section as the small JSON document each parser expects.
+
+export const ORG_POLICY_SCHEMA = "nub-ia.org-policy/v1";
+export const ORG_POLICY_FILE = "org-policy.json";
+export const ORG_POLICY_SOURCE_FILE = "org-policy.source";
+export const ORG_POLICY_ENV = "NUB_IA_ORG_POLICY";
+
+export const ORG_POLICY_SECTIONS = ["permissionMode", "paths", "agents", "limits", "reviewGate", "modelTiers", "approvedPackages", "roles"] as const;
+export type OrgPolicySection = (typeof ORG_POLICY_SECTIONS)[number];
+
+export interface OrgPolicy {
+	schema: typeof ORG_POLICY_SCHEMA;
+	name?: string;
+	/** Where it came from and when it was refreshed (written by the fetcher, informational). */
+	fetched?: { source: string; commit?: string; at: string };
+	sections: Partial<Record<OrgPolicySection, unknown>>;
+}
+
+/** Parses an org-policy.json text; a wrong schema or shape yields undefined (no policy, never a partial one). */
+export function parseOrgPolicy(text: string | undefined): OrgPolicy | undefined {
+	if (!text) return undefined;
+	let parsed: unknown;
+	try { parsed = JSON.parse(text); } catch { return undefined; }
+	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return undefined;
+	const record = parsed as Record<string, unknown>;
+	if (record.schema !== ORG_POLICY_SCHEMA) return undefined;
+	const sections: Partial<Record<OrgPolicySection, unknown>> = {};
+	for (const key of ORG_POLICY_SECTIONS) if (record[key] !== undefined) sections[key] = record[key];
+	const fetched = typeof record.fetched === "object" && record.fetched !== null ? (record.fetched as OrgPolicy["fetched"]) : undefined;
+	return { schema: ORG_POLICY_SCHEMA, ...(typeof record.name === "string" ? { name: record.name } : {}), ...(fetched && typeof fetched.source === "string" && typeof fetched.at === "string" ? { fetched } : {}), sections };
+}
+
+/**
+ * One section rendered as the standalone JSON document its existing parser
+ * reads (e.g. `{"paths": …}` for parsePathPolicy). Undefined when absent, so a
+ * caller can pass it straight into the parser's `text | undefined` argument.
+ */
+export function sectionText(policy: OrgPolicy | undefined, section: OrgPolicySection): string | undefined {
+	const value = policy?.sections[section];
+	return value === undefined ? undefined : JSON.stringify({ [section]: value });
+}
+
+/** The `modelTiers` section as the shape parseTierCatalog accepts (routing is never set by the org; only the allowlist and budget). */
+export function orgModelTiersText(policy: OrgPolicy | undefined): string | undefined {
+	const value = policy?.sections.modelTiers;
+	if (typeof value !== "object" || value === null) return undefined;
+	const record = value as Record<string, unknown>;
+	return JSON.stringify({ providerPriority: [], tiers: { strong: [], "strong-alt": [], balanced: [], fast: [] }, ...(record.allowedProviders !== undefined ? { allowedProviders: record.allowedProviders } : {}), ...(record.deniedModels !== undefined ? { deniedModels: record.deniedModels } : {}), ...(record.budget !== undefined ? { budget: record.budget } : {}) });
+}
+
+/** The review-gate mode the org requires, when it sets one. */
+export function orgReviewGate(policy: OrgPolicy | undefined): "confirm" | "strict" | undefined {
+	const value = policy?.sections.reviewGate;
+	return value === "confirm" || value === "strict" ? value : undefined;
+}
+
+/** Human summary for /nubia:status and /nubia:doctor. */
+export function describeOrgPolicy(policy: OrgPolicy | undefined, path: string): string[] {
+	if (!policy) return [`Org policy: none (${path} absent; set ${ORG_POLICY_ENV} or ${ORG_POLICY_SOURCE_FILE} and run nub-ia update)`];
+	const present = ORG_POLICY_SECTIONS.filter((section) => policy.sections[section] !== undefined);
+	return [
+		`Org policy: ${policy.name ?? "unnamed"}${policy.fetched ? ` · from ${policy.fetched.source}${policy.fetched.commit ? `@${policy.fetched.commit.slice(0, 7)}` : ""} at ${policy.fetched.at}` : ""}`,
+		`  sections: ${present.length ? present.join(", ") : "none"} (org > repo > user; each layer only tightens)`,
+	];
+}
+
+// --- source descriptor -------------------------------------------------------------------
+
+export interface OrgPolicySource {
+	/** Git URL (https or ssh) or a local directory. */
+	repository: string;
+	/** Path of the policy file inside the repository. */
+	path: string;
+	ref?: string;
+}
+
+/** `git:github.com/org/policy[#ref][:path]`, a plain URL/directory, or JSON `{repository, path, ref}`. */
+export function parseOrgPolicySource(text: string | undefined): OrgPolicySource | undefined {
+	const raw = text?.trim();
+	if (!raw) return undefined;
+	if (raw.startsWith("{")) {
+		try {
+			const parsed = JSON.parse(raw) as Partial<OrgPolicySource>;
+			return typeof parsed.repository === "string" && parsed.repository.length > 0 ? { repository: parsed.repository, path: typeof parsed.path === "string" && parsed.path.length > 0 ? parsed.path : ORG_POLICY_FILE, ...(typeof parsed.ref === "string" && parsed.ref.length > 0 ? { ref: parsed.ref } : {}) } : undefined;
+		} catch { return undefined; }
+	}
+	const git = /^git:([^#:]+)(?:#([^:]+))?(?::(.+))?$/.exec(raw);
+	if (git) return { repository: `https://${git[1]}.git`.replace(/\.git\.git$/, ".git"), path: git[3] ?? ORG_POLICY_FILE, ...(git[2] ? { ref: git[2] } : {}) };
+	if (/^(https?:\/\/|git@|ssh:\/\/|\/|[A-Za-z]:\\|\.\.?\/)/.test(raw)) return { repository: raw, path: ORG_POLICY_FILE };
+	return undefined;
+}

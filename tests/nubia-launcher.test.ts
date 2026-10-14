@@ -1867,3 +1867,10 @@ test("parseLauncherArgs recognises review as a launcher command with its own arg
 	assert.deepEqual(later.passthrough, ["install", "review"]);
 	assert.match(helpText(), /nub-ia \[home selectors\] review \[--base <ref>/);
 });
+
+test("parseLauncherArgs recognises policy as a launcher command", () => {
+	const parsed = parseLauncherArgs(["policy", "set", "git:github.com/org/repo"]);
+	assert.equal(parsed.command, "policy");
+	assert.deepEqual(parsed.commandArgs, ["set", "git:github.com/org/repo"]);
+	assert.match(helpText(), /nub-ia policy \[status\|pull\|set <source>\|clear\]/);
+});

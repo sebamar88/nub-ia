@@ -36,6 +36,7 @@ import { discoverYoloUiAdapter, YOLO_DISPLAY } from "../lib/yolo-session-policy.
 import { bashWriteTargets, evaluatePaths, mergePathPolicies, parsePathPolicy, type PathPolicy } from "../lib/path-permission-policy.ts";
 import { agentToolRule, mergeAgentToolPolicies, parseAgentToolPolicy, type AgentToolPolicy } from "../lib/agent-tool-policy.ts";
 import { describeRedactions, redactSecrets } from "../lib/secret-redaction.ts";
+import { ORG_POLICY_FILE, parseOrgPolicy, sectionText, type OrgPolicy } from "../lib/org-policy.ts";
 import { relative } from "node:path";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
@@ -71,29 +72,35 @@ function readText(path: string): string | undefined {
 	try { return readFileSync(path, "utf8"); } catch { return undefined; }
 }
 
+/** The organisation policy, when `nub-ia update` fetched one (lib/org-policy.ts). */
+function loadOrgPolicy(env: NodeJS.ProcessEnv): OrgPolicy | undefined {
+	return parseOrgPolicy(readText(join(nubIaConfigHome(env), ORG_POLICY_FILE)));
+}
+
 function loadConfig(cwd: string, env: NodeJS.ProcessEnv): EffectivePermissionModeConfig {
 	const home = nubIaConfigHome(env);
 	return resolvePermissionModeConfig({
 		userModeFile: readText(join(home, "permission-mode.json")),
 		userGuardrails: readText(configReadPath(home, "runtime-guardrails.json", env)),
 		projectGuardrails: readText(projectConfigReadPath(cwd, "runtime-guardrails.json")),
+		orgPolicy: sectionText(loadOrgPolicy(env), "permissionMode"),
 	});
 }
 
 /** `paths` of the user's and the repository's guardrails files: the union (a repo can only add). */
 function loadPathPolicy(cwd: string, env: NodeJS.ProcessEnv): PathPolicy {
 	const home = nubIaConfigHome(env);
-	return mergePathPolicies(parsePathPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parsePathPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))));
+	return mergePathPolicies(parsePathPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parsePathPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parsePathPolicy(sectionText(loadOrgPolicy(env), "paths")));
 }
 
 function loadDelegationLimits(cwd: string, env: NodeJS.ProcessEnv): DelegationLimits {
 	const home = nubIaConfigHome(env);
-	return tightestLimits(parseDelegationLimits(readText(configReadPath(home, "runtime-guardrails.json", env))), parseDelegationLimits(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))));
+	return tightestLimits(parseDelegationLimits(readText(configReadPath(home, "runtime-guardrails.json", env))), parseDelegationLimits(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parseDelegationLimits(sectionText(loadOrgPolicy(env), "limits")));
 }
 
 function loadAgentToolPolicy(cwd: string, env: NodeJS.ProcessEnv): AgentToolPolicy {
 	const home = nubIaConfigHome(env);
-	return mergeAgentToolPolicies(parseAgentToolPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parseAgentToolPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))));
+	return mergeAgentToolPolicies(parseAgentToolPolicy(readText(configReadPath(home, "runtime-guardrails.json", env))), parseAgentToolPolicy(readText(projectConfigReadPath(cwd, "runtime-guardrails.json"))), parseAgentToolPolicy(sectionText(loadOrgPolicy(env), "agents")));
 }
 
 /** Repository-relative form of a tool path (absolute or cwd-relative); outside the worktree it is returned as given. */

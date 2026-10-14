@@ -60,6 +60,7 @@ import {
 	RESUME_HANDOFF_FILE,
 } from "../runtime/nubia-resume-hint.mjs";
 import { installIsolatedKeybindings } from "../scripts/install-keybindings.mjs";
+import { clearOrgPolicy, describeStatus as describeOrgPolicyStatus, fetchOrgPolicy, parseSource as parseOrgPolicySourceDescriptor, resolveSource as resolveOrgPolicySource, saveSource as saveOrgPolicySource } from "../scripts/org-policy-fetch.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -1080,6 +1081,39 @@ async function main() {
 	// for the home's packages (ponytail, …). Opt out with NUB_IA_NO_SELF_UPDATE=1.
 	if (args.piSubcommand === "update" && process.env.NUB_IA_NO_SELF_UPDATE !== "1") {
 		await selfUpdatePackage(packageRoot);
+	}
+	// `nub-ia update` also refreshes the organisation policy when a source is
+	// configured; a failed fetch keeps the previous policy and only warns.
+	if (args.piSubcommand === "update") {
+		const configured = resolveOrgPolicySource();
+		if (configured) process.stderr.write(`nub-ia: ${fetchOrgPolicy(configured.source).message}\n`);
+	}
+
+	if (args.command === "policy") {
+		const [action = "status", ...rest] = args.commandArgs;
+		if (action === "status") { for (const line of describeOrgPolicyStatus()) process.stdout.write(`${line}\n`); return; }
+		if (action === "pull") {
+			const configured = resolveOrgPolicySource();
+			if (!configured) fail("nub-ia policy pull: no source configured. Run: nub-ia policy set git:github.com/<org>/<repo>", 2);
+			const result = fetchOrgPolicy(configured.source);
+			process.stderr.write(`nub-ia: ${result.message}\n`);
+			process.exit(result.ok ? 0 : 1);
+		}
+		if (action === "set") {
+			const descriptor = rest.join(" ").trim();
+			if (!parseOrgPolicySourceDescriptor(descriptor)) fail("nub-ia policy set: expected git:host/org/repo[#ref][:path], a Git URL, a directory, or a JSON descriptor", 2);
+			const saved = saveOrgPolicySource(descriptor);
+			process.stderr.write(`nub-ia: org policy source saved to ${saved}\n`);
+			const result = fetchOrgPolicy(parseOrgPolicySourceDescriptor(descriptor));
+			process.stderr.write(`nub-ia: ${result.message}\n`);
+			process.exit(result.ok ? 0 : 1);
+		}
+		if (action === "clear") {
+			const removed = clearOrgPolicy();
+			process.stderr.write(removed.length ? `nub-ia: removed ${removed.join(", ")}\n` : "nub-ia: no org policy to remove\n");
+			return;
+		}
+		fail(`Unrecognized argument for 'nub-ia policy': ${action}\nUse status, pull, set <source>, or clear.`, 2);
 	}
 
 	// Auto-provision (S7): a plain launch against an isolated or --home home
