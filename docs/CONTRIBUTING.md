@@ -28,6 +28,8 @@ mantenedor del upstream, inglés. Los términos técnicos quedan en inglés dent
 - Prompts de los lentes de review (`assets/agents/review-*.md`) → `/nubia:review eval` contra los fixtures y actualizar
   `tests/fixtures/review/prompt-pins.json`.
 - Mensajes de commit: Conventional Commits (`feat(scope): …`, `fix: …`, `docs: …`), cuerpo en inglés explicando el porqué.
+  El tipo decide el release que corta cada push a `main` (`feat!`/`BREAKING CHANGE:` → major, `feat` → minor, el resto →
+  patch; ver README "Releases"). No editar `version` en `package.json` ni `CHANGELOG.md` a mano: los escribe el workflow.
 
 ## Precedencia de políticas
 

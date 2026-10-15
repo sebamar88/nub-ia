@@ -64,6 +64,7 @@ import { checkPackageSource, parseApprovedPackages } from "../scripts/approved-p
 import { initRepo } from "../scripts/init-repo.mjs";
 import { ALLOWED_SIGNERS_FILE, describeVerification, SKIP_VERIFY_ENV, verifyCommit } from "../scripts/verify-signature.mjs";
 import { collectUsageInputs, parseUsageArgs } from "../scripts/usage-cli.mjs";
+import { UPDATE_NOTICE_ENV, checkForUpdates, renderUpdateNoticeText } from "../scripts/update-check.mjs";
 import { clearOrgPolicy, describeStatus as describeOrgPolicyStatus, fetchOrgPolicy, parseSource as parseOrgPolicySourceDescriptor, resolveSource as resolveOrgPolicySource, saveSource as saveOrgPolicySource } from "../scripts/org-policy-fetch.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
@@ -1348,7 +1349,18 @@ async function main() {
 	// Only an interactive session ends with pi's exit resume hint, which
 	// nub-ia completes with its own line; a pi subcommand gets no handoff.
 	const resumeHandoff = args.piSubcommand === undefined && !headlessReview ? createResumeHandoff() : undefined;
-	const childEnv = resumeHandoff ? { ...invocation.env, [RESUME_HANDOFF_ENV]: resumeHandoff.path } : invocation.env;
+	const childEnv = resumeHandoff ? { ...invocation.env, [RESUME_HANDOFF_ENV]: resumeHandoff.path } : { ...invocation.env };
+	// Outdated-checkout notice (scripts/update-check.mjs): local comparison
+	// against the last fetched upstream plus a throttled detached fetch, so the
+	// launch never waits on the network. Printed here and relayed to the TUI
+	// through extensions/update-notice.ts; only for interactive launches.
+	if (resumeHandoff) {
+		const notice = checkForUpdates(effectivePackageRoot, process.env);
+		if (notice) {
+			process.stderr.write(`${renderUpdateNoticeText(notice, Math.min(process.stderr.columns ?? 60, 100))}\n`);
+			childEnv[UPDATE_NOTICE_ENV] = JSON.stringify(notice);
+		}
+	}
 
 	const launchPlan = planSpawn({ command: invocation.command, args: invocation.args, platform: process.platform });
 	let child;

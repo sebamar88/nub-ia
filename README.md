@@ -107,7 +107,11 @@ nub-ia install npm:<pkg> | remove <source> | list | update | config | auth <cmd>
 ```
 
 `nub-ia update` actualiza primero el checkout del paquete (`git pull --ff-only` + dependencias, cuando lo instaló
-`install.sh`/`install.ps1`; `NUB_IA_NO_SELF_UPDATE=1` lo omite) y después los paquetes del home. `nub-ia --help` muestra la
+`install.sh`/`install.ps1`; `NUB_IA_NO_SELF_UPDATE=1` lo omite) y después los paquetes del home. Al arrancar, si el checkout
+quedó atrás de `origin`, nub-ia muestra un aviso "Update Available" como el de Pi (en la terminal y dentro de la TUI) para
+que corras `nub-ia update`: "New version 1.3.0 is available" con el link al [Release](https://github.com/sebamar88/nub-ia/releases)
+cuando hay una versión publicada, o el conteo de commits y el `compare` cuando todavía no se cortó release. Compara contra lo
+último fetcheado y refresca en segundo plano como mucho cada 6 h, así el arranque nunca espera la red. `nub-ia --help` muestra la
 referencia completa. Dentro de la sesión (`/nubia:commands` lista todo):
 
 | Comando | Qué hace |
@@ -147,6 +151,7 @@ Todas se llaman `NUB_IA_*` (el launcher las pasa a los procesos hijos).
 | `NUB_IA_METRICS=off` | Desactiva métricas, review y auditoría locales (`~/.pi/nub-ia/{metrics,audit}/`). |
 | `NUB_IA_METRICS_ENDPOINT`, `NUB_IA_METRICS_TOKEN` | Opt-in: espejo de esas filas (sin rutas ni secretos) a un endpoint `https://` del equipo; ver [docs/telemetry.md](docs/telemetry.md). |
 | `NUB_IA_NO_SELF_UPDATE=1` | `nub-ia update` no actualiza el checkout del paquete. |
+| `NUB_IA_NO_UPDATE_CHECK=1` | No avisar al arrancar cuando el checkout está desactualizado (ni hacer el `git fetch` en segundo plano). |
 | `NUB_IA_PROMPT_PROFILE` | `minimal` \| `full` para la sesión (gana sobre repo y usuario). |
 | `NUB_IA_SKIP_VERIFY=1` | Saltear (una vez, con aviso) la verificación de firma de `nub-ia update` y de la política de org. |
 | `NUB_IA_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` (postinstall y auto-reparación al arrancar). |
@@ -280,6 +285,14 @@ git merge -X find-renames upstream/main
 El workflow `.github/workflows/upstream-sync.yml` lo intenta cada lunes (y a demanda): si el merge es limpio abre un PR
 `sync/upstream-<fecha>` con el reporte de divergencia; si hay conflictos abre o actualiza un issue "Upstream sync has
 conflicts" con los archivos en conflicto. Nunca toca `main`.
+
+## Releases
+
+Cada push a `main` corta un release semver (`.github/workflows/release.yml` → `scripts/release.mjs`): el bump sale de los
+Conventional Commits desde el tag anterior (`feat!`/`BREAKING CHANGE` → major, `feat` → minor, el resto → patch), se
+actualizan `package.json` y [`CHANGELOG.md`](CHANGELOG.md) en un commit `chore(release): vX.Y.Z`, se pushea el tag `vX.Y.Z`
+y se publica un GitHub Release con las notas agrupadas por tipo. Por eso el mensaje de commit decide la versión: un `fix:`
+y un `feat:` en el mismo push dan minor. `node scripts/release.mjs --dry-run` muestra el plan sin tocar nada.
 
 ## Desarrollo
 

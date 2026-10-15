@@ -1,0 +1,71 @@
+name: Release
+
+# Every push to main cuts a semver release (scripts/release.mjs): the bump
+# comes from the Conventional Commits since the previous tag (breaking → major,
+# feat → minor, else patch), package.json and CHANGELOG.md are updated in a
+# `chore(release): vX.Y.Z` commit, the tag is pushed and a GitHub Release is
+# created with the notes. `nub-ia` reads the remote package.json to announce
+# "New version X.Y.Z is available" and links the release page.
+#
+# The release commit is pushed with the workflow token, which never triggers
+# another run; the `if` below is a second guard against loops.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release): v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+
+      - name: Cut the release (bump, changelog, commit, tag)
+        id: cut
+        env:
+          RELEASE_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          git config user.name "nub-ia-bot"
+          git config user.email "nub-ia-bot@users.noreply.github.com"
+          set +e
+          node scripts/release.mjs | tee release.txt
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [ "$STATUS" = "3" ]; then echo "released=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$STATUS" != "0" ]; then exit "$STATUS"; fi
+          echo "released=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push the release commit and tag
+        if: steps.cut.outputs.released == 'true'
+        run: |
+          git push origin HEAD:main
+          git push origin "refs/tags/${{ steps.cut.outputs.tag }}"
+
+      - name: Publish the GitHub Release
+        if: steps.cut.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.cut.outputs.tag }}" \
+            --title "Nub-IA ${{ steps.cut.outputs.tag }}" \
+            --notes-file release-notes.md
