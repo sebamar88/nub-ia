@@ -65,6 +65,7 @@ import { initRepo } from "../scripts/init-repo.mjs";
 import { ALLOWED_SIGNERS_FILE, describeVerification, SKIP_VERIFY_ENV, verifyCommit } from "../scripts/verify-signature.mjs";
 import { collectUsageInputs, parseUsageArgs } from "../scripts/usage-cli.mjs";
 import { UPDATE_NOTICE_ENV, checkForUpdates, renderUpdateNoticeText } from "../scripts/update-check.mjs";
+import { PI_VERSION_CACHE_FILE, cachedPiVersion, createStartupTrace, piRuntimeFingerprint, piVersionCacheEntry, readPiVersionCache } from "../scripts/startup-trace.mjs";
 import { clearOrgPolicy, describeStatus as describeOrgPolicyStatus, fetchOrgPolicy, parseSource as parseOrgPolicySourceDescriptor, resolveSource as resolveOrgPolicySource, saveSource as saveOrgPolicySource } from "../scripts/org-policy-fetch.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
@@ -1018,6 +1019,8 @@ async function selfUpdatePackage(root) {
 }
 
 async function main() {
+	const stage = createStartupTrace(process.env);
+	stage("launcher loaded");
 	const args = parseLauncherArgs(process.argv.slice(2));
 	if (args.error !== undefined) fail(`${args.error}\nRun 'nub-ia --help' for usage.`, 2);
 	if (args.help) {
@@ -1031,6 +1034,7 @@ async function main() {
 
 	const config = loadConfig();
 	let home = resolveHome({ args, env: process.env, homedir: homedir(), config });
+	stage("config + home resolved");
 	if (home.mode === "path") home = { ...home, dir: resolvePath(home.dir) };
 
 	const runtime = resolvePiRuntime({
@@ -1041,15 +1045,31 @@ async function main() {
 	});
 	if (runtime === undefined) fail(missingPiMessage(), 1);
 
-	const versionProbePlan = planSpawn({ command: runtime.command, args: [...runtime.args, "--version"], platform: process.platform });
-	const versionProbe = spawnSync(versionProbePlan.command, versionProbePlan.args, {
-		stdio: ["ignore", "pipe", "pipe"],
-		timeout: 15000,
-		encoding: "utf8",
-		shell: versionProbePlan.shell,
-	});
-	if (versionProbe.error) fail(`Could not run the pi runtime at "${runtime.command}": ${versionProbe.error.message}`, 1);
-	const versionCheck = checkPiVersion(versionProbe.stdout ?? "");
+	// `pi --version` boots pi's whole bundle; on a cold Windows cache that is
+	// seconds, so the answer is cached by the runtime's path/size/mtime
+	// (scripts/startup-trace.mjs) and re-probed whenever the install changes.
+	const fingerprint = piRuntimeFingerprint(runtime);
+	const versionCachePath = join(process.env.NUB_IA_CONFIG_HOME || join(homedir(), ".pi", "nub-ia"), PI_VERSION_CACHE_FILE);
+	let versionCheck;
+	const cachedVersion = cachedPiVersion(readPiVersionCache(versionCachePath), fingerprint);
+	if (cachedVersion !== undefined) {
+		versionCheck = checkPiVersion(cachedVersion);
+		stage("pi version (cached)");
+	} else {
+		const versionProbePlan = planSpawn({ command: runtime.command, args: [...runtime.args, "--version"], platform: process.platform });
+		const versionProbe = spawnSync(versionProbePlan.command, versionProbePlan.args, {
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 15000,
+			encoding: "utf8",
+			shell: versionProbePlan.shell,
+		});
+		if (versionProbe.error) fail(`Could not run the pi runtime at "${runtime.command}": ${versionProbe.error.message}`, 1);
+		versionCheck = checkPiVersion(versionProbe.stdout ?? "");
+		if (versionCheck.ok && fingerprint) {
+			try { writeRawConfig(versionCachePath, piVersionCacheEntry(fingerprint, versionCheck.version)); } catch { /* cache is optional */ }
+		}
+		stage("pi version (probed)");
+	}
 	if (!versionCheck.ok) fail(versionCheck.message, 1);
 
 	if (args.version) {
@@ -1058,6 +1078,7 @@ async function main() {
 	}
 
 	await ensureRtkInstalled();
+	stage("rtk checked");
 
 	// Home-ownership signal for auto-provisioning (S9, homeIsForeign): must be
 	// read before the isolated-home bootstrap below creates and seeds a
@@ -1234,6 +1255,7 @@ async function main() {
 		// exits with the same signal-derived code instead of falling through
 		// to launch pi.
 		if (autoProvisionResult !== undefined) process.exit(autoProvisionResult.exitCode);
+		stage("home provisioned/verified");
 
 		// Runs after auto-provision, so it sees settings.json exactly as that
 		// run left it. Only a home nub-ia owns, by the same rule
@@ -1330,6 +1352,7 @@ async function main() {
 		}
 	}
 
+	stage("package + extensions resolved");
 	const invocation = buildPiInvocation({
 		runtime,
 		home,
@@ -1361,8 +1384,10 @@ async function main() {
 			childEnv[UPDATE_NOTICE_ENV] = JSON.stringify(notice);
 		}
 	}
+	stage("update check");
 
 	const launchPlan = planSpawn({ command: invocation.command, args: invocation.args, platform: process.platform });
+	stage("spawning pi");
 	let child;
 	try {
 		child = spawn(launchPlan.command, launchPlan.args, { stdio: "inherit", env: childEnv, shell: launchPlan.shell });

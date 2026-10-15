@@ -154,6 +154,7 @@ Todas se llaman `NUB_IA_*` (el launcher las pasa a los procesos hijos).
 | `NUB_IA_NO_UPDATE_CHECK=1` | No avisar al arrancar cuando el checkout está desactualizado (ni hacer el `git fetch` en segundo plano). |
 | `NUB_IA_PROMPT_PROFILE` | `minimal` \| `full` para la sesión (gana sobre repo y usuario). |
 | `NUB_IA_SKIP_VERIFY=1` | Saltear (una vez, con aviso) la verificación de firma de `nub-ia update` y de la política de org. |
+| `NUB_IA_TRACE_STARTUP=1` | Imprime cuánto tarda cada etapa del arranque (para diagnosticar un inicio lento). |
 | `NUB_IA_SKIP_RTK_INSTALL=1` | Saltar la descarga del binario `rtk` (postinstall y auto-reparación al arrancar). |
 | `NUB_IA_RTK_BIN` | Ruta a un `rtk` concreto para la reescritura de comandos. |
 | `RTK_DISABLED=1` | Apagar la reescritura de comandos con rtk en la sesión. |

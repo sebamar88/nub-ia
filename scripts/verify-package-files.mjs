@@ -54,6 +54,7 @@ const requiredPaths = [
   "extensions/update-notice.ts",
   "scripts/update-check.mjs",
   "scripts/release.mjs",
+  "scripts/startup-trace.mjs",
   "extensions/skill-registry.ts",
   "lib/child-package-injection.ts",
   "lib/nubia-launcher.ts",
