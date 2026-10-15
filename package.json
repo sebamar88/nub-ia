@@ -1,6 +1,6 @@
 {
 	"name": "nub-ia",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"private": true,
 	"description": "Nub-IA: the Nubiral team coding-agent shell for Pi (based on gentle-shell): ODD harness with focused subagents, TDD evidence, and native review.",
 	"license": "MIT",
