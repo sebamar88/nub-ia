@@ -1655,7 +1655,8 @@ test("Nub-IA package manifest declares the fork identity and release version", (
 	const packageJson = readPackageJson();
 	assert.equal(packageJson.name, "nub-ia");
 	assert.equal(packageJson.private, true, "the fork is installed from Git, never published to npm");
-	assert.equal(packageJson.version, "0.1.0", "the release manifest must be explicitly pinned to v0.1.0");
+	// scripts/release.mjs bumps this on every push to main; only the shape is stable.
+	assert.match(packageJson.version, /^[1-9]\d*\.\d+\.\d+$/, "the release manifest carries the plain semver written by the release workflow");
 	assert.equal(packageJson.scripts?.test, "node scripts/run-test-suite.mjs");
 	assert.ok(packageJson.files?.includes("assets/"));
 	assert.ok(!packageJson.files?.includes("contracts/"));
