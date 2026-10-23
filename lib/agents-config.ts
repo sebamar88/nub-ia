@@ -3,8 +3,8 @@ import { legacyAgentNameFor, migrateAgentKeys } from "./agent-name-migration.ts"
 import { basename, join } from "node:path";
 import { THINKING_LEVELS as ROUTING_THINKING_LEVELS, type AgentModelConfig, type ThinkingLevel as RoutingThinkingLevel } from "./model-routing-authority.ts";
 
-// Gentle Agents configuration. Agent definitions are markdown files with YAML
-// frontmatter (the format gentle-ai installs) and runtime settings come from
+// Nub-IA Agents configuration. Agent definitions are markdown files with YAML
+// frontmatter (the format nub-ia installs) and runtime settings come from
 // subagents.json at the global and project level. Everything here is pure
 // apart from the discovery helpers, which take their roots as arguments.
 

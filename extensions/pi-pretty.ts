@@ -26,13 +26,13 @@ async function loadPiPrettyExtension(): Promise<PiPrettyExtension> {
 	);
 }
 
-export default async function gentlePiPrettyExtension(
+export default async function nubiaPrettyExtension(
 	pi: unknown,
 	deps?: unknown,
 	bundled?: PiPrettyExtension,
 	env: NodeJS.ProcessEnv = process.env,
 ): Promise<unknown> {
-	// gentle-shell#1690: a delegated child has no transcript to prettify, and
+	// nubia-shell#1690: a delegated child has no transcript to prettify, and
 	// the upstream fallback would start its own file indexing in every child.
 	if (env.NUB_IA_AGENTS_CHILD === "1") return undefined;
 	if (quietToolsEnabled()) {
@@ -46,7 +46,7 @@ export default async function gentlePiPrettyExtension(
 	const api = pi as ExtensionAPI;
 	// Scope interception to this bundled dependency, never to the shared host UI.
 	// Its tools/autocomplete/status APIs pass through; prompt ownership stays with
-	// Gentle Shell (or a genuine third-party editor). This also blocks stale restores.
+	// Nub-IA (or a genuine third-party editor). This also blocks stale restores.
 	const owned = new Set(["setEditorComponent", "setWorkingIndicator", "setWorkingMessage", "setWorkingVisible"]);
 	const delegated = new Proxy(api, {
 		get(target, key) {
@@ -66,7 +66,7 @@ export default async function gentlePiPrettyExtension(
 	});
 	// pi-pretty's hidden-thinking API is global. Its best-effort private per-row
 	// patch can miss the host's actual component class and then animate every
-	// historical Thinking row. Gentle Shell chooses the robust presentation:
+	// historical Thinking row. Nub-IA chooses the robust presentation:
 	// keep collapsed labels static while preserving the separate working frame.
 	const previousThinkingIndicator = process.env.PRETTY_THINKING_INDICATOR;
 	process.env.PRETTY_THINKING_INDICATOR = "off";
@@ -77,7 +77,7 @@ export default async function gentlePiPrettyExtension(
 		if (previousThinkingIndicator === undefined) delete process.env.PRETTY_THINKING_INDICATOR;
 		else process.env.PRETTY_THINKING_INDICATOR = previousThinkingIndicator;
 	}
-	// GentlePromptEditor already carries the live working state in its frame.
+	// NubiaPromptEditor already carries the live working state in its frame.
 	// Hide Pi's separate loader row to avoid repeating Thinking above the input;
 	// transcript thinking blocks remain untouched as historical reasoning markers.
 	api.on("session_start", (_event, ctx) => {

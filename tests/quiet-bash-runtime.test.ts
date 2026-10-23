@@ -11,7 +11,7 @@ async function proveNativeBash() {
 		ModelRuntime, SessionManager, SettingsManager } = await import("@earendil-works/pi-coding-agent");
 	const cwd = process.cwd();
 	const agentDir = process.env.PI_CODING_AGENT_DIR!;
-	const shellPath = process.env.GENTLE_TEST_SHELL!;
+	const shellPath = process.env.NUB_IA_TEST_SHELL!;
 	// Hide Windows default discovery only inside this isolated child. The explicit
 	// shell remains usable; on POSIX the prefix also detects a recreated executor.
 	for (const key of Object.keys(process.env)) if (key.toLowerCase() === "path") process.env[key] = "";
@@ -45,7 +45,7 @@ async function proveNativeBash() {
 	}
 }
 
-if (process.env.GENTLE_TEST_BASH_CHILD === "1") {
+if (process.env.NUB_IA_TEST_BASH_CHILD === "1") {
 	await proveNativeBash();
 } else {
 	test("quiet tools preserve actual SDK configured Bash execution (#107)", (t) => {
@@ -54,14 +54,14 @@ if (process.env.GENTLE_TEST_BASH_CHILD === "1") {
 			: ["/bin/bash", "/usr/bin/bash"];
 		const shell = candidates.find(existsSync);
 		if (!shell) { t.skip("requires an installed Bash; no binary installation is performed"); return; }
-		const root = mkdtempSync(join(tmpdir(), "gentle-quiet-bash-sdk-"));
+		const root = mkdtempSync(join(tmpdir(), "nubia-quiet-bash-sdk-"));
 		const cwd = join(root, "project");
 		const home = join(root, "home");
 		const agentDir = join(home, "agent");
 		for (const path of [cwd, agentDir]) mkdirSync(path, { recursive: true });
 		const env = { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, "config"),
-			PI_CODING_AGENT_DIR: agentDir, NUB_IA_AGENT_HOME: agentDir, NUB_IA_CONFIG_HOME: join(home, "gentle-config"),
-			PI_OFFLINE: "1", NUB_IA_QUIET_TOOLS: "1", GENTLE_TEST_BASH_CHILD: "1", GENTLE_TEST_SHELL: shell };
+			PI_CODING_AGENT_DIR: agentDir, NUB_IA_AGENT_HOME: agentDir, NUB_IA_CONFIG_HOME: join(home, "nubia-config"),
+			PI_OFFLINE: "1", NUB_IA_QUIET_TOOLS: "1", NUB_IA_TEST_BASH_CHILD: "1", NUB_IA_TEST_SHELL: shell };
 		try {
 			const result = spawnSync(process.execPath, ["--experimental-strip-types", fileURLToPath(import.meta.url)],
 				{ cwd, env, encoding: "utf8", timeout: 30_000 });

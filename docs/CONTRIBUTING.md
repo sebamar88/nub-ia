@@ -1,18 +1,18 @@
 # Contribuir a Nub-IA
 
-Guía corta para cambios en este fork. Lo que no está acá sigue las convenciones de [gentle-shell](docs/UPSTREAM-README.md).
+Guía corta para cambios en Nub-IA. Nació como fork de [gentle-shell](UPSTREAM-README.md), pero ya no se sincroniza con él.
 
 ## Idioma
 
 | Qué | Idioma | Por qué |
 | --- | --- | --- |
 | `README.md`, `docs/*.md` de uso (shell, modos, gobernanza, telemetría, CI), mensajes de ayuda del launcher **que lee el equipo** | **Español** (rioplatense neutro, sin regionalismos innecesarios) | El equipo de Nubiral es el lector. |
-| Código, identificadores, comentarios, mensajes de commit, mensajes que el **modelo** lee (prompts, directivas, razones de `block`), textos de la TUI, `--help` del launcher, tests, docs técnicos del paquete (`docs/skill-style-guide.md`, `docs/UPSTREAM-*.md`) | **Inglés** | Se mergea con upstream, lo leen los modelos y herramientas, y el código de Pi está en inglés. |
+| Código, identificadores, comentarios, mensajes de commit, mensajes que el **modelo** lee (prompts, directivas, razones de `block`), textos de la TUI, `--help` del launcher, tests, docs técnicos del paquete (`docs/skill-style-guide.md`, `docs/UPSTREAM-*.md`) | **Inglés** | Lo leen los modelos y herramientas, y el código de Pi está en inglés. |
 | Skills (`skills/*/SKILL.md`) | Inglés (frontmatter y cuerpo); nombres de sección fijos de la guía de estilo | Las lee el runtime y el modelo. |
 | Nombres de archivos, claves JSON, variables de entorno | Inglés | Idem. |
 
 Regla práctica: si lo lee una persona del equipo en el README o la doc, español; si lo lee el modelo, Pi, git o un
-mantenedor del upstream, inglés. Los términos técnicos quedan en inglés dentro del español (`review`, `commit`, `push`,
+mantenedor, inglés. Los términos técnicos quedan en inglés dentro del español (`review`, `commit`, `push`,
 `tier`, `budget`) en vez de traducirlos.
 
 ## Cambios
@@ -36,9 +36,3 @@ mantenedor del upstream, inglés. Los términos técnicos quedan en inglés dent
 Todo lo configurable por repo/org **solo endurece** lo del usuario (ver [docs/governance.md](docs/governance.md)). Un
 cambio que permita a un repo o a la org relajar algo es un bug.
 
-## Mantener el fork mergeable
-
-- Lo propio de Nub-IA va en módulos propios (`lib/nubia-*.ts`, `extensions/nubia-permission-mode.ts`,
-  `extensions/nub-ia-*.ts`); en los archivos heredados, solo imports y una llamada.
-- `node scripts/upstream-diff.mjs` mide la divergencia real tras normalizar el rename `gentle → nubia`.
-- El workflow `upstream-sync.yml` intenta el merge cada semana.

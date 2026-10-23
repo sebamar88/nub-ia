@@ -270,22 +270,10 @@ la descarga; `RTK_DISABLED=1` apaga la reescritura en una sesión. No hace falta
 - Router de modelos por tier (`extensions/nub-ia-router.ts`, `lib/model-tier-router.ts`, `assets/model-tiers.json`).
 - Workflow de publicación a npm eliminado.
 
-Las variables de entorno se renombraron a `NUB_IA_*` (sin alias `GENTLE_*`). Los identificadores internos
-(nombres de archivos y funciones en `lib/`, esquemas y tipos de mensaje persistidos) se mantienen tal cual para
-poder hacer merge de cambios del upstream.
-
-## Mantener sincronizado con el upstream
-
-```bash
-git remote add upstream https://github.com/Gentleman-Programming/gentle-shell.git
-git fetch upstream
-node scripts/upstream-diff.mjs          # divergencia real tras normalizar el rename gentle → nubia
-git merge -X find-renames upstream/main
-```
-
-El workflow `.github/workflows/upstream-sync.yml` lo intenta cada lunes (y a demanda): si el merge es limpio abre un PR
-`sync/upstream-<fecha>` con el reporte de divergencia; si hay conflictos abre o actualiza un issue "Upstream sync has
-conflicts" con los archivos en conflicto. Nunca toca `main`.
+Las variables de entorno se renombraron a `NUB_IA_*` (sin alias `GENTLE_*`). Nub-IA ya no se sincroniza con
+gentle-shell: evoluciona por su cuenta. Los identificadores internos (archivos, funciones, esquemas y tipos de mensaje
+persistidos) ya usan `nubia` / `nub-ia`; solo quedan nombres heredados en la lectura de compatibilidad de `~/.pi/gentle-ai`,
+los temas `Gentle*` y la persona `gentleman`.
 
 ## Releases
 
@@ -310,7 +298,7 @@ Qué es, qué trae, comparativa y benchmarks medidos (system prompt, tokens, rtk
 Cómo contribuir (idioma, tests, precedencia, mergeabilidad): [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
 Documentación: [referencia técnica](docs/readme-reference.md) (incluye [Organic Driven Development](docs/readme-reference.md#organic-driven-development)),
-[la shell](docs/nub-ia-shell.md), [actividad de agentes](docs/gentle-agents-activity.md), [YOLO](docs/yolo-mode.md),
+[la shell](docs/nub-ia-shell.md), [actividad de agentes](docs/nubia-agents-activity.md), [YOLO](docs/yolo-mode.md),
 [métricas](docs/telemetry.md). El README original de gentle-shell queda archivado en [`docs/UPSTREAM-README.md`](docs/UPSTREAM-README.md).
 
 ## Licencia y marcas

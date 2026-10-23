@@ -13,7 +13,7 @@ import {
 	decideTakeOver,
 	describeVersion,
 	discoverLooseExtensionEntries,
-	findGentlePiDeclaration,
+	findNubiaDeclaration,
 	forceJsonFieldIfAbsentInOriginal,
 	helpText,
 	homeSelectorFlags,
@@ -34,7 +34,7 @@ import {
 	userPiHome,
 	resolvePiRuntime,
 	restoreJsonField,
-	settingsDeclareGentlePi,
+	settingsDeclareNubia,
 	shellQuote,
 	type PackageJsonPeerShape,
 	type ParsedLauncherArgs,
@@ -454,49 +454,49 @@ test("needsProvisioning is true for a home with no marker", () => {
 });
 
 test("needsProvisioning is false when the marker's launcher version matches the running one", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentlePi: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } };
+	const config: RawLauncherConfig = { provisioned: { "/a": { nubiaVersion: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } };
 	assert.equal(needsProvisioning(config, "/a", "0.1.0"), false);
 });
 
 test("needsProvisioning is true when the marker's launcher version differs from the running one", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentlePi: "0.0.9", at: "2026-09-22T00:00:00.000Z" } } };
+	const config: RawLauncherConfig = { provisioned: { "/a": { nubiaVersion: "0.0.9", at: "2026-09-22T00:00:00.000Z" } } };
 	assert.equal(needsProvisioning(config, "/a", "0.1.0"), true);
 });
 
-test("needsProvisioning is true when the marker predates version tracking (no gentlePi field)", () => {
+test("needsProvisioning is true when the marker predates version tracking (no nubiaVersion field)", () => {
 	const config: RawLauncherConfig = { provisioned: { "/a": { at: "2026-09-22T00:00:00.000Z" } } };
 	assert.equal(needsProvisioning(config, "/a", "0.1.0"), true);
 });
 
-test("needsProvisioning is true once for a legacy marker that still carries a gentle-ai pin", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", gentlePi: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } };
+test("needsProvisioning is true once for a legacy marker that still carries a nub-ia pin", () => {
+	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", nubiaVersion: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } };
 	assert.equal(needsProvisioning(config, "/a", "0.1.0"), true);
 });
 
-test("recordProvisioned adds a marker (gentlePi, at) without a gentle-ai pin and preserves every other key, including other homes", () => {
+test("recordProvisioned adds a marker (nubiaVersion, at) without a nub-ia pin and preserves every other key, including other homes", () => {
 	const config: RawLauncherConfig = {
 		home: "isolated",
-		provisioned: { "/other": { gentlePi: "0.0.1", at: "2026-01-01T00:00:00.000Z" } },
+		provisioned: { "/other": { nubiaVersion: "0.0.1", at: "2026-01-01T00:00:00.000Z" } },
 	};
 	const updated = recordProvisioned(config, "/a", "0.1.0", "2026-09-22T00:00:00.000Z");
 	assert.deepEqual(updated, {
 		home: "isolated",
 		provisioned: {
-			"/other": { gentlePi: "0.0.1", at: "2026-01-01T00:00:00.000Z" },
-			"/a": { gentlePi: "0.1.0", at: "2026-09-22T00:00:00.000Z" },
+			"/other": { nubiaVersion: "0.0.1", at: "2026-01-01T00:00:00.000Z" },
+			"/a": { nubiaVersion: "0.1.0", at: "2026-09-22T00:00:00.000Z" },
 		},
 	});
 	// Returns a new object; never mutates the input.
 	assert.deepEqual(config, {
 		home: "isolated",
-		provisioned: { "/other": { gentlePi: "0.0.1", at: "2026-01-01T00:00:00.000Z" } },
+		provisioned: { "/other": { nubiaVersion: "0.0.1", at: "2026-01-01T00:00:00.000Z" } },
 	});
 });
 
-test("recordProvisioned overwrites an existing marker for the same home and drops a legacy gentle-ai pin", () => {
-	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", gentlePi: "0.0.9", at: "2026-01-01T00:00:00.000Z" } } };
+test("recordProvisioned overwrites an existing marker for the same home and drops a legacy nub-ia pin", () => {
+	const config: RawLauncherConfig = { provisioned: { "/a": { gentleAi: "3.6.0", nubiaVersion: "0.0.9", at: "2026-01-01T00:00:00.000Z" } } };
 	const updated = recordProvisioned(config, "/a", "0.1.0", "2026-09-22T00:00:00.000Z");
-	assert.deepEqual(updated, { provisioned: { "/a": { gentlePi: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } });
+	assert.deepEqual(updated, { provisioned: { "/a": { nubiaVersion: "0.1.0", at: "2026-09-22T00:00:00.000Z" } } });
 });
 
 // --- resolvePiRuntime ------------------------------------------------------
@@ -678,134 +678,134 @@ test("checkPiVersion accepts a custom minimum", () => {
 	assert.equal(checkPiVersion("1.2.0", "1.1.0").ok, true);
 });
 
-// --- settingsDeclareGentlePi ------------------------------------------------
+// --- settingsDeclareNubia ------------------------------------------------
 
-test("settingsDeclareGentlePi is false when settings text is undefined", () => {
-	assert.equal(settingsDeclareGentlePi(undefined), false);
+test("settingsDeclareNubia is false when settings text is undefined", () => {
+	assert.equal(settingsDeclareNubia(undefined), false);
 });
 
-test("settingsDeclareGentlePi is false for invalid JSON", () => {
-	assert.equal(settingsDeclareGentlePi("not json"), false);
+test("settingsDeclareNubia is false for invalid JSON", () => {
+	assert.equal(settingsDeclareNubia("not json"), false);
 });
 
-test("settingsDeclareGentlePi is false when packages is absent", () => {
-	assert.equal(settingsDeclareGentlePi("{}"), false);
+test("settingsDeclareNubia is false when packages is absent", () => {
+	assert.equal(settingsDeclareNubia("{}"), false);
 });
 
-test("settingsDeclareGentlePi detects a bare npm:gentle-pi string entry", () => {
-	assert.equal(settingsDeclareGentlePi('{"packages":["npm:gentle-pi"]}'), true);
+test("settingsDeclareNubia detects a bare npm:gentle-pi string entry", () => {
+	assert.equal(settingsDeclareNubia('{"packages":["npm:gentle-pi"]}'), true);
 });
 
-test("settingsDeclareGentlePi detects a versioned npm:gentle-pi string entry", () => {
-	assert.equal(settingsDeclareGentlePi('{"packages":["npm:gentle-pi@3.3.0"]}'), true);
+test("settingsDeclareNubia detects a versioned npm:gentle-pi string entry", () => {
+	assert.equal(settingsDeclareNubia('{"packages":["npm:gentle-pi@3.3.0"]}'), true);
 });
 
-test("settingsDeclareGentlePi detects a bare npm:gentle-pi object source entry", () => {
-	assert.equal(settingsDeclareGentlePi('{"packages":[{"source":"npm:gentle-pi"}]}'), true);
+test("settingsDeclareNubia detects a bare npm:gentle-pi object source entry", () => {
+	assert.equal(settingsDeclareNubia('{"packages":[{"source":"npm:gentle-pi"}]}'), true);
 });
 
-test("settingsDeclareGentlePi detects a versioned npm:gentle-pi object source entry", () => {
-	assert.equal(settingsDeclareGentlePi('{"packages":[{"source":"npm:gentle-pi@3.3.0"}]}'), true);
+test("settingsDeclareNubia detects a versioned npm:gentle-pi object source entry", () => {
+	assert.equal(settingsDeclareNubia('{"packages":[{"source":"npm:gentle-pi@3.3.0"}]}'), true);
 });
 
-test("settingsDeclareGentlePi is false when packages lists unrelated entries", () => {
-	assert.equal(settingsDeclareGentlePi('{"packages":["npm:some-other-package"]}'), false);
+test("settingsDeclareNubia is false when packages lists unrelated entries", () => {
+	assert.equal(settingsDeclareNubia('{"packages":["npm:some-other-package"]}'), false);
 });
 
-test("settingsDeclareGentlePi is false for a path package entry, even one that resolves to gentle-pi on disk", () => {
+test("settingsDeclareNubia is false for a path package entry, even one that resolves to gentle-pi on disk", () => {
 	// The compat wrapper never reads the filesystem: it only recognises npm
 	// declarations, matching its pre-existing behaviour before path detection
-	// was added via findGentlePiDeclaration.
-	assert.equal(settingsDeclareGentlePi('{"packages":["../../work/gentle-pi"]}'), false);
+	// was added via findNubiaDeclaration.
+	assert.equal(settingsDeclareNubia('{"packages":["../../work/gentle-pi"]}'), false);
 });
 
-// --- findGentlePiDeclaration -------------------------------------------------
+// --- findNubiaDeclaration -------------------------------------------------
 
 function readPackageNameStub(names: Record<string, string | undefined>) {
 	return (dir: string) => names[dir];
 }
 
-test("findGentlePiDeclaration is undefined when settings text is undefined", () => {
-	assert.equal(findGentlePiDeclaration(undefined, { agentDir: "/agent", readPackageName: () => undefined }), undefined);
+test("findNubiaDeclaration is undefined when settings text is undefined", () => {
+	assert.equal(findNubiaDeclaration(undefined, { agentDir: "/agent", readPackageName: () => undefined }), undefined);
 });
 
-test("findGentlePiDeclaration is undefined for invalid JSON", () => {
-	assert.equal(findGentlePiDeclaration("not json", { agentDir: "/agent", readPackageName: () => undefined }), undefined);
+test("findNubiaDeclaration is undefined for invalid JSON", () => {
+	assert.equal(findNubiaDeclaration("not json", { agentDir: "/agent", readPackageName: () => undefined }), undefined);
 });
 
-test("findGentlePiDeclaration is undefined when packages is absent", () => {
-	assert.equal(findGentlePiDeclaration("{}", { agentDir: "/agent", readPackageName: () => undefined }), undefined);
+test("findNubiaDeclaration is undefined when packages is absent", () => {
+	assert.equal(findNubiaDeclaration("{}", { agentDir: "/agent", readPackageName: () => undefined }), undefined);
 });
 
-test("findGentlePiDeclaration detects a bare npm:gentle-pi string entry", () => {
-	const result = findGentlePiDeclaration('{"packages":["npm:gentle-pi"]}', { agentDir: "/agent", readPackageName: () => undefined });
+test("findNubiaDeclaration detects a bare npm:gentle-pi string entry", () => {
+	const result = findNubiaDeclaration('{"packages":["npm:gentle-pi"]}', { agentDir: "/agent", readPackageName: () => undefined });
 	assert.deepEqual(result, { kind: "npm" });
 });
 
-test("findGentlePiDeclaration detects a versioned npm:gentle-pi string entry", () => {
-	const result = findGentlePiDeclaration('{"packages":["npm:gentle-pi@3.3.0"]}', { agentDir: "/agent", readPackageName: () => undefined });
+test("findNubiaDeclaration detects a versioned npm:gentle-pi string entry", () => {
+	const result = findNubiaDeclaration('{"packages":["npm:gentle-pi@3.3.0"]}', { agentDir: "/agent", readPackageName: () => undefined });
 	assert.deepEqual(result, { kind: "npm" });
 });
 
-test("findGentlePiDeclaration detects a bare npm:gentle-pi object source entry", () => {
-	const result = findGentlePiDeclaration('{"packages":[{"source":"npm:gentle-pi"}]}', { agentDir: "/agent", readPackageName: () => undefined });
+test("findNubiaDeclaration detects a bare npm:gentle-pi object source entry", () => {
+	const result = findNubiaDeclaration('{"packages":[{"source":"npm:gentle-pi"}]}', { agentDir: "/agent", readPackageName: () => undefined });
 	assert.deepEqual(result, { kind: "npm" });
 });
 
-test("findGentlePiDeclaration recognises a relative path entry whose package.json name is gentle-pi", () => {
+test("findNubiaDeclaration recognises a relative path entry whose package.json name is gentle-pi", () => {
 	const resolvedDir = join("/agent", "..", "..", "work", "gentle-pi");
-	const result = findGentlePiDeclaration('{"packages":["../../work/gentle-pi"]}', {
+	const result = findNubiaDeclaration('{"packages":["../../work/gentle-pi"]}', {
 		agentDir: "/agent",
 		readPackageName: readPackageNameStub({ [resolvedDir]: "gentle-pi" }),
 	});
 	assert.deepEqual(result, { kind: "path", dir: resolvedDir });
 });
 
-test("findGentlePiDeclaration recognises an absolute path entry whose package.json name is gentle-pi", () => {
-	const result = findGentlePiDeclaration('{"packages":["/checkouts/gentle-pi"]}', {
+test("findNubiaDeclaration recognises an absolute path entry whose package.json name is gentle-pi", () => {
+	const result = findNubiaDeclaration('{"packages":["/checkouts/gentle-pi"]}', {
 		agentDir: "/agent",
 		readPackageName: readPackageNameStub({ "/checkouts/gentle-pi": "gentle-pi" }),
 	});
 	assert.deepEqual(result, { kind: "path", dir: "/checkouts/gentle-pi" });
 });
 
-test("findGentlePiDeclaration recognises a path object source entry whose package.json name is gentle-pi", () => {
-	const result = findGentlePiDeclaration('{"packages":[{"source":"../gentle-pi","extensions":[]}]}', {
+test("findNubiaDeclaration recognises a path object source entry whose package.json name is gentle-pi", () => {
+	const result = findNubiaDeclaration('{"packages":[{"source":"../gentle-pi","extensions":[]}]}', {
 		agentDir: "/agent",
 		readPackageName: readPackageNameStub({ [join("/agent", "..", "gentle-pi")]: "gentle-pi" }),
 	});
 	assert.deepEqual(result, { kind: "path", dir: join("/agent", "..", "gentle-pi") });
 });
 
-test("findGentlePiDeclaration is undefined for a path entry whose package.json name is not gentle-pi", () => {
+test("findNubiaDeclaration is undefined for a path entry whose package.json name is not gentle-pi", () => {
 	const resolvedDir = join("/agent", "..", "..", "work", "engram", "plugin", "pi");
-	const result = findGentlePiDeclaration('{"packages":["../../work/engram/plugin/pi"]}', {
+	const result = findNubiaDeclaration('{"packages":["../../work/engram/plugin/pi"]}', {
 		agentDir: "/agent",
 		readPackageName: readPackageNameStub({ [resolvedDir]: "engram" }),
 	});
 	assert.equal(result, undefined);
 });
 
-test("findGentlePiDeclaration is undefined for a path entry with no readable package.json", () => {
-	const result = findGentlePiDeclaration('{"packages":["../gentle-pi"]}', { agentDir: "/agent", readPackageName: () => undefined });
+test("findNubiaDeclaration is undefined for a path entry with no readable package.json", () => {
+	const result = findNubiaDeclaration('{"packages":["../gentle-pi"]}', { agentDir: "/agent", readPackageName: () => undefined });
 	assert.equal(result, undefined);
 });
 
-test("findGentlePiDeclaration ignores git and URL entries when looking for a path declaration", () => {
-	const result = findGentlePiDeclaration('{"packages":["git:github.com/foo/gentle-pi","https://github.com/foo/gentle-pi"]}', {
+test("findNubiaDeclaration ignores git and URL entries when looking for a path declaration", () => {
+	const result = findNubiaDeclaration('{"packages":["git:github.com/foo/gentle-pi","https://github.com/foo/gentle-pi"]}', {
 		agentDir: "/agent",
 		readPackageName: () => "gentle-pi",
 	});
 	assert.equal(result, undefined);
 });
 
-test("findGentlePiDeclaration is undefined when packages lists unrelated entries", () => {
-	const result = findGentlePiDeclaration('{"packages":["npm:some-other-package"]}', { agentDir: "/agent", readPackageName: () => undefined });
+test("findNubiaDeclaration is undefined when packages lists unrelated entries", () => {
+	const result = findNubiaDeclaration('{"packages":["npm:some-other-package"]}', { agentDir: "/agent", readPackageName: () => undefined });
 	assert.equal(result, undefined);
 });
 
-test("findGentlePiDeclaration returns the first matching declaration, path or npm, in list order", () => {
-	const result = findGentlePiDeclaration('{"packages":["../gentle-pi","npm:gentle-pi"]}', {
+test("findNubiaDeclaration returns the first matching declaration, path or npm, in list order", () => {
+	const result = findNubiaDeclaration('{"packages":["../gentle-pi","npm:gentle-pi"]}', {
 		agentDir: "/agent",
 		readPackageName: readPackageNameStub({ [join("/agent", "..", "gentle-pi")]: "gentle-pi" }),
 	});
@@ -1542,7 +1542,7 @@ test("discoverLooseExtensionEntries keeps direct .ts/.js/.mjs files and skips ot
 		{ name: "b.js", isFile: true, isDirectory: false },
 		{ name: "c.mjs", isFile: true, isDirectory: false },
 		{ name: "readme.md", isFile: true, isDirectory: false },
-		{ name: "gentle-agent-state.ts.bak-pre-fullscreen-fix", isFile: true, isDirectory: false },
+		{ name: "nubia-agent-state.ts.bak-pre-fullscreen-fix", isFile: true, isDirectory: false },
 	];
 	const found = discoverLooseExtensionEntries("/extensions", fakeFs(entries));
 	assert.deepEqual(found, [join("/extensions", "a.ts"), join("/extensions", "b.js"), join("/extensions", "c.mjs")]);
@@ -1672,11 +1672,11 @@ test("quoteForCmdExe quotes an empty token", () => {
 // --- restoreJsonField ---------------------------------------------------------
 //
 // Pure JSON merge used by bin/nub-ia.mjs's setup flow to restore a
-// single field of `~/.gentle-ai/state.json` (managed_asset_digest) after the
-// pinned gentle-ai spawn rewrites it, the same way the whole-file
+// single field of `~/.nub-ia/state.json` (managed_asset_digest) after the
+// pinned nub-ia spawn rewrites it, the same way the whole-file
 // snapshot/restore already protects `~/.pi/gentle-ai/persona.json` — but
 // scoped to one field, since state.json also carries fields the pinned
-// gentle-ai is supposed to update (nub-ia #<managed-asset-digest>).
+// nub-ia is supposed to update (nub-ia #<managed-asset-digest>).
 
 test("restoreJsonField restores a changed field and keeps every other field untouched", () => {
 	const original = `${JSON.stringify({ managed_asset_digest: "abc123", installed_agents: ["pi"] }, null, 2)}\n`;
@@ -1733,7 +1733,7 @@ test("restoreJsonField matches compact formatting (no indent, no trailing newlin
 // Pure JSON merge used by bin/nub-ia.mjs's setup flow to make sure a
 // home nub-ia provisions ends up with the default Nub-IA theme
 // unless the home (or the user) already had an opinion about it — even when
-// gentle-ai's own managed install wrote a *different* default theme into
+// nub-ia's own managed install wrote a *different* default theme into
 // settings.json. Unlike restoreJsonField above (which restores a field back
 // to whatever it was originally), this only ever forces one specific value,
 // and only when the original text had no opinion on the field at all.
@@ -1808,12 +1808,12 @@ test("shellQuote escapes an embedded single quote as '\\''", () => {
 // --- describeVersion / helpText ----------------------------------------------
 
 test("describeVersion formats the three-line report with a found pi version", () => {
-	const text = describeVersion({ gentlePiVersion: "3.3.0", piVersion: "0.85.1", home: linkHome });
+	const text = describeVersion({ nubiaVersion: "3.3.0", piVersion: "0.85.1", home: linkHome });
 	assert.equal(text, "nub-ia 3.3.0\npi 0.85.1\nhome link /pi/agent");
 });
 
 test("describeVersion reports pi as not found when no pi version is available", () => {
-	const text = describeVersion({ gentlePiVersion: "3.3.0", piVersion: undefined, home: isolatedHomeResolved });
+	const text = describeVersion({ nubiaVersion: "3.3.0", piVersion: undefined, home: isolatedHomeResolved });
 	assert.equal(text, "nub-ia 3.3.0\npi not found\nhome isolated /nub-ia/agent");
 });
 
@@ -1846,13 +1846,13 @@ test("helpText documents pi's own package-management subcommands", () => {
 	assert.match(text, /\bauth\b/);
 });
 
-test("findGentlePiDeclaration recognises a local path package named nub-ia", () => {
-	const result = findGentlePiDeclaration('{"packages":["../work/nub-ia"]}', { agentDir: "/agent", readPackageName: () => "nub-ia" });
+test("findNubiaDeclaration recognises a local path package named nub-ia", () => {
+	const result = findNubiaDeclaration('{"packages":["../work/nub-ia"]}', { agentDir: "/agent", readPackageName: () => "nub-ia" });
 	assert.equal(result?.kind, "path");
 });
 
-test("findGentlePiDeclaration recognises npm:nub-ia", () => {
-	assert.equal(findGentlePiDeclaration('{"packages":["npm:nub-ia@1.0.0"]}', { agentDir: "/agent", readPackageName: () => undefined })?.kind, "npm");
+test("findNubiaDeclaration recognises npm:nub-ia", () => {
+	assert.equal(findNubiaDeclaration('{"packages":["npm:nub-ia@1.0.0"]}', { agentDir: "/agent", readPackageName: () => undefined })?.kind, "npm");
 });
 
 test("parseLauncherArgs recognises review as a launcher command with its own arguments, after home selectors, and not inside passthrough", () => {

@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
 import {
 	RESUME_HANDOFF_ENV,
-	gentleShellResumeCommand,
+	nubiaShellResumeCommand,
 	isResumeHandoffPath,
 	parseResumeHandoff,
 	piDefaultSessionDir,
@@ -86,7 +86,7 @@ test("resumeHandoffFromSession carries the session file for a session from anoth
 		fileExists: () => true,
 	});
 	assert.deepEqual(handoff, { sessionId: ID, sessionFile: join(DEFAULT_DIR, "x.jsonl") });
-	assert.equal(gentleShellResumeCommand(handoff!, ["--link"], "linux"), `nub-ia --link --session ${join(DEFAULT_DIR, "x.jsonl")}`);
+	assert.equal(nubiaShellResumeCommand(handoff!, ["--link"], "linux"), `nub-ia --link --session ${join(DEFAULT_DIR, "x.jsonl")}`);
 });
 
 test("resumeHandoffFromSession returns undefined when pi would not print a hint", () => {
@@ -139,11 +139,11 @@ test("handoff rejects values that could inject terminal control sequences", () =
 	assert.deepEqual(parseResumeHandoff(JSON.stringify({ sessionId: "a.b_c-1" })), { sessionId: "a.b_c-1" });
 });
 
-test("gentleShellResumeCommand keeps home selectors and a custom session dir", () => {
-	assert.equal(gentleShellResumeCommand({ sessionId: ID }, [], "linux"), `nub-ia --session ${ID}`);
-	assert.equal(gentleShellResumeCommand({ sessionId: ID }, ["--link"], "linux"), `nub-ia --link --session ${ID}`);
+test("nubiaShellResumeCommand keeps home selectors and a custom session dir", () => {
+	assert.equal(nubiaShellResumeCommand({ sessionId: ID }, [], "linux"), `nub-ia --session ${ID}`);
+	assert.equal(nubiaShellResumeCommand({ sessionId: ID }, ["--link"], "linux"), `nub-ia --link --session ${ID}`);
 	assert.equal(
-		gentleShellResumeCommand({ sessionId: ID, sessionDir: "/tmp/my sessions" }, ["--home", "/x y"], "linux"),
+		nubiaShellResumeCommand({ sessionId: ID, sessionDir: "/tmp/my sessions" }, ["--home", "/x y"], "linux"),
 		`nub-ia --home '/x y' --session-dir '/tmp/my sessions' --session ${ID}`,
 	);
 });
@@ -179,7 +179,7 @@ test("the nub-ia command matches pi's real exit hint with the binary swapped", a
 			const piCommand: string = formatResumeCommand(manager);
 			assert.ok(piCommand.startsWith("pi "), piCommand);
 			// pi quotes the POSIX way on every platform; compare with the same quoting.
-			assert.equal(gentleShellResumeCommand(handoff, [], "linux"), `nub-ia ${piCommand.slice("pi ".length)}`);
+			assert.equal(nubiaShellResumeCommand(handoff, [], "linux"), `nub-ia ${piCommand.slice("pi ".length)}`);
 		}
 	} finally {
 		if (previousTTY) Object.defineProperty(process.stdout, "isTTY", previousTTY);
@@ -191,19 +191,19 @@ test("the nub-ia command matches pi's real exit hint with the binary swapped", a
 });
 
 test("on win32 the command uses double quotes that cmd.exe and PowerShell honor", () => {
-	assert.equal(gentleShellResumeCommand({ sessionId: ID }, ["--link"], "win32"), `nub-ia --link --session ${ID}`);
+	assert.equal(nubiaShellResumeCommand({ sessionId: ID }, ["--link"], "win32"), `nub-ia --link --session ${ID}`);
 	assert.equal(
-		gentleShellResumeCommand({ sessionId: ID, sessionDir: "C:\\Users\\Name With Space\\sessions" }, ["--home", "C:\\Users\\Name With Space\\home"], "win32"),
+		nubiaShellResumeCommand({ sessionId: ID, sessionDir: "C:\\Users\\Name With Space\\sessions" }, ["--home", "C:\\Users\\Name With Space\\home"], "win32"),
 		`nub-ia --home "C:\\Users\\Name With Space\\home" --session-dir "C:\\Users\\Name With Space\\sessions" --session ${ID}`,
 	);
 	// Plain paths need no quotes at all.
 	assert.equal(
-		gentleShellResumeCommand({ sessionId: ID, sessionFile: "C:\\s\\x.jsonl" }, [], "win32"),
+		nubiaShellResumeCommand({ sessionId: ID, sessionFile: "C:\\s\\x.jsonl" }, [], "win32"),
 		"nub-ia --session C:\\s\\x.jsonl",
 	);
 	// Spaces alone are safe inside double quotes.
 	assert.equal(
-		gentleShellResumeCommand({ sessionId: ID, sessionFile: "C:\\My Sessions\\x.jsonl" }, [], "win32"),
+		nubiaShellResumeCommand({ sessionId: ID, sessionFile: "C:\\My Sessions\\x.jsonl" }, [], "win32"),
 		'nub-ia --session "C:\\My Sessions\\x.jsonl"',
 	);
 });
@@ -212,14 +212,14 @@ test("on win32 no command is produced when a value cannot be quoted safely", () 
 	// PowerShell passes a space-free argument to the .cmd shim unquoted, so
 	// cmd.exe operators are refused even though double quotes would cover them.
 	for (const home of ["C:\\%USERPROFILE%\\h", "C:\\a!b\\h", "C:\\$env\\h", "C:\\a`b\\h", 'C:\\a"b\\h', "C:\\a b\\", "C:\\R&D\\h", "C:\\a|b\\h", "C:\\a<b\\h", "C:\\a>b\\h", "C:\\a^b\\h", "C:\\a(b)\\h"]) {
-		assert.equal(gentleShellResumeCommand({ sessionId: ID }, ["--home", home], "win32"), undefined, home);
+		assert.equal(nubiaShellResumeCommand({ sessionId: ID }, ["--home", home], "win32"), undefined, home);
 	}
 	assert.equal(
 		planResumeHint({ handoff: { sessionId: ID }, homeFlags: ["--home", "C:\\%TEMP%\\h"], stdoutIsTTY: true, terminalHungUp: false, platform: "win32", color: true }),
 		undefined,
 	);
 	// The same characters are harmless inside POSIX single quotes elsewhere.
-	assert.equal(gentleShellResumeCommand({ sessionId: ID }, ["--home", "/tmp/$h"], "linux"), `nub-ia --home '/tmp/$h' --session ${ID}`);
+	assert.equal(nubiaShellResumeCommand({ sessionId: ID }, ["--home", "/tmp/$h"], "linux"), `nub-ia --home '/tmp/$h' --session ${ID}`);
 });
 
 test("a cross-project session file reopens the original session in pi", () => {

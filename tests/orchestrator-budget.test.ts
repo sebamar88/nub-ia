@@ -30,7 +30,7 @@ import test, { after } from "node:test";
 const REPO_ROOT = join(import.meta.dirname, "..");
 const REAL_ASSETS_DIR = join(REPO_ROOT, "assets");
 const FIXTURE_PATH = join(import.meta.dirname, "fixtures", "orchestrator.pre-diet.md");
-// gentle-shell#1731 T10 (user decision): 8,192 -> 8,400 B for the narrowed high-risk items 1 and 3.
+// nubia-shell#1731 T10 (user decision): 8,192 -> 8,400 B for the narrowed high-risk items 1 and 3.
 const BUDGET_BYTES = 8400;
 const MIN_CONTROLLED_LONG_ASSETS_ROOT_CHARS = 93;
 
@@ -181,13 +181,13 @@ const DISPOSITION_MAP: DispositionRange[] = [
 	{ lines: [9, 13], target: "core", label: "Core Role" },
 	{ lines: [15, 15], target: "core", label: "Language Boundary heading" },
 	{ lines: [17, 17], target: "core", label: "Language Boundary LB1 pointer" },
-	{ lines: [19, 19], target: "replaced", label: "Language Boundary LB2: request translation replaced by spec-by-reference handoffs (gentle-shell#1713)" },
+	{ lines: [19, 19], target: "replaced", label: "Language Boundary LB2: request translation replaced by spec-by-reference handoffs (nubia-shell#1713)" },
 	{ lines: [21, 21], target: "replaced", label: "Language Boundary LB3: retired artifact types" },
 	{ lines: [23, 23], target: "core", label: "Language Boundary LB4 (public comment language)" },
 	{ lines: [25, 28], target: "delegation", label: "Language Boundary LB5 (exceptions)" },
 	{ lines: [29, 29], target: "obsolete", label: "Retired artifact exception" },
 	{ lines: [31, 40], target: "replaced", label: "Mental Model: ODD-only" },
-	{ lines: [42, 42], target: "replaced", label: "Work Routing Ladder heading replaced by Task Size and Mechanisms (gentle-shell#1494)" },
+	{ lines: [42, 42], target: "replaced", label: "Work Routing Ladder heading replaced by Task Size and Mechanisms (nubia-shell#1494)" },
 	{
 		lines: [44, 97],
 		target: "replaced",
@@ -213,7 +213,7 @@ const DISPOSITION_MAP: DispositionRange[] = [
 	{
 		lines: [116, 126],
 		target: "obsolete",
-		label: "Pre-canon delegation table replaced by the mirrored gentle-ai canon table (#312)",
+		label: "Pre-canon delegation table replaced by the mirrored nub-ia canon table (#312)",
 	},
 	{
 		lines: [128, 132],
@@ -271,7 +271,7 @@ const fixtureLines = readFileSync(FIXTURE_PATH, "utf8").split("\n");
 const SUPERSEDED_LIFECYCLE_REVIEW_LINES = new Set([
 	70,
 	// 74/77: the loose mode-choice background lines were replaced by the
-	// marked gentle-pi:background-subagents policy block (issue #256).
+	// marked nub-ia:background-subagents policy block (issue #256).
 	74,
 	76,
 	77,
@@ -286,7 +286,7 @@ const SUPERSEDED_LIFECYCLE_REVIEW_LINES = new Set([
 	154,
 	160,
 	166,
-	// 282: gentle-shell#1731 T4 relaxed the single-writer Safety line to disjoint
+	// 282: nubia-shell#1731 T4 relaxed the single-writer Safety line to disjoint
 	// Allowed edit surfaces (runtime-enforced) or isolated worktrees.
 	282,
 ]);
@@ -361,7 +361,7 @@ test("lazy coordination detail retains subject guidance without inflating the co
 test("core-alone: the orchestrator core carries no RDD or provider-contract lifecycle instructions", () => {
 	const core = readRealAsset("orchestrator.md");
 	assert.doesNotMatch(core, /mirrored provider-bundle/);
-	assert.doesNotMatch(core, /Gentle AI RDD ownership/);
+	assert.doesNotMatch(core, /Nub-IA RDD ownership/);
 	assert.doesNotMatch(core, /gentle_review/);
 	assert.doesNotMatch(core, /start -> finalize -> validate/i);
 	assert.doesNotMatch(core, /receipt validation/i);
@@ -436,7 +436,7 @@ test("getOrchestratorPrompt memoizes the return across calls", () => {
 });
 
 // ---------------------------------------------------------------------------
-// gentle-pi#661 follow-up: byte-budget compression must not turn a pointer
+// nub-ia#661 follow-up: byte-budget compression must not turn a pointer
 // into an opaque "Detail: `file.md`" -- each pointer line must still name
 // the lazy-loaded material it points to, in the shortest form that still
 // says what is over there.
@@ -452,7 +452,7 @@ test("every compressed lazy-file pointer in the core still names the material it
 			file: "orchestrator-delegation.md",
 			mustName: ["Per-action table", "Work Routing Ladder", "Canonical Workflows"],
 		},
-		// gentle-shell#1494 per-mechanism modules.
+		// nubia-shell#1494 per-mechanism modules.
 		{ file: "orchestrator-prompts.md", mustName: ["blocking-prompt relays"] },
 		{ file: "orchestrator-tracking.md", mustName: ["Track", "feature document"] },
 		{ file: "orchestrator-verification.md", mustName: ["Verification rule", "high risk"] },

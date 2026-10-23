@@ -14,7 +14,7 @@ import { generateUnifiedPatch, type ExtensionAPI, type ExtensionContext } from "
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
 import { visibleWidth, type TUI, type TuiMouseEvent } from "@earendil-works/pi-tui";
 import { sidebarState } from "../lib/shell-sidebar.ts";
-import gentleAgents, { agentRuntimePaths, agentsCollapseKey, agentsEnabled, agentsStopKey, agentsViewKey, agentResultPreview, answerThroughUi, childContextExtensionPaths, completionText, createDefaultSessionTransport, legacySubagentsInstalled, PARENT_WAKE_GRACE_MS, type AgentsDeps, type SessionTransportFactory } from "../extensions/nubia-agents.ts";
+import nubiaAgents, { agentRuntimePaths, agentsCollapseKey, agentsEnabled, agentsStopKey, agentsViewKey, agentResultPreview, answerThroughUi, childContextExtensionPaths, completionText, createDefaultSessionTransport, legacySubagentsInstalled, PARENT_WAKE_GRACE_MS, type AgentsDeps, type SessionTransportFactory } from "../extensions/nubia-agents.ts";
 import { ActiveSessionClient, ActiveSessionListener, SessionPresenceRegistry } from "../lib/agents-session-transport.ts";
 import { WindowsActiveSessionClient, WindowsActiveSessionListener } from "../lib/windows-session-transport.ts";
 import { historyDir, loadHistory, saveTask } from "../lib/agents-history.ts";
@@ -36,7 +36,7 @@ const initialCardStyle = cardStyle();
 before(() => setCardStyle(CARD_STYLE.NEON));
 after(() => setCardStyle(initialCardStyle));
 
-// Gentle Agents extension: the subagent_* tools drive isolated pi children,
+// Nub-IA Agents extension: the subagent_* tools drive isolated pi children,
 // the card above the editor follows the store, and dialogs reach the host UI.
 
 type Handler = (event: unknown, ctx: ExtensionContext) => unknown;
@@ -82,24 +82,24 @@ function mouse(
 ): TuiMouseEvent {
 	return { type, button, x, y, screenX: x, screenY: y, width, height, shift: false, alt: false, ctrl: false };
 }
-const root = realpathSync(mkdtempSync(join(tmpdir(), "gentle-agents-ext-")));
+const root = realpathSync(mkdtempSync(join(tmpdir(), "nubia-agents-ext-")));
 const activeSessionTeardowns = new Set<() => Promise<void>>();
 const stopActiveSessions = () => Promise.all([...activeSessionTeardowns].map((shutdown) => shutdown()));
 afterEach(stopActiveSessions);
 // subagent_run's default mode now reads the background-subagents policy
-// in-process (gentle-pi#background-subagents-default-mode), which falls
+// in-process (nub-ia#background-subagents-default-mode), which falls
 // back to the real ~/.pi/gentle-ai/background-subagents.json when
 // NUB_IA_CONFIG_HOME is unset. Point it at an empty scratch directory so
 // this file's expectations never depend on the developer's own global
 // policy file (a real "on" file on the runner's machine would otherwise
 // flip every unrelated fixture's default mode to background).
-const previousGentlePiConfigHome = process.env.NUB_IA_CONFIG_HOME;
-process.env.NUB_IA_CONFIG_HOME = join(root, "gentle-ai-config-home");
+const previousNubiaConfigHome = process.env.NUB_IA_CONFIG_HOME;
+process.env.NUB_IA_CONFIG_HOME = join(root, "nub-ia-config-home");
 after(async () => {
 	try { await stopActiveSessions(); }
 	finally {
-		if (previousGentlePiConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
-		else process.env.NUB_IA_CONFIG_HOME = previousGentlePiConfigHome;
+		if (previousNubiaConfigHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousNubiaConfigHome;
 		rmSync(root, { recursive: true, force: true });
 	}
 });
@@ -228,7 +228,7 @@ function fakeContext(tui: { requestRender(): void } = fakeTui, confirmResult: (t
 		},
 	} as unknown as ExtensionContext;
 	const widget = () => {
-		const factory = widgets.get("gentle-agents");
+		const factory = widgets.get("nubia-agents");
 		return factory ? factory(tui, plainTheme).render(72).map(stripAnsi) : undefined;
 	};
 	return { ctx, widget, dialogs, overlays, customCompletions, customOptions };
@@ -237,7 +237,7 @@ function fakeContext(tui: { requestRender(): void } = fakeTui, confirmResult: (t
 for (const scenario of ["background", "task", "append-failure", "overflow", "bytes", "replacement", "task-replacement", "unsafe-id", "no-transport"] as const) {
 	test(`explicit run work publication: ${scenario}`, async t => {
 		const h = fakePi(), runtime = deps(), { ctx } = fakeContext();
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		await h.fire("session_start", ctx);
 		const initial = { objective: "Keep objective", work: { area: "Owner", tasks: { historical: { area: "Old" } } as Record<string, { area: string }> } };
 		if (scenario === "overflow") for (let i = 0; i < 7; i++) initial.work.tasks[`old-${i}`] = { area: "Old" };
@@ -266,7 +266,7 @@ for (const scenario of ["background", "task", "append-failure", "overflow", "byt
 		const result = await h.tools.get("subagent_run")!.execute("run", { agent: "explore", task: "Map",
 			mode: scenario === "task" || scenario === "task-replacement" ? "task" : "background", work: { area: "Auth" } }, undefined, undefined, ctx);
 		assert.equal(run.mock.callCount(), 1);
-		assert.equal((result.details.gentleAgents as { taskId: string }).taskId, allocated!.id);
+		assert.equal((result.details.nubiaAgents as { taskId: string }).taskId, allocated!.id);
 		assert.equal(Object.hasOwn(allocated!, "work"), false);
 		const success = scenario === "background" || scenario === "task";
 		assert.equal((result.details.workPublication as { status: string }).status, success ? "recorded" : "unavailable");
@@ -285,7 +285,7 @@ for (const scenario of ["background", "task", "append-failure", "overflow", "byt
 
 test("invalid run work rejects before foreign consent or allocation", async t => {
 	const h = fakePi(), runtime = deps(), { ctx, dialogs } = fakeContext();
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	await h.fire("session_start", ctx);
 	const run = t.mock.method(AgentRunner.prototype, "run", () => { throw new Error("allocation reached"); });
 	for (const work of [{}, { tasks: { guessed: { area: "Auth" } } }, { area: "bad\n" }]) {
@@ -363,7 +363,7 @@ test("cache warming follows actual Nub-IA Agents ownership and completion lifecy
 	});
 	const scheduled = t.mock.fn(() => () => {});
 	runtime.deps.schedule = scheduled;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	let sessionId = "warming-parent";
 	ctx.sessionManager.getSessionId = () => sessionId;
@@ -391,7 +391,7 @@ test("cache warming follows actual Nub-IA Agents ownership and completion lifecy
 	await decide(undefined);
 	const launch = await h.tools.get("subagent_run")!.execute("warming-launch", { agent: "explore", task: "Map warming", mode: "background" }, undefined, undefined, ctx);
 	await tick();
-	const taskId = (launch.details.gentleAgents as { taskId: string }).taskId;
+	const taskId = (launch.details.nubiaAgents as { taskId: string }).taskId;
 	assert.equal(runtime.children.length, 1);
 	await decide({ action: "warm" });
 	// The same live owned child is foreign when the active session changes.
@@ -407,7 +407,7 @@ test("cache warming follows actual Nub-IA Agents ownership and completion lifecy
 	await tick();
 	await decide(undefined);
 	assert.equal(h.sent.length, 1);
-	assert.equal(h.sent[0].message.customType, "gentle-agents.result");
+	assert.equal(h.sent[0].message.customType, "nubia-agents.result");
 	assert.match(JSON.stringify(h.sent[0].message), new RegExp(taskId));
 	assert.equal(h.sent[0].options.triggerTurn, false, "an idle parent stores the completion without a direct turn");
 	assert.equal(h.userMessages.length, 1, "the idle parent is woken once through the prompt lifecycle");
@@ -428,7 +428,7 @@ for (const hostMode of ["print", "json"] as const) for (const continuation of [f
 	test(`${hostMode} mode rejects background ${continuation ? "continuation" : "launch"} before allocating a task`, async (t) => {
 		const h = fakePi();
 		const runtime = deps();
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		Object.assign(ctx, { mode: hostMode, hasUI: false });
 		await h.fire("session_start", ctx);
@@ -439,7 +439,7 @@ for (const hostMode of ["print", "json"] as const) for (const continuation of [f
 			runtime.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "mapped" }] }] });
 			runtime.children[0].emit({ type: "agent_settled" });
 			const result = await pending;
-			taskId = (result.details.gentleAgents as { taskId: string }).taskId;
+			taskId = (result.details.nubiaAgents as { taskId: string }).taskId;
 		}
 		const run = t.mock.method(AgentRunner.prototype, "run");
 		const spawnedBefore = runtime.spawned.length;
@@ -464,7 +464,7 @@ for (const mode of ["print", "json", "tui", "rpc"] as const) {
 	test(`${mode} preserves ${singleShot ? "bounded task" : "background"} execution`, async () => {
 		const h = fakePi();
 		const runtime = deps();
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		Object.assign(ctx, { mode, hasUI: mode === "tui" });
 		await h.fire("session_start", ctx);
@@ -476,18 +476,18 @@ for (const mode of ["print", "json", "tui", "rpc"] as const) {
 		runtime.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "mapped" }] }] });
 		runtime.children[0].emit({ type: "agent_settled" });
 		const result = await pending;
-		const taskId = (result.details.gentleAgents as { taskId: string }).taskId;
+		const taskId = (result.details.nubiaAgents as { taskId: string }).taskId;
 		assert.ok(taskId);
 		if (singleShot) assert.equal(result.content[0].text, `Subagent explore (task ${taskId}, "Map") finished.\n\nmapped`, "the task result names its real id for subagent_continue");
 		if (!singleShot) {
 			await tick();
 			assert.match((await h.tools.get("subagent_status")!.execute("status", { task_id: taskId }, undefined, undefined, ctx)).content[0].text, /completed · background/);
 			assert.equal(h.sent.length, 1, "settlement delivers exactly one completion");
-			assert.equal(h.sent[0].message.customType, "gentle-agents.result");
+			assert.equal(h.sent[0].message.customType, "nubia-agents.result");
 			assert.equal(h.sent[0].message.content, `Subagent explore (task ${taskId}, "Map") finished.\n\nmapped`);
 			assert.equal(h.sent[0].message.display, true);
 			assert.deepEqual(h.sent[0].options, { triggerTurn: false });
-			assert.deepEqual(h.delivery, ["custom:gentle-agents.result", "user"], "the idle wake follows the stored completion");
+			assert.deepEqual(h.delivery, ["custom:nubia-agents.result", "user"], "the idle wake follows the stored completion");
 			await h.fire("turn_end", ctx);
 			await h.fire("turn_end", ctx);
 			await tick();
@@ -522,13 +522,13 @@ for (const scenario of [
 	{ label: "plain RPC without the interactive-host variable", mode: "rpc", env: { PATH: "/bin" }, expectPublish: false },
 	{ label: "TUI", mode: "tui", env: { PATH: "/bin" }, expectPublish: false },
 ] as const) {
-	test(`gentle-agents publishes the live activity payload through setWidget only on ${scenario.label}`, async (t) => {
+	test(`nubia-agents publishes the live activity payload through setWidget only on ${scenario.label}`, async (t) => {
 		const h = fakePi();
 		const runtime = deps();
 		const scheduler = fakeScheduler();
 		runtime.deps.schedule = scheduler.schedule;
 		runtime.deps.env = scenario.env;
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		Object.assign(ctx, { mode: scenario.mode, hasUI: scenario.mode === "tui" || scenario.mode === "rpc" });
 		const setWidget = t.mock.method(ctx.ui, "setWidget");
@@ -542,7 +542,7 @@ for (const scenario of [
 
 		// The TUI card's own setWidget call always carries a component-factory
 		// function, never an array; only the RPC publisher pushes an array.
-		const activityCalls = setWidget.mock.calls.filter((call) => call.arguments[0] === "gentle-agents" && Array.isArray(call.arguments[1]));
+		const activityCalls = setWidget.mock.calls.filter((call) => call.arguments[0] === "nubia-agents" && Array.isArray(call.arguments[1]));
 		if (!scenario.expectPublish) {
 			assert.deepEqual(activityCalls, [], "no array-shaped setWidget push outside an interactive RPC host");
 			return;
@@ -552,21 +552,21 @@ for (const scenario of [
 		// the RPC publisher instead calls it with a plain `string[]` (real pi's
 		// RPC-mode contract), which needs an unknown-mediated cast here.
 		const [key, lines] = activityCalls[0]!.arguments as unknown as [string, string[]];
-		assert.equal(key, "gentle-agents");
+		assert.equal(key, "nubia-agents");
 		assert.equal(lines.length, 1);
 		const activity = JSON.parse(lines[0]!) as { schema: string; tasks: Array<{ summary: { id: string } }> };
-		assert.equal(activity.schema, "gentle-agents.activity/v1");
+		assert.equal(activity.schema, "nubia-agents.activity/v1");
 		assert.ok(activity.tasks.some((task) => typeof task.summary.id === "string" && task.summary.id.length > 0), "the newly launched task must be in the payload");
 	});
 }
 
-test("gentle-agents notifies once, deduplicated, when the RPC activity publisher's setWidget throws", async (t) => {
+test("nubia-agents notifies once, deduplicated, when the RPC activity publisher's setWidget throws", async (t) => {
 	const h = fakePi();
 	const runtime = deps();
 	const scheduler = fakeScheduler();
 	runtime.deps.schedule = scheduler.schedule;
 	runtime.deps.env = { PATH: "/bin", NUB_IA_INTERACTIVE_HOST: "1" };
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	Object.assign(ctx, { mode: "rpc", hasUI: true });
 	const notify = t.mock.method(ctx.ui, "notify");
@@ -594,7 +594,7 @@ test("gentle-agents notifies once, deduplicated, when the RPC activity publisher
 // overlay-render side of this), and the RPC activity publisher created on
 // `session_start` must scope its `setWidget` payload to the same session,
 // never surfacing another session's restored task.
-test("gentle-agents' RPC activity payload excludes a restored task from another session", async (t) => {
+test("nubia-agents' RPC activity payload excludes a restored task from another session", async (t) => {
 	const h = fakePi();
 	const runtime = deps();
 	const scheduler = fakeScheduler();
@@ -606,7 +606,7 @@ test("gentle-agents' RPC activity payload excludes a restored task from another 
 	await saveTask(historyDir(historyHome), own, emptyThread());
 	await saveTask(historyDir(historyHome), other, emptyThread());
 	runtime.deps.home = historyHome;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	Object.assign(ctx, { mode: "rpc", hasUI: true });
 	ctx.sessionManager.getSessionId = () => "resumed-session";
@@ -621,7 +621,7 @@ test("gentle-agents' RPC activity payload excludes a restored task from another 
 	for (let attempt = 0; attempt < 40 && !activity; attempt += 1) {
 		await new Promise((resolve) => setTimeout(resolve, 25));
 		scheduler.flushAll();
-		const activityCalls = setWidget.mock.calls.filter((call) => call.arguments[0] === "gentle-agents" && Array.isArray(call.arguments[1]));
+		const activityCalls = setWidget.mock.calls.filter((call) => call.arguments[0] === "nubia-agents" && Array.isArray(call.arguments[1]));
 		if (activityCalls.length === 0) continue;
 		const [, lines] = activityCalls.at(-1)!.arguments as unknown as [string, string[]];
 		const parsed = JSON.parse(lines[0]!) as { tasks: Array<{ summary: { id: string } }> };
@@ -635,7 +635,7 @@ test("gentle-agents' RPC activity payload excludes a restored task from another 
 
 test("all nine subagent registrations own their transcript shell", () => {
 	const { pi, tools } = fakePi();
-	gentleAgents(pi, {}, deps().deps);
+	nubiaAgents(pi, {}, deps().deps);
 	const subagentTools = [...tools.values()].filter((tool) => tool.name.startsWith("subagent_"));
 	assert.equal(subagentTools.length, 9);
 	assert.equal(tools.has("subagent_reconcile"), false);
@@ -645,11 +645,11 @@ test("all nine subagent registrations own their transcript shell", () => {
 test("host query delivery exposes correlation and accepts one current-session reply", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const started = await tools.get("subagent_run")!.execute("query", { agent: "explore", task: "Ask once", mode: "background" }, undefined, undefined, ctx);
-	const taskId = (started.details.gentleAgents as { taskId: string }).taskId;
+	const taskId = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 	harness.children[0].message({ id: "q1", kind: "query", message: "Which file?" });
 	await tick();
@@ -666,58 +666,58 @@ test("host query delivery exposes correlation and accepts one current-session re
 test("first foreground query yields while its child runs and delivers one completion", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const pending = tools.get("subagent_run")!.execute("foreground", { agent: "explore", task: "Ask then finish" }, undefined, undefined, ctx);
 	await tick();
 	harness.children[0].message({ id: "q1", kind: "query", message: "Which file?" });
 	const yielded = await pending;
-	const taskId = (yielded.details.gentleAgents as { taskId: string }).taskId;
+	const taskId = (yielded.details.nubiaAgents as { taskId: string }).taskId;
 	assert.equal((yielded as { terminate?: boolean }).terminate, true);
 	assert.deepEqual(harness.children[0].killed, []);
 	await tools.get("subagent_reply")!.execute("reply", { task_id: taskId, request_id: "q1", message: "src/a.ts" }, undefined, undefined, ctx);
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "done" }], stopReason: "stop" }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 1);
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 1);
 });
 
 test("cancelling a yielded foreground task prevents completion follow-up", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const pending = tools.get("subagent_run")!.execute("cancel", { agent: "explore", task: "cancel after query" }, undefined, undefined, ctx);
 	await tick();
 	harness.children[0].message({ id: "q1", kind: "query", message: "q" });
 	const yielded = await pending;
-	const taskId = (yielded.details.gentleAgents as { taskId: string }).taskId;
+	const taskId = (yielded.details.nubiaAgents as { taskId: string }).taskId;
 	assert.match((await tools.get("subagent_cancel")!.execute("stop", { task_id: taskId }, undefined, undefined, ctx)).content[0].text, /Cancelled task/);
 	await tick();
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "late" }], stopReason: "stop" }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0);
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0);
 });
 
 test("yielded foreground completion is suppressed after session replacement or cancellation", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const pending = tools.get("subagent_run")!.execute("switch", { agent: "explore", task: "switch session" }, undefined, undefined, ctx);
 	await tick();
 	harness.children[0].message({ id: "q1", kind: "query", message: "q" });
 	const yielded = await pending;
-	const taskId = (yielded.details.gentleAgents as { taskId: string }).taskId;
+	const taskId = (yielded.details.nubiaAgents as { taskId: string }).taskId;
 	(ctx.sessionManager as { getSessionId(): string }).getSessionId = () => "s2";
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "done" }], stopReason: "stop" }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0);
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0);
 	(ctx.sessionManager as { getSessionId(): string }).getSessionId = () => "s1";
 	assert.match((await tools.get("subagent_cancel")!.execute("cancel", { task_id: taskId }, undefined, undefined, ctx)).content[0].text, /not running/);
 });
@@ -725,7 +725,7 @@ test("yielded foreground completion is suppressed after session replacement or c
 test("first handoff failure keeps ordinary completion, later failure retains yielded completion", async () => {
 	const first = fakePi();
 	const firstHarness = deps();
-	gentleAgents(first.pi, {}, firstHarness.deps);
+	nubiaAgents(first.pi, {}, firstHarness.deps);
 	const firstContext = fakeContext();
 	await first.fire("session_start", firstContext.ctx);
 	(first.pi as unknown as { sendMessage(): void }).sendMessage = () => { throw new Error("host unavailable"); };
@@ -738,7 +738,7 @@ test("first handoff failure keeps ordinary completion, later failure retains yie
 
 	const second = fakePi();
 	const secondHarness = deps();
-	gentleAgents(second.pi, {}, secondHarness.deps);
+	nubiaAgents(second.pi, {}, secondHarness.deps);
 	const secondContext = fakeContext();
 	await second.fire("session_start", secondContext.ctx);
 	let sends = 0;
@@ -755,13 +755,13 @@ test("first handoff failure keeps ordinary completion, later failure retains yie
 	secondHarness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "done" }], stopReason: "stop" }] });
 	secondHarness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	assert.equal(second.sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 1);
+	assert.equal(second.sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 1);
 });
 
 test("foreground handoff survives settlement before its original await resumes", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const pending = tools.get("subagent_run")!.execute("race", { agent: "explore", task: "query then settle" }, undefined, undefined, ctx);
@@ -770,7 +770,7 @@ test("foreground handoff survives settlement before its original await resumes",
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "race result" }], stopReason: "stop" }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	assert.equal((await pending as { terminate?: boolean }).terminate, true);
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 1);
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 1);
 });
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
@@ -822,7 +822,7 @@ test("overlapping session transport startups preserve ownership and shutdown wai
 		createClient: (_registry, id) => ({ close: () => { clientCloses.push(id); }, sendNotification: async () => ({ id: "unused", accepted: true }) }),
 	};
 	runtime.deps.sessionTransport = transport;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	(ctx.sessionManager as { getSessionId(): string }).getSessionId = () => sessionId;
 	const launched: Array<{ state: LifecycleState; outcome: Promise<LifecycleOutcome> }> = [];
@@ -901,7 +901,7 @@ test("session_start does not block a subsequently registered handler on registry
 		createClient: () => { clientCreated = true; return { close() { clientClosed++; }, sendNotification: async () => ({ id: "unused", accepted: true }) }; },
 	};
 	runtime.deps.sessionTransport = transport;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	let laterFinished = false;
 	h.pi.on("session_start", async () => { laterFinished = true; });
 	const { ctx } = fakeContext();
@@ -963,7 +963,7 @@ test("session_start does not block a subsequently registered handler on listener
 		createClient: () => ({ close() { clientClosed++; }, sendNotification: async () => ({ id: "unused", accepted: true }) }),
 	};
 	runtime.deps.sessionTransport = transport;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	let laterFinished = false;
 	h.pi.on("session_start", async () => { laterFinished = true; });
 	const { ctx } = fakeContext();
@@ -1028,7 +1028,7 @@ test("replacement closes a gated stale listener once and leaves the successor ow
 		createClient: (_registry, id) => { if (id === "beta") betaClientCreated = true; return { close: () => { if (id === "alpha") alphaClientCloses++; else betaClientCloses++; }, sendNotification: async () => ({ id: "unused", accepted: true }) }; },
 	};
 	runtime.deps.sessionTransport = transport;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	(ctx.sessionManager as { getSessionId(): string }).getSessionId = () => sessionId;
 	let primary: unknown;
@@ -1103,7 +1103,7 @@ test("startup cleanup contains client-close failure and still closes the remaini
 		createListener: () => ({ registry, start: async () => { throw startupError; }, close: async () => { listenerCloses++; } }),
 		createClient: () => ({ close: () => { clientCloseAttempts++; throw clientError; }, sendNotification: async () => ({ id: "unused", accepted: true }) }),
 	};
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	const outcome = observeLifecycle(h.fire("session_start", ctx, { reason: "startup" }), { status: "pending" });
 	let shutdownOutcome: Promise<LifecycleOutcome> | undefined;
@@ -1147,7 +1147,7 @@ test("child parent-message tooling admits notifications and the active parent pr
 	const child = fakePi();
 	const listeners = new Map<string, Array<(value: Record<string, unknown>) => void>>();
 	const frames: Array<Record<string, unknown>> = [];
-	gentleAgents(child.pi, { NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: "fixture" }, {
+	nubiaAgents(child.pi, { NUB_IA_AGENTS_CHILD: "1", NUB_IA_AGENTS_OWNED_IPC: "fixture" }, {
 		childIpc: {
 			send: (frame: Record<string, unknown>) => { frames.push(frame); return true; },
 			on: (event: string, listener: (value: Record<string, unknown>) => void) => listeners.set(event, [...(listeners.get(event) ?? []), listener]),
@@ -1161,7 +1161,7 @@ test("child parent-message tooling admits notifications and the active parent pr
 
 	const parent = fakePi();
 	const runtime = deps();
-	gentleAgents(parent.pi, {}, runtime.deps);
+	nubiaAgents(parent.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	await parent.fire("session_start", ctx);
 	await parent.tools.get("subagent_run")!.execute("run", { agent: "explore", task: "notify", mode: "background" }, undefined, undefined, ctx);
@@ -1171,8 +1171,8 @@ test("child parent-message tooling admits notifications and the active parent pr
 	assert.equal(parent.sent[0]?.message.content, "raw\u001B[2J text");
 	assert.equal(parent.sent[0]?.message.display, false, "ordinary child notifications remain model-visible but do not render in the transcript");
 	assert.deepEqual(parent.sent[0]?.options, { triggerTurn: false });
-	assert.deepEqual(parent.delivery, ["custom:gentle-agents.message", "user"], "an idle parent is woken after the stored notification");
-	const rendered = parent.renderers.get("gentle-agents.message")!(parent.sent[0]?.message, { expanded: true }, plainTheme).render(80).join("\n");
+	assert.deepEqual(parent.delivery, ["custom:nubia-agents.message", "user"], "an idle parent is woken after the stored notification");
+	const rendered = parent.renderers.get("nubia-agents.message")!(parent.sent[0]?.message, { expanded: true }, plainTheme).render(80).join("\n");
 	assert.match(rendered, /raw\\x1B\[2J text/);
 	(ctx.sessionManager as unknown as { getSessionId(): string }).getSessionId = () => "s2";
 	await parent.fire("session_start", ctx, { type: "session_start", reason: "new" });
@@ -1213,7 +1213,7 @@ for (const boundary of ["allowed", "env", "session", "replacement", "bus-throws"
 		let calls = 0;
 		const policy = { resolve: () => "fixture", exec: async () => {
 			calls++;
-			return { stdout: JSON.stringify({ schema: "gentle-ai.telemetry-policy/v1", operation: "policy", enabled: true,
+			return { stdout: JSON.stringify({ schema: "nub-ia.telemetry-policy/v1", operation: "policy", enabled: true,
 				source: "state", reason: "enabled" }), stderr: "", exitCode: 0, signal: null, timedOut: false, outputLimitExceeded: false };
 		} };
 		const env: NodeJS.ProcessEnv = {};
@@ -1221,7 +1221,7 @@ for (const boundary of ["allowed", "env", "session", "replacement", "bus-throws"
 		mkdirSync(join(profile, "agents"), { recursive: true });
 		writeFileSync(join(profile, "agents", "nubia-worker.md"), readFileSync(new URL("../assets/agents/nubia-worker.md", import.meta.url)));
 		writeFileSync(join(profile, "subagents.json"), JSON.stringify({ model_profiles: { "nubia-worker": { model: "openai/gpt-4o", effort: "high" } } }));
-		gentleAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile, metricsNow: () => clock, metricsSchedule });
+		nubiaAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile, metricsNow: () => clock, metricsSchedule });
 		const listenerCounts = () => [...h.listeners].map(([name, set]) => [name, set.size]);
 		await h.fire("session_start", context.ctx);
 		const initialListeners = listenerCounts();
@@ -1257,7 +1257,7 @@ for (const boundary of ["allowed", "env", "session", "replacement", "bus-throws"
 				assert.ok([...h.listeners.values()].every(set => set.size === 0), "old bus subscriptions removed");
 				const fresh = fakePi();
 				Object.assign(fresh.pi, { events: h.pi.events });
-				gentleAgents(fresh.pi, env, { ...runtime.deps, env, metricsSchedule });
+				nubiaAgents(fresh.pi, env, { ...runtime.deps, env, metricsSchedule });
 				await fresh.fire("session_start", context.ctx);
 				assert.deepEqual(listenerCounts(), initialListeners, "fresh instance installs one subscription set, including visual preference updates");
 				await fresh.fire("session_shutdown", context.ctx);
@@ -1332,7 +1332,7 @@ function liveInstance(t: test.TestContext, profile: string, sessionId: string, m
 		timer.unref();
 		return () => clearTimeout(timer);
 	};
-	gentleAgents(h.pi, {}, { ...runtime.deps, agentHome: profile });
+	nubiaAgents(h.pi, {}, { ...runtime.deps, agentHome: profile });
 	t.after(async () => {
 		for (const overlay of context.overlays) overlay.handleInput("q");
 		await h.fire("session_shutdown", context.ctx, { reason: "quit" });
@@ -1362,7 +1362,7 @@ test("live-only extension instances discover same-profile peers across cwd bound
 	await eventually(() => /peer-live/.test(panel.frame()), "an idle peer with zero children must be discoverable");
 	const run = async (instance: typeof local, agent: string) => {
 		const result = await instance.tools.get("subagent_run")!.execute(agent, { agent, task: agent, mode: "background" }, undefined, undefined, instance.ctx);
-		return (result.details.gentleAgents as { taskId: string }).taskId;
+		return (result.details.nubiaAgents as { taskId: string }).taskId;
 	};
 	await run(local, "local");
 	const peerId = await run(peer, "peer");
@@ -1427,7 +1427,7 @@ for (const scenario of ["recover", "shutdown", "replacement"] as const) {
 			panel.overlay.handleInput("a");
 			await eventually(() => /io-original/.test(panel.frame()), "same-session peer is visible before publication failure");
 		}
-		const target = join(profile, "gentle-agents", "presence", `${original.sessionHash}.${original.incarnation}.activity.json`);
+		const target = join(profile, "nubia-agents", "presence", `${original.sessionHash}.${original.incarnation}.activity.json`);
 		const fs = createRequire(import.meta.url)("node:fs") as typeof import("node:fs");
 		const rename = fs.renameSync;
 		let failures = 0;
@@ -1513,7 +1513,7 @@ test("live-only directory traverses presence overflow, excludes expired and othe
 		oldClock.mock.restore();
 	}
 	// Simulate an abruptly closed publisher: retained files, but no renewing heartbeat.
-	const stem = join(profile, "gentle-agents", "presence", `${expired.target.sessionHash}.${expired.target.incarnation}`);
+	const stem = join(profile, "nubia-agents", "presence", `${expired.target.sessionHash}.${expired.target.incarnation}`);
 	const staleFiles = ["header", "activity"].map((kind) => ({ path: `${stem}.${kind}.json`, bytes: readFileSync(`${stem}.${kind}.json`) }));
 	expired.dispose();
 	for (const { path, bytes } of staleFiles) writeFileSync(path, bytes, { mode: 0o600 });
@@ -1578,7 +1578,7 @@ test("retired managed SDD child envelopes deny all tools without registering a d
 	for (const env of [{ NUB_IA_RESEARCH_TOOLS: '["read"]' }, { NUB_IA_RESEARCH_SELECTION: '{}' }, { NUB_IA_RESEARCH_ARTIFACT: '{}' }, { NUB_IA_SDD_REMEDIATION_PLAN: '{}' }]) {
 		const hooks = new Map<string, (event: { toolName: string }) => { block: boolean }>();
 		const pi = { on: (name: string, handler: (event: { toolName: string }) => { block: boolean }) => hooks.set(name, handler) } as never;
-		gentleAgents(pi, { NUB_IA_AGENTS_CHILD: "1", ...env });
+		nubiaAgents(pi, { NUB_IA_AGENTS_CHILD: "1", ...env });
 		assert.equal(hooks.get("tool_call")!({ toolName: "read" }).block, true);
 		assert.equal(hooks.get("tool_call")!({ toolName: "bash" }).block, true);
 	}
@@ -1615,15 +1615,15 @@ for (const matching of [true, false]) {
    child.on=((event,listener)=>{if(event==="spawn")queueMicrotask(listener);return on(event,listener);}) as any;
    return child;
   };
-  gentleAgents(h.pi,{},d.deps);
+  nubiaAgents(h.pi,{},d.deps);
   await h.fire("session_start",ctx);
   await h.tools.get("subagent_run")!.execute("diff",{agent:"explore",task:"Write",mode:"background",workspace_root:target},undefined,undefined,ctx);
   await tick();
   writeFileSync(join(target,"session-diff-test.ts"),"agent\n");
   const evidence={id:"write",root:target,path:matching?"session-diff-test.ts":"different.ts",before:{kind:"text",text:"original\n"},after:{kind:"text",text:"agent\n"}};
   d.children[0].emit({type:"tool_execution_start",toolCallId:"write",toolName:"write",args:{path:"session-diff-test.ts"}});
-  d.children[0].emit({type:"tool_execution_end",toolCallId:"write",isError:false,result:{content:[],details:{gentleSessionChange:evidence}}});
-  const relays=h.events.filter(event=>event.name==="gentle-pi:child-session-change");
+  d.children[0].emit({type:"tool_execution_end",toolCallId:"write",isError:false,result:{content:[],details:{nubiaSessionChange:evidence}}});
+  const relays=h.events.filter(event=>event.name==="nub-ia:child-session-change");
   assert.equal(relays.length,matching?1:0);
   if(matching) assert.match((relays[0].data as any).evidence.id,/:write$/);
   await h.fire("session_shutdown",ctx); await tick();
@@ -1634,7 +1634,7 @@ for (const matching of [true, false]) {
 // same way an actual subagent process would: a tool_call/tool_result pair
 // with NUB_IA_AGENTS_CHILD set, using the real git-backed resolver rather
 // than a stub. Returns exactly the evidence object the child would put in
-// its tool result's details.gentleSessionChange.
+// its tool result's details.nubiaSessionChange.
 async function childSessionChangeEvidence(root: string, relPath: string, toolCallId: string, content: string): Promise<SessionChangeEvidence> {
 	const handlers = new Map<string, (event: unknown, ctx: unknown) => unknown>();
 	const childPi = {
@@ -1648,9 +1648,9 @@ async function childSessionChangeEvidence(root: string, relPath: string, toolCal
 	const event = { toolCallId, toolName: "write", input: { path: relPath, content } };
 	await handlers.get("tool_call")?.(event, childCtx);
 	writeFileSync(join(root, relPath), content);
-	const result = (await handlers.get("tool_result")?.({ ...event, isError: false }, childCtx)) as { details: { gentleSessionChange: SessionChangeEvidence } } | undefined;
-	assert.ok(result?.details.gentleSessionChange, "the child must attach session-change evidence to its tool result");
-	return result.details.gentleSessionChange;
+	const result = (await handlers.get("tool_result")?.({ ...event, isError: false }, childCtx)) as { details: { nubiaSessionChange: SessionChangeEvidence } } | undefined;
+	assert.ok(result?.details.nubiaSessionChange, "the child must attach session-change evidence to its tool result");
+	return result.details.nubiaSessionChange;
 }
 
 async function childSessionEditEvidence(root: string, relPath: string, toolCallId: string, before: string, after: string): Promise<SessionChangeEvidence> {
@@ -1668,9 +1668,9 @@ async function childSessionEditEvidence(root: string, relPath: string, toolCallI
 	await handlers.get("tool_call")?.(event, childCtx);
 	writeFileSync(join(root, relPath), after);
 	const details = { patch: generateUnifiedPatch(relPath, before, after) };
-	const result = (await handlers.get("tool_result")?.({ ...event, isError: false, details }, childCtx)) as { details: { gentleSessionChange: SessionChangeEvidence } } | undefined;
-	assert.ok(result?.details.gentleSessionChange, "successful child edit must carry captured evidence");
-	return result.details.gentleSessionChange;
+	const result = (await handlers.get("tool_result")?.({ ...event, isError: false, details }, childCtx)) as { details: { nubiaSessionChange: SessionChangeEvidence } } | undefined;
+	assert.ok(result?.details.nubiaSessionChange, "successful child edit must carry captured evidence");
+	return result.details.nubiaSessionChange;
 }
 
 // C1 investigation (odd/tasks/usage-click-and-changes-attribution.md): tried
@@ -1710,12 +1710,12 @@ test("C1 investigation: the relay mechanism is correct when every guard input is
 	// resolver on both the child and parent sides — the same resolver the
 	// live session used — rather than the trivial path-echoing stub the other
 	// fixtures in this file use.
-	const repoRoot = mkdtempSync(join(tmpdir(), "gentle-agents-c1-"));
+	const repoRoot = mkdtempSync(join(tmpdir(), "nubia-agents-c1-"));
 	// Isolate every git spawn below from the developer's own environment: no
 	// global/system config, no ambient $HOME gitconfig, no signing prompt, and
 	// no hooks -- only the identity this fixture supplies explicitly.
-	const gitHome = mkdtempSync(join(tmpdir(), "gentle-agents-c1-git-home-"));
-	const gitHooksDir = mkdtempSync(join(tmpdir(), "gentle-agents-c1-git-hooks-"));
+	const gitHome = mkdtempSync(join(tmpdir(), "nubia-agents-c1-git-home-"));
+	const gitHooksDir = mkdtempSync(join(tmpdir(), "nubia-agents-c1-git-hooks-"));
 	const gitEnv = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", HOME: gitHome };
 	const gitIdentity = ["-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "-c", `core.hooksPath=${gitHooksDir}`];
 	const runGit = (args: string[]) => execFileSync("git", [...gitIdentity, ...args], { env: gitEnv });
@@ -1744,25 +1744,25 @@ test("C1 investigation: the relay mechanism is correct when every guard input is
 			}) as typeof child.on;
 			return child;
 		};
-		gentleAgents(h.pi, {}, d.deps);
+		nubiaAgents(h.pi, {}, d.deps);
 		await h.fire("session_start", ctx);
 
 		const launched = await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write a file", mode: "background" }, undefined, undefined, ctx);
 		await tick();
-		const gentleAgentsDetails = launched.details.gentleAgents as { taskId: string; cwd: string };
-		const taskId = gentleAgentsDetails.taskId;
+		const nubiaAgentsDetails = launched.details.nubiaAgents as { taskId: string; cwd: string };
+		const taskId = nubiaAgentsDetails.taskId;
 		// The task's cwd is whatever buildRequest resolved from the real
 		// resolver: confirming this here pins down which value onSuccessfulMutation
 		// will later compare against the freshly-resolved root.
-		const childCwd = gentleAgentsDetails.cwd;
+		const childCwd = nubiaAgentsDetails.cwd;
 
 		const evidence = await childSessionChangeEvidence(childCwd, "notes.md", "write", "agent output\n");
 
 		d.children[0].emit({ type: "tool_execution_start", toolCallId: "write", toolName: "write", args: { path: "notes.md" } });
-		d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { gentleSessionChange: evidence } } });
+		d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { nubiaSessionChange: evidence } } });
 		await tick();
 
-		const relays = h.events.filter((event) => event.name === "gentle-pi:child-session-change");
+		const relays = h.events.filter((event) => event.name === "nub-ia:child-session-change");
 		assert.equal(relays.length, 1, `expected the child mutation to relay; evidence=${JSON.stringify(evidence)} childCwd=${childCwd}`);
 		assert.equal((relays[0].data as { evidence: { id: string } }).evidence.id, `${taskId}:write`);
 
@@ -1824,7 +1824,7 @@ for (const [scenario, guard] of [
 			}) as typeof child.on;
 			return child;
 		};
-		gentleAgents(h.pi, {}, d.deps);
+		nubiaAgents(h.pi, {}, d.deps);
 		await h.fire("session_start", ctx);
 		await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write", mode: "background", workspace_root: cwd }, undefined, undefined, ctx);
 		await tick();
@@ -1866,11 +1866,11 @@ test("a mutation dropped for lacking any session-change evidence explains itself
 		child.on = ((event: string, listener: () => void) => { if (event === "spawn") queueMicrotask(listener); return on(event as "spawn", listener); }) as typeof child.on;
 		return child;
 	};
-	gentleAgents(h.pi, {}, d.deps);
+	nubiaAgents(h.pi, {}, d.deps);
 	await h.fire("session_start", ctx);
 	await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write", mode: "background", workspace_root: cwd }, undefined, undefined, ctx);
 	await tick();
-	// No details.gentleSessionChange at all -- the evidence never surfaced.
+	// No details.nubiaSessionChange at all -- the evidence never surfaced.
 	d.children[0].emit({ type: "tool_execution_start", toolCallId: "write", toolName: "write", args: { path: "file.ts" } });
 	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [] } });
 	await tick();
@@ -1900,7 +1900,7 @@ test("a mutation dropped for evidence pointing at a different worktree root expl
 		child.on = ((event: string, listener: () => void) => { if (event === "spawn") queueMicrotask(listener); return on(event as "spawn", listener); }) as typeof child.on;
 		return child;
 	};
-	gentleAgents(h.pi, {}, d.deps);
+	nubiaAgents(h.pi, {}, d.deps);
 	await h.fire("session_start", ctx);
 	await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write", mode: "background", workspace_root: target }, undefined, undefined, ctx);
 	await tick();
@@ -1909,7 +1909,7 @@ test("a mutation dropped for evidence pointing at a different worktree root expl
 	// resolved into -- distinct from having no evidence at all.
 	const evidence = { id: "write", root: join(target, "elsewhere"), path: "evidence-root-mismatch-test.ts", before: { kind: "text", text: "original\n" }, after: { kind: "text", text: "agent\n" } };
 	d.children[0].emit({ type: "tool_execution_start", toolCallId: "write", toolName: "write", args: { path: "evidence-root-mismatch-test.ts" } });
-	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { gentleSessionChange: evidence } } });
+	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { nubiaSessionChange: evidence } } });
 	await tick();
 	const rendered = await openTaskThread(h.commands, ctx, overlays);
 	assert.match(rendered, /changes not attributed: evidence-root-mismatch\b/);
@@ -1937,7 +1937,7 @@ test("a mutation dropped for an unreadable evidence target explains itself once"
 		child.on = ((event: string, listener: () => void) => { if (event === "spawn") queueMicrotask(listener); return on(event as "spawn", listener); }) as typeof child.on;
 		return child;
 	};
-	gentleAgents(h.pi, {}, d.deps);
+	nubiaAgents(h.pi, {}, d.deps);
 	await h.fire("session_start", ctx);
 	await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write", mode: "background", workspace_root: target }, undefined, undefined, ctx);
 	await tick();
@@ -1945,7 +1945,7 @@ test("a mutation dropped for an unreadable evidence target explains itself once"
 	// rather than report a plain mismatch.
 	const evidence = { id: "write", root: target, path: "missing-target-test.ts", before: { kind: "text", text: "original\n" }, after: { kind: "text", text: "agent\n" } };
 	d.children[0].emit({ type: "tool_execution_start", toolCallId: "write", toolName: "write", args: { path: "missing-target-test.ts" } });
-	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { gentleSessionChange: evidence } } });
+	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { nubiaSessionChange: evidence } } });
 	await tick();
 	const rendered = await openTaskThread(h.commands, ctx, overlays);
 	assert.match(rendered, /changes not attributed: evidence-path-unreadable\b/);
@@ -1973,14 +1973,14 @@ test("a mutation dropped for mismatched session-change evidence explains itself 
 		child.on = ((event: string, listener: () => void) => { if (event === "spawn") queueMicrotask(listener); return on(event as "spawn", listener); }) as typeof child.on;
 		return child;
 	};
-	gentleAgents(h.pi, {}, d.deps);
+	nubiaAgents(h.pi, {}, d.deps);
 	await h.fire("session_start", ctx);
 	await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write", mode: "background", workspace_root: target }, undefined, undefined, ctx);
 	await tick();
 	writeFileSync(join(target, "evidence-mismatch-test.ts"), "agent\n");
 	const evidence = { id: "write", root: target, path: "different-file.ts", before: { kind: "text", text: "original\n" }, after: { kind: "text", text: "agent\n" } };
 	d.children[0].emit({ type: "tool_execution_start", toolCallId: "write", toolName: "write", args: { path: "evidence-mismatch-test.ts" } });
-	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { gentleSessionChange: evidence } } });
+	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { nubiaSessionChange: evidence } } });
 	await tick();
 	const rendered = await openTaskThread(h.commands, ctx, overlays);
 	assert.match(rendered, /changes not attributed: evidence-path-mismatch\b/);
@@ -2008,14 +2008,14 @@ test("a successfully attributed mutation adds no drop note", async () => {
 		child.on = ((event: string, listener: () => void) => { if (event === "spawn") queueMicrotask(listener); return on(event as "spawn", listener); }) as typeof child.on;
 		return child;
 	};
-	gentleAgents(h.pi, {}, d.deps);
+	nubiaAgents(h.pi, {}, d.deps);
 	await h.fire("session_start", ctx);
 	await h.tools.get("subagent_run")!.execute("mutation", { agent: "explore", task: "Write", mode: "background", workspace_root: target }, undefined, undefined, ctx);
 	await tick();
 	writeFileSync(join(target, "happy-path-test.ts"), "agent\n");
 	const evidence = { id: "write", root: target, path: "happy-path-test.ts", before: { kind: "text", text: "original\n" }, after: { kind: "text", text: "agent\n" } };
 	d.children[0].emit({ type: "tool_execution_start", toolCallId: "write", toolName: "write", args: { path: "happy-path-test.ts" } });
-	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { gentleSessionChange: evidence } } });
+	d.children[0].emit({ type: "tool_execution_end", toolCallId: "write", isError: false, result: { content: [], details: { nubiaSessionChange: evidence } } });
 	await tick();
 	const rendered = await openTaskThread(h.commands, ctx, overlays);
 	assert.doesNotMatch(rendered, /changes not attributed/);
@@ -2038,7 +2038,7 @@ test("default Node spawn adapter launches IPC-only children, canonical Git or no
 	const captured: Array<{ command: string; args: readonly string[]; options: CapturedSpawnOptions }> = [];
 	const children: FakeChild[] = [];
 	const shutdown: Array<() => Promise<void>> = [];
-	const canonicalGitFixture = mkdtempSync(join(tmpdir(), "gentle-agents-canonical-git-"));
+	const canonicalGitFixture = mkdtempSync(join(tmpdir(), "nubia-agents-canonical-git-"));
 	const canonicalGitCwd = join(canonicalGitFixture, "project");
 	const gitTemplate = join(canonicalGitFixture, "template");
 	try {
@@ -2058,7 +2058,7 @@ test("default Node spawn adapter launches IPC-only children, canonical Git or no
 	try {
 		const launch = async (mode: "task" | "background", env: NodeJS.ProcessEnv, sessionCwd = nonGitCwd) => {
 			const h = fakePi();
-			gentleAgents(h.pi, env, { home, agentHome: join(home, ".pi", "agent"), env, pi: { command: "/fixture/pi", args: ["--host-flag"] }, resolveWorktree: () => undefined, sessionTransport: inertSessionTransport });
+			nubiaAgents(h.pi, env, { home, agentHome: join(home, ".pi", "agent"), env, pi: { command: "/fixture/pi", args: ["--host-flag"] }, resolveWorktree: () => undefined, sessionTransport: inertSessionTransport });
 			const { ctx } = fakeContext();
 			(ctx.sessionManager as unknown as { getCwd(): string }).getCwd = () => sessionCwd;
 			await h.fire("session_start", ctx);
@@ -2079,7 +2079,7 @@ test("default Node spawn adapter launches IPC-only children, canonical Git or no
 		children[2]!.emit({ type: "agent_settled" });
 		await permission.result;
 
-		const args = ["--host-flag", "--mode", "rpc", "--session-dir", join(home, ".pi", "agent", "gentle-agents", "sessions"), ...childContextExtensionPaths().flatMap((path) => ["--extension", path]), "--model", "openai-codex/gpt-5.6-terra:low", "--tools", "read,grep,subagent_parent_message", "--append-system-prompt", "You map things."];
+		const args = ["--host-flag", "--mode", "rpc", "--session-dir", join(home, ".pi", "agent", "nubia-agents", "sessions"), ...childContextExtensionPaths().flatMap((path) => ["--extension", path]), "--model", "openai-codex/gpt-5.6-terra:low", "--tools", "read,grep,subagent_parent_message", "--append-system-prompt", "You map things."];
 		assert.equal(captured.length, 3, "the extension reaches Node's spawn boundary for IPC-only and permission-channel launches");
 		for (const [index, fixture] of ["task", "background", "permission"].entries()) {
 			const ownedIpc = captured[index]?.options.env.NUB_IA_AGENTS_OWNED_IPC;
@@ -2126,7 +2126,7 @@ test("native spawn interception restores CommonJS and ESM exports after rejected
 				return undefined;
 			};
 		}
-		gentleAgents(h.pi, {}, { home, agentHome: join(home, ".pi", "agent"), env: { PATH: "/bin" }, pi: { command: "/fixture/pi", args: [] }, resolveWorktree: () => undefined, sessionTransport: inertSessionTransport });
+		nubiaAgents(h.pi, {}, { home, agentHome: join(home, ".pi", "agent"), env: { PATH: "/bin" }, pi: { command: "/fixture/pi", args: [] }, resolveWorktree: () => undefined, sessionTransport: inertSessionTransport });
 		const { ctx } = fakeContext();
 		await h.fire("session_start", ctx);
 		await h.tools.get("subagent_run")!.execute("cleanup", { agent: "explore", task: "Keep cleanup live", mode: "background" }, undefined, undefined, ctx);
@@ -2179,9 +2179,9 @@ test("foreign clone tool requires consent before queueing and never enters paren
 		for (const path of [parent, foreign]) execFileSync("git", ["init", "--quiet", `--template=${template}`, path]);
 		const configHome = join(fixture, "config");
 		mkdirSync(configHome);
-		writeFileSync(join(configHome, "profiles.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, profiles: { pinned: { explore: { model: "openai/foreign-model", thinking: "minimal" } } } }));
-		mkdirSync(join(foreign, ".git", "gentle-ai"));
-		writeFileSync(join(foreign, ".git", "gentle-ai", "profile-pin.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profile_pin", version: 1, profile: "pinned" }));
+		writeFileSync(join(configHome, "profiles.json"), JSON.stringify({ kind: "nub-ia.agent_model_profiles", version: 1, profiles: { pinned: { explore: { model: "openai/foreign-model", thinking: "minimal" } } } }));
+		mkdirSync(join(foreign, ".git", "nub-ia"));
+		writeFileSync(join(foreign, ".git", "nub-ia", "profile-pin.json"), JSON.stringify({ kind: "nub-ia.agent_model_profile_pin", version: 1, profile: "pinned" }));
 		const h = fakePi(), runtime = deps();
 		runtime.deps.env = { PATH: "/bin", NUB_IA_CONFIG_HOME: configHome };
 		runtime.deps.resolveWorktree = resolveSessionWorktree;
@@ -2190,7 +2190,7 @@ test("foreign clone tool requires consent before queueing and never enters paren
 		const spawn = runtime.deps.spawn!;
 		runtime.deps.spawn = (command, args, options) => { spawned.push(options.cwd); spawnEnvs.push(options.env); return spawn(command, args, options); };
 		const runnerRun = t.mock.method(AgentRunner.prototype, "run");
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		let resolveConsent!: (answer: boolean) => void;
 		let prompts = 0;
 		const { ctx } = fakeContext(fakeTui, () => { prompts++; return new Promise<boolean>(resolve => { resolveConsent = resolve; }); });
@@ -2216,11 +2216,11 @@ test("foreign clone tool requires consent before queueing and never enters paren
 		await tick();
 		assert.deepEqual(spawned, [foreign]);
 		assert.equal(runtime.spawned[0]?.[runtime.spawned[0]!.indexOf("--model") + 1], "openai/foreign-model:minimal");
-		assert.equal((result.details.gentleAgents as { cwd: string }).cwd, foreign);
+		assert.equal((result.details.nubiaAgents as { cwd: string }).cwd, foreign);
 		assert.deepEqual(h.entries.filter(entry => entry.customType === SESSION_WORKTREE_ENTRY), []);
 		const reused = await run.execute("reuse", { agent: "explore", task: "Map again", repository_root: foreign, mode: "background" }, undefined, undefined, ctx);
 		assert.equal(prompts, 1);
-		assert.equal((reused.details.gentleAgents as { cwd: string }).cwd, foreign);
+		assert.equal((reused.details.nubiaAgents as { cwd: string }).cwd, foreign);
 		// Git's ambient routing must not turn an explicit foreign destination into the parent's repository.
 		const oldGitDir = process.env.GIT_DIR;
 		const oldGitWorkTree = process.env.GIT_WORK_TREE;
@@ -2230,7 +2230,7 @@ test("foreign clone tool requires consent before queueing and never enters paren
 			runtime.deps.env!.GIT_DIR = join(parent, ".git");
 			runtime.deps.env!.GIT_WORK_TREE = parent;
 			const injected = await run.execute("injected-git", { agent: "explore", task: "Map with ambient Git routing", repository_root: foreign, mode: "background" }, undefined, undefined, ctx);
-			assert.equal((injected.details.gentleAgents as { cwd: string }).cwd, foreign);
+			assert.equal((injected.details.nubiaAgents as { cwd: string }).cwd, foreign);
 			assert.equal(prompts, 1);
 			// Drain the active child so the queued injected launch reaches the actual OS spawn.
 			runtime.children[0].emit({ type: "agent_end", messages: [] });
@@ -2247,7 +2247,7 @@ test("foreign clone tool requires consent before queueing and never enters paren
 			if (oldGitWorkTree === undefined) delete process.env.GIT_WORK_TREE; else process.env.GIT_WORK_TREE = oldGitWorkTree;
 		}
 		const queued = await run.execute("queued", { agent: "explore", task: "Third map", repository_root: foreign, mode: "background" }, undefined, undefined, ctx);
-		assert.equal((queued.details.gentleAgents as { cwd: string }).cwd, foreign);
+		assert.equal((queued.details.nubiaAgents as { cwd: string }).cwd, foreign);
 		assert.equal(runtime.children.length, 3, "later launches wait in the runner queue");
 		await run.execute("same-clone", { agent: "explore", task: "Map parent", workspace_root: parent, mode: "background" }, undefined, undefined, ctx);
 		const { ctx: successor } = fakeContext();
@@ -2284,7 +2284,7 @@ test("foreign child Changes require successful target-bound tool evidence, never
 			return child;
 		};
 		installSessionChangeCapture(h.pi, {}, resolveSessionWorktree);
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		ctx.sessionManager.getCwd = () => parent;
 		ctx.sessionManager.getEntries = (() => h.entries) as typeof ctx.sessionManager.getEntries;
@@ -2292,57 +2292,57 @@ test("foreign child Changes require successful target-bound tool evidence, never
 		await h.fire("session_start", ctx);
 		const launched = await h.tools.get("subagent_run")!.execute("foreign-evidence", { agent: "explore", task: "Write", repository_root: foreign, mode: "background" }, undefined, undefined, ctx);
 		await tick();
-		const taskId = (launched.details.gentleAgents as { taskId: string }).taskId;
+		const taskId = (launched.details.nubiaAgents as { taskId: string }).taskId;
 		const child = runtime.children[0];
 		const send = async (id: string, root: string, path: string, error = false, forgedRoot?: string) => {
 			const captured = await childSessionChangeEvidence(root, path, id, "agent output\n");
 			const evidence = forgedRoot ? { ...captured, root: forgedRoot } : captured;
 			child.emit({ type: "tool_execution_start", toolCallId: id, toolName: "write", args: { path } });
-			child.emit({ type: "tool_execution_end", toolCallId: id, isError: error, result: { content: [], details: { gentleSessionChange: evidence } } });
+			child.emit({ type: "tool_execution_end", toolCallId: id, isError: error, result: { content: [], details: { nubiaSessionChange: evidence } } });
 			await tick();
 		};
 		child.emit({ type: "message_update", text: `I edited ${join(foreign, "claimed.md")}` });
 		await send("unspawned", foreign, "unspawned.md");
-		assert.equal(h.entries.some(entry => entry.customType === "gentle-pi.session-change/v1"), false, "unproven spawn cannot attribute a mutation");
+		assert.equal(h.entries.some(entry => entry.customType === "nub-ia.session-change/v1"), false, "unproven spawn cannot attribute a mutation");
 		assert.ok(proveSpawn);
 		proveSpawn();
 		await tick();
 		await send("sibling", sibling, "sibling.md");
 		await send("forged", foreign, "forged.md", false, parent);
 		await send("failed", foreign, "failed.md", true);
-		assert.equal(h.entries.some(entry => entry.customType === "gentle-pi.session-change/v1"), false);
+		assert.equal(h.entries.some(entry => entry.customType === "nub-ia.session-change/v1"), false);
 		await send("accepted", foreign, "accepted.md");
 		const spacedEvidence = await childSessionChangeEvidence(foreign, "space name.md", "unicode-space", "agent output\n");
 		child.emit({ type: "tool_execution_start", toolCallId: "unicode-space", toolName: "write", args: { path: "space\u00a0name.md" } });
-		child.emit({ type: "tool_execution_end", toolCallId: "unicode-space", isError: false, result: { content: [], details: { gentleSessionChange: spacedEvidence } } });
+		child.emit({ type: "tool_execution_end", toolCallId: "unicode-space", isError: false, result: { content: [], details: { nubiaSessionChange: spacedEvidence } } });
 		await tick();
 		const editEvidence = await childSessionEditEvidence(foreign, "edited.md", "edit-accepted", "original\n", "changed\n");
 		child.emit({ type: "tool_execution_start", toolCallId: "edit-accepted", toolName: "edit", args: { path: "edited.md" } });
-		child.emit({ type: "tool_execution_end", toolCallId: "edit-accepted", isError: false, result: { content: [], details: { gentleSessionChange: editEvidence } } });
+		child.emit({ type: "tool_execution_end", toolCallId: "edit-accepted", isError: false, result: { content: [], details: { nubiaSessionChange: editEvidence } } });
 		await tick();
 		const changes = new SessionChanges(ctx.sessionManager.getSessionId()!, h.entries);
 		assert.deepEqual(changes.worktrees.map(tree => tree.root), [foreign]);
 		assert.deepEqual(changes.model.files.map(file => file.path).sort(), ["accepted.md", "edited.md", "space name.md"]);
 		assert.deepEqual(h.entries.filter(entry => entry.customType === SESSION_WORKTREE_ENTRY), []);
-		assert.equal(h.events.some(event => event.name === "gentle-pi:child-session-change"), false);
-		assert.equal(h.entries.filter(entry => entry.customType === "gentle-pi.session-change/v1").length, 3);
+		assert.equal(h.events.some(event => event.name === "nub-ia:child-session-change"), false);
+		assert.equal(h.entries.filter(entry => entry.customType === "nub-ia.session-change/v1").length, 3);
 		assert.equal(changes.worktrees[0]?.model.files.find(file => file.path === "accepted.md")?.status, "added");
 		assert.equal(changes.worktrees[0]?.model.files.find(file => file.path === "edited.md")?.status, "modified");
 		mkdirSync(join(foreign, "nested"));
 		const rebound = await childSessionChangeEvidence(foreign, "nested/rebound.md", "rebound", "not attributed\n");
 		child.emit({ type: "tool_execution_start", toolCallId: "rebound", toolName: "write", args: { path: "nested/rebound.md" } });
 		execFileSync("git", ["init", "--quiet", `--template=${template}`, join(foreign, "nested")]);
-		child.emit({ type: "tool_execution_end", toolCallId: "rebound", isError: false, result: { content: [], details: { gentleSessionChange: rebound } } });
+		child.emit({ type: "tool_execution_end", toolCallId: "rebound", isError: false, result: { content: [], details: { nubiaSessionChange: rebound } } });
 		await tick();
-		assert.equal(h.entries.filter(entry => entry.customType === "gentle-pi.session-change/v1").length, 3, "new nested Git identity must not inherit foreign target attribution");
+		assert.equal(h.entries.filter(entry => entry.customType === "nub-ia.session-change/v1").length, 3, "new nested Git identity must not inherit foreign target attribution");
 		const stale = await childSessionChangeEvidence(foreign, "stale.md", "stale", "not attributed\n");
 		child.emit({ type: "tool_execution_start", toolCallId: "stale", toolName: "write", args: { path: "stale.md" } });
 		const { ctx: successor } = fakeContext();
 		successor.sessionManager.getCwd = () => parent;
 		await h.fire("session_start", successor);
-		child.emit({ type: "tool_execution_end", toolCallId: "stale", isError: false, result: { content: [], details: { gentleSessionChange: stale } } });
+		child.emit({ type: "tool_execution_end", toolCallId: "stale", isError: false, result: { content: [], details: { nubiaSessionChange: stale } } });
 		await tick();
-		assert.equal(h.entries.filter(entry => entry.customType === "gentle-pi.session-change/v1").length, 3, "session replacement during a tool cannot attribute its result");
+		assert.equal(h.entries.filter(entry => entry.customType === "nub-ia.session-change/v1").length, 3, "session replacement during a tool cannot attribute its result");
 		assert.equal(h.entries.filter(entry => entry.customType === SESSION_WORKTREE_ENTRY).length, 0);
 		await h.fire("session_shutdown", successor);
 	} finally { rmSync(fixture, { recursive: true, force: true }); }
@@ -2366,7 +2366,7 @@ test("foreign task mode waits for the child and continuation reuses its live gra
 			}) as typeof child.on;
 			return child;
 		};
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		let prompts = 0;
 		const { ctx } = fakeContext(fakeTui, async () => { prompts++; return true; });
 		ctx.sessionManager.getCwd = () => parent;
@@ -2381,8 +2381,8 @@ test("foreign task mode waits for the child and continuation reuses its live gra
 		runtime.children[0].emit({ type: "agent_settled" });
 		runtime.children[0].exit(0);
 		const first = await pending;
-		assert.equal((first.details.gentleAgents as { cwd: string }).cwd, foreign);
-		const taskId = (first.details.gentleAgents as { taskId: string }).taskId;
+		assert.equal((first.details.nubiaAgents as { cwd: string }).cwd, foreign);
+		const taskId = (first.details.nubiaAgents as { taskId: string }).taskId;
 		const continued = h.tools.get("subagent_continue")!.execute("follow-up", { task_id: taskId, prompt: "Follow up", mode: "task" }, undefined, undefined, ctx);
 		await tick();
 		assert.equal(runtime.children.length, 2);
@@ -2390,7 +2390,7 @@ test("foreign task mode waits for the child and continuation reuses its live gra
 		runtime.children[1].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "continued" }] }] });
 		runtime.children[1].emit({ type: "agent_settled" });
 		runtime.children[1].exit(0);
-		assert.equal(((await continued).details.gentleAgents as { cwd: string }).cwd, foreign);
+		assert.equal(((await continued).details.nubiaAgents as { cwd: string }).cwd, foreign);
 		assert.equal(runtime.spawned.length, 2);
 		await h.fire("session_shutdown", ctx);
 	} finally { rmSync(fixture, { recursive: true, force: true }); }
@@ -2404,7 +2404,7 @@ test("aborting during foreign consent cannot grant or queue a background child",
 		for (const path of [parent, foreign]) execFileSync("git", ["init", "--quiet", `--template=${template}`, path]);
 		const h = fakePi(), runtime = deps();
 		runtime.deps.resolveWorktree = resolveSessionWorktree;
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		let confirm!: (answer: boolean) => void;
 		const { ctx } = fakeContext(fakeTui, () => new Promise(resolve => { confirm = resolve; }));
 		ctx.sessionManager.getCwd = () => parent;
@@ -2429,13 +2429,13 @@ test("an interactive non-Git umbrella can target an independent repository witho
 		execFileSync("git", ["init", "--quiet", `--template=${template}`, foreign]);
 		const h = fakePi(), runtime = deps();
 		runtime.deps.resolveWorktree = resolveSessionWorktree;
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		ctx.sessionManager.getCwd = () => umbrella;
 		await h.fire("session_start", ctx);
 		const run = h.tools.get("subagent_run")!;
 		const launched = await run.execute("umbrella", { agent: "explore", task: "Map", repository_root: foreign, mode: "background" }, undefined, undefined, ctx);
-		assert.equal((launched.details.gentleAgents as { cwd: string }).cwd, foreign);
+		assert.equal((launched.details.nubiaAgents as { cwd: string }).cwd, foreign);
 		assert.deepEqual(h.entries.filter(entry => entry.customType === SESSION_WORKTREE_ENTRY), []);
 		await h.fire("session_shutdown", ctx);
 	} finally { rmSync(fixture, { recursive: true, force: true }); }
@@ -2454,7 +2454,7 @@ test("foreign selector rejects RPC and retired SDD selections before consent", a
 		writeFileSync(join(agentHome, ".pi", "agent", "agents", "explore.md"), "---\ndescription: explore\ntools: [read]\n---\nExplore");
 		writeFileSync(join(agentHome, ".pi", "agent", "agents", "sdd-apply.md"), "---\ndescription: apply\ntools: [read]\n---\nApply");
 		runtime.deps.home = agentHome;
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx, dialogs } = fakeContext();
 		ctx.sessionManager.getCwd = () => parent;
 		await h.fire("session_start", ctx);
@@ -2469,7 +2469,7 @@ test("foreign selector rejects RPC and retired SDD selections before consent", a
 		assert.match((await run.execute("foreign-sdd", { ...base, agent: "sdd-apply", sdd_change: { changeName: "alpha", workspaceRoot: foreign, phase: "apply" } }, undefined, undefined, ctx)).content[0].text, /retired SDD/);
 		assert.equal(existsSync(join(agentHome, ".pi", "agent", "sessions")), false, "foreign explicit selection rejection must precede child session directory creation");
 		const childHost = fakePi();
-		gentleAgents(childHost.pi, { NUB_IA_AGENTS_CHILD: "1" }, runtime.deps);
+		nubiaAgents(childHost.pi, { NUB_IA_AGENTS_CHILD: "1" }, runtime.deps);
 		assert.equal(childHost.tools.has("subagent_run"), false, "child-originated foreign launches have no delegation tool");
 		assert.equal(dialogs.length, 0);
 		assert.equal(runtime.children.length, 0);
@@ -2485,7 +2485,7 @@ test("foreign clone rejects aliases, absent UI, decline and changed session befo
 		for (const path of [parent, foreign]) execFileSync("git", ["init", "--quiet", `--template=${template}`, path]);
 		const h = fakePi(), runtime = deps();
 		runtime.deps.resolveWorktree = resolveSessionWorktree;
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		let decision!: (answer: boolean) => void;
 		const { ctx, dialogs } = fakeContext(fakeTui, () => new Promise(resolve => { decision = resolve; }));
 		ctx.sessionManager.getCwd = () => parent;
@@ -2530,7 +2530,7 @@ test("explicit child roots launch and continue in the actual cwd, persist withou
 		return child;
 	};
 	runtime.deps.resolveWorktree = (path, base) => ({ root: resolve(base, path), commonDir: path === "/other-clone" ? "/other/git" : "/fixture/common" });
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	(ctx.sessionManager as unknown as { getEntries(): unknown[] }).getEntries = () => h.entries;
 	await h.fire("session_start", ctx);
@@ -2544,7 +2544,7 @@ test("explicit child roots launch and continue in the actual cwd, persist withou
 	spawnEvents[0]();
 	assert.deepEqual(h.entries, [{ type: "custom", customType: SESSION_WORKTREE_ENTRY, data: { sessionId: "s1", root: childRoot, evidence: "subagent:spawn" } }]);
 	assert.deepEqual(h.events.filter(event => event.name === SESSION_WORKTREE_CHANGED), [{ name: SESSION_WORKTREE_CHANGED, data: { sessionId: "s1" } }]);
-	const details = result.details.gentleAgents as { taskId: string; cwd: string };
+	const details = result.details.nubiaAgents as { taskId: string; cwd: string };
 	assert.equal(details.cwd, childRoot);
 	runtime.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "mapped" }] }] });
 	runtime.children[0].emit({ type: "agent_settled" });
@@ -2569,7 +2569,7 @@ test("retired SDD agent names and selection are rejected before dispatch", async
 	mkdirSync(join(fixtureHome, ".pi", "agent", "agents"), { recursive: true });
 	writeFileSync(join(fixtureHome, ".pi", "agent", "agents", "sdd-apply.md"), "---\ndescription: apply\ntools: [read]\n---\nSDD apply executor");
 	writeFileSync(join(fixtureHome, ".pi", "agent", "agents", "explore.md"), "---\ndescription: explore\ntools: [read]\n---\nExplore");
-	gentleAgents(h.pi, {}, { ...runtime.deps, home: fixtureHome });
+	nubiaAgents(h.pi, {}, { ...runtime.deps, home: fixtureHome });
 	const { ctx } = fakeContext();
 	await h.fire("session_start", ctx);
 	const tool = h.tools.get("subagent_run")!;
@@ -2585,7 +2585,7 @@ test("retired SDD agent names and selection are rejected before dispatch", async
 	const ordinary = await tool.execute("ordinary", { agent: "explore", task: "Map", mode: "background" }, undefined, undefined, ctx);
 	await tick();
 	assert.equal(runtime.spawned.length, 1, "ordinary named agents remain dispatchable");
-	const id = (ordinary.details.gentleAgents as { taskId: string }).taskId;
+	const id = (ordinary.details.nubiaAgents as { taskId: string }).taskId;
 	for (const selector of ["sdd_change", "remediation", "research_selection"] as const) {
 		const rejected = await h.tools.get("subagent_continue")!.execute(selector, { task_id: id, prompt: "Follow up", [selector]: {} }, undefined, undefined, ctx);
 		assert.match(rejected.content[0].text, /retired SDD/i, selector);
@@ -2608,7 +2608,7 @@ for (const drift of ["loss", "common-dir", "root"] as const) {
 		const h = fakePi();
 		const runtime = deps();
 		Object.assign(runtime.deps, { home, resolveWorktree: resolveSessionWorktree });
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		Object.assign(ctx, { cwd, modelRegistry: { find: () => ({ provider: "offline", id: "good" }) } });
 		ctx.sessionManager.getCwd = () => cwd;
@@ -2647,18 +2647,18 @@ for (const scenario of ["implicit-worker", "explicit-worker", "implicit-nubia-wo
 		const runtime = deps();
 		runtime.deps.home = fixtureHome;
 		runtime.deps.resolveWorktree = resolveSessionWorktree;
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		Object.assign(ctx, { cwd: project, modelRegistry: { find: (_provider: string, model: string) => scenario === "model" || model === "bad" ? undefined : { provider: "offline", id: model } } });
 		ctx.sessionManager.getCwd = () => project;
 		ctx.sessionManager.getEntries = () => h.entries as never;
 		await h.fire("session_start", ctx);
 		if (scenario === "profile-model" || scenario === "profile-valid") {
-			mkdirSync(join(project, ".pi", "gentle-ai"), { recursive: true });
-			writeFileSync(join(project, ".pi", "gentle-ai", "profile.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profile_pin", version: 1, profile: "invalid" }));
+			mkdirSync(join(project, ".pi", "nub-ia"), { recursive: true });
+			writeFileSync(join(project, ".pi", "nub-ia", "profile.json"), JSON.stringify({ kind: "nub-ia.agent_model_profile_pin", version: 1, profile: "invalid" }));
 			const config = runtime.deps.env!.NUB_IA_CONFIG_HOME = join(fixture, "config");
 			mkdirSync(config, { recursive: true });
-			writeFileSync(join(config, "profiles.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, profiles: { invalid: { worker: { model: scenario === "profile-valid" ? "offline/pinned-good" : "offline/bad" } } } }));
+			writeFileSync(join(config, "profiles.json"), JSON.stringify({ kind: "nub-ia.agent_model_profiles", version: 1, profiles: { invalid: { worker: { model: scenario === "profile-valid" ? "offline/pinned-good" : "offline/bad" } } } }));
 		}
 		let calls = 0;
 		const abort = new AbortController();
@@ -2690,7 +2690,7 @@ for (const scenario of ["implicit-worker", "explicit-worker", "implicit-nubia-wo
 	});
 }
 
-// gentle-shell#1558 (barbatdev review): the non-git writer admission and the
+// nubia-shell#1558 (barbatdev review): the non-git writer admission and the
 // launch path must resolve the same model. Before the session-binding layer,
 // both read pin/global only; with a binding present the launch resolves it
 // first while admission still read the declaration, so a bound session killed
@@ -2707,18 +2707,18 @@ test("a session binding keeps writer admission and launch resolution in agreemen
 	// The unversioned project declaration routes the writer at one model and the
 	// session binding at another: only agreement between the two resolutions can
 	// let this launch through, and both must pick the binding's model.
-	mkdirSync(join(project, ".pi", "gentle-ai"), { recursive: true });
-	writeFileSync(join(project, ".pi", "gentle-ai", "profile.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profile_pin", version: 1, profile: "declared" }));
+	mkdirSync(join(project, ".pi", "nub-ia"), { recursive: true });
+	writeFileSync(join(project, ".pi", "nub-ia", "profile.json"), JSON.stringify({ kind: "nub-ia.agent_model_profile_pin", version: 1, profile: "declared" }));
 	const configHome = join(fixture, "config");
 	mkdirSync(configHome, { recursive: true });
-	writeFileSync(join(configHome, "profiles.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, profiles: { declared: { worker: { model: "offline/pinned-good" } }, bound: { worker: { model: "offline/bound-good" } } } }));
+	writeFileSync(join(configHome, "profiles.json"), JSON.stringify({ kind: "nub-ia.agent_model_profiles", version: 1, profiles: { declared: { worker: { model: "offline/pinned-good" } }, bound: { worker: { model: "offline/bound-good" } } } }));
 	bindSessionProfile("s1", "bound", { worker: { model: "offline/bound-good" } });
 	const h = fakePi();
 	const runtime = deps();
 	runtime.deps.home = fixtureHome;
 	runtime.deps.env!.NUB_IA_CONFIG_HOME = configHome;
 	runtime.deps.resolveWorktree = resolveSessionWorktree;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	Object.assign(ctx, { cwd: project, modelRegistry: { find: (_provider: string, model: string) => ({ provider: "offline", id: model }) } });
 	ctx.sessionManager.getCwd = () => project;
@@ -2753,7 +2753,7 @@ for (const explicit of [false, true]) {
 			return child;
 		};
 		runtime.deps.resolveWorktree = (path, base) => bootstrapped ? { root: resolve(base, path), commonDir: "/bootstrap/git" } : undefined;
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		const manager = ctx.sessionManager;
 		ctx.sessionManager.getEntries = () => h.entries as never;
@@ -2769,7 +2769,7 @@ for (const explicit of [false, true]) {
 		runtime.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "mapped" }] }] });
 		runtime.children[0].emit({ type: "agent_settled" });
 		await tick();
-		const taskId = (result.details.gentleAgents as { taskId: string }).taskId;
+		const taskId = (result.details.nubiaAgents as { taskId: string }).taskId;
 		assert.match((await h.tools.get("subagent_status")!.execute("status", { task_id: taskId }, undefined, undefined, ctx)).content[0].text, /completed/);
 	});
 }
@@ -2778,7 +2778,7 @@ test("ordinary non-Git tasks still continue in their original cwd without regist
 	const h = fakePi();
 	const runtime = deps();
 	runtime.deps.resolveWorktree = () => undefined;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	await h.fire("session_start", ctx);
 	const result = await h.tools.get("subagent_run")!.execute("run", { agent: "explore", task: "Map", mode: "background" }, undefined, undefined, ctx);
@@ -2786,11 +2786,11 @@ test("ordinary non-Git tasks still continue in their original cwd without regist
 	runtime.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "mapped" }] }] });
 	runtime.children[0].emit({ type: "agent_settled" });
 	await tick();
-	const taskId = (result.details.gentleAgents as { taskId: string }).taskId;
+	const taskId = (result.details.nubiaAgents as { taskId: string }).taskId;
 	await h.tools.get("subagent_continue")!.execute("continue", { task_id: taskId, prompt: "Follow up", mode: "background" }, undefined, undefined, ctx);
 	await tick();
 	assert.equal(runtime.children.length, 2);
-	assert.deepEqual(h.entries.filter(entry => entry.customType !== "gentle-agents.wake-identity"), []);
+	assert.deepEqual(h.entries.filter(entry => entry.customType !== "nubia-agents.wake-identity"), []);
 	await h.fire("session_shutdown", ctx);
 	await tick();
 });
@@ -2811,7 +2811,7 @@ for (const sameId of [false, true]) {
 			}) as typeof child.on;
 			return child;
 		};
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		await h.fire("session_start", ctx);
 		await h.tools.get("subagent_run")!.execute("run", { agent: "explore", task: "Map", workspace_root: join(root, "old-root"), mode: "background" }, undefined, undefined, ctx);
@@ -2821,23 +2821,23 @@ for (const sameId of [false, true]) {
 		await h.fire("session_start", next.ctx);
 		spawnEvents[0]();
 		await tick();
-		assert.deepEqual(h.entries.filter(entry => entry.customType !== "gentle-agents.wake-identity"), [], "captured registry is closed instead of appending worktree state to the new bound API");
+		assert.deepEqual(h.entries.filter(entry => entry.customType !== "nubia-agents.wake-identity"), [], "captured registry is closed instead of appending worktree state to the new bound API");
 		await h.fire("session_shutdown", next.ctx);
 	});
 }
 
 test("agentRuntimePaths isolates sessions and transcripts by profile and retains the explicit-home fallback", () => {
 	assert.deepEqual(agentRuntimePaths("/home/x", "/profiles/pi-principal/agent"), {
-		sessions: join("/profiles/pi-principal/agent", "gentle-agents", "sessions"),
-		transcripts: join("/profiles/pi-principal/agent", "gentle-agents", "transcripts"),
+		sessions: join("/profiles/pi-principal/agent", "nubia-agents", "sessions"),
+		transcripts: join("/profiles/pi-principal/agent", "nubia-agents", "transcripts"),
 	});
 	assert.deepEqual(agentRuntimePaths("/home/x", "/profiles/pi-lab/agent"), {
-		sessions: join("/profiles/pi-lab/agent", "gentle-agents", "sessions"),
-		transcripts: join("/profiles/pi-lab/agent", "gentle-agents", "transcripts"),
+		sessions: join("/profiles/pi-lab/agent", "nubia-agents", "sessions"),
+		transcripts: join("/profiles/pi-lab/agent", "nubia-agents", "transcripts"),
 	});
 	assert.deepEqual(agentRuntimePaths("/home/x"), {
-		sessions: join("/home/x", ".pi", "agent", "gentle-agents", "sessions"),
-		transcripts: join("/home/x", ".pi", "agent", "gentle-agents", "transcripts"),
+		sessions: join("/home/x", ".pi", "agent", "nubia-agents", "sessions"),
+		transcripts: join("/home/x", ".pi", "agent", "nubia-agents", "transcripts"),
 	});
 });
 
@@ -2854,12 +2854,12 @@ test("extension resolves each profile environment at setup time without changing
 		return overrides;
 	};
 	const principal = fakePi();
-	gentleAgents(principal.pi, { NUB_IA_AGENT_HOME: principalHome, PI_CODING_AGENT_DIR: labHome }, withoutExplicitHome());
+	nubiaAgents(principal.pi, { NUB_IA_AGENT_HOME: principalHome, PI_CODING_AGENT_DIR: labHome }, withoutExplicitHome());
 	const principalContext = fakeContext();
 	await principal.fire("session_start", principalContext.ctx);
 	assert.match((await principal.tools.get("subagent_list_agents")!.execute("p1", {}, undefined, undefined, principalContext.ctx)).content[0].text, /principal/);
 	const lab = fakePi();
-	gentleAgents(lab.pi, { PI_CODING_AGENT_DIR: labHome }, withoutExplicitHome());
+	nubiaAgents(lab.pi, { PI_CODING_AGENT_DIR: labHome }, withoutExplicitHome());
 	const labContext = fakeContext();
 	await lab.fire("session_start", labContext.ctx);
 	assert.match((await lab.tools.get("subagent_list_agents")!.execute("l1", {}, undefined, undefined, labContext.ctx)).content[0].text, /lab/);
@@ -2875,7 +2875,7 @@ for (const [key, tilde] of [["NUB_IA_AGENT_HOME", false], ["PI_CODING_AGENT_DIR"
 		const harness = deps();
 		const { home: _home, env: _env, ...overrides } = harness.deps;
 		const { pi, tools, fire } = fakePi();
-		gentleAgents(pi, env, overrides);
+		nubiaAgents(pi, env, overrides);
 		const { ctx } = fakeContext();
 		assert.notEqual(ctx.sessionManager.getCwd(), process.cwd());
 		await fire("session_start", ctx);
@@ -2884,7 +2884,7 @@ for (const [key, tilde] of [["NUB_IA_AGENT_HOME", false], ["PI_CODING_AGENT_DIR"
 		try {
 			const args = harness.spawned[0];
 			const sessionDir = args[args.indexOf("--session-dir") + 1];
-			const expected = join(agentHome, "gentle-agents", "sessions");
+			const expected = join(agentHome, "nubia-agents", "sessions");
 			assert.equal(sessionDir, expected);
 			assert.equal(resolve(ctx.sessionManager.getCwd(), sessionDir), expected);
 			assert.equal(existsSync(expected), true, "parent created the exact child session root");
@@ -2908,10 +2908,10 @@ function pinFixture(name: string) {
 	for (const dir of [worktreeRoot, commonDir, configHome]) mkdirSync(dir, { recursive: true });
 	const writePinText = (path: string, profile: string) => {
 		mkdirSync(dirname(path), { recursive: true });
-		writeFileSync(path, `${JSON.stringify({ kind: "gentle-pi.agent_model_profile_pin", version: 1, profile }, null, 2)}\n`);
+		writeFileSync(path, `${JSON.stringify({ kind: "nub-ia.agent_model_profile_pin", version: 1, profile }, null, 2)}\n`);
 	};
-	const localPinPath = join(commonDir, "gentle-ai", "profile-pin.json");
-	const declarationPath = join(worktreeRoot, ".pi", "gentle-ai", "profile.json");
+	const localPinPath = join(commonDir, "nub-ia", "profile-pin.json");
+	const declarationPath = join(worktreeRoot, ".pi", "nub-ia", "profile.json");
 	return {
 		root: worktreeRoot,
 		commonDir,
@@ -2921,7 +2921,7 @@ function pinFixture(name: string) {
 		writePin: (profile: string) => writePinText(localPinPath, profile),
 		writeDeclaration: (profile: string) => writePinText(declarationPath, profile),
 		writeStore: (profiles: Record<string, unknown>) => {
-			writeFileSync(join(configHome, "profiles.json"), `${JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, profiles }, null, 2)}\n`);
+			writeFileSync(join(configHome, "profiles.json"), `${JSON.stringify({ kind: "nub-ia.agent_model_profiles", version: 1, profiles }, null, 2)}\n`);
 		},
 	};
 }
@@ -2933,7 +2933,7 @@ async function launchPinned(base: ReturnType<typeof pinFixture>): Promise<string
 	harness.deps.resolveWorktree = () => ({ root: base.root, commonDir: base.commonDir });
 	harness.deps.env = { PATH: "/bin", NUB_IA_CONFIG_HOME: base.configHome };
 	const { pi, tools, fire } = fakePi();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	try {
@@ -2998,7 +2998,7 @@ test("a stale or unreadable pin degrades to the global routing instead of failin
 	assert.equal(await launchPinned(base), "openai-codex/gpt-5.6-terra:low");
 });
 
-// gentle-shell#1558 (barbatdev review): the two registered launch-seam gaps.
+// nubia-shell#1558 (barbatdev review): the two registered launch-seam gaps.
 // The pure helpers were covered, but the real subagent_run seam had no
 // committed test for the session layer.
 test("a session binding outranks the repository pin at the launch seam", async t => {
@@ -3027,7 +3027,7 @@ test("a queued launch keeps the session routing frozen across a rebind", async t
 	harness.deps.resolveWorktree = () => ({ root: base.root, commonDir: base.commonDir });
 	harness.deps.env = { PATH: "/bin", NUB_IA_CONFIG_HOME: base.configHome };
 	const { pi, tools, fire } = fakePi();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	try {
@@ -3059,19 +3059,19 @@ test("agentsEnabled and agentsCollapseKey read their flags and stay off inside a
 	assert.equal(agentsStopKey({ NUB_IA_AGENTS_STOP_KEY: "" }), undefined);
 	assert.equal(agentsStopKey({ NUB_IA_AGENTS_STOP_KEY: "off" }), undefined);
 	const off = fakePi();
-	gentleAgents(off.pi, { NUB_IA_AGENTS: "0" });
+	nubiaAgents(off.pi, { NUB_IA_AGENTS: "0" });
 	assert.equal(off.tools.size, 0);
 });
 
 test("while pi-subagents-j0k3r is still installed the tools stay unregistered and the user is told how to switch", async () => {
 	const legacyHome = join(root, "legacy-home");
 	mkdirSync(join(legacyHome, ".pi", "agent"), { recursive: true });
-	writeFileSync(join(legacyHome, ".pi", "agent", "settings.json"), JSON.stringify({ packages: ["npm:pi-subagents-j0k3r", "../../work/gentle-pi"] }));
+	writeFileSync(join(legacyHome, ".pi", "agent", "settings.json"), JSON.stringify({ packages: ["npm:pi-subagents-j0k3r", "../../work/nub-ia"] }));
 	assert.equal(legacySubagentsInstalled(legacyHome), true);
 	assert.equal(legacySubagentsInstalled(home), false);
 	assert.equal(legacySubagentsInstalled(join(root, "missing")), false);
 	const { pi, tools, fire } = fakePi();
-	gentleAgents(pi, {}, { ...deps().deps, home: legacyHome });
+	nubiaAgents(pi, {}, { ...deps().deps, home: legacyHome });
 	assert.equal(tools.size, 0);
 	const notices: string[] = [];
 	const ctx = { hasUI: true, ui: { notify: (message: string, level: string) => notices.push(`${level}:${message}`) } } as unknown as ExtensionContext;
@@ -3082,7 +3082,7 @@ test("while pi-subagents-j0k3r is still installed the tools stay unregistered an
 test("subagent_list_agents and subagent_run in task mode launch a child with the resolved profile and return its answer", async () => {
 	const { pi, tools, fire } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, widget } = fakeContext();
 	await fire("session_start", ctx);
 	assert.deepEqual([...tools.keys()].sort(), ["orchestrator_consult", "orchestrator_list", "orchestrator_send_message", "orchestrator_session_id", "subagent_cancel", "subagent_continue", "subagent_list_agents", "subagent_list_tasks", "subagent_reply", "subagent_result", "subagent_run", "subagent_send_message", "subagent_status"]);
@@ -3105,10 +3105,10 @@ test("subagent_list_agents and subagent_run in task mode launch a child with the
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "lib has three agent files." }] }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	const result = await running;
-	const runId = (result.details.gentleAgents as { taskId: string }).taskId;
+	const runId = (result.details.nubiaAgents as { taskId: string }).taskId;
 	assert.equal(result.content[0].text, `Subagent explore (task ${runId}, "map lib modules") finished.\n\nlib has three agent files.`, "the model sees the real task id and label, not only details");
 	assert.deepEqual(tools.get("subagent_run")!.renderResult(result as Parameters<Registered["renderResult"]>[0], { expanded: false }, plainTheme).render(80).map((line) => line.trimEnd()), ["lib has three agent files."], "the collapsed card still leads with the answer");
-	assert.equal((result.details.gentleAgents as { status: string }).status, "completed");
+	assert.equal((result.details.nubiaAgents as { status: string }).status, "completed");
 	assert.match(widget()![1], /✓  explore  map lib modules/);
 	const orphan = tools.get("subagent_run")!.execute("c9", { agent: "explore", task: "Orphan", mode: "background" }, undefined, undefined, ctx);
 	await orphan;
@@ -3122,11 +3122,11 @@ test("subagent_list_agents and subagent_run in task mode launch a child with the
 test("running subagent_result polls hide only their tool chrome, not the model result or final completion", async () => {
 	const { pi, tools, fire, sent, renderers } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const started = await tools.get("subagent_run")!.execute("start", { agent: "explore", task: "Long job", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 	const resultTool = tools.get("subagent_result")!;
 	for (const expanded of [false, true]) {
@@ -3143,13 +3143,13 @@ test("running subagent_result polls hide only their tool chrome, not the model r
 	assert.equal(finished.content[0].text, "All done.");
 	assert.match(resultTool.renderResult(finished as Parameters<Registered["renderResult"]>[0], { expanded: true }, plainTheme).render(80).join("\n"), /agent result.*All done\./s, "completed result remains visible");
 	assert.equal(sent.length, 1);
-	assert.match(renderers.get("gentle-agents.result")!(sent[0].message, { expanded: true }, plainTheme).render(80).join("\n"), /Agent result.*All done\./s, "background completion card remains visible");
+	assert.match(renderers.get("nubia-agents.result")!(sent[0].message, { expanded: true }, plainTheme).render(80).join("\n"), /Agent result.*All done\./s, "background completion card remains visible");
 });
 
 test("the Agents widget never registers a sidebar rail part and stays visible even while the fullscreen sidebar owns the host", async () => {
 	const { pi, tools, fire } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	// A terminal-bearing host is what makes sidebarPart do anything at all
 	// (a host with no .terminal is already a passthrough); this is the host
 	// shape the fullscreen layout actually uses.
@@ -3175,11 +3175,11 @@ test("the Agents widget never registers a sidebar rail part and stays visible ev
 test("background runs return at once; status, result, send_message, cancel, and continue follow the task", async () => {
 	const { pi, tools, fire, sent, renderers } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Long job", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	assert.match(started.content[0].text, new RegExp(`background as task ${id}`));
 	await tick();
 	assert.match((await tools.get("subagent_status")!.execute("c2", { task_id: id }, undefined, undefined, ctx)).content[0].text, /running · background/);
@@ -3194,7 +3194,7 @@ test("background runs return at once; status, result, send_message, cancel, and 
 	await tick();
 	assert.equal((await tools.get("subagent_result")!.execute("c7", { task_id: id }, undefined, undefined, ctx)).content[0].text, "All done.");
 	assert.equal(sent.length, 1, "a background result is delivered to the model once");
-	assert.equal(sent[0].message.customType, "gentle-agents.result");
+	assert.equal(sent[0].message.customType, "nubia-agents.result");
 	assert.equal(sent[0].message.display, true, "completion cards remain visible");
 	// The completion path must never regress to "followUp": the host drains the
 	// follow-up queue only when the parent run stops calling tools, which is the
@@ -3202,7 +3202,7 @@ test("background runs return at once; status, result, send_message, cancel, and 
 	// normal prompt lifecycle; an active parent keeps the bounded steer route.
 	assert.deepEqual(sent[0].options, { triggerTurn: false });
 	assert.match(String(sent[0].message.content), new RegExp(`^Subagent explore \\(task ${id}, "Long job"\\) finished\\.\n\nAll done\\.$`));
-	const card = renderers.get("gentle-agents.result")!(sent[0].message, { expanded: true }, plainTheme).render(70).map(stripAnsi);
+	const card = renderers.get("nubia-agents.result")!(sent[0].message, { expanded: true }, plainTheme).render(70).map(stripAnsi);
 	assert.match(card[0], /^╭─ ∾ Agent result · explore ─+ collapse ╮$/);
 	assert.match(card[1], /Subagent explore/);
 	assert.match(card[card.length - 2], /All done\./);
@@ -3214,10 +3214,10 @@ test("background runs return at once; status, result, send_message, cancel, and 
 	harness.children[1].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "Summary." }] }] });
 	harness.children[1].emit({ type: "agent_settled" });
 	const summary = await resumed;
-	assert.equal(summary.content[0].text, `Subagent explore (task ${(summary.details.gentleAgents as { taskId: string }).taskId}, "Now summarize") finished.\n\nSummary.`);
+	assert.equal(summary.content[0].text, `Subagent explore (task ${(summary.details.nubiaAgents as { taskId: string }).taskId}, "Now summarize") finished.\n\nSummary.`);
 	assert.match((await tools.get("subagent_cancel")!.execute("c9", { task_id: id }, undefined, undefined, ctx)).content[0].text, /not running/);
 	assert.match((await tools.get("subagent_status")!.execute("c10", { task_id: "nope" }, undefined, undefined, ctx)).content[0].text, /Error: no task nope/);
-	// gentle-shell#1713: a guessed id ("1") must point back to real ids.
+	// nubia-shell#1713: a guessed id ("1") must point back to real ids.
 	// Review follow-up: a call without a context still gets the structured error.
 	assert.match((await tools.get("subagent_status")!.execute("c10c", { task_id: "1" }, undefined, undefined, undefined as never)).content[0].text, /^Error: no task 1\./);
 	for (const name of ["subagent_status", "subagent_result"]) assert.match((await tools.get(name)!.execute("c10a", { task_id: "1" }, undefined, undefined, ctx)).content[0].text, new RegExp(`^Error: no task 1\\. Recent task ids: .*${id} \\(explore\\)`), name);
@@ -3238,7 +3238,7 @@ test("once the last task is done the card asks for one frame when its finished r
 			timer.cancelled = true;
 		};
 	};
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	let frames = 0;
 	const { ctx, widget } = fakeContext({ requestRender: () => (frames += 1) });
 	await fire("session_start", ctx);
@@ -3267,10 +3267,10 @@ test("completionText names the outcome before the answer", () => {
 
 test("the Agent result card previews the answer or error when collapsed and keeps the full completion text expanded", () => {
 	const { pi, renderers } = fakePi();
-	gentleAgents(pi, {}, deps().deps);
-	const render = renderers.get("gentle-agents.result")!;
+	nubiaAgents(pi, {}, deps().deps);
+	const render = renderers.get("nubia-agents.result")!;
 	const base = { id: "t1", agent: "explore", mode: "background", prompt: "p", label: "map lib", cwd: "/r", parentSessionId: "s", status: "completed" as const, createdAt: 1, startedAt: 1, endedAt: 2, model: "m", thinking: undefined, sessionPath: null, error: null, result: "All done.", lastStep: "x", lastActivityAt: 2, turns: 0, toolCalls: 0, tokens: 0, cost: 0 };
-	const message = (task: typeof base | (Omit<typeof base, "status" | "error"> & { status: "failed"; error: string })) => ({ customType: "gentle-agents.result", content: completionText(task as Parameters<typeof completionText>[0]), details: { gentleAgents: { agent: task.agent, status: task.status } } });
+	const message = (task: typeof base | (Omit<typeof base, "status" | "error"> & { status: "failed"; error: string })) => ({ customType: "nubia-agents.result", content: completionText(task as Parameters<typeof completionText>[0]), details: { nubiaAgents: { agent: task.agent, status: task.status } } });
 	const taggedTheme = { fg: (color: string, text: string) => `<${color}>${text}</${color}>` };
 
 	const done = render(message(base), { expanded: false }, plainTheme).render(80).map(stripAnsi);
@@ -3293,7 +3293,7 @@ test("the Agent result card previews the answer or error when collapsed and keep
 	assert.match(expanded, /Subagent explore \(task t1, "map lib"\) finished\./, "expanded keeps the header");
 	for (const line of ["one", "two", "three", "four", "five"]) assert.match(expanded, new RegExp(`│ ${line} +│`));
 
-	const legacy = { customType: "gentle-agents.result", content: [{ type: "text", text: "Older answer without a header." }], details: { gentleAgents: { agent: "explore", status: "completed" } } };
+	const legacy = { customType: "nubia-agents.result", content: [{ type: "text", text: "Older answer without a header." }], details: { nubiaAgents: { agent: "explore", status: "completed" } } };
 	assert.match(render(legacy, { expanded: false }, plainTheme).render(80).map(stripAnsi)[1]!, /^│ Older answer without a header\. +│$/, "headerless content falls back to the full text");
 	assert.equal(agentResultPreview('Subagent explore (task t1, "x") finished.\n\n'), 'Subagent explore (task t1, "x") finished.\n\n', "a header without an answer keeps the full text");
 	assert.equal(agentResultPreview("Plain answer.\n\nMore."), "Plain answer.\n\nMore.");
@@ -3308,9 +3308,9 @@ test("the Agent result card previews the answer or error when collapsed and keep
 
 test("the Stale agent result card previews its truthful warning when collapsed", () => {
 	const { pi, entryRenderers } = fakePi();
-	gentleAgents(pi, {}, deps().deps);
-	const render = entryRenderers.get("gentle-agents.stale-result")!;
-	const entry = { type: "custom", customType: "gentle-agents.stale-result", data: { taskId: "t9", agent: "explore", label: "map lib", status: "completed", ageSeconds: 120 } };
+	nubiaAgents(pi, {}, deps().deps);
+	const render = entryRenderers.get("nubia-agents.stale-result")!;
+	const entry = { type: "custom", customType: "nubia-agents.stale-result", data: { taskId: "t9", agent: "explore", label: "map lib", status: "completed", ageSeconds: 120 } };
 	const collapsed = render(entry, { expanded: false }, plainTheme).render(80).map(stripAnsi);
 	assert.ok(collapsed.length > 3 && collapsed.length <= 5, "a bounded multi-row preview");
 	assert.match(collapsed[0]!, /^╭─ ∾ Stale agent result · explore · task t9 ─+ expand ╮$/);
@@ -3324,7 +3324,7 @@ test("the Stale agent result card previews its truthful warning when collapsed",
 test("a task-mode child's dialog reaches the host UI and the answer goes back to the child", async () => {
 	const { pi, tools, fire } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, dialogs, widget } = fakeContext();
 	await fire("session_start", ctx);
 	const running = tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Ask me" }, undefined, undefined, ctx);
@@ -3347,7 +3347,7 @@ test("a task-mode child's dialog reaches the host UI and the answer goes back to
 test("AgentsView production composition observes each pointer event once and accepts only left clicks", async () => {
 	const { pi, tools, fire, commands } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, overlays, customCompletions } = fakeContext();
 	await fire("session_start", ctx);
 
@@ -3417,7 +3417,7 @@ test("AgentsView production footer uses rendered bounds and invalidates them bef
 	writeFileSync(join(home, ".pi", "agent", "agents", "寿司.md"), "---\ndescription: unicode footer target\nmodel: openai-codex/gpt-5.6-terra\n---\nFooter target.");
 	const { pi, tools, fire, commands } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, overlays, customCompletions } = fakeContext();
 	Object.assign(ctx.sessionManager, { getSessionId: () => "footer-session" });
 	await fire("session_start", ctx);
@@ -3492,16 +3492,16 @@ test("AgentsView production footer uses rendered bounds and invalidates them bef
 test("a task that finishes live stays visible as history, in both scopes, and its result also resolves after a restart", async () => {
 	const { pi, tools, fire, commands, shortcuts } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, overlays } = fakeContext();
 	await fire("session_start", ctx);
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Persist me", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "Kept." }] }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	const tasksDir = join(home, ".pi", "agent", "gentle-agents", "tasks");
+	const tasksDir = join(home, ".pi", "agent", "nubia-agents", "tasks");
 	let stored = await loadHistory(tasksDir);
 	for (let attempt = 0; attempt < 40 && !stored.some((entry) => entry.task.id === id); attempt += 1) {
 		await new Promise((resolve) => setTimeout(resolve, 50));
@@ -3512,7 +3512,7 @@ test("a task that finishes live stays visible as history, in both scopes, and it
 	// A completely different session still resolves it by id on demand, with
 	// nothing restored in advance.
 	const fresh = fakePi();
-	gentleAgents(fresh.pi, {}, deps().deps);
+	nubiaAgents(fresh.pi, {}, deps().deps);
 	const again = fakeContext();
 	await fresh.fire("session_start", again.ctx);
 	assert.equal((await fresh.tools.get("subagent_result")!.execute("c2", { task_id: id }, undefined, undefined, again.ctx)).content[0].text, "Kept.");
@@ -3541,7 +3541,7 @@ test("the overlay confirms a running task once and reports when it finishes duri
 	writeFileSync(join(modalHome, ".pi", "agent", "subagents.json"), JSON.stringify({ max_concurrency: 2 }));
 	harness.deps.home = modalHome;
 	let answerConfirmation: (confirmed: boolean) => void = () => {};
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, dialogs, overlays } = fakeContext(fakeTui, () => new Promise((resolve) => {
 		answerConfirmation = resolve;
 	}));
@@ -3575,13 +3575,13 @@ test("the overlay stops a queued selection immediately without confirmation", as
 	writeFileSync(join(queueHome, ".pi", "agent", "agents", "explore.md"), "---\ndescription: maps things\n---\nYou map things.");
 	writeFileSync(join(queueHome, ".pi", "agent", "subagents.json"), JSON.stringify({ max_concurrency: 1 }));
 	harness.deps.home = queueHome;
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, dialogs, overlays } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "First", mode: "background" }, undefined, undefined, ctx);
 	await tick();
 	const queued = await tools.get("subagent_run")!.execute("c2", { agent: "explore", task: "Queued", mode: "background" }, undefined, undefined, ctx);
-	const queuedId = (queued.details.gentleAgents as { taskId: string }).taskId;
+	const queuedId = (queued.details.nubiaAgents as { taskId: string }).taskId;
 	const opened = commands.get("nubia:agents")!.handler("", ctx);
 	for (let attempt = 0; attempt < 40 && overlays.length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 25));
 	overlays[0]!.handleInput("s");
@@ -3600,7 +3600,7 @@ test("the overlay explains that stopping a waiting subagent dismisses its questi
 	writeFileSync(join(waitingHome, ".pi", "agent", "agents", "explore.md"), "---\ndescription: maps things\n---\nYou map things.");
 	harness.deps.home = waitingHome;
 	let answerInput: (value: string | undefined) => void = () => {};
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, dialogs, overlays } = fakeContext(fakeTui, async () => true, () => new Promise<string | undefined>((resolve) => {
 		answerInput = resolve;
 	}));
@@ -3628,7 +3628,7 @@ test("restored task history cannot enter the live panel or discovery during sync
 	harness.deps.home = historyHome;
 	const profile = liveProfile("restored-discovery");
 	await saveTask(historyDir(historyHome, profile), historical, emptyThread());
-	chmodSync(join(profile, "gentle-agents"), 0o755);
+	chmodSync(join(profile, "nubia-agents"), 0o755);
 	harness.deps.agentHome = profile;
 	const registry = { list: async () => [], listActivations: async () => [] };
 	harness.deps.sessionTransport = {
@@ -3651,7 +3651,7 @@ test("restored task history cannot enter the live panel or discovery during sync
 		checked = true;
 		return result;
 	});
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, dialogs, overlays } = fakeContext();
 	await fire("session_start", ctx);
 	await tick();
@@ -3685,7 +3685,7 @@ test("resuming a session restores its own finished tasks as history, never anoth
 	await saveTask(historyDir(historyHome), own2, emptyThread());
 	await saveTask(historyDir(historyHome), other, emptyThread());
 	harness.deps.home = historyHome;
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, overlays } = fakeContext();
 	ctx.sessionManager.getSessionId = () => "resumed-session";
 	await fire("session_start", ctx, { reason: "resume" });
@@ -3702,7 +3702,7 @@ test("resuming a session restores its own finished tasks as history, never anoth
 	await fire("session_shutdown", ctx);
 
 	const { pi: freshPi, fire: freshFire, commands: freshCommands } = fakePi();
-	gentleAgents(freshPi, {}, harness.deps);
+	nubiaAgents(freshPi, {}, harness.deps);
 	const { ctx: freshCtx, overlays: freshOverlays } = fakeContext();
 	freshCtx.sessionManager.getSessionId = () => "brand-new-session";
 	await freshFire("session_start", freshCtx, { reason: "new" });
@@ -3730,7 +3730,7 @@ test("starting up into an existing session also restores its own finished histor
 		const { pi, fire, commands } = fakePi();
 		const harness = deps();
 		harness.deps.home = historyHome;
-		gentleAgents(pi, {}, harness.deps);
+		nubiaAgents(pi, {}, harness.deps);
 		const { ctx, overlays } = fakeContext();
 		ctx.sessionManager.getSessionId = () => "startup-session";
 		ctx.sessionManager.getEntries = (() => [{ type: "message" }]) as typeof ctx.sessionManager.getEntries;
@@ -3751,7 +3751,7 @@ test("starting up into an existing session also restores its own finished histor
 		const { pi, fire, commands } = fakePi();
 		const harness = deps();
 		harness.deps.home = historyHome;
-		gentleAgents(pi, {}, harness.deps);
+		nubiaAgents(pi, {}, harness.deps);
 		const { ctx, overlays } = fakeContext();
 		ctx.sessionManager.getSessionId = () => "startup-session";
 		await fire("session_start", ctx, { reason: "startup" });
@@ -3772,7 +3772,7 @@ test("Alt+S confirms a snapshot of active subagents and suppresses their follow-
 	const { pi, tools, fire, shortcuts, sent } = fakePi();
 	const harness = deps();
 	let answerConfirmation: (confirmed: boolean) => void = () => {};
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, dialogs } = fakeContext(fakeTui, () => new Promise<boolean>((resolve) => {
 		answerConfirmation = resolve;
 	}));
@@ -3802,7 +3802,7 @@ test("Alt+S confirms a snapshot of active subagents and suppresses their follow-
 test("the card follows the active session: after /new the earlier session's tasks leave it, and come back on /resume", async () => {
 	const { pi, tools, commands, fire } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, widget, overlays } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Long job", mode: "background" }, undefined, undefined, ctx);
@@ -3829,7 +3829,7 @@ test("the card follows the active session: after /new the earlier session's task
 test("the card caps its rows to the terminal height and says how many tasks are hidden", async () => {
 	const { pi, tools, fire } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, widget } = fakeContext({ requestRender() {}, terminal: { rows: 20 } } as { requestRender(): void });
 	await fire("session_start", ctx);
 	for (let index = 0; index < 6; index += 1) await tools.get("subagent_run")!.execute(`c${index}`, { agent: "explore", task: `Job ${index}`, label: `job ${index}`, mode: "background" }, undefined, undefined, ctx);
@@ -3843,7 +3843,7 @@ test("the card caps its rows to the terminal height and says how many tasks are 
 test("the production overlay reads terminal rows at render time without a minimum-height override", async () => {
 	const { pi, fire, commands } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	let rows = 10;
 	const overlayTui = { terminal: { get rows() { return rows; } }, requestRender() {} };
 	const { ctx, overlays, customOptions } = fakeContext(fakeTui, async () => true, async () => undefined, overlayTui);
@@ -3900,7 +3900,7 @@ test("session transport startup failure cleans the constructed Windows-capable t
 		}),
 	};
 	runtime.deps.sessionTransport = transport;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	await h.fire("session_start", ctx);
 	await eventually(() => clientCloses === 1 && listenerCloses === 1 && registryCloses === 1, "startup failure cleanup completes");
@@ -3933,7 +3933,7 @@ test("registered session identity declares subjects and refreshes canonical idle
 	let name = "";
 	const names: string[] = [];
 	Object.assign(h.pi, { setSessionName: (value: string) => { name = value; names.push(value); } });
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	const registrations = [{ type: "custom", customType: SESSION_WORKTREE_ENTRY, data: { sessionId: "s1", root: cwd, evidence: "fixture" } }];
 	Object.assign(ctx.sessionManager, { getSessionName: () => name, getEntries: () => registrations });
@@ -3949,7 +3949,7 @@ test("registered session identity declares subjects and refreshes canonical idle
 	const result = await declare("\u001b[31m Fix\n auth\u202e ");
 	assert.equal(name, "Fix auth");
 	assert.match(result.content[0].text, /Active session ID: s1.*\n.*Fix auth/);
-	assert.deepEqual(result.details.gentleAgents, { senderSessionId: "s1", alias: "Fix auth" });
+	assert.deepEqual(result.details.nubiaAgents, { senderSessionId: "s1", alias: "Fix auth" });
 	const before = listPresence(profile).entries[0]!;
 	assert.equal(before.label, "Fix auth");
 	assert.equal(readDiscovery(profile, before)?.state, undefined, "no implicit summary");
@@ -4040,7 +4040,7 @@ test("registered orchestrator_list joins peer metadata without child launches or
 			createListener: () => ({ registry, start: async () => { ready = true; }, close: async () => {} }),
 			createClient: () => ({ close() {}, sendNotification: async () => { throw new Error("no messages expected"); } }),
 		};
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		await h.fire("session_start", ctx);
 		await eventually(() => ready, "discovery transport ready");
@@ -4049,13 +4049,13 @@ test("registered orchestrator_list joins peer metadata without child launches or
 		assert.match(result.content[0].text, /peer.*Auth review.*recorded workspace: \/repo/);
 		assert.match(result.content[0].text, /Check auth \[waiting\].*launch workspace: \/repo-child/);
 		assert.match(result.content[0].text, /reachability is unknown/);
-		assert.equal((result.details.gentleAgents as any).candidates[0].scope.host.root, "/repo");
-		assert.equal((result.details.gentleAgents as any).candidates[0].scope.tasks[0].repository.root, "/repo-child");
+		assert.equal((result.details.nubiaAgents as any).candidates[0].scope.host.root, "/repo");
+		assert.equal((result.details.nubiaAgents as any).candidates[0].scope.tasks[0].repository.root, "/repo-child");
 		assert.match(result.content[0].text, /clone: [a-f0-9]{64}/);
-		const cursor = (result.details.gentleAgents as any).candidates[0].catalog.cursor;
+		const cursor = (result.details.nubiaAgents as any).candidates[0].catalog.cursor;
 		const next = await h.tools.get("orchestrator_list")!.execute("next", { recipient_session_id: "peer", cursor }, undefined, undefined, ctx);
-		assert.deepEqual((next.details.gentleAgents as any).candidates[0].catalog.tasks.map((t: any) => t.id), ["extra7", "extra8"]);
-		assert.deepEqual((next.details.gentleAgents as any).candidates[0].catalog.registered, ["/registered/8", "/registered/9"]);
+		assert.deepEqual((next.details.nubiaAgents as any).candidates[0].catalog.tasks.map((t: any) => t.id), ["extra7", "extra8"]);
+		assert.deepEqual((next.details.nubiaAgents as any).candidates[0].catalog.registered, ["/registered/8", "/registered/9"]);
 		assert.equal(h.userMessages.length, 0);
 		const selectedWork = await h.tools.get("orchestrator_list")!.execute("selected-work", {
 			filter: {}, recipient_session_id: "peer", cursor,
@@ -4071,19 +4071,19 @@ test("registered orchestrator_list joins peer metadata without child launches or
 		} });
 		const noted = await h.tools.get("orchestrator_list")!.execute("note", { recipient_session_id: "peer" }, undefined, undefined, ctx);
 		assert.match(noted.content[0].text, /Explicit summary/);
-		assert.equal((noted.details.gentleAgents as any).candidates[0].state.recordedAt, 1);
-		assert.deepEqual((noted.details.gentleAgents as any).candidates[0].state.state.work, { area: "Auth" });
+		assert.equal((noted.details.nubiaAgents as any).candidates[0].state.recordedAt, 1);
+		assert.deepEqual((noted.details.nubiaAgents as any).candidates[0].state.state.work, { area: "Auth" });
 		const list = h.tools.get("orchestrator_list")!;
 		const workResult = await list.execute("work", { filter: {} }, undefined, undefined, ctx);
 		const work = JSON.parse(workResult.content[0].text);
-		assert.deepEqual(JSON.parse(JSON.stringify((workResult.details.gentleAgents as any).workSearch)), work);
+		assert.deepEqual(JSON.parse(JSON.stringify((workResult.details.nubiaAgents as any).workSearch)), work);
 		assert.equal(work.schema, 1);
 		assert.deepEqual(work.matches[0].work, { area: "Auth" });
 		assert.equal(work.coverage.exhaustive, false);
 		assert.doesNotMatch(workResult.content[0].text, /Explicit summary|endpoint|activation|cursor|capabilities/);
 		const defaultList = await list.execute("default", {}, undefined, undefined, ctx);
 		assert.doesNotMatch(defaultList.content[0].text, /Explicit summary|"work"/);
-		assert.equal((defaultList.details.gentleAgents as any).candidates[0].state, undefined);
+		assert.equal((defaultList.details.nubiaAgents as any).candidates[0].state, undefined);
 		const beforeInvalid = scans;
 		for (const invalid of [null, [], { unexpected: true }, { filter: null }, { filter: { topic: "Login" } },
 			{ filter: { area: 1 } }, { filter: { area: "é".repeat(33) } }, { filter: { text: "bad\u0000text" } },
@@ -4116,13 +4116,13 @@ test("registered orchestrator_list joins peer metadata without child launches or
 			ownerReply: false, authority: "none", state: { work: { topic: "Missing area" } },
 		} });
 		const malformed = await h.tools.get("orchestrator_list")!.execute("malformed", { recipient_session_id: "peer" }, undefined, undefined, ctx);
-		assert.equal((malformed.details.gentleAgents as any).candidates[0].sessionId, "peer");
-		assert.equal((malformed.details.gentleAgents as any).candidates[0].state, undefined);
+		assert.equal((malformed.details.nubiaAgents as any).candidates[0].sessionId, "peer");
+		assert.equal((malformed.details.nubiaAgents as any).candidates[0].state, undefined);
 		assert.ok(readActivity(profile, listPresence(profile).entries[0]).activity);
 		publisher.updateDiscovery(peer, { workspace: "/repo", tasks: [] });
 		const legacy = await h.tools.get("orchestrator_list")!.execute("legacy", {}, undefined, undefined, ctx);
 		assert.match(legacy.content[0].text, /repository: unknown/);
-		assert.equal((legacy.details.gentleAgents as any).candidates[0].sessionId, "peer");
+		assert.equal((legacy.details.nubiaAgents as any).candidates[0].sessionId, "peer");
 		let release!: () => void;
 		gate = () => new Promise<void>(resolve => { release = resolve; });
 		const pending = consult.execute("pending", { recipient_session_id: "peer" }, undefined, undefined, ctx);
@@ -4156,7 +4156,7 @@ test("registered reasoning and revocation use live SDK host and published source
 		createListener: () => ({ registry, start: async () => { ready = true; }, close: async () => {} }),
 		createClient: () => ({ close() {}, sendNotification: async () => { throw Error("no owner message"); } }),
 	};
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	const answer = { role: "assistant", api: "fixture", provider: "fixture", model: "local", timestamp: 1,
 		stopReason: "stop", content: [{ type: "text", text: "Published advice" }], usage: {
@@ -4259,7 +4259,7 @@ test("session transport adds host tools, forwards notifications, and closes on s
 		},
 		createClient: () => ({ close: () => { clientCloses += 1; } }),
 	} as never;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	await h.fire("session_start", ctx);
 	await eventually(() => listenerStarts === 1, "session transport listener starts");
@@ -4270,7 +4270,7 @@ test("session transport adds host tools, forwards notifications, and closes on s
 	assert.match((await h.tools.get("orchestrator_list")!.execute("list", {}, undefined, undefined, ctx)).content[0].text, /peer/);
 	assert.ok(callback, "listener receives the inbound callback");
 	await callback!({ id: "message-1", senderSessionId: "peer", message: "\u001b[31mraw model content" });
-	assert.equal(h.sent.at(-1)?.message.customType, "gentle-agents.orchestrator-message");
+	assert.equal(h.sent.at(-1)?.message.customType, "nubia-agents.orchestrator-message");
 	assert.match(String(h.sent.at(-1)?.message.content), /\u001b\[31mraw model content/);
 	assert.deepEqual(h.sent.at(-1)?.options, { deliverAs: "followUp", triggerTurn: true });
 	await h.fire("session_shutdown", ctx);
@@ -4291,11 +4291,11 @@ test("session transport accepts a notification while listener publication is sti
 		},
 		createClient: () => ({ close: () => {} }),
 	} as never;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	await h.fire("session_start", ctx);
-	await eventually(() => h.sent.at(-1)?.message.customType === "gentle-agents.orchestrator-message", "publication callback completes");
-	assert.equal(h.sent.at(-1)?.message.customType, "gentle-agents.orchestrator-message");
+	await eventually(() => h.sent.at(-1)?.message.customType === "nubia-agents.orchestrator-message", "publication callback completes");
+	assert.equal(h.sent.at(-1)?.message.customType, "nubia-agents.orchestrator-message");
 	assert.match(String(h.sent.at(-1)?.message.content), /during publication/);
 });
 
@@ -4324,7 +4324,7 @@ test("session transport selects a peer for outbound delivery and rejects stale c
 			},
 		}),
 	} as never;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx, dialogs } = fakeContext();
 	await h.fire("session_start", ctx);
 	await eventually(() => callbacks.length === 1, "initial transport callback registration");
@@ -4362,7 +4362,7 @@ test("orchestrator_send_message requires consent on explicit recipient ID and se
 			},
 		}),
 	} as never;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 
 	const { ctx, dialogs } = fakeContext(
 		undefined,
@@ -4407,7 +4407,7 @@ test("orchestrator_send_message with Allow for this session skips prompt on subs
 			},
 		}),
 	} as never;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 
 	const { ctx, dialogs } = fakeContext(
 		undefined,
@@ -4461,7 +4461,7 @@ test("orchestrator_send_message fails closed in headless mode without UI", async
 			},
 		}),
 	} as never;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 
 	const { ctx } = fakeContext();
 	(ctx as { hasUI: boolean }).hasUI = false;
@@ -4495,7 +4495,7 @@ test("orchestrator_send_message requires a concrete trimmed reason within UTF-8 
 		createListener: () => ({ registry, start: async () => { listenerStarted = true; }, close: async () => {} }),
 		createClient: () => ({ close: () => {}, sendNotification: async (...args: unknown[]) => { sent.push(args); return { id: "msg-1", accepted: true }; } }),
 	} as never;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx, dialogs } = fakeContext();
 	await h.fire("session_start", ctx);
 	await eventually(() => listenerStarted, "session transport listener starts");
@@ -4534,7 +4534,7 @@ test("orchestrator_send_message snapshots message and reason before recipient an
 		createListener: () => ({ registry, start: async () => { listenerStarted = true; }, close: async () => {} }),
 		createClient: () => ({ close: () => {}, sendNotification: async (recipient: string, message: string) => { sent.push({ recipient, message }); return { id: "msg-1", accepted: true }; } }),
 	} as never;
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx, dialogs } = fakeContext(undefined, undefined, undefined, undefined, async (title) => title.startsWith("Select recipient") ? recipientSelection : consentSelection);
 	await h.fire("session_start", ctx);
 	await eventually(() => listenerStarted, "session transport listener starts");
@@ -4567,19 +4567,19 @@ test("orchestrator_send_message snapshots message and reason before recipient an
 test("a background completion settling while the parent agent runs is delivered exactly once at the next turn end", async () => {
 	const { pi, tools, fire, sent, userMessages } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Chained turns", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 	await fire("agent_start", ctx);
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "Chained done." }] }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0, "nothing enters the conversation while the parent agent run is active");
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0, "nothing enters the conversation while the parent agent run is active");
 	await fire("turn_end", ctx);
-	const results = sent.filter((entry) => entry.message.customType === "gentle-agents.result");
+	const results = sent.filter((entry) => entry.message.customType === "nubia-agents.result");
 	assert.equal(results.length, 1, "the held completion is delivered exactly once at turn_end");
 	assert.match(String(results[0]!.message.content), new RegExp(`task ${id}, "Chained turns"`));
 	// Pins the delivery mode against the host's drain semantics: "followUp" is
@@ -4589,7 +4589,7 @@ test("a background completion settling while the parent agent runs is delivered 
 	// to the current turn.
 	assert.deepEqual(results[0]!.options, { deliverAs: "steer", triggerTurn: true });
 	await fire("turn_end", ctx);
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 1, "a later turn_end never replays the completion");
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 1, "a later turn_end never replays the completion");
 	assert.equal(userMessages.length, 0, "an active parent is never woken through a separate user message");
 	await fire("session_shutdown", ctx);
 });
@@ -4597,7 +4597,7 @@ test("a background completion settling while the parent agent runs is delivered 
 test("Bridge identity is durable, session-owned and registered once across session changes", async () => {
 	const h = fakePi();
 	const runtime = deps();
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	const { ctx } = fakeContext();
 	ctx.sessionManager.getEntries = () => h.entries as unknown as ReturnType<ExtensionContext["sessionManager"]["getEntries"]>;
 	await h.fire("session_start", ctx);
@@ -4609,7 +4609,7 @@ test("Bridge identity is durable, session-owned and registered once across sessi
 	const transform = h.transformers[0];
 	const context = { messageType: "user" as const, isStreaming: false, availableWidth: 80 };
 	assert.equal(transform(wake, context), "");
-	assert.equal(h.entries.filter(entry => entry.customType === "gentle-agents.wake-identity").length, 1);
+	assert.equal(h.entries.filter(entry => entry.customType === "nubia-agents.wake-identity").length, 1);
 	await h.fire("session_start", ctx, { reason: "reload" });
 	assert.equal(transform(wake, context), "", "reload reconstructs ownership");
 	ctx.sessionManager.getSessionId = () => "other-session";
@@ -4630,7 +4630,7 @@ for (const failure of ["missing-api", "persistence", "warning-ui"] as const) {
 		const h = fakePi();
 		const runtime = deps();
 		if (failure !== "persistence") delete (h.pi as Partial<ExtensionAPI>).registerMarkdownTransformer;
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx, dialogs } = fakeContext();
 		if (failure === "warning-ui") ctx.ui.notify = () => { throw new Error("UI unavailable"); };
 		await h.fire("session_start", ctx);
@@ -4641,7 +4641,7 @@ for (const failure of ["missing-api", "persistence", "warning-ui"] as const) {
 		await tick();
 		assert.equal(h.userMessages.length, 1);
 		assert.equal(h.sent.length, 1, "payload is stored once despite compatibility fallback");
-		assert.doesNotMatch(String(h.userMessages[0].content), /gentle-agents wake:/);
+		assert.doesNotMatch(String(h.userMessages[0].content), /nubia-agents wake:/);
 		if (failure !== "warning-ui") assert.ok(dialogs.some(message => message.includes("cannot hide Claude Bridge")));
 	});
 }
@@ -4652,7 +4652,7 @@ for (const provider of ["openai", "anthropic", "custom-extension", undefined, "c
 			const h = fakePi();
 			h.setProvider(provider);
 			const harness = deps();
-			gentleAgents(h.pi, {}, harness.deps);
+			nubiaAgents(h.pi, {}, harness.deps);
 			const { ctx } = fakeContext();
 			await h.fire("session_start", ctx);
 			await h.tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Route wake", mode: "background" }, undefined, undefined, ctx);
@@ -4668,7 +4668,7 @@ for (const provider of ["openai", "anthropic", "custom-extension", undefined, "c
 			if (provider === "claude-bridge") {
 				assert.equal(h.sent.length, 1);
 				assert.equal(h.userMessages.length, 1);
-				assert.match(String(h.userMessages[0].content), /\[gentle-agents wake: [0-9a-f-]+\]$/);
+				assert.match(String(h.userMessages[0].content), /\[nubia-agents wake: [0-9a-f-]+\]$/);
 				assert.deepEqual(h.userMessages[0].options, { deliverAs: "steer" });
 				assert.equal(h.transformers[0](String(h.userMessages[0].content), { messageType: "user", isStreaming: false, availableWidth: 80 }), "");
 				assert.equal(h.delivery.at(-1), "user");
@@ -4677,9 +4677,9 @@ for (const provider of ["openai", "anthropic", "custom-extension", undefined, "c
 				assert.equal(h.sent.length, 2, "the stored payload still gets a continuation turn");
 				assert.deepEqual(h.sent[1]!.options, { deliverAs: "steer", triggerTurn: true });
 				assert.equal(h.sent[1]!.message.display, false);
-				assert.equal(h.sent[1]!.message.customType, "gentle-agents.wake");
+				assert.equal(h.sent[1]!.message.customType, "nubia-agents.wake");
 				assert.equal(h.sent[1]!.message.content, "Review the delivered subagent output and continue.");
-				assert.deepEqual(h.delivery, [`custom:gentle-agents.${kind === "query" ? "message" : "result"}`, "custom:gentle-agents.wake"]);
+				assert.deepEqual(h.delivery, [`custom:nubia-agents.${kind === "query" ? "message" : "result"}`, "custom:nubia-agents.wake"]);
 			}
 			await h.fire("session_shutdown", ctx);
 		});
@@ -4690,7 +4690,7 @@ for (const [from, to] of [["openai", "claude-bridge"], ["claude-bridge", "openai
 	test(`wake reads the live provider after storage: ${from} to ${to}`, async () => {
 		const h = fakePi(from);
 		const harness = deps();
-		gentleAgents(h.pi, {}, harness.deps);
+		nubiaAgents(h.pi, {}, harness.deps);
 		const { ctx } = fakeContext();
 		await h.fire("session_start", ctx);
 		await h.tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Switch before dispatch", mode: "background" }, undefined, undefined, ctx);
@@ -4699,12 +4699,12 @@ for (const [from, to] of [["openai", "claude-bridge"], ["claude-bridge", "openai
 		Object.assign(h.pi, { sendMessage: (...args: Parameters<ExtensionAPI["sendMessage"]>) => {
 			sendMessage(...args);
 			// Storage happens synchronously, dispatch in the queued microtask.
-			if (args[0].customType === "gentle-agents.message") h.setProvider(to);
+			if (args[0].customType === "nubia-agents.message") h.setProvider(to);
 		} });
 		harness.children[0].message({ id: "q1", kind: "query", message: "Switch?" });
 		await tick();
 		assert.equal(h.userMessages.length, to === "claude-bridge" ? 1 : 0);
-		assert.equal(h.sent.filter((entry) => entry.message.customType === "gentle-agents.wake").length, to === "openai" ? 1 : 0);
+		assert.equal(h.sent.filter((entry) => entry.message.customType === "nubia-agents.wake").length, to === "openai" ? 1 : 0);
 		await h.fire("session_shutdown", ctx);
 	});
 }
@@ -4714,7 +4714,7 @@ for (const boundary of ["session_compact", "session_compact_failed"] as const) {
 		const h = fakePi("openai");
 		const harness = deps();
 		const timers = recordTimers(harness.deps);
-		gentleAgents(h.pi, {}, harness.deps);
+		nubiaAgents(h.pi, {}, harness.deps);
 		const { ctx } = fakeContext();
 		await h.fire("session_start", ctx);
 		for (const task of ["Ask", "Finish"]) await h.tools.get("subagent_run")!.execute(task, { agent: "explore", task, mode: "background" }, undefined, undefined, ctx);
@@ -4729,7 +4729,7 @@ for (const boundary of ["session_compact", "session_compact_failed"] as const) {
 		h.setIdle(true);
 		assert.equal(timers.run(0), 1);
 		await tick();
-		assert.deepEqual(h.delivery, ["custom:gentle-agents.message", "custom:gentle-agents.result", "custom:gentle-agents.wake"]);
+		assert.deepEqual(h.delivery, ["custom:nubia-agents.message", "custom:nubia-agents.result", "custom:nubia-agents.wake"]);
 		assert.deepEqual(h.sent.map((entry) => entry.options), [{ triggerTurn: false }, { triggerTurn: false }, { deliverAs: "steer", triggerTurn: true }]);
 		const expireWakeGrace = timers.takeLast(PARENT_WAKE_GRACE_MS);
 		harness.children[0].message({ id: "q2", kind: "query", message: "Later question" });
@@ -4745,7 +4745,7 @@ for (const boundary of ["session_compact", "session_compact_failed"] as const) {
 		await tick();
 		assert.equal(h.sent.length, 5, "busy content stays queued until the turn boundary");
 		await h.fire("turn_end", ctx);
-		assert.equal(h.sent.at(-1)!.message.customType, "gentle-agents.message");
+		assert.equal(h.sent.at(-1)!.message.customType, "nubia-agents.message");
 		assert.deepEqual(h.sent.at(-1)!.options, { deliverAs: "steer", triggerTurn: true }, "busy native delivery keeps the original steering route");
 		assert.equal(h.userMessages.length, 0);
 		await h.fire("session_shutdown", ctx);
@@ -4757,27 +4757,27 @@ for (const boundary of ["session_compact", "session_compact_failed"] as const) {
 test("an idle parent stores the structured completion and is woken through the normal prompt lifecycle", async () => {
 	const { pi, tools, fire, sent, userMessages, delivery, renderers } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Idle wake", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "Idle answer." }] }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	const results = sent.filter((entry) => entry.message.customType === "gentle-agents.result");
+	const results = sent.filter((entry) => entry.message.customType === "nubia-agents.result");
 	assert.equal(results.length, 1, "the completion is stored exactly once");
 	assert.deepEqual(results[0]!.options, { triggerTurn: false }, "no direct custom-message turn bypasses before_agent_start");
 	assert.equal(results[0]!.message.display, true, "the completion card stays visible");
-	assert.equal((results[0]!.message.details as { gentleAgents?: { taskId?: string } }).gentleAgents?.taskId, id, "structured details stay on the durable message");
-	assert.match(renderers.get("gentle-agents.result")!(results[0]!.message, { expanded: true }, plainTheme).render(70).map(stripAnsi).join("\n"), /Idle answer\./);
+	assert.equal((results[0]!.message.details as { nubiaAgents?: { taskId?: string } }).nubiaAgents?.taskId, id, "structured details stay on the durable message");
+	assert.match(renderers.get("nubia-agents.result")!(results[0]!.message, { expanded: true }, plainTheme).render(70).map(stripAnsi).join("\n"), /Idle answer\./);
 	assert.equal(userMessages.length, 1, "the idle parent is woken exactly once");
 	assert.deepEqual(userMessages[0]!.options, { deliverAs: "steer" }, "a wake racing a new run is steered instead of rejected");
 	const wake = String(userMessages[0]!.content);
 	assert.match(wake, /system-generated/i, "the wake never claims human authorship");
 	assert.doesNotMatch(wake, /Idle answer\./, "the wake never duplicates child content");
-	assert.deepEqual(delivery, ["custom:gentle-agents.result", "user"], "the structured result is stored before the wake");
+	assert.deepEqual(delivery, ["custom:nubia-agents.result", "user"], "the structured result is stored before the wake");
 	await fire("turn_end", ctx);
 	await fire("agent_settled", ctx);
 	assert.equal(sent.length, 1, "later boundaries never replay the completion");
@@ -4788,7 +4788,7 @@ test("an idle parent stores the structured completion and is woken through the n
 test("idle deliveries before the woken run starts share one wake, and the next idle window wakes again", async () => {
 	const { pi, tools, fire, sent, userMessages, delivery } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "First", mode: "background" }, undefined, undefined, ctx);
@@ -4799,9 +4799,9 @@ test("idle deliveries before the woken run starts share one wake, and the next i
 		child.emit({ type: "agent_settled" });
 		await tick();
 	}
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 2, "both completions are stored");
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 2, "both completions are stored");
 	assert.equal(userMessages.length, 1, "a pending wake already covers results stored before its run starts");
-	assert.deepEqual(delivery, ["custom:gentle-agents.result", "user", "custom:gentle-agents.result"]);
+	assert.deepEqual(delivery, ["custom:nubia-agents.result", "user", "custom:nubia-agents.result"]);
 	await fire("agent_start", ctx);
 	await fire("agent_end", ctx);
 	await fire("agent_settled", ctx);
@@ -4810,7 +4810,7 @@ test("idle deliveries before the woken run starts share one wake, and the next i
 	harness.children[2]!.emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "done" }] }] });
 	harness.children[2]!.emit({ type: "agent_settled" });
 	await tick();
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 3);
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 3);
 	assert.equal(userMessages.length, 2, "a completion after the woken run settles wakes the parent again");
 	await fire("session_shutdown", ctx);
 });
@@ -4818,21 +4818,21 @@ test("idle deliveries before the woken run starts share one wake, and the next i
 test("a child query to an idle parent is stored with its structured details and wakes the parent once", async () => {
 	const { pi, tools, fire, sent, userMessages, delivery } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Ask idle", mode: "background" }, undefined, undefined, ctx);
 	await tick();
 	harness.children[0].message({ id: "q1", kind: "query", message: "Which branch?" });
 	await tick();
-	const queries = sent.filter((entry) => entry.message.customType === "gentle-agents.message");
+	const queries = sent.filter((entry) => entry.message.customType === "nubia-agents.message");
 	assert.equal(queries.length, 1);
 	assert.deepEqual(queries[0]!.options, { triggerTurn: false });
-	assert.equal((queries[0]!.message.details as { gentleAgents?: { kind?: string } }).gentleAgents?.kind, "query", "the query keeps its structured details");
+	assert.equal((queries[0]!.message.details as { nubiaAgents?: { kind?: string } }).nubiaAgents?.kind, "query", "the query keeps its structured details");
 	assert.match(String(queries[0]!.message.content), /Which branch\?/);
 	assert.equal(userMessages.length, 1);
 	assert.doesNotMatch(String(userMessages[0]!.content), /Which branch\?/, "the wake never duplicates the child question");
-	assert.deepEqual(delivery, ["custom:gentle-agents.message", "user"]);
+	assert.deepEqual(delivery, ["custom:nubia-agents.message", "user"]);
 	await fire("session_shutdown", ctx);
 });
 
@@ -4845,7 +4845,7 @@ for (const boundary of ["session_compact", "session_compact_failed"] as const) {
 		const { pi, tools, fire, sent, userMessages, delivery, setIdle } = fakePi();
 		const harness = deps();
 		const timers = recordTimers(harness.deps);
-		gentleAgents(pi, {}, harness.deps);
+		nubiaAgents(pi, {}, harness.deps);
 		const { ctx } = fakeContext();
 		await fire("session_start", ctx);
 		await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Asks during compaction", mode: "background" }, undefined, undefined, ctx);
@@ -4865,8 +4865,8 @@ for (const boundary of ["session_compact", "session_compact_failed"] as const) {
 		assert.equal(timers.run(0), 1, "one deferred flush is scheduled for the compaction boundary");
 		await tick();
 		assert.deepEqual(sent.map((entry) => entry.options), [{ triggerTurn: false }, { triggerTurn: false }], "held content is stored without a direct turn");
-		assert.equal((sent[0]!.message.details as { gentleAgents?: { kind?: string } }).gentleAgents?.kind, "query", "the held query keeps its structured details");
-		assert.deepEqual(delivery, ["custom:gentle-agents.message", "custom:gentle-agents.result", "user"], "one wake follows all held content");
+		assert.equal((sent[0]!.message.details as { nubiaAgents?: { kind?: string } }).nubiaAgents?.kind, "query", "the held query keeps its structured details");
+		assert.deepEqual(delivery, ["custom:nubia-agents.message", "custom:nubia-agents.result", "user"], "one wake follows all held content");
 		await fire("session_shutdown", ctx);
 	});
 }
@@ -4874,7 +4874,7 @@ for (const boundary of ["session_compact", "session_compact_failed"] as const) {
 test("between agent_end and agent_settled the parent run is still active, so child content keeps the steer route", async () => {
 	const { pi, tools, fire, sent, userMessages } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Post-run window", mode: "background" }, undefined, undefined, ctx);
@@ -4896,7 +4896,7 @@ test("a handled or rejected wake never suppresses later deliveries beyond the bo
 	const { pi, tools, fire, sent, userMessages } = fakePi();
 	const harness = deps();
 	const timers = recordTimers(harness.deps);
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	for (const [index, task] of ["First", "Second", "Third"].entries()) {
@@ -4930,7 +4930,7 @@ test("a handled or rejected wake never suppresses later deliveries beyond the bo
 test("a wake that throws synchronously fails closed without blocking the next wake", async () => {
 	const { pi, tools, fire, sent, userMessages } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Throwing wake", mode: "background" }, undefined, undefined, ctx);
@@ -4954,7 +4954,7 @@ test("a wake that throws synchronously fails closed without blocking the next wa
 test("a delivery while a parent prompt is starting is stored for that run without an extra wake", async () => {
 	const { pi, tools, fire, sent, userMessages } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "During prompt start", mode: "background" }, undefined, undefined, ctx);
@@ -4977,7 +4977,7 @@ test("a delivery while a parent prompt is starting is stored for that run withou
 test("a stale parent context fails closed: child completions and notifications are not delivered", async () => {
 	const { pi, tools, fire, sent, userMessages } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Stale", mode: "background" }, undefined, undefined, ctx);
@@ -5002,11 +5002,11 @@ test("a completion held past the stale window becomes transcript-only content an
 	const harness = deps();
 	let clock = 1000;
 	harness.deps.now = () => clock;
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Slow orchestrator", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 	await fire("agent_start", ctx);
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "Late answer." }] }] });
@@ -5014,11 +5014,11 @@ test("a completion held past the stale window becomes transcript-only content an
 	await tick();
 	clock += STALE_COMPLETION_MS + 1_000;
 	await fire("turn_end", ctx);
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0, "a stale completion never enters the model context");
-	const stale = entries.filter((entry) => entry.customType === "gentle-agents.stale-result");
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0, "a stale completion never enters the model context");
+	const stale = entries.filter((entry) => entry.customType === "nubia-agents.stale-result");
 	assert.equal(stale.length, 1, "the human still sees the stale completion as durable transcript content");
 	assert.match(JSON.stringify(stale[0]!.data), new RegExp(id), "the stale notice names the task");
-	const rendered = entryRenderers.get("gentle-agents.stale-result")!(stale[0]!, { expanded: true }, plainTheme).render(90).map(stripAnsi).join("\n");
+	const rendered = entryRenderers.get("nubia-agents.stale-result")!(stale[0]!, { expanded: true }, plainTheme).render(90).map(stripAnsi).join("\n");
 	assert.match(rendered, /stale/i);
 	assert.match(rendered, new RegExp(id));
 	assert.match(rendered, /explore/);
@@ -5029,27 +5029,27 @@ test("a completion held past the stale window becomes transcript-only content an
 test("a completion the parent already pulled is dropped silently at the next turn end", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Pulled early", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 	await fire("agent_start", ctx);
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "Pulled answer." }] }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0);
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0);
 	assert.match((await tools.get("subagent_result")!.execute("c2", { task_id: id }, undefined, undefined, ctx)).content[0].text, /Pulled answer\./);
 	await fire("turn_end", ctx);
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0, "a consumed completion is dropped instead of replayed");
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0, "a consumed completion is dropped instead of replayed");
 	await fire("session_shutdown", ctx);
 });
 
 test("a session restart never replays a completion still pending from before it", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Restarted", mode: "background" }, undefined, undefined, ctx);
@@ -5058,17 +5058,17 @@ test("a session restart never replays a completion still pending from before it"
 	harness.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "Unclaimed answer." }] }] });
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0);
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0);
 	await fire("session_start", ctx, { reason: "resume" });
 	await fire("turn_end", ctx);
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0, "a resumed session starts with an empty completion queue");
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0, "a resumed session starts with an empty completion queue");
 	await fire("session_shutdown", ctx);
 });
 
 test("a background completion owned by a prior session is dropped, never delivered into the current session", async () => {
 	const { pi, tools, fire, sent, entries } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Cross session", mode: "background" }, undefined, undefined, ctx);
@@ -5079,15 +5079,15 @@ test("a background completion owned by a prior session is dropped, never deliver
 	harness.children[0].emit({ type: "agent_settled" });
 	await tick();
 	await fire("turn_end", ctx);
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.result").length, 0, "the replacement session receives no completion it does not own");
-	assert.equal(entries.filter((entry) => entry.customType === "gentle-agents.stale-result").length, 0);
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.result").length, 0, "the replacement session receives no completion it does not own");
+	assert.equal(entries.filter((entry) => entry.customType === "nubia-agents.stale-result").length, 0);
 	await fire("session_shutdown", ctx);
 });
 
 test("aborting the caller's signal cancels the subagent, records it, and says why", async () => {
 	const { pi, tools, fire } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx, dialogs } = fakeContext();
 	await fire("session_start", ctx);
 	const controller = new AbortController();
@@ -5096,7 +5096,7 @@ test("aborting the caller's signal cancels the subagent, records it, and says wh
 	controller.abort();
 	await tick();
 	const yielded = await pending;
-	const details = (yielded.details as { gentleAgents?: { taskId: string; status: string } }).gentleAgents!;
+	const details = (yielded.details as { nubiaAgents?: { taskId: string; status: string } }).nubiaAgents!;
 	assert.equal(details.status, "cancelled", "the run is recorded as cancelled");
 	assert.match((yielded as { content: Array<{ text: string }> }).content[0].text, /cancelled/);
 	assert.ok(
@@ -5109,12 +5109,12 @@ test("aborting the caller's signal cancels the subagent, records it, and says wh
 test("issue #1162: notifications from a child that settles during parent turn are dropped and never re-enter conversation", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Worker task", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 
 	await fire("agent_start", ctx);
@@ -5130,22 +5130,22 @@ test("issue #1162: notifications from a child that settles during parent turn ar
 
 	await fire("turn_end", ctx);
 
-	const results = sent.filter((entry) => entry.message.customType === "gentle-agents.result");
-	const notifications = sent.filter((entry) => entry.message.customType === "gentle-agents.message");
+	const results = sent.filter((entry) => entry.message.customType === "nubia-agents.result");
+	const notifications = sent.filter((entry) => entry.message.customType === "nubia-agents.message");
 	assert.equal(results.length, 1, "completion is delivered");
 	assert.equal(notifications.length, 0, "stale notification from settled task is dropped");
 	assert.deepEqual(results[0]!.options, { deliverAs: "steer", triggerTurn: true });
 
 	await fire("turn_end", ctx);
 	await fire("agent_end", ctx);
-	assert.equal(sent.filter((entry) => entry.message.customType === "gentle-agents.message").length, 0, "notification never replays");
+	assert.equal(sent.filter((entry) => entry.message.customType === "nubia-agents.message").length, 0, "notification never replays");
 	await fire("session_shutdown", ctx);
 });
 
 test("issue #1162: a live notification on a running child is delivered promptly at turn_end via steer", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 
@@ -5158,7 +5158,7 @@ test("issue #1162: a live notification on a running child is delivered promptly 
 
 	await fire("turn_end", ctx);
 
-	const notifications = sent.filter((entry) => entry.message.customType === "gentle-agents.message");
+	const notifications = sent.filter((entry) => entry.message.customType === "nubia-agents.message");
 	assert.equal(notifications.length, 1, "live notification is delivered at turn_end");
 	assert.equal(notifications[0]!.message.content, "Live status update");
 	assert.deepEqual(notifications[0]!.options, { deliverAs: "steer", triggerTurn: true });
@@ -5169,12 +5169,12 @@ test("issue #1162: a live notification on a running child is delivered promptly 
 test("issue #1162: an answered subagent query is dropped and never replays after task completion", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Interactive worker", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 
 	await fire("agent_start", ctx);
@@ -5190,10 +5190,10 @@ test("issue #1162: an answered subagent query is dropped and never replays after
 
 	await fire("turn_end", ctx);
 
-	const queries = sent.filter((entry) => entry.message.customType === "gentle-agents.message" && (entry.message.details as { gentleAgents?: { kind?: string } })?.gentleAgents?.kind === "query");
+	const queries = sent.filter((entry) => entry.message.customType === "nubia-agents.message" && (entry.message.details as { nubiaAgents?: { kind?: string } })?.nubiaAgents?.kind === "query");
 	assert.equal(queries.length, 0, "answered query is never delivered to the model");
 
-	const results = sent.filter((entry) => entry.message.customType === "gentle-agents.result");
+	const results = sent.filter((entry) => entry.message.customType === "nubia-agents.result");
 	assert.equal(results.length, 1, "completion is delivered");
 
 	await fire("session_shutdown", ctx);
@@ -5202,12 +5202,12 @@ test("issue #1162: an answered subagent query is dropped and never replays after
 test("issue #1162: a rejected query reply preserves the live query for delivery at turn boundary", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 
 	const started = await tools.get("subagent_run")!.execute("c1", { agent: "explore", task: "Interactive worker", mode: "background" }, undefined, undefined, ctx);
-	const id = (started.details.gentleAgents as { taskId: string }).taskId;
+	const id = (started.details.nubiaAgents as { taskId: string }).taskId;
 	await tick();
 
 	await fire("agent_start", ctx);
@@ -5226,7 +5226,7 @@ test("issue #1162: a rejected query reply preserves the live query for delivery 
 
 	await fire("turn_end", ctx);
 
-	const queries = sent.filter((entry) => entry.message.customType === "gentle-agents.message" && (entry.message.details as { gentleAgents?: { kind?: string } })?.gentleAgents?.kind === "query");
+	const queries = sent.filter((entry) => entry.message.customType === "nubia-agents.message" && (entry.message.details as { nubiaAgents?: { kind?: string } })?.nubiaAgents?.kind === "query");
 	assert.equal(queries.length, 1, "query is delivered to the parent session at turn_end");
 	assert.match(String(queries[0].message.content), /Confirm deletion\?/);
 
@@ -5236,7 +5236,7 @@ test("issue #1162: a rejected query reply preserves the live query for delivery 
 test("issue #1162: task-mode subagent_run includes question directly in waiting result and avoids duplicate delivery", async () => {
 	const { pi, tools, fire, sent } = fakePi();
 	const harness = deps();
-	gentleAgents(pi, {}, harness.deps);
+	nubiaAgents(pi, {}, harness.deps);
 	const { ctx } = fakeContext();
 	await fire("session_start", ctx);
 
@@ -5250,24 +5250,24 @@ test("issue #1162: task-mode subagent_run includes question directly in waiting 
 	assert.equal((yielded as { terminate?: boolean }).terminate, true);
 	assert.match(yielded.content[0].text, /Subagent explore is waiting for your reply to request q1/);
 	assert.match(yielded.content[0].text, /Question:\nWhich directory should I inspect\?/);
-	assert.equal((yielded.details as { gentleAgents?: { question?: string } })?.gentleAgents?.question, "Which directory should I inspect?");
+	assert.equal((yielded.details as { nubiaAgents?: { question?: string } })?.nubiaAgents?.question, "Which directory should I inspect?");
 
 	await fire("turn_end", ctx);
 
-	const queries = sent.filter((entry) => entry.message.customType === "gentle-agents.message");
+	const queries = sent.filter((entry) => entry.message.customType === "nubia-agents.message");
 	assert.equal(queries.length, 0, "directly handed-off query is not sent as duplicate message");
 
 	await fire("session_shutdown", ctx);
 });
 
 
-// gentle-shell#1587: children do not load the gentle-pi package in the
-// isolated Gentle Shell home, so every child receives the child-context
+// nubia-shell#1587: children do not load the nub-ia package in the
+// isolated Nub-IA home, so every child receives the child-context
 // extension explicitly through --extension.
 test("children receive context and safety extensions, and missing files are omitted", async () => {
 	const expected = join(dirname(fileURLToPath(import.meta.url)), "..", "extensions", "child-context.ts");
 	const safety = join(dirname(fileURLToPath(import.meta.url)), "..", "extensions", "child-safety.ts");
-	// gentle-shell#1731 T32: the nan provider is registered by a gentle-pi
+	// nubia-shell#1731 T32: the nan provider is registered by a nub-ia
 	// extension, so a child routed to nan/* could not resolve its model.
 	const nanProvider = join(dirname(fileURLToPath(import.meta.url)), "..", "extensions", "nan-provider.ts");
 	assert.deepEqual(childContextExtensionPaths(), [resolve(expected), resolve(safety), resolve(nanProvider)]);
@@ -5277,7 +5277,7 @@ test("children receive context and safety extensions, and missing files are omit
 		const h = fakePi();
 		const runtime = deps();
 		if (scenario === "missing") runtime.deps.childExtensionPaths = [];
-		gentleAgents(h.pi, {}, runtime.deps);
+		nubiaAgents(h.pi, {}, runtime.deps);
 		const { ctx } = fakeContext();
 		await h.fire("session_start", ctx);
 		try {
@@ -5292,25 +5292,25 @@ test("children receive context and safety extensions, and missing files are omit
 	}
 });
 
-// gentle-shell#1713 (review R3-001): prove the subagent_continue wiring end to
+// nubia-shell#1713 (review R3-001): prove the subagent_continue wiring end to
 // end, not only the helper. A writer follow-up without its own section reaches
 // the child with the surfaces its original launch was admitted with.
 test("a writer continuation without its own section inherits the admitted surfaces end to end", async () => {
 	const h = fakePi();
 	const runtime = deps();
-	const profile = mkdtempSync(join(tmpdir(), "gentle-agents-continue-"));
+	const profile = mkdtempSync(join(tmpdir(), "nubia-agents-continue-"));
 	mkdirSync(join(profile, "agents"), { recursive: true });
 	writeFileSync(join(profile, "agents", "nubia-worker.md"), readFileSync(new URL("../assets/agents/nubia-worker.md", import.meta.url)));
 	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ model_profiles: { "nubia-worker": { model: "openai/gpt-4o", effort: "high" } } }));
 	const env: NodeJS.ProcessEnv = {};
-	gentleAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile });
+	nubiaAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile });
 	const { ctx } = fakeContext();
 	await h.fire("session_start", ctx);
 	const launched = h.tools.get("subagent_run")!.execute("run", { agent: "nubia-worker", task: "Do T2.\n\n## Allowed edit surfaces\n- src/app.ts\n- `docs/with space.md`\n\n## Return\nReport", mode: "task" }, undefined, undefined, ctx);
 	await tick();
 	runtime.children[0].emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "partial" }] }] });
 	runtime.children[0].emit({ type: "agent_settled" });
-	const taskId = ((await launched).details.gentleAgents as { taskId: string }).taskId;
+	const taskId = ((await launched).details.nubiaAgents as { taskId: string }).taskId;
 	const continued = h.tools.get("subagent_continue")!.execute("follow", { task_id: taskId, prompt: "Continue with the remaining specs.", mode: "task" }, undefined, undefined, ctx);
 	await tick();
 	assert.equal(runtime.children.length, 2, "the continuation is admitted instead of rejected");
@@ -5323,30 +5323,30 @@ test("a writer continuation without its own section inherits the admitted surfac
 	rmSync(profile, { recursive: true, force: true });
 });
 
-// gentle-shell#1731 T4 (S2, AC6): subagent_run and subagent_continue admit a
+// nubia-shell#1731 T4 (S2, AC6): subagent_run and subagent_continue admit a
 // writer only while no live writer in the same worktree claims an overlapping
 // `## Allowed edit surfaces` entry; read-only agents are never registered.
 test("parallel writers are admitted only with disjoint Allowed edit surfaces end to end", async () => {
 	const h = fakePi();
 	const runtime = deps();
-	const profile = mkdtempSync(join(tmpdir(), "gentle-agents-parallel-writers-"));
+	const profile = mkdtempSync(join(tmpdir(), "nubia-agents-parallel-writers-"));
 	mkdirSync(join(profile, "agents"), { recursive: true });
 	writeFileSync(join(profile, "agents", "nubia-worker.md"), readFileSync(new URL("../assets/agents/nubia-worker.md", import.meta.url)));
 	writeFileSync(join(profile, "agents", "explore.md"), "---\ndescription: maps things\ntools: [read, grep]\n---\nYou map things.");
 	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ max_concurrency: 5, model_profiles: { "nubia-worker": { model: "openai/gpt-4o", effort: "high" } } }));
 	const env: NodeJS.ProcessEnv = {};
-	gentleAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile });
+	nubiaAgents(h.pi, env, { ...runtime.deps, env, agentHome: profile });
 	const { ctx } = fakeContext();
 	await h.fire("session_start", ctx);
 	const scoped = (surface: string) => `Write it.\n\n## Allowed edit surfaces\n${surface}\n\n## Return\nReport`;
 	const run = (agent: string, task: string) => h.tools.get("subagent_run")!.execute("run", { agent, task, mode: "background" }, undefined, undefined, ctx);
-	const taskId = (result: { details: Record<string, unknown> }) => (result.details.gentleAgents as { taskId: string }).taskId;
+	const taskId = (result: { details: Record<string, unknown> }) => (result.details.nubiaAgents as { taskId: string }).taskId;
 	const finish = async (child: FakeChild, id: string) => {
 		child.emit({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "done" }] }] });
 		child.emit({ type: "agent_settled" });
 		for (let attempt = 0; attempt < 40; attempt++) {
 			const status = await h.tools.get("subagent_status")!.execute("status", { task_id: id }, undefined, undefined, ctx);
-			if ((status.details.gentleAgents as { status?: string } | undefined)?.status === TASK_STATUS.COMPLETED) return;
+			if ((status.details.nubiaAgents as { status?: string } | undefined)?.status === TASK_STATUS.COMPLETED) return;
 			await tick();
 		}
 		assert.fail(`task ${id} never completed`);
@@ -5387,7 +5387,7 @@ test("parallel writers are admitted only with disjoint Allowed edit surfaces end
 test("a subdirectory session cwd and workspace_root of the same worktree share one writer key", async () => {
 	const h = fakePi();
 	const runtime = deps();
-	const profile = mkdtempSync(join(tmpdir(), "gentle-agents-writer-root-"));
+	const profile = mkdtempSync(join(tmpdir(), "nubia-agents-writer-root-"));
 	mkdirSync(join(profile, "agents"), { recursive: true });
 	writeFileSync(join(profile, "agents", "nubia-worker.md"), readFileSync(new URL("../assets/agents/nubia-worker.md", import.meta.url)));
 	writeFileSync(join(profile, "subagents.json"), JSON.stringify({ max_concurrency: 5, model_profiles: { "nubia-worker": { model: "openai/gpt-4o", effort: "high" } } }));
@@ -5399,14 +5399,14 @@ test("a subdirectory session cwd and workspace_root of the same worktree share o
 		return { root: target === cwd || target.startsWith(`${cwd}${sep}`) ? cwd : target, commonDir: "/fixture/common" };
 	};
 	const env: NodeJS.ProcessEnv = {};
-	gentleAgents(h.pi, env, { ...runtime.deps, resolveWorktree, env, agentHome: profile });
+	nubiaAgents(h.pi, env, { ...runtime.deps, resolveWorktree, env, agentHome: profile });
 	const { ctx } = fakeContext();
 	Object.assign(ctx, { cwd: sub, sessionManager: { getSessionId: () => "s1", getCwd: () => sub, getEntries: () => [], getBranch: () => [] } });
 	await h.fire("session_start", ctx);
 	const task = "Write it.\n\n## Allowed edit surfaces\nsrc/app.ts\n\n## Return\nReport";
 	try {
 		const first = await h.tools.get("subagent_run")!.execute("run", { agent: "nubia-worker", task, mode: "background" }, undefined, undefined, ctx);
-		const firstId = (first.details.gentleAgents as { taskId: string }).taskId;
+		const firstId = (first.details.nubiaAgents as { taskId: string }).taskId;
 		await assert.rejects(h.tools.get("subagent_run")!.execute("run", { agent: "nubia-worker", task, workspace_root: cwd, mode: "background" }, undefined, undefined, ctx), new RegExp(`task ${firstId}`));
 	} finally {
 		await h.fire("session_shutdown", ctx);
@@ -5414,12 +5414,12 @@ test("a subdirectory session cwd and workspace_root of the same worktree share o
 	}
 });
 
-test("subagent_run resolves a legacy gentle-ai-* agent name to its nubia-* agent and says so", async t => {
+test("subagent_run resolves a legacy nub-ia-* agent name to its nubia-* agent and says so", async t => {
 	const agentPath = join(home, ".pi", "agent", "agents", "nubia-explore.md");
 	writeFileSync(agentPath, "---\ndescription: renamed explorer\ntools: [read]\n---\nExplore");
 	t.after(() => rmSync(agentPath, { force: true }));
 	const h = fakePi(), runtime = deps(), { ctx } = fakeContext();
-	gentleAgents(h.pi, {}, runtime.deps);
+	nubiaAgents(h.pi, {}, runtime.deps);
 	await h.fire("session_start", ctx);
 	const requested: string[] = [];
 	t.mock.method(AgentRunner.prototype, "run", request => {

@@ -23,7 +23,7 @@ const values = {
 };
 
 test("named profiles require explicit replacement and catalog reset leaves other settings untouched", () => {
-	const home = { gentlePiConfigHome: mkdtempSync(join(tmpdir(), "visual-profiles-test-")) };
+	const home = { nubiaConfigHome: mkdtempSync(join(tmpdir(), "visual-profiles-test-")) };
 	saveVisualProfile("work", values, home);
 	assert.deepEqual(listVisualProfiles(home), ["work"]);
 	assert.throws(() => saveVisualProfile("work", values, home), /already exists/);
@@ -40,8 +40,8 @@ test("named profiles require explicit replacement and catalog reset leaves other
 });
 
 test("malformed and unknown-version catalogs fail closed rather than overwrite", () => {
-	const home = { gentlePiConfigHome: mkdtempSync(join(tmpdir(), "visual-profiles-test-")) };
-	const path = join(home.gentlePiConfigHome, "visual-profiles.json");
+	const home = { nubiaConfigHome: mkdtempSync(join(tmpdir(), "visual-profiles-test-")) };
+	const path = join(home.nubiaConfigHome, "visual-profiles.json");
 	writeFileSync(path, JSON.stringify({ schema: "future", profiles: [] }));
 	assert.equal(readVisualProfiles(home).malformed, true);
 	assert.throws(() => saveVisualProfile("new", values, home), /malformed/);
@@ -51,10 +51,10 @@ test("malformed and unknown-version catalogs fail closed rather than overwrite",
 });
 
 test("profiles saved before the rdd section existed load with rdd shown", () => {
-	const home = { gentlePiConfigHome: mkdtempSync(join(tmpdir(), "visual-profiles-test-")) };
+	const home = { nubiaConfigHome: mkdtempSync(join(tmpdir(), "visual-profiles-test-")) };
 	const { rdd: _rdd, ...legacyVisibility } = { ...DEFAULT_VISUAL_SETTINGS.visibility, agents: false };
 	const legacy = { name: "old", ...values, visual: { ...values.visual, visibility: legacyVisibility } };
-	writeFileSync(join(home.gentlePiConfigHome, "visual-profiles.json"), JSON.stringify({ schema: VISUAL_PROFILES_SCHEMA, profiles: [legacy] }));
+	writeFileSync(join(home.nubiaConfigHome, "visual-profiles.json"), JSON.stringify({ schema: VISUAL_PROFILES_SCHEMA, profiles: [legacy] }));
 	const result = readVisualProfiles(home);
 	assert.equal(result.malformed, false);
 	assert.deepEqual(result.profiles[0]!.visual.visibility, { ...DEFAULT_VISUAL_SETTINGS.visibility, agents: false, rdd: true });
@@ -78,10 +78,10 @@ test("symlinked catalog file is rejected instead of followed, and save/delete le
 		}
 		throw error;
 	}
-	const result = readVisualProfiles({ gentlePiConfigHome: home });
+	const result = readVisualProfiles({ nubiaConfigHome: home });
 	assert.equal(result.profiles.length, 0);
 	assert.ok(result.readError || result.malformed, "symlinked catalog must not be silently followed and accepted");
-	assert.throws(() => saveVisualProfile("x", values, { gentlePiConfigHome: home }));
-	assert.throws(() => deleteVisualProfile("x", { gentlePiConfigHome: home }));
+	assert.throws(() => saveVisualProfile("x", values, { nubiaConfigHome: home }));
+	assert.throws(() => deleteVisualProfile("x", { nubiaConfigHome: home }));
 	assert.equal(readFileSync(target, "utf8"), targetContent);
 });

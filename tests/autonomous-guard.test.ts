@@ -27,18 +27,18 @@ test("YOLO preserves explicit push restrictions in either config layer independe
 	const cwd = join(root, "repo");
 	const home = join(root, "home");
 	try {
-		assert.equal(yoloPushConfiguredRestriction(cwd, { gentlePiConfigHome: home }), undefined);
+		assert.equal(yoloPushConfiguredRestriction(cwd, { nubiaConfigHome: home }), undefined);
 		writeConfig(home, "runtime-guardrails.json", { autonomousMode: false, guardedCommands: { gitPush: "confirm" } });
 		writeConfig(cwd, ".pi/gentle-ai/runtime-guardrails.json", { autonomousMode: true, guardedCommands: { gitPush: "allow" } });
-		assert.equal(yoloPushConfiguredRestriction(cwd, { gentlePiConfigHome: home }), "confirm");
+		assert.equal(yoloPushConfiguredRestriction(cwd, { nubiaConfigHome: home }), "confirm");
 		writeConfig(home, "runtime-guardrails.json", { autonomousMode: true, guardedCommands: { gitPush: "allow" } });
-		assert.equal(yoloPushConfiguredRestriction(cwd, { gentlePiConfigHome: home }), undefined);
+		assert.equal(yoloPushConfiguredRestriction(cwd, { nubiaConfigHome: home }), undefined);
 		writeConfig(cwd, ".pi/gentle-ai/runtime-guardrails.json", { guardedCommands: { gitPush: "block" } });
-		assert.equal(yoloPushConfiguredRestriction(cwd, { gentlePiConfigHome: home }), "block");
+		assert.equal(yoloPushConfiguredRestriction(cwd, { nubiaConfigHome: home }), "block");
 		writeConfig(cwd, ".pi/gentle-ai/runtime-guardrails.json", { guardedCommands: { gitPush: "confirm" } });
-		assert.equal(yoloPushConfiguredRestriction(cwd, { gentlePiConfigHome: home }), "confirm");
+		assert.equal(yoloPushConfiguredRestriction(cwd, { nubiaConfigHome: home }), "confirm");
 		writeConfig(cwd, ".pi/gentle-ai/runtime-guardrails.json", null);
-		assert.equal(yoloPushConfiguredRestriction(cwd, { gentlePiConfigHome: home }), "confirm");
+		assert.equal(yoloPushConfiguredRestriction(cwd, { nubiaConfigHome: home }), "confirm");
 	} finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -80,7 +80,7 @@ test("quoted separator arguments cannot waive hard denial or invent destruction"
 // ---------------------------------------------------------------------------
 
 function makeTmpDir(): string {
-	return mkdtempSync(join(tmpdir(), "gentle-pi-autonomous-"));
+	return mkdtempSync(join(tmpdir(), "nub-ia-autonomous-"));
 }
 
 function writeConfig(dir: string, relPath: string, content: unknown): void {
@@ -376,7 +376,7 @@ test("loadRuntimeGuardrailsConfig: returns off config when no file exists", () =
 	const dir = makeTmpDir();
 	try {
 		const config = __testing.loadRuntimeGuardrailsConfig(dir, {
-			gentlePiConfigHome: join(dir, "global-config"),
+			nubiaConfigHome: join(dir, "global-config"),
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -390,7 +390,7 @@ test("loadRuntimeGuardrailsConfig: env var NUB_IA_AUTONOMOUS_MODE=1 activates mo
 	const dir = makeTmpDir();
 	try {
 		const config = __testing.loadRuntimeGuardrailsConfig(dir, {
-			gentlePiConfigHome: join(dir, "global-config"),
+			nubiaConfigHome: join(dir, "global-config"),
 		});
 		assert.equal(config.autonomousMode, true);
 	} finally {
@@ -409,7 +409,7 @@ test("loadRuntimeGuardrailsConfig: global config file activates autonomous mode"
 			guardedCommands: { gitPush: "allow" },
 		});
 		const config = __testing.loadRuntimeGuardrailsConfig(join(dir, "project"), {
-			gentlePiConfigHome: globalConfigDir,
+			nubiaConfigHome: globalConfigDir,
 		});
 		assert.equal(config.autonomousMode, true);
 		assert.equal(config.guardedCommands.gitPush, "allow");
@@ -428,13 +428,13 @@ test("loadRuntimeGuardrailsConfig: project config overrides global config", () =
 			autonomousMode: true,
 			guardedCommands: { gitPush: "allow", npmPublish: "confirm" },
 		});
-		writeConfig(projectDir, join(".pi", "gentle-ai", "runtime-guardrails.json"), {
+		writeConfig(projectDir, join(".pi", "nub-ia", "runtime-guardrails.json"), {
 			autonomousMode: true,
 			guardedCommands: { gitPush: "confirm", npmPublish: "block" },
 		});
 
 		const config = __testing.loadRuntimeGuardrailsConfig(projectDir, {
-			gentlePiConfigHome: globalConfigDir,
+			nubiaConfigHome: globalConfigDir,
 		});
 		assert.equal(config.autonomousMode, true);
 		assert.equal(config.guardedCommands.gitPush, "confirm");
@@ -453,7 +453,7 @@ test("loadRuntimeGuardrailsConfig: invalid JSON in config fails safe (autonomous
 		writeFileSync(configPath, "{ not valid json }");
 
 		const config = __testing.loadRuntimeGuardrailsConfig(join(dir, "project"), {
-			gentlePiConfigHome: globalConfigDir,
+			nubiaConfigHome: globalConfigDir,
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -468,7 +468,7 @@ test("loadRuntimeGuardrailsConfig: non-object JSON fails safe", () => {
 		writeConfig(globalConfigDir, "runtime-guardrails.json", [1, 2, 3]);
 
 		const config = __testing.loadRuntimeGuardrailsConfig(join(dir, "project"), {
-			gentlePiConfigHome: globalConfigDir,
+			nubiaConfigHome: globalConfigDir,
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -489,14 +489,14 @@ test("loadRuntimeGuardrailsConfig: invalid project config fails safe (autonomous
 		const projectConfigPath = join(
 			projectDir,
 			".pi",
-			"gentle-ai",
+			"nub-ia",
 			"runtime-guardrails.json",
 		);
 		mkdirSync(dirname(projectConfigPath), { recursive: true });
 		writeFileSync(projectConfigPath, "{ bad json }");
 
 		const config = __testing.loadRuntimeGuardrailsConfig(projectDir, {
-			gentlePiConfigHome: globalConfigDir,
+			nubiaConfigHome: globalConfigDir,
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -622,7 +622,7 @@ test("loadRuntimeGuardrailsConfig: NUB_IA_AUTONOMOUS_MODE=0 does NOT activate au
 	const dir = makeTmpDir();
 	try {
 		const config = __testing.loadRuntimeGuardrailsConfig(dir, {
-			gentlePiConfigHome: join(dir, "global-config"),
+			nubiaConfigHome: join(dir, "global-config"),
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -638,7 +638,7 @@ test("loadRuntimeGuardrailsConfig: NUB_IA_AUTONOMOUS_MODE=true does NOT activate
 	const dir = makeTmpDir();
 	try {
 		const config = __testing.loadRuntimeGuardrailsConfig(dir, {
-			gentlePiConfigHome: join(dir, "global-config"),
+			nubiaConfigHome: join(dir, "global-config"),
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -654,7 +654,7 @@ test("loadRuntimeGuardrailsConfig: NUB_IA_AUTONOMOUS_MODE='' does NOT activate a
 	const dir = makeTmpDir();
 	try {
 		const config = __testing.loadRuntimeGuardrailsConfig(dir, {
-			gentlePiConfigHome: join(dir, "global-config"),
+			nubiaConfigHome: join(dir, "global-config"),
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -677,7 +677,7 @@ test("loadRuntimeGuardrailsConfig: autonomousMode:1 (number) in JSON does NOT ac
 			guardedCommands: {},
 		});
 		const config = __testing.loadRuntimeGuardrailsConfig(join(dir, "project"), {
-			gentlePiConfigHome: globalConfigDir,
+			nubiaConfigHome: globalConfigDir,
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -694,7 +694,7 @@ test('loadRuntimeGuardrailsConfig: autonomousMode:"true" (string) in JSON does N
 			guardedCommands: {},
 		});
 		const config = __testing.loadRuntimeGuardrailsConfig(join(dir, "project"), {
-			gentlePiConfigHome: globalConfigDir,
+			nubiaConfigHome: globalConfigDir,
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -711,7 +711,7 @@ test("loadRuntimeGuardrailsConfig: autonomousMode:{} (object) in JSON does NOT a
 			guardedCommands: {},
 		});
 		const config = __testing.loadRuntimeGuardrailsConfig(join(dir, "project"), {
-			gentlePiConfigHome: globalConfigDir,
+			nubiaConfigHome: globalConfigDir,
 		});
 		assert.equal(config.autonomousMode, false);
 	} finally {
@@ -723,7 +723,7 @@ test("project guardrails config can only tighten the user's policy", () => {
 	const root = makeTmpDir();
 	const cwd = join(root, "repo");
 	const home = join(root, "home");
-	const load = () => __testing.loadRuntimeGuardrailsConfig(cwd, { gentlePiConfigHome: home });
+	const load = () => __testing.loadRuntimeGuardrailsConfig(cwd, { nubiaConfigHome: home });
 	try {
 		writeConfig(cwd, ".pi/nub-ia/runtime-guardrails.json", { autonomousMode: true, guardedCommands: { gitRebase: "allow", npmPublish: "allow" } });
 		assert.equal(load().autonomousMode, false);

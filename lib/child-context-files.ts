@@ -1,5 +1,5 @@
-// gentle-shell#1587: delegated children (NUB_IA_AGENTS_CHILD=1) load the
-// same context files as the orchestrator, including gentle-ai managed blocks
+// nubia-shell#1587: delegated children (NUB_IA_AGENTS_CHILD=1) load the
+// same context files as the orchestrator, including nub-ia managed blocks
 // that bind themselves to the orchestrator only. Those blocks cost ~37k prefix
 // tokens per child and give a worker orchestration rules it must not follow.
 // This module removes exactly those blocks and keeps everything else.
@@ -41,7 +41,7 @@ const REMOVED_NAMES: ReadonlySet<string> = new Set(ORCHESTRATOR_ONLY_MANAGED_BLO
 
 // A managed marker counts only when it is alone on its line. Inline mentions
 // (prose, inline code) and markers inside fenced code are plain text.
-const MARKER_LINE = /^[ \t]*<!--[ \t]*(\/?)gentle-ai:([A-Za-z0-9][A-Za-z0-9._-]*)[ \t]*-->[ \t]*$/;
+const MARKER_LINE = /^[ \t]*<!--[ \t]*(\/?)nub-ia:([A-Za-z0-9][A-Za-z0-9._-]*)[ \t]*-->[ \t]*$/;
 const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 const BLANK_LINE = /^[ \t]*\r?\n?$/;
 

@@ -14,7 +14,7 @@ import type {
 	ExtensionAPI,
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { __testing, createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { __testing, createNubiaExtension } from "../extensions/nubia-harness.ts";
 
 // ---------------------------------------------------------------------------
 // Background subagents policy (issue #256).
@@ -60,7 +60,7 @@ function writePolicyFile(dir: string, policy: string): void {
 	mkdirSync(dir, { recursive: true });
 	writeFileSync(
 		join(dir, "background-subagents.json"),
-		JSON.stringify({ schema: "gentle-pi.background-subagents/v1", policy }),
+		JSON.stringify({ schema: "nub-ia.background-subagents/v1", policy }),
 	);
 }
 
@@ -96,13 +96,13 @@ function installSubagentsPackage(
 test("strict decode accepts exactly the v1 schema with policy on|off", () => {
 	assert.equal(
 		parseBackgroundSubagentsPolicyFile(
-			'{"schema":"gentle-pi.background-subagents/v1","policy":"on"}',
+			'{"schema":"nub-ia.background-subagents/v1","policy":"on"}',
 		),
 		"on",
 	);
 	assert.equal(
 		parseBackgroundSubagentsPolicyFile(
-			'{"schema":"gentle-pi.background-subagents/v1","policy":"off"}',
+			'{"schema":"nub-ia.background-subagents/v1","policy":"off"}',
 		),
 		"off",
 	);
@@ -114,10 +114,10 @@ test("strict decode rejects malformed shapes", () => {
 		"[]",
 		"null",
 		'{"policy":"on"}',
-		'{"schema":"gentle-pi.background-subagents/v2","policy":"on"}',
-		'{"schema":"gentle-pi.background-subagents/v1","policy":"ON"}',
-		'{"schema":"gentle-pi.background-subagents/v1","policy":true}',
-		'{"schema":"gentle-pi.background-subagents/v1","policy":"on","extra":1}',
+		'{"schema":"nub-ia.background-subagents/v2","policy":"on"}',
+		'{"schema":"nub-ia.background-subagents/v1","policy":"ON"}',
+		'{"schema":"nub-ia.background-subagents/v1","policy":true}',
+		'{"schema":"nub-ia.background-subagents/v1","policy":"on","extra":1}',
 	]) {
 		assert.equal(
 			parseBackgroundSubagentsPolicyFile(raw),
@@ -133,21 +133,21 @@ test("strict decode rejects malformed shapes", () => {
 
 test("default is off with no file and no env", () => {
 	const cwd = makeScratch("gp-bg-none-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	assert.equal(
-		loadBackgroundSubagentsPolicy(cwd, { gentlePiConfigHome: configHome, env: EMPTY_ENV }),
+		loadBackgroundSubagentsPolicy(cwd, { nubiaConfigHome: configHome, env: EMPTY_ENV }),
 		"off",
 	);
 });
 
 test("project file overrides global file and env", () => {
 	const cwd = makeScratch("gp-bg-proj-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
-	writePolicyFile(join(cwd, ".pi", "gentle-ai"), "on");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
+	writePolicyFile(join(cwd, ".pi", "nub-ia"), "on");
 	writePolicyFile(configHome, "off");
 	assert.equal(
 		loadBackgroundSubagentsPolicy(cwd, {
-			gentlePiConfigHome: configHome,
+			nubiaConfigHome: configHome,
 			env: { NUB_IA_BACKGROUND_SUBAGENTS: "off" },
 		}),
 		"on",
@@ -156,11 +156,11 @@ test("project file overrides global file and env", () => {
 
 test("global file overrides env when no project file exists", () => {
 	const cwd = makeScratch("gp-bg-glob-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	writePolicyFile(configHome, "on");
 	assert.equal(
 		loadBackgroundSubagentsPolicy(cwd, {
-			gentlePiConfigHome: configHome,
+			nubiaConfigHome: configHome,
 			env: { NUB_IA_BACKGROUND_SUBAGENTS: "off" },
 		}),
 		"on",
@@ -169,10 +169,10 @@ test("global file overrides env when no project file exists", () => {
 
 test("env var applies only when no policy file exists, and only exact on|off", () => {
 	const cwd = makeScratch("gp-bg-env-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	assert.equal(
 		loadBackgroundSubagentsPolicy(cwd, {
-			gentlePiConfigHome: configHome,
+			nubiaConfigHome: configHome,
 			env: { NUB_IA_BACKGROUND_SUBAGENTS: "on" },
 		}),
 		"on",
@@ -180,7 +180,7 @@ test("env var applies only when no policy file exists, and only exact on|off", (
 	for (const invalid of ["1", "true", "ON", "yes", ""]) {
 		assert.equal(
 			loadBackgroundSubagentsPolicy(cwd, {
-				gentlePiConfigHome: configHome,
+				nubiaConfigHome: configHome,
 				env: { NUB_IA_BACKGROUND_SUBAGENTS: invalid },
 			}),
 			"off",
@@ -191,14 +191,14 @@ test("env var applies only when no policy file exists, and only exact on|off", (
 
 test("a malformed higher-priority file fails closed to off instead of falling through", () => {
 	const cwd = makeScratch("gp-bg-mal-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
-	const projectDir = join(cwd, ".pi", "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
+	const projectDir = join(cwd, ".pi", "nub-ia");
 	mkdirSync(projectDir, { recursive: true });
 	writeFileSync(join(projectDir, "background-subagents.json"), "{malformed");
 	writePolicyFile(configHome, "on");
 	assert.equal(
 		loadBackgroundSubagentsPolicy(cwd, {
-			gentlePiConfigHome: configHome,
+			nubiaConfigHome: configHome,
 			env: { NUB_IA_BACKGROUND_SUBAGENTS: "on" },
 		}),
 		"off",
@@ -327,7 +327,7 @@ test("renderOrchestratorPrompt substitutes the background policy token", () => {
 		capability: "ready",
 	});
 	assert.match(rendered, /Background subagent policy: on \(capability: ready\)/);
-	assert.doesNotMatch(rendered, /\{\{GENTLE_PI_BACKGROUND_POLICY\}\}/);
+	assert.doesNotMatch(rendered, /\{\{NUB_IA_BACKGROUND_POLICY\}\}/);
 });
 
 test("renderOrchestratorPrompt defaults to the fail-closed off/absent rendering", () => {
@@ -340,7 +340,7 @@ test("renderOrchestratorPrompt defaults to the fail-closed off/absent rendering"
 // assertions never depend on the developer's ambient global config.
 test("the rendered status line flips to ready when the subagents package is installed", () => {
 	const cwd = makeScratch("gp-bg-cap-render-");
-	writePolicyFile(join(cwd, ".pi", "gentle-ai"), "on");
+	writePolicyFile(join(cwd, ".pi", "nub-ia"), "on");
 	assert.match(
 		getOrchestratorPrompt(cwd),
 		/Background subagent policy: on \(capability: absent\)/,
@@ -355,7 +355,7 @@ test("the rendered status line flips to ready when the subagents package is inst
 
 test("the rendered status line reports ready from a live registry alone", () => {
 	const cwd = makeScratch("gp-bg-cap-render-tools-");
-	writePolicyFile(join(cwd, ".pi", "gentle-ai"), "on");
+	writePolicyFile(join(cwd, ".pi", "nub-ia"), "on");
 	assert.match(
 		getOrchestratorPrompt(cwd, ["read", "subagent_run"]),
 		/Background subagent policy: on \(capability: ready\)/,
@@ -379,18 +379,18 @@ test("getOrchestratorPrompt renders exactly one background status line", () => {
 
 test("the resolver attributes the project file, with its path", () => {
 	const cwd = makeScratch("gp-bg-src-project-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
-	writePolicyFile(join(cwd, ".pi", "gentle-ai"), "on");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
+	writePolicyFile(join(cwd, ".pi", "nub-ia"), "on");
 	writePolicyFile(configHome, "off");
 	const resolution = resolveBackgroundSubagentsPolicy(cwd, {
-		gentlePiConfigHome: configHome,
+		nubiaConfigHome: configHome,
 		env: { NUB_IA_BACKGROUND_SUBAGENTS: "off" },
 	});
 	assert.equal(resolution.policy, "on");
 	assert.equal(resolution.source, "project_file");
 	assert.equal(
 		resolution.projectFile,
-		join(cwd, ".pi", "gentle-ai", "background-subagents.json"),
+		join(cwd, ".pi", "nub-ia", "background-subagents.json"),
 	);
 	assert.equal(resolution.globalFile, join(configHome, "background-subagents.json"));
 	assert.equal(resolution.projectFileExists, true);
@@ -401,10 +401,10 @@ test("the resolver attributes the project file, with its path", () => {
 
 test("the resolver attributes the global file when no project file exists", () => {
 	const cwd = makeScratch("gp-bg-src-global-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	writePolicyFile(configHome, "on");
 	const resolution = resolveBackgroundSubagentsPolicy(cwd, {
-		gentlePiConfigHome: configHome,
+		nubiaConfigHome: configHome,
 		env: { NUB_IA_BACKGROUND_SUBAGENTS: "off" },
 	});
 	assert.equal(resolution.policy, "on");
@@ -415,9 +415,9 @@ test("the resolver attributes the global file when no project file exists", () =
 
 test("the resolver attributes the environment variable when no file exists", () => {
 	const cwd = makeScratch("gp-bg-src-env-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const resolution = resolveBackgroundSubagentsPolicy(cwd, {
-		gentlePiConfigHome: configHome,
+		nubiaConfigHome: configHome,
 		env: { NUB_IA_BACKGROUND_SUBAGENTS: "on" },
 	});
 	assert.equal(resolution.policy, "on");
@@ -427,9 +427,9 @@ test("the resolver attributes the environment variable when no file exists", () 
 
 test("the resolver attributes the built-in default when nothing else decides", () => {
 	const cwd = makeScratch("gp-bg-src-default-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const resolution = resolveBackgroundSubagentsPolicy(cwd, {
-		gentlePiConfigHome: configHome,
+		nubiaConfigHome: configHome,
 		env: { NUB_IA_BACKGROUND_SUBAGENTS: "yes" },
 	});
 	assert.equal(resolution.policy, "off");
@@ -443,13 +443,13 @@ test("the resolver attributes the built-in default when nothing else decides", (
 
 test("the resolver attributes a malformed file to that file and does not fall through", () => {
 	const cwd = makeScratch("gp-bg-src-malformed-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
-	const projectDir = join(cwd, ".pi", "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
+	const projectDir = join(cwd, ".pi", "nub-ia");
 	mkdirSync(projectDir, { recursive: true });
 	writeFileSync(join(projectDir, "background-subagents.json"), "{malformed");
 	writePolicyFile(configHome, "on");
 	const resolution = resolveBackgroundSubagentsPolicy(cwd, {
-		gentlePiConfigHome: configHome,
+		nubiaConfigHome: configHome,
 		env: { NUB_IA_BACKGROUND_SUBAGENTS: "on" },
 	});
 	assert.equal(resolution.policy, "off", "a malformed file fails closed");
@@ -462,24 +462,24 @@ test("the resolver attributes a malformed file to that file and does not fall th
 });
 
 test("loadBackgroundSubagentsPolicy delegates to the resolver so the two can never disagree", () => {
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	writePolicyFile(configHome, "on");
 	const scenarios: Array<{ cwd: string; env: Record<string, string | undefined> }> = [];
 	const bare = makeScratch("gp-bg-agree-bare-");
 	scenarios.push({ cwd: bare, env: {} });
 	scenarios.push({ cwd: bare, env: { NUB_IA_BACKGROUND_SUBAGENTS: "on" } });
 	const projectOn = makeScratch("gp-bg-agree-project-");
-	writePolicyFile(join(projectOn, ".pi", "gentle-ai"), "off");
+	writePolicyFile(join(projectOn, ".pi", "nub-ia"), "off");
 	scenarios.push({ cwd: projectOn, env: { NUB_IA_BACKGROUND_SUBAGENTS: "on" } });
 	const malformed = makeScratch("gp-bg-agree-malformed-");
-	mkdirSync(join(malformed, ".pi", "gentle-ai"), { recursive: true });
+	mkdirSync(join(malformed, ".pi", "nub-ia"), { recursive: true });
 	writeFileSync(
-		join(malformed, ".pi", "gentle-ai", "background-subagents.json"),
+		join(malformed, ".pi", "nub-ia", "background-subagents.json"),
 		"{malformed",
 	);
 	scenarios.push({ cwd: malformed, env: { NUB_IA_BACKGROUND_SUBAGENTS: "on" } });
 	for (const scenario of scenarios) {
-		const options = { gentlePiConfigHome: configHome, env: scenario.env };
+		const options = { nubiaConfigHome: configHome, env: scenario.env };
 		assert.equal(
 			loadBackgroundSubagentsPolicy(scenario.cwd, options),
 			resolveBackgroundSubagentsPolicy(scenario.cwd, options).policy,
@@ -504,7 +504,7 @@ interface CommandFixture {
 
 function registeredCommands(activeTools?: readonly string[]): Map<string, CommandFixture> {
 	const commands = new Map<string, CommandFixture>();
-	createGentleAiExtension({ })({
+	createNubiaExtension({ })({
 		on() {},
 		registerTool() {},
 		registerCommand(name: string, definition: CommandFixture) {
@@ -600,7 +600,7 @@ test("nubia:background-subagents is registered and declares user-initiated sub-a
 
 test("no argument reports the effective policy, the deciding default, and the capability", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-default-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const notice = await runBackgroundSubagents(t, "", cwd, configHome);
 	assert.equal(notice.type, "info");
 	assert.equal(
@@ -614,7 +614,7 @@ test("no argument reports the effective policy, the deciding default, and the ca
 
 test("no argument opens a selectable menu and applies the chosen sub-action", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-select-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const globalFile = join(configHome, "background-subagents.json");
 	scopedEnv(t, {
 		NUB_IA_CONFIG_HOME: configHome,
@@ -653,15 +653,15 @@ test("no argument opens a selectable menu and applies the chosen sub-action", as
 		].join("\n"),
 	);
 	assert.deepEqual(JSON.parse(readFileSync(globalFile, "utf8")), {
-		schema: "gentle-pi.background-subagents/v1",
+		schema: "nub-ia.background-subagents/v1",
 		policy: "on",
 	});
 });
 
 test("status names the project file that decided and the global file it shadows", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-project-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
-	writePolicyFile(join(cwd, ".pi", "gentle-ai"), "on");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
+	writePolicyFile(join(cwd, ".pi", "nub-ia"), "on");
 	writePolicyFile(configHome, "off");
 	installSubagentsPackage(cwd, "pi-subagents-j0k3r");
 	const notice = await runBackgroundSubagents(t, "status", cwd, configHome);
@@ -669,7 +669,7 @@ test("status names the project file that decided and the global file it shadows"
 	assert.equal(
 		notice.message,
 		[
-			`background subagents: on (decided by project file ${join(cwd, ".pi", "gentle-ai", "background-subagents.json")}; capability: ready)`,
+			`background subagents: on (decided by project file ${join(cwd, ".pi", "nub-ia", "background-subagents.json")}; capability: ready)`,
 			`The global file ${join(configHome, "background-subagents.json")} exists but is outranked by that project file.`,
 			"Resolution order (first hit wins): project file, global file, NUB_IA_BACKGROUND_SUBAGENTS, built-in default off.",
 		].join("\n"),
@@ -678,7 +678,7 @@ test("status names the project file that decided and the global file it shadows"
 
 test("status names the global file when it is the deciding source", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-global-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	writePolicyFile(configHome, "on");
 	const notice = await runBackgroundSubagents(t, "status", cwd, configHome);
 	assert.equal(
@@ -689,7 +689,7 @@ test("status names the global file when it is the deciding source", async (t) =>
 
 test("status names the environment variable when it is the deciding source", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-env-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const notice = await runBackgroundSubagents(t, "status", cwd, configHome, {
 		NUB_IA_BACKGROUND_SUBAGENTS: "on",
 	});
@@ -702,7 +702,7 @@ test("status names the environment variable when it is the deciding source", asy
 
 test("status calls an unrecognized environment value inert instead of silently ignoring it", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-env-bad-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const notice = await runBackgroundSubagents(t, "status", cwd, configHome, {
 		NUB_IA_BACKGROUND_SUBAGENTS: "true",
 	});
@@ -720,9 +720,9 @@ test("status calls an unrecognized environment value inert instead of silently i
 
 test("status reports a malformed deciding file as fail-closed, not as a real off", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-malformed-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
-	const projectFile = join(cwd, ".pi", "gentle-ai", "background-subagents.json");
-	mkdirSync(join(cwd, ".pi", "gentle-ai"), { recursive: true });
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
+	const projectFile = join(cwd, ".pi", "nub-ia", "background-subagents.json");
+	mkdirSync(join(cwd, ".pi", "nub-ia"), { recursive: true });
 	writeFileSync(projectFile, "{malformed");
 	writePolicyFile(configHome, "on");
 	const notice = await runBackgroundSubagents(t, "status", cwd, configHome);
@@ -741,11 +741,11 @@ test("status reports a malformed deciding file as fail-closed, not as a real off
 
 test("enable writes the global file and reports that it decides", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-enable-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const globalFile = join(configHome, "background-subagents.json");
 	const notice = await runBackgroundSubagents(t, "enable", cwd, configHome);
 	assert.deepEqual(JSON.parse(readFileSync(globalFile, "utf8")), {
-		schema: "gentle-pi.background-subagents/v1",
+		schema: "nub-ia.background-subagents/v1",
 		policy: "on",
 	});
 	assert.equal(notice.type, "info");
@@ -761,12 +761,12 @@ test("enable writes the global file and reports that it decides", async (t) => {
 
 test("disable writes the global file off and reports that it decides", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-disable-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const globalFile = join(configHome, "background-subagents.json");
 	writePolicyFile(configHome, "on");
 	const notice = await runBackgroundSubagents(t, "disable", cwd, configHome);
 	assert.deepEqual(JSON.parse(readFileSync(globalFile, "utf8")), {
-		schema: "gentle-pi.background-subagents/v1",
+		schema: "nub-ia.background-subagents/v1",
 		policy: "off",
 	});
 	assert.equal(notice.type, "info");
@@ -781,14 +781,14 @@ test("disable writes the global file off and reports that it decides", async (t)
 // what the user asked for — but the report must lead with the truth.
 test("enable under an outranking project file writes the global file and says it does not take effect", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-outranked-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
-	const projectFile = join(cwd, ".pi", "gentle-ai", "background-subagents.json");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
+	const projectFile = join(cwd, ".pi", "nub-ia", "background-subagents.json");
 	const globalFile = join(configHome, "background-subagents.json");
-	writePolicyFile(join(cwd, ".pi", "gentle-ai"), "off");
+	writePolicyFile(join(cwd, ".pi", "nub-ia"), "off");
 	const notice = await runBackgroundSubagents(t, "enable", cwd, configHome);
 	assert.deepEqual(
 		JSON.parse(readFileSync(globalFile, "utf8")),
-		{ schema: "gentle-pi.background-subagents/v1", policy: "on" },
+		{ schema: "nub-ia.background-subagents/v1", policy: "on" },
 		"the requested global write still happens",
 	);
 	assert.equal(notice.type, "warning");
@@ -805,7 +805,7 @@ test("enable under an outranking project file writes the global file and says it
 
 test("enable with the environment variable set reports where that variable ranks", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-enable-env-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const globalFile = join(configHome, "background-subagents.json");
 	const notice = await runBackgroundSubagents(t, "enable", cwd, configHome, {
 		NUB_IA_BACKGROUND_SUBAGENTS: "off",
@@ -824,7 +824,7 @@ test("enable with the environment variable set reports where that variable ranks
 
 test("an unknown sub-action warns and changes nothing", async (t) => {
 	const cwd = makeScratch("gp-bg-cmd-unknown-");
-	const configHome = join(makeScratch("gp-bg-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-bg-home-"), "nub-ia");
 	const notice = await runBackgroundSubagents(t, "toggle", cwd, configHome);
 	assert.equal(notice.type, "warning");
 	assert.equal(

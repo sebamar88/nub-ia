@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CustomEditor } from "@earendil-works/pi-coding-agent";
-import { GentlePromptEditor } from "../extensions/nubia-shell.ts";
+import { NubiaPromptEditor } from "../extensions/nubia-shell.ts";
 import { SelectionEngine } from "../lib/selection-engine.ts";
 import { decodePrintableKey } from "../lib/pi-tui-keys.ts";
 import { CURSOR_MARKER, visibleWidth, type TuiMouseEvent } from "@earendil-works/pi-tui";
@@ -9,7 +9,7 @@ import { CARD_STYLE, cardStyle, setCardStyle } from "../lib/shell-card.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 
 // Native selection engine tests: drive a real CustomEditor through the
-// SelectionEngine the same way GentlePromptEditor wires it — engine.handleInput
+// SelectionEngine the same way NubiaPromptEditor wires it — engine.handleInput
 // in front, native dispatch back into the editor. Covers the ported contract:
 // shift+home/end selection, replace-on-delete, alt+a select all, collapse on
 // movement, zero-width no-op at the edge, highlight + hint rendering, and
@@ -26,13 +26,13 @@ function makeEditor(): CustomEditor {
 	return editor;
 }
 
-function floatEditor(bg?: (role: string, text: string) => string): GentlePromptEditor {
+function floatEditor(bg?: (role: string, text: string) => string): NubiaPromptEditor {
 	const tui = { terminal: { rows: 30, columns: 100 }, requestRender() {} } as unknown as CtorParams[0];
 	const identity = (text: string) => text;
 	const theme = { borderColor: identity, selectList: {
 		selectedPrefix: identity, selectedText: identity, description: identity, scrollInfo: identity, noMatch: identity,
 	} } as unknown as CtorParams[1];
-	const editor = new GentlePromptEditor(tui, theme, { matches: () => false } as unknown as CtorParams[2], {
+	const editor = new NubiaPromptEditor(tui, theme, { matches: () => false } as unknown as CtorParams[2], {
 		fg: (_r, t) => t, bg, bold: identity, requestRender() {}, pending: () => false,
 		now: () => 0, doubleEscCancelEnabled: () => false, dispatchQueuedText() {},
 	});
@@ -195,7 +195,7 @@ test("render wraps the selected span in reverse video and shows the hint", () =>
 	const tui = { terminal: { rows: 30, columns: 100 }, requestRender: () => {} } as unknown as CtorParams[0];
 	const theme = { borderColor: (s: string) => s, selectList: {} } as unknown as CtorParams[1];
 	const kb = { matches: () => false } as unknown as CtorParams[2];
-	const editor = new GentlePromptEditor(tui, theme, kb, {
+	const editor = new NubiaPromptEditor(tui, theme, kb, {
 		fg: (_color, text) => text,
 		bold: (text) => text,
 		requestRender: () => {},

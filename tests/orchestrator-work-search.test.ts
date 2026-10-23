@@ -26,7 +26,7 @@ function fixture(t: TestContext, sessionId = "peer", sharedProfile?: string) {
 			.project("/recorded", tasks, []);
 		publisher.updateDiscovery(peer, { workspace: "/launch", tasks, scope, state: cache.get(manager) });
 	};
-	const sidecar = join(profile, "gentle-agents", "presence", `${publisher.target.sessionHash}.${publisher.target.incarnation}.discovery.json`);
+	const sidecar = join(profile, "nubia-agents", "presence", `${publisher.target.sessionHash}.${publisher.target.incarnation}.discovery.json`);
 	return { profile, peer, publisher, cache, manager, publish, sidecar };
 }
 
@@ -130,7 +130,7 @@ test("nullable classification, malformed/foreign notes, stale/ambiguous presence
 	assert.equal(query([peer], Date.now() + 20000).matches.length, 0);
 	assert.equal(query([peer, { ...peer, endpoint: "/duplicate" }]).coverage.unknownContext, 1);
 	assert.equal(query([{ ...peer, endpoint: "/replacement" }]).matches.length, 0);
-	writeFileSync(join(profile, "gentle-agents", "presence", "bad.header.json"), "invalid");
+	writeFileSync(join(profile, "nubia-agents", "presence", "bad.header.json"), "invalid");
 	assert.equal(query().matches.length, 0);
 	assert.equal(query().coverage.unknownContext, 1);
 });
@@ -175,7 +175,7 @@ test("64 unique-peer cap is deterministic; whole-row byte omissions account for 
 	assert.equal(ambiguous.source?.status, "unavailable");
 	assert.equal(ambiguous.matches.length, 0);
 	// Directory entries, not admitted headers, bound the presence scan.
-	for (let i = 0; i < 130; i++) writeFileSync(join(profile, "gentle-agents", "presence", `overflow-${i}`), "");
+	for (let i = 0; i < 130; i++) writeFileSync(join(profile, "nubia-agents", "presence", `overflow-${i}`), "");
 	assert.equal(searchPublishedWork(profile, peers).coverage.unknownContext, 64);
 	const rejected = searchPublishedWork(profile, peers, relatedFilter);
 	assert.equal(rejected.source?.reason, "source-context-unavailable");
@@ -264,7 +264,7 @@ test("related unavailable sources never broaden and classification never inherit
 	writeFileSync(sidecar, JSON.stringify({ ...snapshot, metadata: { ...snapshot.metadata, state: { ...snapshot.metadata.state, sessionId: "foreign" } } }));
 	assert.equal(query().source?.reason, "source-context-unavailable");
 	writeFileSync(sidecar, JSON.stringify(snapshot));
-	writeFileSync(join(profile, "gentle-agents", "presence", "bad.header.json"), "invalid");
+	writeFileSync(join(profile, "nubia-agents", "presence", "bad.header.json"), "invalid");
 	assert.equal(query().source?.status, "unavailable");
 	assert.equal(query().matches.length, 0);
 });

@@ -184,7 +184,7 @@ If multiple rows match, run the narrow set that covers the risk. Example: shell 
 
 The detailed SDD workflow is intentionally not embedded in this always-on parent prompt. Before handling any `/sdd-*` command, natural-language SDD request, SDD continuation/routing, apply/verify/sync/archive work, or SDD/Judgment-Day phase delegation, read this package asset first:
 
-`{{GENTLE_PI_SDD_WORKFLOW_PATH}}`
+`{{NUB_IA_SDD_WORKFLOW_PATH}}`
 
 That lazy surface contains the SDD phases, native dispatcher rules, status contract, preflight/init guards, artifact-store policy, execution mode, Strict TDD forwarding, phase result contract, and review workload guard.
 
@@ -192,7 +192,7 @@ Hard preflight invariant: `openspec/config.yaml`, existing SDD changes, installe
 
 ## Memory Contract
 
-When Engram or another callable memory package is available, the parent owns context selection and subagents own write-back. Retrieval rules differ by task type, matching the gentle-ai (OpenCode) contract.
+When Engram or another callable memory package is available, the parent owns context selection and subagents own write-back. Retrieval rules differ by task type, matching the nub-ia (OpenCode) contract.
 
 ### Non-SDD delegation
 

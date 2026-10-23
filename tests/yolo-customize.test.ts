@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { createEventBus, initTheme, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { getThemeByName } from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import gentleShell from "../extensions/nubia-shell.ts";
+import nubiaShell from "../extensions/nubia-shell.ts";
 import * as yolo from "../lib/yolo-session-policy.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 import { VisualCustomizeView } from "../lib/visual-customize-view.ts";
@@ -69,7 +69,7 @@ function fixture(t: test.TestContext, order = "owner-first", env: NodeJS.Process
 	} as unknown as ExtensionContext;
 	let controller: yolo.YoloSessionController | undefined;
 	const owner = () => { controller = yolo.registerYoloSessionPolicy(pi, env); };
-	const shell = () => gentleShell(pi, { ...env, NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, {
+	const shell = () => nubiaShell(pi, { ...env, NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" }, {
 		fetch: async () => { assert.fail("network disabled"); }, activeProfile: () => undefined, 
 	});
 	if (order === "owner-first") { owner(); shell(); }

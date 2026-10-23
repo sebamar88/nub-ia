@@ -2,19 +2,19 @@ import { chmodSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync,
 import { randomUUID } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
-import { gentlePiConfigHome } from "./agent-home.ts";
+import { nubiaConfigHome } from "./agent-home.ts";
 import { configReadPath } from "./config-home.ts";
 
-// gentle-pi replaces Pi's replaceable builtin codemode with its compact
+// nub-ia replaces Pi's replaceable builtin codemode with its compact
 // renderer (lib/codemode-renderer.ts), and Pi warns at every startup when a
 // builtin loses its tool to another extension. Pi's only per-builtin opt-out
 // is a `-builtin:<name>` entry in the settings `extensions` array. The
-// gentle-shell launcher adds it silently to homes it owns (bin/nub-ia.mjs,
+// nubia-shell launcher adds it silently to homes it owns (bin/nub-ia.mjs,
 // #1612); a user-owned Pi home only gets it after the user accepts a
 // one-time prompt, and a declined prompt is remembered per settings file.
 export const BUILTIN_CODEMODE_EXTENSION = "builtin:codemode";
 export const BUILTIN_CODEMODE_OPTOUT_ENTRY = `-${BUILTIN_CODEMODE_EXTENSION}`;
-export const BUILTIN_CODEMODE_OPTOUT_SCHEMA = "gentle-pi.builtin-codemode-optout/v1";
+export const BUILTIN_CODEMODE_OPTOUT_SCHEMA = "nub-ia.builtin-codemode-optout/v1";
 
 export type BuiltinCodemodeOptOutOutcome =
 	| "no-ui"
@@ -28,7 +28,7 @@ export type BuiltinCodemodeOptOutOutcome =
 export interface BuiltinCodemodeOptOutOptions {
 	/** Pi agent dir whose settings.json receives the entry; defaults to getAgentDir(). */
 	agentDir?: string;
-	/** gentle-pi config home holding the remembered decline; defaults to gentlePiConfigHome(). */
+	/** nub-ia config home holding the remembered decline; defaults to nubiaConfigHome(). */
 	configHome?: string;
 	/** Effective (merged) settings `extensions`, e.g. from pi.getSettings(). */
 	effectiveExtensions?: unknown;
@@ -70,7 +70,7 @@ export function withBuiltinExtensionExcluded(settingsText: string, builtin = BUI
 	return settingsText.endsWith("\n") ? `${serialized}\n` : serialized;
 }
 
-export function builtinCodemodeOptOutStatePath(configHome = gentlePiConfigHome()): string {
+export function builtinCodemodeOptOutStatePath(configHome = nubiaConfigHome()): string {
 	return join(configHome, "builtin-codemode-optout.json");
 }
 
@@ -114,7 +114,7 @@ function recordDeclined(configHome: string, settingsPath: string): void {
 function writeSettingsAtomically(path: string, data: string): void {
 	const target = realpathSync(path);
 	const mode = statSync(target).mode & 0o777;
-	const temporary = join(dirname(target), `.${basename(target)}.gentle-pi-${randomUUID()}.tmp`);
+	const temporary = join(dirname(target), `.${basename(target)}.nub-ia-${randomUUID()}.tmp`);
 	try {
 		writeFileSync(temporary, data, { flag: "wx" });
 		chmodSync(temporary, mode);
@@ -140,7 +140,7 @@ export async function offerBuiltinCodemodeOptOut(ctx: BuiltinCodemodeOptOutConte
 		if (!ctx.hasUI || ctx.mode !== "tui") return "no-ui";
 		if (hasExplicitBuiltinEntry(options.effectiveExtensions)) return "explicit-entry";
 		const settingsPath = resolve(options.agentDir ?? getAgentDir(), "settings.json");
-		const configHome = options.configHome ?? gentlePiConfigHome();
+		const configHome = options.configHome ?? nubiaConfigHome();
 		const currentText = readIfExists(settingsPath);
 		if (currentText === undefined) return "unwritable";
 		try {

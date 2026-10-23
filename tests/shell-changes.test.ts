@@ -398,7 +398,7 @@ test("registered roots remain scannable during metadata discovery failure", asyn
 });
 
 test("isolated Git worktrees include preexisting dirty files only after root registration", async (t) => {
-	const temporary = await mkdtemp(join(tmpdir(), "gentle-shell-worktrees-"));
+	const temporary = await mkdtemp(join(tmpdir(), "nubia-shell-worktrees-"));
 	// Every repository, linked root and Git configuration belongs to this fixture.
 	t.after(() => rm(temporary, { recursive: true, force: true }));
 	const fixture = await realpath(temporary);

@@ -103,7 +103,7 @@ test("policy files: legacy value is read, the next save lands in the nub-ia home
 	const nub = join(root, ".pi", "nub-ia");
 	const legacy = join(root, ".pi", "gentle-ai");
 	mkdirSync(legacy, { recursive: true });
-	writeFileSync(join(legacy, "animations.json"), '{"schema":"gentle-pi.animations/v1","policy":"potato"}');
+	writeFileSync(join(legacy, "animations.json"), '{"schema":"nub-ia.animations/v1","policy":"potato"}');
 	const prior = { nub: process.env.NUB_IA_CONFIG_HOME };
 	process.env.NUB_IA_CONFIG_HOME = nub;
 	withHints(t);
@@ -111,10 +111,10 @@ test("policy files: legacy value is read, the next save lands in the nub-ia home
 		if (prior.nub === undefined) delete process.env.NUB_IA_CONFIG_HOME; else process.env.NUB_IA_CONFIG_HOME = prior.nub;
 	});
 
-	assert.equal(resolveAnimationPolicy({ gentlePiConfigHome: nub }).policy, "potato");
-	const written = writeAnimationPolicy("performance", { gentlePiConfigHome: nub });
+	assert.equal(resolveAnimationPolicy({ nubiaConfigHome: nub }).policy, "potato");
+	const written = writeAnimationPolicy("performance", { nubiaConfigHome: nub });
 	assert.equal(written, join(nub, "animations.json"));
-	assert.equal(resolveAnimationPolicy({ gentlePiConfigHome: nub }).policy, "performance", "nub-ia copy shadows the legacy one");
+	assert.equal(resolveAnimationPolicy({ nubiaConfigHome: nub }).policy, "performance", "nub-ia copy shadows the legacy one");
 });
 
 test("profiles store: read path falls back, write path is nub-ia", (t) => {
@@ -149,15 +149,15 @@ test("project background-subagents file is read from .pi/nub-ia before .pi/gentl
 	withHints(t);
 	const file = (dir: string, policy: string) => {
 		mkdirSync(join(cwd, ".pi", dir), { recursive: true });
-		writeFileSync(join(cwd, ".pi", dir, "background-subagents.json"), JSON.stringify({ schema: "gentle-pi.background-subagents/v1", policy }));
+		writeFileSync(join(cwd, ".pi", dir, "background-subagents.json"), JSON.stringify({ schema: "nub-ia.background-subagents/v1", policy }));
 	};
 	const env = { NUB_IA_CONFIG_HOME: home };
 	file("gentle-ai", "on");
-	const legacy = resolveBackgroundSubagentsPolicy(cwd, { env, gentlePiConfigHome: home });
+	const legacy = resolveBackgroundSubagentsPolicy(cwd, { env, nubiaConfigHome: home });
 	assert.equal(legacy.source, "project_file");
 	assert.match(legacy.projectFile, /gentle-ai/);
 	file("nub-ia", "off");
-	const canonical = resolveBackgroundSubagentsPolicy(cwd, { env, gentlePiConfigHome: home });
+	const canonical = resolveBackgroundSubagentsPolicy(cwd, { env, nubiaConfigHome: home });
 	assert.match(canonical.projectFile, /nub-ia/);
 });
 
@@ -167,13 +167,13 @@ test("NUB_IA_* env switches drive the policies", (t) => {
 	assert.equal(resolveDoubleEscCancelPolicy({ env: { ...base, NUB_IA_DOUBLE_ESC_CANCEL: "off" } }).policy, "off");
 	assert.equal(resolveDoubleEscCancelPolicy({ env: { ...base, NUB_IA_DOUBLE_ESC_CANCEL: "on" } }).policy, "on");
 
-	assert.equal(resolveBackgroundSubagentsPolicy(home, { env: { ...base, NUB_IA_BACKGROUND_SUBAGENTS: "on" }, gentlePiConfigHome: home }).policy, "on");
+	assert.equal(resolveBackgroundSubagentsPolicy(home, { env: { ...base, NUB_IA_BACKGROUND_SUBAGENTS: "on" }, nubiaConfigHome: home }).policy, "on");
 
 	assert.equal(quietToolsEnabled({ NUB_IA_QUIET_TOOLS: "0" }), false);
 	assert.equal(quietToolsEnabled({ NUB_IA_QUIET_TOOLS: "1" }), true);
 
-	const off = resolveHistoryCapture({ env: { ...base, NUB_IA_HISTORY_CAPTURE: "off" }, gentlePiConfigHome: home });
-	const on = resolveHistoryCapture({ env: { ...base, NUB_IA_HISTORY_CAPTURE: "on" }, gentlePiConfigHome: home });
+	const off = resolveHistoryCapture({ env: { ...base, NUB_IA_HISTORY_CAPTURE: "off" }, nubiaConfigHome: home });
+	const on = resolveHistoryCapture({ env: { ...base, NUB_IA_HISTORY_CAPTURE: "on" }, nubiaConfigHome: home });
 	assert.equal(off.enabled, false);
 	assert.equal(on.enabled, true);
 });

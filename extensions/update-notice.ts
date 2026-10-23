@@ -67,7 +67,7 @@ export default function updateNotice(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 
 	pi.on("session_start", (_event, ctx) => {
 		if (dismissed || !ctx.hasUI) return;
-		// Delegated rpc children report hasUI=true but have no terminal (gentle-shell#1690).
+		// Delegated rpc children report hasUI=true but have no terminal (nubia-shell#1690).
 		if (readEnv(env, "NUB_IA_AGENTS_CHILD") === "1") return;
 		ctx.ui.setWidget(WIDGET_KEY, (_tui, theme) => ({
 			render: (width: number) => renderUpdateNoticeBox(notice, theme as Theme, width),

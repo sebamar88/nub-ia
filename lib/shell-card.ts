@@ -1,6 +1,6 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
-// Gentle Shell cards: the shape every Gentle notice takes in the transcript
+// Nub-IA cards: the shape every Nub-IA notice takes in the transcript
 // and above the editor. The same rounded frame as the prompt and the
 // overlays, with the title in the card's tone. Pure: strings in, lines out.
 
@@ -37,7 +37,7 @@ export const CARD_STYLE = {
 
 export type CardStyle = (typeof CARD_STYLE)[keyof typeof CARD_STYLE];
 
-const CARD_STYLE_SLOT = Symbol.for("gentle-pi.card-style");
+const CARD_STYLE_SLOT = Symbol.for("nub-ia.card-style");
 const styleState = globalThis as typeof globalThis & { [CARD_STYLE_SLOT]?: unknown };
 
 export function cardStyle(): CardStyle {
@@ -205,7 +205,7 @@ export function cardBodyRows(
 // by the result component, which closes the frame. The call cannot see the
 // result, so result renderers mark the row state both share, and a call still
 // waiting for its first result closes its own frame.
-const RESULT_MARK = Symbol.for("gentle-pi.card-result");
+const RESULT_MARK = Symbol.for("nub-ia.card-result");
 const RUNNING_TEXT = "running…";
 const RUNNING_ROLE = "muted";
 

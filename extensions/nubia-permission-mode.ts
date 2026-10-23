@@ -38,7 +38,7 @@ import { agentToolRule, mergeAgentToolPolicies, parseAgentToolPolicy, type Agent
 import { describeRedactions, redactSecrets } from "../lib/secret-redaction.ts";
 import { loadEffectiveOrgPolicy, sectionText, type OrgPolicy } from "../lib/org-policy.ts";
 import { parseApprovedPackages, unapprovedInSettings } from "../lib/approved-packages.ts";
-import { resolveGentlePiAgentHome } from "../lib/agent-home.ts";
+import { resolveNubiaAgentHome } from "../lib/agent-home.ts";
 import { auditRow, type AuditRow } from "../lib/audit-log.ts";
 import { appendMetricRows } from "../lib/runtime-metrics-sink.ts";
 import { relative } from "node:path";
@@ -222,7 +222,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 		if (!isChild && ctx.hasUI) {
 			const org = loadEffectiveOrgPolicy(env, ctx.cwd).policy;
 			const approved = org ? parseApprovedPackages({ approvedPackages: org.sections.approvedPackages }) : undefined;
-			const unapproved = unapprovedInSettings(readText(join(resolveGentlePiAgentHome(env), "settings.json")), approved);
+			const unapproved = unapprovedInSettings(readText(join(resolveNubiaAgentHome(env), "settings.json")), approved);
 			if (unapproved.length) ctx.ui.notify(`Org policy${approved?.mode === "enforce" ? " (enforce)" : ""}: packages not in the approved list are loaded: ${unapproved.join(", ")}. Remove them with nub-ia remove <source> or ask to have them approved.`, "warning");
 		}
 	});

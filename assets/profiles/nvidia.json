@@ -1,5 +1,5 @@
 {
-  "kind": "gentle-pi.agent_model_profile",
+  "kind": "nub-ia.agent_model_profile",
   "version": 1,
   "name": "nvidia",
   "config": {

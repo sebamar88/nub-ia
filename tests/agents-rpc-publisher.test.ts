@@ -11,7 +11,7 @@ import {
 	type RpcTask,
 } from "../lib/agents-rpc-publisher.ts";
 
-// gentle-agents RPC publisher: a pure projection of TaskStore state into the
+// nubia-agents RPC publisher: a pure projection of TaskStore state into the
 // bounded JSON payload an interactive RPC host receives through setWidget,
 // plus the store-driven, coalesced publisher that pushes it.
 

@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after, before } from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension, __testing } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension, __testing } from "../extensions/nubia-harness.ts";
 
-// gentle-shell#1731 T24 (L49): the cost reason is off, so the harness no
+// nubia-shell#1731 T24 (L49): the cost reason is off, so the harness no
 // longer injects the orchestrator/worker "Model routing" price ratio, even
 // when configured routing makes the orchestrator 3x the worker.
 // lib/model-price-ratio.ts stays (tests/model-price-ratio.test.ts) so a later
@@ -21,7 +21,7 @@ let agentHome: string;
 const fixtureEnvironment: NodeJS.ProcessEnv = {};
 const previousEnvironment = new Map<string, string | undefined>();
 before(() => {
-	fixtureRoot = mkdtempSync(join(tmpdir(), "gentle-pi-model-routing-prompt-"));
+	fixtureRoot = mkdtempSync(join(tmpdir(), "nub-ia-model-routing-prompt-"));
 	fixtureCwd = join(fixtureRoot, "project");
 	const home = join(fixtureRoot, "home");
 	agentHome = join(home, "agents-home");
@@ -60,8 +60,8 @@ function harness(): BeforeAgentStartHandler {
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({
-		processEnv: { ...fixtureEnvironment, NUB_IA_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0" },
+	createNubiaExtension({
+		processEnv: { ...fixtureEnvironment, NUB_IA_AGENTS_CHILD: "0", NUB_IA_TELEMETRY: "0" },
 	})(pi);
 	const beforeAgentStart = handlers.get("before_agent_start");
 	assert.equal(typeof beforeAgentStart, "function");
@@ -93,8 +93,8 @@ function primaryEvent(overrides: Partial<MutableEvent> = {}): MutableEvent {
 	return { systemPrompt: "base", systemPromptOptions: { appendSystemPrompt: "" }, ...overrides };
 }
 
-test("buildGentlePrompt renders no model routing fact", () => {
-	assert.doesNotMatch(__testing.buildGentlePrompt("neutral", fixtureCwd, undefined), /Model routing:|price ratio/);
+test("buildNubiaPrompt renders no model routing fact", () => {
+	assert.doesNotMatch(__testing.buildNubiaPrompt("neutral", fixtureCwd, undefined), /Model routing:|price ratio/);
 	assert.doesNotMatch(__testing.getOrchestratorPrompt(fixtureCwd, undefined), /Model routing:/);
 });
 

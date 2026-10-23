@@ -2,9 +2,9 @@ import type { Component, TUI } from "@earendil-works/pi-tui";
 
 // Store on the terminal, not a module singleton: extension loaders may isolate
 // modules, while Pi keeps this terminal across regular/fullscreen transitions.
-const STATE = Symbol.for("gentle-pi.experimental-sidebar.state");
+const STATE = Symbol.for("nub-ia.experimental-sidebar.state");
 /** In-process notification after a visual preference is persisted. */
-export const VISUAL_SETTINGS_CHANGED = "gentle-pi.visual-settings-changed";
+export const VISUAL_SETTINGS_CHANGED = "nub-ia.visual-settings-changed";
 export interface SidebarState {
 	active: boolean;
 	visibility?: { todo?: boolean };
@@ -13,7 +13,7 @@ export interface SidebarState {
 	 * Columns the fullscreen rail reserves at the right edge (rail plus gap)
 	 * while `active && ownsHost()`. Overlays read it to stay inside the editor
 	 * column (the prompt-history picker's right margin) without importing
-	 * gentle-shell.
+	 * nubia-shell.
 	 */
 	railColumns?: number;
 	/** True while Status placement is "hidden": the bottom Status bar paints nothing at any width or mode. */

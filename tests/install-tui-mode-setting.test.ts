@@ -9,8 +9,8 @@ import { test } from "node:test";
 const helperUrl = new URL("../scripts/install-tui-mode-setting.mjs", import.meta.url);
 const { installTuiModeSetting, installIsolatedTuiModeSetting, DEFAULT_THEME_NAME, withIsolatedHomeDefaults } = await import(helperUrl.href);
 
-function fixture(t: { after(fn: () => void): void }, packagePath: readonly string[] = ["npm", "node_modules", "gentle-pi"]) {
-	const root = mkdtempSync(join(tmpdir(), "gentle-tui-test-"));
+function fixture(t: { after(fn: () => void): void }, packagePath: readonly string[] = ["npm", "node_modules", "nub-ia"]) {
+	const root = mkdtempSync(join(tmpdir(), "nubia-tui-test-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	const home = join(root, "agent");
 	const packageRoot = join(home, ...packagePath);
@@ -25,8 +25,8 @@ function link(target: string, path: string, directory = false) {
 }
 
 for (const [name, packagePath] of [
-	["npm", ["npm", "node_modules", "gentle-pi"]],
-	["Pi Git", ["git", "github.com", "Gentleman-Programming", "gentle-pi"]],
+	["npm", ["npm", "node_modules", "nub-ia"]],
+	["Pi Git", ["git", "github.com", "sebamar88", "nub-ia"]],
 ] as const) {
 	test(`recognized global ${name} installation persists fullscreen and preserves other settings`, async (t) => {
 		const f = fixture(t, packagePath);
@@ -64,7 +64,7 @@ for (const name of ["NUB_IA_AGENT_HOME", "PI_CODING_AGENT_DIR", "default"]) {
 	test(`agent-home precedence: ${name}`, async (t) => {
 		const f = fixture(t);
 		const home = name === "default" ? join(f.root, ".pi", "agent") : f.home;
-		const packageRoot = join(home, "npm", "node_modules", "gentle-pi");
+		const packageRoot = join(home, "npm", "node_modules", "nub-ia");
 		mkdirSync(packageRoot, { recursive: true });
 		const env = name === "default" ? {} : name === "PI_CODING_AGENT_DIR" ? { PI_CODING_AGENT_DIR: home } : f.env;
 		await installTuiModeSetting({ packageRoot, env, home: f.root });
@@ -74,13 +74,13 @@ for (const name of ["NUB_IA_AGENT_HOME", "PI_CODING_AGENT_DIR", "default"]) {
 }
 
 for (const relative of [
-	"project/.pi/npm/node_modules/gentle-pi",
-	"project/.pi/git/github.com/Gentleman-Programming/gentle-pi",
-	"consumer/node_modules/gentle-pi",
+	"project/.pi/npm/node_modules/nub-ia",
+	"project/.pi/git/github.com/Gentleman-Programming/nub-ia",
+	"consumer/node_modules/nub-ia",
 	"checkout",
-	"agent/git/github.com/gentle-pi",
-	"temporary/npm/node_modules/gentle-pi",
-	"store/.pnpm/gentle-pi/node_modules/gentle-pi",
+	"agent/git/github.com/nub-ia",
+	"temporary/npm/node_modules/nub-ia",
+	"store/.pnpm/nub-ia/node_modules/nub-ia",
 ]) {
 	test(`unowned install is untouched: ${relative}`, async (t) => {
 		const f = fixture(t);
@@ -94,9 +94,9 @@ for (const relative of [
 }
 
 for (const packagePath of [
-	["git", "gitlab.com", "Gentleman-Programming", "gentle-pi"],
-	["git", "github.com", "Other-Organization", "gentle-pi"],
-	["git", "github.com", "Gentleman-Programming", "other-pi"],
+	["git", "gitlab.com", "sebamar88", "nub-ia"],
+	["git", "github.com", "Other-Organization", "nub-ia"],
+	["git", "github.com", "sebamar88", "other-pi"],
 ]) {
 	test(`unowned global Pi Git install is untouched: ${packagePath.join("/")}`, async (t) => {
 		const f = fixture(t);
@@ -114,8 +114,8 @@ test("missing configured agent home is a no-op", async (t) => {
 });
 
 for (const [name, packagePath] of [
-	["npm", ["npm", "node_modules", "gentle-pi"]],
-	["Pi Git", ["git", "github.com", "Gentleman-Programming", "gentle-pi"]],
+	["npm", ["npm", "node_modules", "nub-ia"]],
+	["Pi Git", ["git", "github.com", "sebamar88", "nub-ia"]],
 ] as const) {
 	test(`global ${name} package symlink into a store is not ownership`, async (t) => {
 		const f = fixture(t);
@@ -210,8 +210,8 @@ test("Pi's later packages-only save retains persisted fullscreen", async (t) => 
 });
 
 for (const [name, packagePath] of [
-	["npm", ["npm", "node_modules", "gentle-pi"]],
-	["Pi Git", ["git", "github.com", "Gentleman-Programming", "gentle-pi"]],
+	["npm", ["npm", "node_modules", "nub-ia"]],
+	["Pi Git", ["git", "github.com", "sebamar88", "nub-ia"]],
 ] as const) {
 	test(`symlinked ${name} ancestor cannot grant settings ownership`, async (t) => {
 		const f = fixture(t);
@@ -270,22 +270,22 @@ for (const fault of ["write", "rename", "concurrent-change"]) {
 }
 
 // --- installIsolatedTuiModeSetting -------------------------------------------
-// gentle-shell's own isolated-home bootstrap (T2): unlike installTuiModeSetting,
+// nubia-shell's own isolated-home bootstrap (T2): unlike installTuiModeSetting,
 // there is no "physically installed under this home's npm/node_modules"
-// ownership check to satisfy, because gentle-shell just created `dir` itself
+// ownership check to satisfy, because nubia-shell just created `dir` itself
 // moments ago; a plain agent-home-shaped temp directory is enough.
 
 test("installIsolatedTuiModeSetting writes fullscreen and the default Nub-IA theme into a freshly created directory", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-shell-isolated-"));
+	const root = mkdtempSync(join(tmpdir(), "nubia-shell-isolated-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
-	const dir = join(root, "gentle-shell", "agent");
+	const dir = join(root, "nubia-shell", "agent");
 	mkdirSync(dir, { recursive: true });
 	assert.deepEqual(await installIsolatedTuiModeSetting(dir), { changed: true, recognized: true });
 	assert.deepEqual(JSON.parse(readFileSync(join(dir, "settings.json"), "utf8")), { tuiMode: "fullscreen", theme: "Nub-IA", defaultProvider: "nub-ia", defaultModel: "balanced" });
 });
 
 test("installIsolatedTuiModeSetting preserves other settings fields already present, including an existing theme", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-shell-isolated-"));
+	const root = mkdtempSync(join(tmpdir(), "nubia-shell-isolated-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	writeFileSync(join(root, "settings.json"), JSON.stringify({ tuiMode: "regular", theme: "rose" }));
 	assert.deepEqual(await installIsolatedTuiModeSetting(root), { changed: true, recognized: true });
@@ -311,7 +311,7 @@ test("withIsolatedHomeDefaults preserves unrelated fields", () => {
 });
 
 test("installIsolatedTuiModeSetting is a no-op when already fullscreen", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-shell-isolated-"));
+	const root = mkdtempSync(join(tmpdir(), "nubia-shell-isolated-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	writeFileSync(join(root, "settings.json"), JSON.stringify({ tuiMode: "fullscreen" }));
 	const before = lstatSync(join(root, "settings.json"));
@@ -320,7 +320,7 @@ test("installIsolatedTuiModeSetting is a no-op when already fullscreen", async (
 });
 
 test("installIsolatedTuiModeSetting rejects a missing directory", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-shell-isolated-"));
+	const root = mkdtempSync(join(tmpdir(), "nubia-shell-isolated-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	await assert.rejects(installIsolatedTuiModeSetting(join(root, "absent")));
 });

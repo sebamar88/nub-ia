@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Component } from "@earendil-works/pi-tui";
-import gentleTodo, { todoCollapseKey, todoEnabled } from "../extensions/nubia-todo.ts";
+import nubiaTodo, { todoCollapseKey, todoEnabled } from "../extensions/nubia-todo.ts";
 import { CARD_STYLE, cardStyle, setCardStyle } from "../lib/shell-card.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 
@@ -12,7 +12,7 @@ const initialCardStyle = cardStyle();
 before(() => setCardStyle(CARD_STYLE.NEON));
 after(() => setCardStyle(initialCardStyle));
 
-// The Gentle Todo extension: the `todo` tool, the card above the editor,
+// The Nub-IA Todo extension: the `todo` tool, the card above the editor,
 // the per-turn prompt block, and the staleness signal, driven by fakes.
 
 type Handler = (event: unknown, ctx: ExtensionContext) => unknown;
@@ -69,7 +69,7 @@ function fakeContext(branch: unknown[] = [], hasUI = true) {
 		},
 	} as unknown as ExtensionContext;
 	const widgetComponent = () => {
-		const factory = widgets.get("gentle-todo");
+		const factory = widgets.get("nubia-todo");
 		return factory?.(fakeTui, plainTheme);
 	};
 	const widget = () => widgetComponent()?.render(70).map(stripAnsi);
@@ -84,19 +84,19 @@ test("todoEnabled and todoCollapseKey read their environment flags", () => {
 	assert.equal(todoCollapseKey({ NUB_IA_TODO_KEY: "alt+t" }), "alt+t");
 	assert.equal(todoCollapseKey({ NUB_IA_TODO_KEY: "off" }), undefined);
 	const off = fakePi();
-	gentleTodo(off.pi, { NUB_IA_TODO: "off" });
+	nubiaTodo(off.pi, { NUB_IA_TODO: "off" });
 	assert.equal(off.tools.size, 0);
 });
 
 test("todo registration owns its transparent transcript shell", () => {
 	const { pi, tools } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	assert.equal(tools.get("todo")?.renderShell, "self");
 });
 
 test("the todo tool writes the list, shows the card after the call, and carries the snapshot in details", async () => {
 	const { pi, tools, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	const { ctx, widget } = fakeContext();
 	await fire("session_start", ctx);
 	assert.equal(widget(), undefined, "no card without tasks");
@@ -104,7 +104,7 @@ test("the todo tool writes the list, shows the card after the call, and carries 
 	const tool = tools.get("todo")!;
 	const result = await tool.execute("c1", { action: "write", tasks: [{ title: "Write the parser", status: "in_progress", note: "parsing" }, { title: "Add tests" }] }, undefined, undefined, ctx);
 	assert.match(result.content[0].text, /2 tasks · 0 done · 1 in progress/);
-	assert.equal((result.details.gentleTodo as { tasks: unknown[] }).tasks.length, 2);
+	assert.equal((result.details.nubiaTodo as { tasks: unknown[] }).tasks.length, 2);
 	await fire("tool_execution_end", ctx, { toolName: "todo" });
 	const lines = widget()!;
 	assert.match(lines[0], /^╭─ ∾ Todos ▾ Collapse · 0 of 2 ─+ ctrl\+shift\+t collapse ╮$/);
@@ -121,7 +121,7 @@ test("the todo tool writes the list, shows the card after the call, and carries 
 
 test("the Todo header is a fullscreen left-click control while non-click pointer events stay inert", async () => {
 	const { pi, tools, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	const { ctx, widgetComponent } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("todo")!.execute("c1", { action: "write", tasks: [{ title: "A", status: "in_progress" }, { title: "B" }] }, undefined, undefined, ctx);
@@ -144,7 +144,7 @@ test("the Todo header is a fullscreen left-click control while non-click pointer
 // now paints the same shared hover role every other clickable surface uses.
 test("the Todo header paints the shared hover role while hovered, and clears it off the header row or on leave", async () => {
 	const { pi, tools, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	const { ctx, widgetComponent } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("todo")!.execute("c1", { action: "write", tasks: [{ title: "A" }] }, undefined, undefined, ctx);
@@ -171,7 +171,7 @@ test("in the float style the Todos header sits on row 1 below the top padding, a
 	const found = cardStyle();
 	t.after(() => setCardStyle(found));
 	const { pi, tools, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	const { ctx, widgets } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("todo")!.execute("c1", { action: "write", tasks: [{ title: "A", status: "in_progress" }, { title: "B" }] }, undefined, undefined, ctx);
@@ -179,7 +179,7 @@ test("in the float style the Todos header sits on row 1 below the top padding, a
 	setCardStyle(CARD_STYLE.FLOAT);
 	// Float panels need a theme background; without one they keep the frame.
 	const theme = { ...plainTheme, bg: (_color: string, text: string) => `\x1b[48;5;22m${text}\x1b[49m` };
-	const component = widgets.get("gentle-todo")!(fakeTui, theme);
+	const component = widgets.get("nubia-todo")!(fakeTui, theme);
 	const rows = component.render(70).map(stripAnsi);
 	assert.match(rows[0]!, /^ ▎ +$/, "a padding row sits above the header");
 	assert.match(rows[1]!, /^ ▎ ∾ Todos ▾ Collapse  0 of 2 +ctrl\+shift\+t {3}$/);
@@ -205,7 +205,7 @@ function promptEvent(): { systemPrompt: string; systemPromptOptions: { appendSys
 
 test("every turn carries the open tasks in appendSystemPrompt (never a returned systemPrompt) and the card goes stale after two silent turns", async () => {
 	const { pi, tools, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	const { ctx, widget } = fakeContext();
 	await fire("session_start", ctx);
 	await fire("before_agent_start", ctx, promptEvent());
@@ -232,7 +232,7 @@ test("every turn carries the open tasks in appendSystemPrompt (never a returned 
 
 test("before_agent_start is idempotent: a todo block already present in appendSystemPrompt is not duplicated", async () => {
 	const { pi, tools, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 
 	// Capture the exact block a fresh turn produces (no staleness yet).
 	const probe = fakeContext();
@@ -258,7 +258,7 @@ test("before_agent_start is idempotent: a todo block already present in appendSy
 
 test("a finished list stays for its turn and clears at the next, and the collapse key folds the card", async () => {
 	const { pi, tools, shortcuts, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	const { ctx, widget } = fakeContext();
 	await fire("session_start", ctx);
 	await tools.get("todo")!.execute("c1", { action: "write", tasks: [{ title: "A", status: "in_progress" }, { title: "B" }] }, undefined, undefined, ctx);
@@ -280,7 +280,7 @@ test("a finished list stays for its turn and clears at the next, and the collaps
 
 test("session_start replays the list from the branch, rpiv-todo results included, and counts past turns", async () => {
 	const { pi, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	const branch = [
 		{ type: "message", message: { role: "user", content: "hi" } },
 		{ type: "message", message: { role: "toolResult", toolName: "todo", isError: false, details: { action: "create", params: {}, tasks: [{ id: 1, subject: "Old task", status: "in_progress", activeForm: "still going" }], nextId: 2 } } },
@@ -298,10 +298,10 @@ test("session_start replays the list from the branch, rpiv-todo results included
 
 test("session_start drops a list that was already finished, so a reload never shows stale done work", async () => {
 	const { pi, fire } = fakePi();
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	const finished = [
 		{ type: "message", message: { role: "user", content: "hi" } },
-		{ type: "message", message: { role: "toolResult", toolName: "todo", isError: false, details: { gentleTodo: { tasks: [{ id: 1, title: "Done A", status: "done" }, { id: 2, title: "Done B", status: "done" }], nextId: 3, updatedTurn: 1 } } } },
+		{ type: "message", message: { role: "toolResult", toolName: "todo", isError: false, details: { nubiaTodo: { tasks: [{ id: 1, title: "Done A", status: "done" }, { id: 2, title: "Done B", status: "done" }], nextId: 3, updatedTurn: 1 } } } },
 	];
 	const { ctx, widget } = fakeContext(finished);
 	await fire("session_start", ctx);

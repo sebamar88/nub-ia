@@ -18,10 +18,10 @@ import {
 } from "../lib/agents-config.ts";
 import { THINKING_LEVELS } from "../lib/model-routing-authority.ts";
 
-// Gentle Agents configuration: markdown agent definitions (the same files
-// gentle-ai installs) and subagents.json, both parsed without touching pi.
+// Nub-IA Agents configuration: markdown agent definitions (the same files
+// nub-ia installs) and subagents.json, both parsed without touching pi.
 
-const root = mkdtempSync(join(tmpdir(), "gentle-agents-config-"));
+const root = mkdtempSync(join(tmpdir(), "nubia-agents-config-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 
 const EXPLORER = `---
@@ -52,7 +52,7 @@ test("parseModelRef splits provider/id and accepts a bare id", () => {
 	assert.equal(parseModelRef("   "), undefined);
 });
 
-test("parseAgentDefinition builds a definition from the gentle-ai agent format", () => {
+test("parseAgentDefinition builds a definition from the nub-ia agent format", () => {
 	const agent = parseAgentDefinition(EXPLORER, "/home/x/.pi/agent/agents/nubia-explore.md", "global");
 	assert.ok(!("error" in agent));
 	assert.equal(agent.name, "nubia-explore");

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { __testing } from "../extensions/nubia-harness.ts";
 
-// gentle-shell#1731 T16 (S5; L33-L34): in the after3 bench (B x4/x5) the first
+// nubia-shell#1731 T16 (S5; L33-L34): in the after3 bench (B x4/x5) the first
 // verify launch ran no probes because the handoff said only "read-only" and
 // named no probe commands or isolated state, so every probe was reported
 // unverified and the parent continued the task (~2 min per cell). Read-only now
@@ -128,7 +128,7 @@ test("T17b: the core Evidence-budget rule never fires to prepare an inline write
 
 test("T17: the always-on Explore step delegates exploration only for a map the parent needs", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		const step = prompt.split("\n").find((line) => line.startsWith("2. **Explore.**"));
 		assert.ok(step, "ODD step 2 Explore is missing");
 		containsAll(step, [

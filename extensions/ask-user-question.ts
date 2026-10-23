@@ -12,7 +12,7 @@ import { validateQuestionnaire, type QuestionnaireError } from "../lib/questionn
 import { isInteractiveRpcHost } from "../lib/rpc-host.ts";
 
 const QUESTION_TOOL_NAME = "ask_user_question";
-const ASK_USER_QUESTION_BLOCKED_EVENT = "gentle-pi:ask-user-question:blocked";
+const ASK_USER_QUESTION_BLOCKED_EVENT = "nub-ia:ask-user-question:blocked";
 
 /** Maximum characters kept from a renderCall question summary. */
 const CALL_SUMMARY_LIMIT = 120;

@@ -16,9 +16,9 @@ import {
 	type AgentRoutingEntry,
 } from "./model-routing-authority.ts";
 
-export const PROFILES_KIND = "gentle-pi.agent_model_profiles";
+export const PROFILES_KIND = "nub-ia.agent_model_profiles";
 export const PROFILES_VERSION = 1;
-export const PROFILE_EXPORT_KIND = "gentle-pi.agent_model_profile";
+export const PROFILE_EXPORT_KIND = "nub-ia.agent_model_profile";
 export const PROFILE_EXPORT_VERSION = 1;
 
 export interface AgentProfilesFile {
@@ -421,7 +421,7 @@ export function buildProfileListItems(
 		// A pinned profile is the one this repository launches with, which is not the
 		// same thing as the globally active profile, so both are named. A session
 		// binding outranks the pin in this list (slice 1 stores it; slice 2,
-		// gentle-shell#1558, makes launches resolve it), so its marker wins on the
+		// nubia-shell#1558, makes launches resolve it), so its marker wins on the
 		// same profile.
 		const label = name === sessionBound
 			? `${active} (session)`
@@ -505,12 +505,12 @@ export function profilesFilePath(configHome: string): string {
 	return join(configHome, "profiles.json");
 }
 
-/** Where to READ the profiles store: nub-ia home first, then the legacy gentle-ai home. */
+/** Where to READ the profiles store: nub-ia home first, then the legacy nub-ia home. */
 export function profilesReadFilePath(configHome: string): string {
 	return configReadPath(configHome, "profiles.json");
 }
 
-/** Where to READ the profiles export: nub-ia home first, then the legacy gentle-ai home. */
+/** Where to READ the profiles export: nub-ia home first, then the legacy nub-ia home. */
 export function profileExportReadPath(configHome: string): string {
 	return configReadPath(configHome, "profiles.export.json");
 }

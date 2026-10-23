@@ -175,9 +175,9 @@ Disparadores: investigación que supera el presupuesto de evidencia (un lote par
 
 `worker` corre un único hilo de escritura acotado; parallel writers only with disjoint Allowed edit surfaces (runtime-enforced) or isolated worktrees. "Runtime-enforced" significa un chequeo de admisión dentro de un proceso de Pi: `subagent_run` / `subagent_continue` rechaza a un writer si otro writer encolado o corriendo del mismo padre y worktree tiene una entrada de `## Allowed edit surfaces` superpuesta (el solapamiento es conservador: una entrada cubre todo lo que cuelga de ella; globs raros se consideran solapados con todo). No es una guardia de escritura: no impide que un writer edite fuera de sus superficies, y procesos de Pi distintos no se coordinan.
 
-Herramientas: `subagent_list_agents`, `subagent_run` (`agent`, `task`, `mode` task|background, `workspace_root`/`repository_root`), `subagent_status`, `subagent_result`, `subagent_list_tasks`, `subagent_reply`, `subagent_cancel`, `subagent_send_message`, `subagent_continue`. Las definiciones son markdown en `~/.pi/agent/agents/`, `<cwd>/.pi/agents/` y las carpetas `subagents/` equivalentes (el proyecto gana). El overlay `/nubia:agents` y el esquema de actividad RPC están en [gentle-agents-activity.md](gentle-agents-activity.md); cómo se verifica el trabajo delegado, en [delegated-verification.md](delegated-verification.md).
+Herramientas: `subagent_list_agents`, `subagent_run` (`agent`, `task`, `mode` task|background, `workspace_root`/`repository_root`), `subagent_status`, `subagent_result`, `subagent_list_tasks`, `subagent_reply`, `subagent_cancel`, `subagent_send_message`, `subagent_continue`. Las definiciones son markdown en `~/.pi/agent/agents/`, `<cwd>/.pi/agents/` y las carpetas `subagents/` equivalentes (el proyecto gana). El overlay `/nubia:agents` y el esquema de actividad RPC están en [nubia-agents-activity.md](nubia-agents-activity.md); cómo se verifica el trabajo delegado, en [delegated-verification.md](delegated-verification.md).
 
-**Background subagents.** Con la política `on`, `subagent_run` usa `mode: "background"` por defecto en sesiones interactivas/RPC; el resultado vuelve como mensaje `gentle-agents.result` y arranca un turno nuevo (el modelo no hace polling). En `pi -p` y `pi --mode json` siempre se usa `task`. Es `off` salvo que la actives con `/nubia:background-subagents enable`. Fuentes, primera que gana: `<cwd>/.pi/nub-ia/background-subagents.json` (proyecto), `<configHome>/background-subagents.json` (global), `NUB_IA_BACKGROUND_SUBAGENTS=on|off`, default `off`. Un archivo malformado falla cerrado a `off`. `configHome` es `NUB_IA_CONFIG_HOME` o, por defecto, `~/.pi/nub-ia` (ruta heredada del upstream).
+**Background subagents.** Con la política `on`, `subagent_run` usa `mode: "background"` por defecto en sesiones interactivas/RPC; el resultado vuelve como mensaje `nubia-agents.result` y arranca un turno nuevo (el modelo no hace polling). En `pi -p` y `pi --mode json` siempre se usa `task`. Es `off` salvo que la actives con `/nubia:background-subagents enable`. Fuentes, primera que gana: `<cwd>/.pi/nub-ia/background-subagents.json` (proyecto), `<configHome>/background-subagents.json` (global), `NUB_IA_BACKGROUND_SUBAGENTS=on|off`, default `off`. Un archivo malformado falla cerrado a `off`. `configHome` es `NUB_IA_CONFIG_HOME` o, por defecto, `~/.pi/nub-ia` (ruta heredada del upstream).
 
 ### Cache warming nativo (Pi 0.86.1+)
 
@@ -222,14 +222,14 @@ Lo guardado va a `<configHome>/models.json` (`{ "<agente>": { "model": "provider
 
 | Capa | Ruta | Git |
 | --- | --- | --- |
-| Pin local (`p`) | `<git-common-dir>/gentle-ai/profile-pin.json` | Invisible; lo comparten los worktrees del clon. |
+| Pin local (`p`) | `<git-common-dir>/nub-ia/profile-pin.json` | Invisible; lo comparten los worktrees del clon. |
 | Declaración del repo (`P`) | `<worktree-root>/.pi/nub-ia/profile.json` (o la heredada `.pi/gentle-ai/`) | Archivo normal; commitealo para compartirlo con el equipo. |
 
-Ambas usan `{"kind":"gentle-pi.agent_model_profile_pin","version":1,"profile":"<nombre>"}`. El header muestra `nombre (local)` o `nombre (repo)`. Un pin inválido, obsoleto o fuera de un worktree nunca bloquea el trabajo: se reporta y se cae al perfil global. El orquestador queda fuera del pin. Si `.pi/` está ignorado, el panel imprime las reglas de `.gitignore` para poder commitear solo la declaración (`!.pi/`, `.pi/*`, `!.pi/gentle-ai/`, `.pi/gentle-ai/*`, `!.pi/gentle-ai/profile.json`).
+Ambas usan `{"kind":"nub-ia.agent_model_profile_pin","version":1,"profile":"<nombre>"}`. El header muestra `nombre (local)` o `nombre (repo)`. Un pin inválido, obsoleto o fuera de un worktree nunca bloquea el trabajo: se reporta y se cae al perfil global. El orquestador queda fuera del pin. Si `.pi/` está ignorado, el panel imprime las reglas de `.gitignore` para poder commitear solo la declaración (`!.pi/`, `.pi/*`, `!.pi/gentle-ai/`, `.pi/gentle-ai/*`, `!.pi/gentle-ai/profile.json`).
 
 ## Persona
 
-`/nubia:persona` alterna entre `gentleman` (arquitecto senior y docente, feedback técnico directo, voseo rioplatense si escribís en castellano) y `neutral` (misma disciplina, lenguaje profesional sin regionalismos). Se guarda en `<configHome>/persona.json`; un `.pi/gentle-ai/persona.json` de proyecto puede sobreescribirlo. Después de cambiarla hacé `/reload` o abrí una sesión nueva.
+`/nubia:persona` alterna entre `gentleman` (arquitecto senior y docente, feedback técnico directo, voseo rioplatense si escribís en castellano) y `neutral` (misma disciplina, lenguaje profesional sin regionalismos). Se guarda en `<configHome>/persona.json`; un `.pi/nub-ia/persona.json` de proyecto puede sobreescribirlo. Después de cambiarla hacé `/reload` o abrí una sesión nueva.
 
 ## Guardrails y YOLO
 
@@ -310,4 +310,4 @@ Legacy names `gentle-ai` and `gentle-ai-<x>` (e.g. `gentle-ai-judgment-day`) wer
 
 ## Desarrollo
 
-`pnpm test` corre la suite completa y `pnpm run typecheck` el chequeo de tipos. Las variables de entorno son todas `NUB_IA_*` (sin alias `GENTLE_*`). Los identificadores internos (nombres de archivos y funciones en `lib/`, esquemas persistidos) se conservan del upstream para poder mergear sus cambios. Para la experiencia de la terminal ver [La shell de Nub-IA](nub-ia-shell.md); el texto archivado del README upstream está en [UPSTREAM-README.md](UPSTREAM-README.md).
+`pnpm test` corre la suite completa y `pnpm run typecheck` el chequeo de tipos. Las variables de entorno son todas `NUB_IA_*` (sin alias `GENTLE_*`). Los identificadores internos (archivos, funciones, esquemas persistidos, tipos de mensaje) usan nombres `nubia` / `nub-ia`; solo quedan nombres de gentle-shell en la compatibilidad de lectura de `~/.pi/gentle-ai`, los temas `Gentle*` y la persona `gentleman`. Para la experiencia de la terminal ver [La shell de Nub-IA](nub-ia-shell.md); el texto archivado del README upstream está en [UPSTREAM-README.md](UPSTREAM-README.md).

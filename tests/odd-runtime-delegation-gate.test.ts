@@ -5,10 +5,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
 
 test("a second direct file is not refused based on session write history", async () => {
-	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-odd-direct-"));
+	const cwd = mkdtempSync(join(tmpdir(), "nub-ia-odd-direct-"));
 	try {
 		execFileSync("git", ["init", "--quiet"], { cwd });
 		const handlers = new Map<string, (event: Record<string, unknown>, ctx: ExtensionContext) => unknown>();
@@ -17,7 +17,7 @@ test("a second direct file is not refused based on session write history", async
 			events: { emit() {} }, registerCommand() {}, registerTool() {}, getFlag: () => undefined,
 			getActiveTools: () => ["edit", "write"],
 		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ processEnv: {} })(pi);
+		createNubiaExtension({ processEnv: {} })(pi);
 		const ctx = {
 			cwd, hasUI: false, mode: "interactive", ui: { notify() {} },
 			sessionManager: { getSessionId: () => "odd-direct" },

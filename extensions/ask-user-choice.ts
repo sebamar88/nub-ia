@@ -7,7 +7,7 @@ import { createNativeFullscreenInteraction } from "../lib/native-fullscreen-inte
 import { isInteractiveMode, isInteractiveRpcHost } from "../lib/rpc-host.ts";
 
 const CHOICE_TOOL_NAME = "ask_user_choice";
-const ASK_USER_CHOICE_BLOCKED_EVENT = "gentle-pi:ask-user-choice:blocked";
+const ASK_USER_CHOICE_BLOCKED_EVENT = "nub-ia:ask-user-choice:blocked";
 
 const ChoiceOptionSchema = Type.Object(
 	{

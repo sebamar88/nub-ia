@@ -70,14 +70,14 @@ interface PackageJson {
 	pi?: PackageJsonPiManifest;
 }
 
-interface GentleThemeJson {
+interface NubiaThemeJson {
 	name?: string;
 	vars?: Record<string, unknown>;
 	colors?: Record<string, unknown>;
 	export?: Record<string, unknown>;
 }
 
-function resolveThemeColor(theme: GentleThemeJson, colorKey: string): unknown {
+function resolveThemeColor(theme: NubiaThemeJson, colorKey: string): unknown {
 	const colorRef = theme.colors?.[colorKey];
 
 	if (typeof colorRef !== "string") {
@@ -88,7 +88,7 @@ function resolveThemeColor(theme: GentleThemeJson, colorKey: string): unknown {
 }
 
 function assertResolvedThemeColor(
-	theme: GentleThemeJson,
+	theme: NubiaThemeJson,
 	colorKey: string,
 	expected: string,
 ): void {
@@ -118,7 +118,7 @@ test("package manifest exposes bundled themes to Pi discovery", () => {
 });
 
 test("bundled Gentleman-Sexy Pi theme is available under its exact name", () => {
-	const theme = readJson<GentleThemeJson>(
+	const theme = readJson<NubiaThemeJson>(
 		join(PACKAGE_ROOT, "themes", "Gentleman-Sexy.json"),
 	);
 
@@ -126,7 +126,7 @@ test("bundled Gentleman-Sexy Pi theme is available under its exact name", () => 
 });
 
 test("bundled Gentleman-Cute Pi theme is available under its exact name", () => {
-	const theme = readJson<GentleThemeJson>(
+	const theme = readJson<NubiaThemeJson>(
 		join(PACKAGE_ROOT, "themes", "Gentleman-Cute.json"),
 	);
 
@@ -134,7 +134,7 @@ test("bundled Gentleman-Cute Pi theme is available under its exact name", () => 
 });
 
 test("bundled Gentleman-Sexy Pi theme defines complete brand and semantic color mappings", () => {
-	const theme = readJson<GentleThemeJson>(
+	const theme = readJson<NubiaThemeJson>(
 		join(PACKAGE_ROOT, "themes", "Gentleman-Sexy.json"),
 	);
 	const colors = theme.colors ?? {};
@@ -192,7 +192,7 @@ test("bundled Gentleman-Sexy Pi theme defines complete brand and semantic color 
 });
 
 test("bundled Gentleman-Cute Pi theme defines complete brand and restrained color mappings", () => {
-	const theme = readJson<GentleThemeJson>(
+	const theme = readJson<NubiaThemeJson>(
 		join(PACKAGE_ROOT, "themes", "Gentleman-Cute.json"),
 	);
 	const colors = theme.colors ?? {};
@@ -252,8 +252,8 @@ test("bundled Gentleman-Cute Pi theme defines complete brand and restrained colo
 	assert.equal(theme.export?.infoBg, "infoBg");
 });
 
-test("bundled Pi theme is named exactly Gentle and defines all required colors", () => {
-	const theme = readJson<GentleThemeJson>(
+test("bundled Pi theme is named exactly Nub-IA and defines all required colors", () => {
+	const theme = readJson<NubiaThemeJson>(
 		join(PACKAGE_ROOT, "themes", "Gentle.json"),
 	);
 
@@ -266,7 +266,7 @@ test("bundled Pi theme is named exactly Gentle and defines all required colors",
 });
 
 test("bundled Pi theme maps roles to the subtle OpenCode gentleman theme", () => {
-	const theme = readJson<GentleThemeJson>(
+	const theme = readJson<NubiaThemeJson>(
 		join(PACKAGE_ROOT, "themes", "Gentle.json"),
 	);
 	const vars = theme.vars ?? {};

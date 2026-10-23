@@ -40,7 +40,7 @@ async function captureOwnedRoutes(t: TestContext): Promise<{ captures: Capture[]
 	const cp = childProcess();
 	const original = { execFileSync: cp.execFileSync, execFile: cp.execFile, spawnSync: cp.spawnSync };
 	const captures: Capture[] = [];
-	const cwd = realpathSync(mkdtempSync(join(tmpdir(), "gentle-pi-windows-hidden-workspace-")));
+	const cwd = realpathSync(mkdtempSync(join(tmpdir(), "nub-ia-windows-hidden-workspace-")));
 	t.after(() => rmSync(cwd, { recursive: true, force: true }));
 	mkdirSync(join(cwd, ".git"), { recursive: true });
 	const fakeSync = ((command: string, args: readonly string[], options: Options = {}) => {
@@ -73,7 +73,7 @@ async function captureOwnedRoutes(t: TestContext): Promise<{ captures: Capture[]
 		let fallbackRoot: string | undefined;
 		let fallbackCalls: ExpectedCall[] = [];
 	if (process.platform === "win32") {
-		fallbackRoot = mkdtempSync(join(tmpdir(), "gentle-pi-codegraph-contract-"));
+		fallbackRoot = mkdtempSync(join(tmpdir(), "nub-ia-codegraph-contract-"));
 		t.after(() => rmSync(fallbackRoot!, { recursive: true, force: true }));
 		const packageRoot = join(fallbackRoot, "node_modules", "@colbymchenry", "codegraph");
 		mkdirSync(packageRoot, { recursive: true });

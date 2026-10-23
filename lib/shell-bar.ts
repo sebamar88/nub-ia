@@ -11,7 +11,7 @@ type HeaderPresentation = Presentation & Partial<Pick<VisualSettings, "headerPla
 
 export { gaugeTone, renderGauge, type GaugeTone };
 
-// Gentle Shell status bar: one line of segments that replaces pi's built-in
+// Nub-IA status bar: one line of segments that replaces pi's built-in
 // three-line footer. Everything here is pure so the bar can be rendered and
 // verified without a live TUI.
 
@@ -90,7 +90,7 @@ export interface ShellBarTheme {
 	bold(text: string): string;
 }
 
-// Theme roles the bar paints with. Keys are pi theme colors; the Gentle themes
+// Theme roles the bar paints with. Keys are pi theme colors; the Nub-IA themes
 // map them to the rose palette (accent = rose, syntaxFunction = powder blue).
 const ROLE = {
 	BRAND: "accent",

@@ -1,4 +1,4 @@
-// Gentle Agents completion delivery queue (issue #867).
+// Nub-IA Agents completion delivery queue (issue #867).
 //
 // A background subagent completion used to be handed straight to the host as a
 // `deliverAs: "followUp"` message, but the host only flushes that queue when

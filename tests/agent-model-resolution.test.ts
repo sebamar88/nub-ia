@@ -6,11 +6,11 @@ import test, { after } from "node:test";
 import { resolveAgentHomeDirectory, resolveEffectiveAgentModel, resolvePinnedAgentProfile } from "../lib/agent-model-resolution.ts";
 import type { AgentDefinition } from "../lib/agents-config.ts";
 
-// gentle-shell#1731 S3/AC3: the subagent launch and the harness model-routing
+// nubia-shell#1731 S3/AC3: the subagent launch and the harness model-routing
 // fact resolve the effective subagent model through one helper, so the fact
 // can never disagree with the model a launch would actually use.
 
-const root = mkdtempSync(join(tmpdir(), "gentle-pi-agent-model-resolution-"));
+const root = mkdtempSync(join(tmpdir(), "nub-ia-agent-model-resolution-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 
 function fixture(name: string) {
@@ -33,9 +33,9 @@ function fixture(name: string) {
 			writeFileSync(join(agentHome, "subagents.json"), JSON.stringify(config));
 		},
 		writePinnedProfile(profiles: Record<string, unknown>, pin: string) {
-			writeFileSync(join(configHome, "profiles.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, profiles }));
-			mkdirSync(join(commonDir, "gentle-ai"), { recursive: true });
-			writeFileSync(join(commonDir, "gentle-ai", "profile-pin.json"), JSON.stringify({ kind: "gentle-pi.agent_model_profile_pin", version: 1, profile: pin }));
+			writeFileSync(join(configHome, "profiles.json"), JSON.stringify({ kind: "nub-ia.agent_model_profiles", version: 1, profiles }));
+			mkdirSync(join(commonDir, "nub-ia"), { recursive: true });
+			writeFileSync(join(commonDir, "nub-ia", "profile-pin.json"), JSON.stringify({ kind: "nub-ia.agent_model_profile_pin", version: 1, profile: pin }));
 		},
 	};
 }

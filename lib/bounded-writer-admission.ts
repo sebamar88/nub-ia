@@ -24,7 +24,7 @@ function isTaskScopedRepositoryRelativePath(value: string, backticked: boolean):
 // This is the same canonical parser used by both the tool hook and executor.
 // Prose cannot close the section, and repeated sections must agree exactly.
 // A rejection carries the concrete problem so the caller repairs only the
-// section instead of re-summarizing the whole task (gentle-shell#1713).
+// section instead of re-summarizing the whole task (nubia-shell#1713).
 function parseAllowedEditSurfaces(values: readonly unknown[]): { paths: string[] } | { problem: string } {
 	let expected: string[] | undefined;
 	for (const value of values) {

@@ -198,7 +198,7 @@ test("one feature document carries intent, accepted rationale and worker context
 	]);
 });
 
-// gentle-shell#1713: handoffs paraphrased the user's request, the feature
+// nubia-shell#1713: handoffs paraphrased the user's request, the feature
 // document summarized it, and verify never saw it. The document is now the
 // specification subagents read by reference, in a fixed token-cheap order.
 test("feature document is the verbatim specification subagents read by reference", () => {
@@ -216,9 +216,9 @@ test("feature document is the verbatim specification subagents read by reference
 		"reproduce it before deciding it already works",
 	];
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		containsAll(prompt, [...always,
-			// Parity with the gentle-ai canon (gentle-ai#5215).
+			// Parity with the nub-ia canon (nub-ia#5215).
 			"name the document, task, and specs (for example `Spec: odd/tasks/<feature>.md, T2, S3-S4`), tell workers to read until `## Log`",
 			"runs the spec's examples the parent authorized, against isolated state when they mutate data",
 		]);
@@ -258,7 +258,7 @@ test("ODD defaults to applicable test-first without chat or TUI activation", () 
 		assert.doesNotMatch(text, /(?:configured TDD mode|Strict TDD Mode is enabled|explicit user choice|test presence does not enable it|tests existing does not activate it)/i);
 	}
 	// The core sits after the harness in the same system prompt, so it points at
-	// the harness test-first policy instead of restating it (gentle-shell#1494).
+	// the harness test-first policy instead of restating it (nubia-shell#1494).
 	assert.ok(core.includes("the harness's applicable test-first policy"), "core must point at the harness test-first policy");
 	for (const [actor, text] of [["delegation", delegation], ["extension", wrapper], ["skill", skill]] as const) {
 		assert.match(text, /behavior changes with applicable runnable deterministic tests and a clear expected outcome/i, `${actor} must require applicability, not test presence`);
@@ -333,7 +333,7 @@ test("core and lazy canonical trigger lists agree in numbering and semantics", (
 	}
 });
 
-// Evidence-budget rule (gentle-shell#1587, measured in gentle-ai#5139): every
+// Evidence-budget rule (nubia-shell#1587, measured in nub-ia#5139): every
 // routing surface states the same numbers, and the retired file-count and
 // tool-call triggers are gone from all of them.
 test("evidence-budget numbers agree across routing surfaces and retired triggers are gone", () => {
@@ -374,12 +374,12 @@ test("ODD protocol is always-on in the rendered system prompt and runs by defaul
 		"Tell the user in one line which feature document was created and how many tasks it holds",
 		"6. **Implement task by task.**",
 		"7. **Close.**",
-		"call `gentle_odd_phase` only when the primary session's ODD phase actually changes",
+		"call `nubia_odd_phase` only when the primary session's ODD phase actually changes",
 		"Harness principles:",
 		"# Nub-IA Orchestrator",
 	];
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		let cursor = -1;
 		for (const clause of orderedClauses) {
 			const index = prompt.indexOf(clause);

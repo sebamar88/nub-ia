@@ -2,7 +2,7 @@ import { decodePrintableKey } from "./pi-tui-keys.ts";
 import { isKeyRelease, matchesKey, truncateToWidth, visibleWidth, type EditorComponent } from "@earendil-works/pi-tui";
 
 /**
- * Native text-selection engine for GentlePromptEditor: shift+home / shift+end
+ * Native text-selection engine for NubiaPromptEditor: shift+home / shift+end
  * selection, alt+a select-all, and replace-on-key (backspace / delete /
  * printable character) with reverse-video highlight and a bottom-rule hint.
  * Ported from @exopro/pi-select-del so the petal prompt owns the feature

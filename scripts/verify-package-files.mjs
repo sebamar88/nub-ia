@@ -76,7 +76,6 @@ const requiredPaths = [
   "scripts/org-policy-fetch.mjs",
   "scripts/approved-packages.mjs",
   "scripts/init-repo.mjs",
-  "scripts/upstream-diff.mjs",
   "scripts/verify-signature.mjs",
   "scripts/bump-pins.mjs",
   "scripts/bench-prompt.mjs",

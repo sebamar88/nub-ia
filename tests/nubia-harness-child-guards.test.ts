@@ -4,10 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 import type { ExtensionAPI, ExtensionContext, ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
 import { YOLO_STATUS_KEY } from "../lib/yolo-session-policy.ts";
 
-// gentle-shell#1690: the package is forwarded to delegated rpc children
+// nubia-shell#1690: the package is forwarded to delegated rpc children
 // (NUB_IA_AGENTS_CHILD=1, where ctx.hasUI is true). Parent-owned startup
 // work and shared-state writes must not run there; each case pairs the child
 // with a parent control so the guard cannot pass vacuously.
@@ -15,7 +15,7 @@ import { YOLO_STATUS_KEY } from "../lib/yolo-session-policy.ts";
 type Handler = (event: unknown, ctx: ExtensionContext) => unknown;
 
 function isolate(t: TestContext): { root: string; cwd: string; agentHome: string } {
-	const root = realpathSync(mkdtempSync(join(tmpdir(), "gentle-pi-child-guards-")));
+	const root = realpathSync(mkdtempSync(join(tmpdir(), "nub-ia-child-guards-")));
 	const cwd = join(root, "project");
 	const agentHome = join(root, "agent-home");
 	const configHome = join(root, "config");
@@ -47,8 +47,8 @@ function harness(child: boolean, cwd: string) {
 		registerTool: (tool: ToolDefinition) => { tools.set(tool.name, tool); },
 		registerCommand() {}, registerShortcut() {}, registerMessageRenderer() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({
-		processEnv: { NUB_IA_AGENTS_CHILD: child ? "1" : "0", GENTLE_AI_TELEMETRY: "0" },
+	createNubiaExtension({
+		processEnv: { NUB_IA_AGENTS_CHILD: child ? "1" : "0", NUB_IA_TELEMETRY: "0" },
 	})(pi);
 	const sessionManager = { getSessionId: () => `session-${child ? "child" : "parent"}`, getCwd: () => cwd, getEntries: () => entries, getBranch: () => entries };
 	const ctx = {

@@ -3,7 +3,7 @@ import { isFinished, TASK_STATUS, type TaskRecord, type TaskStatus } from "./age
 import { formatCost, formatTokens } from "./shell-bar.ts";
 import { CARD_TONE, panelExtraRows, panelInnerWidth, renderCard, type CardTheme, type CardTone } from "./shell-card.ts";
 
-// Gentle Agents widget: the card above the editor. Reads task records only
+// Nub-IA Agents widget: the card above the editor. Reads task records only
 // (status, prompt, counters, timestamps), so drawing it costs nothing per
 // event. One row per task: glyph, agent, task summary, then
 // model · effort · tokens · cost · time right-aligned.
@@ -227,7 +227,7 @@ function taskText(task: TaskRecord): string {
 // surviving columns keep lining up: the task text goes first, then the
 // model·effort label, then tokens, then cost. Elapsed is the one value the
 // reader cannot rebuild from anything else on screen, so it is the last to go
-// (gentle-shell#1143). Only when even elapsed alone does not fit does the row
+// (nubia-shell#1143). Only when even elapsed alone does not fit does the row
 // fall back to the clipped single-string label.
 function columns(tasks: readonly TaskRecord[], inner: number, now: number): Columns {
 	const name = Math.max(0, Math.min(NAME_MAX, inner - 3, Math.max(...tasks.map((task) => visibleWidth(task.agent)))));

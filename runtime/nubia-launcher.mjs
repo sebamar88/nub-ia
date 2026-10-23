@@ -345,7 +345,7 @@ function isProvisionedEntry(value         )                            {
 	const record = value                           ;
 	if (typeof record.at !== "string") return false;
 	if (record.gentleAi !== undefined && typeof record.gentleAi !== "string") return false;
-	return record.gentlePi === undefined || typeof record.gentlePi === "string";
+	return record.nubiaVersion === undefined || typeof record.nubiaVersion === "string";
 }
 
 // Tolerant read of config.provisioned: a missing, non-object, or malformed
@@ -369,22 +369,22 @@ export function provisionedEntry(config                   , homeDir        )    
 }
 
 // True when `homeDir` has never been provisioned, or was provisioned against
-// a launcher version other than `gentlePiVersion` (the running launcher's own
+// a launcher version other than `nubiaVersion` (the running launcher's own
 // version, from its package.json) — the signal bin/nub-ia.mjs uses to decide
 // whether a plain launch should run the setup flow automatically before
 // starting pi. A legacy marker that still carries a `gentleAi` field (written
-// when the gentle-ai binary was provisioned) or has no `gentlePi` field counts
+// when the nub-ia binary was provisioned) or has no `nubiaVersion` field counts
 // as needing provisioning once; the re-recorded entry drops the legacy field.
-export function needsProvisioning(config                   , homeDir        , gentlePiVersion        )          {
+export function needsProvisioning(config                   , homeDir        , nubiaVersion        )          {
 	const entry = provisionedEntry(config, homeDir);
-	return entry === undefined || entry.gentleAi !== undefined || entry.gentlePi !== gentlePiVersion;
+	return entry === undefined || entry.gentleAi !== undefined || entry.nubiaVersion !== nubiaVersion;
 }
 
 // Returns a new config object recording `homeDir` as provisioned at
-// `gentlePiVersion`, preserving every other key — including every other
+// `nubiaVersion`, preserving every other key — including every other
 // home's provisioned entry — unchanged. Never mutates `config`.
-export function recordProvisioned(config                   , homeDir        , gentlePiVersion        , now        )                    {
-	return { ...config, provisioned: { ...provisionedMap(config), [homeDir]: { gentlePi: gentlePiVersion, at: now } } };
+export function recordProvisioned(config                   , homeDir        , nubiaVersion        , now        )                    {
+	return { ...config, provisioned: { ...provisionedMap(config), [homeDir]: { nubiaVersion: nubiaVersion, at: now } } };
 }
 
 // --- pi runtime resolution ---------------------------------------------------
@@ -515,7 +515,7 @@ export function packageSourceKind(source        )                    {
 	return "path";
 }
 
-function npmSourceDeclaresGentlePi(source        )          {
+function npmSourceDeclaresNubia(source        )          {
 	return ["npm:nub-ia", "npm:gentle-pi"].some((name) => source === name || source.startsWith(`${name}@`));
 }
 
@@ -544,19 +544,19 @@ function parseSettingsPackages(settingsText                    )                
 	return Array.isArray(packages) ? packages : undefined;
 }
 
-function packageEntryDeclaresGentlePi(entry         )          {
+function packageEntryDeclaresNubia(entry         )          {
 	const source = entrySource(entry);
-	return source !== undefined && packageSourceKind(source) === "npm" && npmSourceDeclaresGentlePi(source);
+	return source !== undefined && packageSourceKind(source) === "npm" && npmSourceDeclaresNubia(source);
 }
 
 // Deprecated: recognises only an `npm:gentle-pi` declaration. Kept as a thin
 // compatibility wrapper over the pre-existing behaviour for any caller that
-// only cares about the npm case; findGentlePiDeclaration below also detects
+// only cares about the npm case; findNubiaDeclaration below also detects
 // a path package whose own package.json names it "gentle-pi".
-export function settingsDeclareGentlePi(settingsText                    )          {
+export function settingsDeclareNubia(settingsText                    )          {
 	const packages = parseSettingsPackages(settingsText);
 	if (packages === undefined) return false;
-	return packages.some(packageEntryDeclaresGentlePi);
+	return packages.some(packageEntryDeclaresNubia);
 }
 
 // Team companion packages: Pi packages every Nub-IA home gets, installed by `setup` (and the first-run auto-provision)
@@ -602,12 +602,12 @@ export function teamPackagesToInstall(settingsText                    , sources 
 
 
 
-// Detects a settings.json `packages` entry that already loads gentle-pi,
+// Detects a settings.json `packages` entry that already loads nub-ia,
 // either as `npm:gentle-pi[@version]` or as a local path (string or object
 // `source`) whose own package.json declares `"name": "gentle-pi"`. Path
 // entries are resolved relative to `opts.agentDir`, matching how pi itself
 // resolves a settings-relative local path.
-export function findGentlePiDeclaration(settingsText                    , opts                                )                                  {
+export function findNubiaDeclaration(settingsText                    , opts                             )                               {
 	const packages = parseSettingsPackages(settingsText);
 	if (packages === undefined) return undefined;
 
@@ -615,7 +615,7 @@ export function findGentlePiDeclaration(settingsText                    , opts  
 		const source = entrySource(entry);
 		if (source === undefined) continue;
 		const kind = packageSourceKind(source);
-		if (kind === "npm" && npmSourceDeclaresGentlePi(source)) return { kind: "npm" };
+		if (kind === "npm" && npmSourceDeclaresNubia(source)) return { kind: "npm" };
 		if (kind === "path") {
 			const dir = resolvePath(opts.agentDir, source);
 			if (["nub-ia", "gentle-pi"].includes(opts.readPackageName(dir) ?? "")) return { kind: "path", dir };
@@ -715,12 +715,12 @@ export function otherPackageInjections(input                             )      
 		if (source === undefined) continue;
 		const kind = packageSourceKind(source);
 
-		// Skip every gentle-pi entry unconditionally, not only the one
-		// matching `skip`'s kind: settings can carry more than one gentle-pi
+		// Skip every nub-ia entry unconditionally, not only the one
+		// matching `skip`'s kind: settings can carry more than one nub-ia
 		// declaration (for example an npm:gentle-pi entry alongside the path
 		// declaration actually being taken over), and re-injecting any of
-		// them as an "other package" would double-load gentle-pi extensions.
-		if (kind === "npm" && npmSourceDeclaresGentlePi(source)) continue;
+		// them as an "other package" would double-load nub-ia extensions.
+		if (kind === "npm" && npmSourceDeclaresNubia(source)) continue;
 		if (kind === "path") {
 			const dir = resolvePath(input.agentDir, source);
 			// Compared through realpath on BOTH sides (not the raw resolved
@@ -899,7 +899,7 @@ export function discoverLooseExtensionEntries(dir        , fs                  )
 //     interactive pi session instead of running the package manager. No
 //     injection of any kind (including a take-over's --no-extensions and
 //     other-package/loose-extension -e flags) may precede it.
-//   - takeOver: the target settings declare a *different* gentle-pi, or
+//   - takeOver: the target settings declare a *different* nub-ia, or
 //     --package-root forced a takeover regardless of any declaration. This
 //     must win over the next two cases even when there is no declaration to
 //     report, or the plain branch would silently drop --no-extensions and
@@ -918,9 +918,9 @@ export function discoverLooseExtensionEntries(dir        , fs                  )
 //     loaded twice.
 //   - Not takeOver, no declaration: inject this launcher's own packageRoot
 //     once via -e; Pi discovers its extensions, skills, prompts and themes,
-//     exactly as when nothing else in settings loads gentle-pi.
+//     exactly as when nothing else in settings loads nub-ia.
 //   - Not takeOver, with a declaration: no injection at all — the target
-//     settings already load a gentle-pi the launcher accepts as-is (the
+//     settings already load a nub-ia the launcher accepts as-is (the
 //     `--link` case with a pi-managed install matching this launcher).
 //
 // The two injecting cases also export CHILD_PACKAGE_INJECTION_ENV (#1690) so
@@ -1155,7 +1155,7 @@ export function forceJsonFieldIfAbsentInOriginal(originalText        , currentTe
 
 export function describeVersion(input                      )         {
 	return [
-		`nub-ia ${input.gentlePiVersion}`,
+		`nub-ia ${input.nubiaVersion}`,
 		`pi ${input.piVersion ?? "not found"}`,
 		`home ${input.home.mode} ${input.home.dir}`,
 	].join("\n");

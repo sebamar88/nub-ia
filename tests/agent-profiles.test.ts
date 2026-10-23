@@ -507,7 +507,7 @@ test("formatProfileSummaryLines renders counts, models, and roles", () => {
 // ---- Triangulation: adversarial and alternate cases ----
 
 test("parseProfilesFileText drops a __proto__ profile key without polluting the object", () => {
-	const text = '{"kind":"gentle-pi.agent_model_profiles","version":1,"profiles":{"__proto__":{"explore":{"model":"m/x"}},"team":{"explore":{"model":"m/x"}}}}';
+	const text = '{"kind":"nub-ia.agent_model_profiles","version":1,"profiles":{"__proto__":{"explore":{"model":"m/x"}},"team":{"explore":{"model":"m/x"}}}}';
 	const parsed = parseProfilesFileText(text);
 	assert.equal(parsed.status, "valid");
 	if (parsed.status !== "valid") return;
@@ -598,7 +598,7 @@ test("normalizeProfilesFile reports an active marker that names no profile", () 
 // (absent file, unreadable JSON, dropped entries, missing parent directories) are
 // exactly the ones a mock would hide.
 
-const root = mkdtempSync(join(tmpdir(), "gentle-agent-profiles-"));
+const root = mkdtempSync(join(tmpdir(), "nubia-agent-profiles-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 
 test("readProfilesFileResult reports a missing store without throwing", () => {
@@ -647,7 +647,7 @@ test("writeProfilesFileSync creates missing parent directories", () => {
 // to one store's serializer.
 test("writeJsonFileAtomicallySync writes exact bytes, creates parents, and leaves no temp file behind", () => {
 	const path = join(root, "atomic-text", "artifact.json");
-	const first = `${JSON.stringify({ kind: "gentle-pi.test", value: 1 }, null, 2)}\n`;
+	const first = `${JSON.stringify({ kind: "nub-ia.test", value: 1 }, null, 2)}\n`;
 	writeJsonFileAtomicallySync(path, first);
 	assert.equal(readFileSync(path, "utf8"), first);
 	writeJsonFileAtomicallySync(path, "second\n");
@@ -657,7 +657,7 @@ test("writeJsonFileAtomicallySync writes exact bytes, creates parents, and leave
 
 test("writeJsonFileAtomicallySync skips an identical rewrite so the file is not replaced", () => {
 	const path = join(root, "atomic-noop", "artifact.json");
-	const text = `${JSON.stringify({ kind: "gentle-pi.test", value: 1 }, null, 2)}\n`;
+	const text = `${JSON.stringify({ kind: "nub-ia.test", value: 1 }, null, 2)}\n`;
 	writeJsonFileAtomicallySync(path, text);
 	const historicalTime = new Date("2000-01-01T00:00:00.000Z");
 	utimesSync(path, historicalTime, historicalTime);

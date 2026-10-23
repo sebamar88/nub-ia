@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Sequential test-suite runner for `pnpm test` (gentle-pi#1285).
+// Sequential test-suite runner for `pnpm test` (nub-ia#1285).
 //
 // `pnpm test` used to chain its stages with `&&`, so any stage-1
 // failure — including a known-flaky unit test — silently suppressed the

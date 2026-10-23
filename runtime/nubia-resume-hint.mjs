@@ -130,7 +130,7 @@ function quoteArg(value        , platform                 )                     
 // Returns the nub-ia command that resumes the handed-off session, or
 // undefined when some argument cannot be quoted safely for the platform's
 // shell (the caller then prints no hint and leaves pi's own line alone).
-export function gentleShellResumeCommand(
+export function nubiaShellResumeCommand(
 	handoff               ,
 	homeFlags          ,
 	platform                 ,
@@ -170,7 +170,7 @@ export function gentleShellResumeCommand(
 export function planResumeHint(input                 )                     {
 	const { handoff, homeFlags, stdoutIsTTY, terminalHungUp, platform, color } = input;
 	if (!handoff || !stdoutIsTTY || terminalHungUp) return undefined;
-	const command = gentleShellResumeCommand(handoff, homeFlags, platform);
+	const command = nubiaShellResumeCommand(handoff, homeFlags, platform);
 	if (command === undefined) return undefined;
 	const label = color ? `\u001b[2m${HINT_LABEL}\u001b[22m` : HINT_LABEL;
 	return `${label} ${command}\n`;

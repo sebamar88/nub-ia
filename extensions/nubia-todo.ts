@@ -21,14 +21,14 @@ import {
 	type TodoState,
 } from "../lib/shell-todo.ts";
 
-// Gentle Todo: the task list the model keeps while it works, drawn as a
-// Gentle Shell card above the editor. Three things keep it current that a
+// Nub-IA Todo: the task list the model keeps while it works, drawn as a
+// Nub-IA card above the editor. Three things keep it current that a
 // static tool description cannot: `write` replaces the whole list in one
 // call, every turn's system prompt carries the open tasks and the rules, and
 // a list that goes untouched while tasks stay open is marked stale for both
 // the human and the model.
 
-const WIDGET_KEY = "gentle-todo";
+const WIDGET_KEY = "nubia-todo";
 const COLLAPSE_KEY_DEFAULT = "ctrl+shift+t";
 const TOOL_PARAMETERS = {
 	type: "object",
@@ -85,7 +85,7 @@ function sessionKey(ctx: ExtensionContext): string {
 	return ctx.sessionManager.getSessionId() ?? "";
 }
 
-export default function gentleTodo(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env): void {
+export default function nubiaTodo(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env): void {
 	if (!todoEnabled(env)) return;
 	const sessions = new Map<string, TodoSession>();
 	const collapseKey = todoCollapseKey(env);
@@ -244,7 +244,7 @@ export default function gentleTodo(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 		}
 		const block = todoPromptBlock(current.state, staleTurns(current.state, current.turn));
 		if (!block) return undefined;
-		// gentle-shell#1485: pi-claude-bridge drops a handler-returned
+		// nubia-shell#1485: pi-claude-bridge drops a handler-returned
 		// systemPrompt, so the open-tasks block goes through appendSystemPrompt.
 		appendSystemPromptOnce(event.systemPromptOptions, block);
 		return undefined;

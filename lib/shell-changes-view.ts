@@ -4,7 +4,7 @@ import { basename } from "node:path";
 import { CHANGE_STATUS, changesSummary, type ChangedFile, type ChangesModel, type WorktreeChanges } from "./shell-changes.ts";
 import { paintHoverable } from "./shell-hover.ts";
 
-// Gentle Shell changes overlay: a framed two-pane view with the working
+// Nub-IA changes overlay: a framed two-pane view with the working
 // tree's changed files on the left and the selected file's diff on the right.
 // Git access is injected so the component renders without a repository.
 

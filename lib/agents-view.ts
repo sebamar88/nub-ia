@@ -8,7 +8,7 @@ import { createNativePointerScope, type NativePointerRegion } from "./native-poi
 import { formatCost, formatTokens } from "./shell-bar.ts";
 import { PresenceCursor, readActivity, type Header, type Target } from "./orchestrator-presence.ts";
 
-// Gentle Agents overlay: tasks on the left, the selected task's thread on
+// Nub-IA Agents overlay: tasks on the left, the selected task's thread on
 // the right. Only the selected task is subscribed, thread items are rendered
 // once each (they are immutable until replaced), and the viewport shows the
 // tail unless the human scrolls up. Current scope contains direct live children;

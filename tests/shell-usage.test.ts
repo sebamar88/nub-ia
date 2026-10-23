@@ -250,7 +250,7 @@ test("nan is a supported usage provider with its own pending note", () => {
 });
 
 // A generic hook: any extension can register a usage source for its own
-// provider at runtime, without gentle-shell knowing anything about it.
+// provider at runtime, without nubia-shell knowing anything about it.
 
 test("parseUsageSource validates the registration payload and ignores anything malformed", () => {
 	const fetchFn = async () => undefined;
@@ -263,7 +263,7 @@ test("parseUsageSource validates the registration payload and ignores anything m
 	const withNote = parseUsageSource({ schema: USAGE_SOURCE_SCHEMA, provider: "acme-cloud", pendingNote: "warming up", fetch: fetchFn });
 	assert.equal(withNote?.pendingNote, "warming up");
 
-	assert.equal(parseUsageSource({ schema: "gentle-pi.usage-source/v0", provider: "acme-cloud", fetch: fetchFn }), undefined, "wrong schema");
+	assert.equal(parseUsageSource({ schema: "nub-ia.usage-source/v0", provider: "acme-cloud", fetch: fetchFn }), undefined, "wrong schema");
 	assert.equal(parseUsageSource({ schema: USAGE_SOURCE_SCHEMA, provider: "", fetch: fetchFn }), undefined, "empty provider");
 	assert.equal(parseUsageSource({ schema: USAGE_SOURCE_SCHEMA, provider: "acme cloud", fetch: fetchFn }), undefined, "unsafe provider id");
 	assert.equal(parseUsageSource({ schema: USAGE_SOURCE_SCHEMA, provider: "acme-cloud", fetch: "nope" }), undefined, "fetch not a function");
@@ -304,7 +304,7 @@ test("a registered provider is supported without touching the built-in note map"
 
 // A registered source's resolved value crosses the same trust boundary a
 // parsed HTTP payload does. parseProviderUsage validates it exactly like
-// one, and the object gentle-shell records is always freshly built, never
+// one, and the object nubia-shell records is always freshly built, never
 // the caller's own reference.
 
 const VALID_SOURCE_USAGE = {

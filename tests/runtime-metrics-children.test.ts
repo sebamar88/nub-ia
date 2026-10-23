@@ -33,7 +33,7 @@ test("installed package definitions retain classification after the actual routi
 	const route = runInNewContext(`(${stripTypeScriptTypes(transform)})`);
 	for (const entry of readdirSync(new URL("../assets/agents/", import.meta.url)).filter(file => file.endsWith(".md"))) {
 		const file = entry.slice(0, -3);
-		const className = file.startsWith("gentle-ai-") ? file.slice("gentle-ai-".length) : file;
+		const className = file.startsWith("nub-ia-") ? file.slice("nub-ia-".length) : file;
 		const kind = parseAgentClass(className);
 		if (!kind) continue; // Review/Judgment Day agents are not child telemetry classes.
 		const asset = new URL(`../assets/agents/${file}.md`, import.meta.url);

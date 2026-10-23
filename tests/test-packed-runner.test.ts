@@ -4,7 +4,7 @@ import test from "node:test";
 
 const runner = readFileSync(new URL("../scripts/test-packed-runner.mjs", import.meta.url), "utf8");
 
-test("packed runner targets the nub-ia package, not gentle-pi", () => {
+test("packed runner targets the nub-ia package, not nub-ia", () => {
 	assert.match(runner, /"node_modules", "nub-ia"/);
 	assert.match(runner, /entry\.name !== "nub-ia"/);
 	assert.doesNotMatch(runner, /"node_modules", "gentle-pi"/);

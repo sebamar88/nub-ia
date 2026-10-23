@@ -63,9 +63,9 @@ export function createHerdrActivityExtension(options: ActivityOptions = {}) {
 		pi.on("tool_execution_end", (event, ctx) => {
 			if (!owns(ctx)) return;
 			if (event.toolName !== "todo" || event.isError) return;
-			const result = event.result as { details?: { gentleTodo?: TodoState; error?: unknown } };
-			const state = result?.details?.gentleTodo;
-			if (result?.details && Object.hasOwn(result.details, "gentleTodo") && !result.details.error) {
+			const result = event.result as { details?: { nubiaTodo?: TodoState; error?: unknown } };
+			const state = result?.details?.nubiaTodo;
+			if (result?.details && Object.hasOwn(result.details, "nubiaTodo") && !result.details.error) {
 				tasks = Array.isArray(state?.tasks) ? state.tasks : [];
 				publish();
 			}

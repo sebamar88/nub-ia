@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { gentlePiConfigHome } from "./agent-home.ts";
+import { nubiaConfigHome } from "./agent-home.ts";
 import { configReadPath, projectConfigReadPath, readEnv } from "./config-home.ts";
 
 // ---------------------------------------------------------------------------
@@ -35,12 +35,12 @@ export interface BackgroundSubagentsResolution {
 
 export interface LoadBackgroundSubagentsOptions {
 	/** Override the config home directory (used in tests to avoid touching ~/.pi). */
-	gentlePiConfigHome?: string;
+	nubiaConfigHome?: string;
 	/** Override the environment lookup (used in tests). */
 	env?: Record<string, string | undefined>;
 }
 
-export const BACKGROUND_SUBAGENTS_SCHEMA = "gentle-pi.background-subagents/v1";
+export const BACKGROUND_SUBAGENTS_SCHEMA = "nub-ia.background-subagents/v1";
 export const BACKGROUND_SUBAGENTS_FILE = "background-subagents.json";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -48,7 +48,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Strict decode of {"schema":"gentle-pi.background-subagents/v1","policy":"on"|"off"}.
+ * Strict decode of {"schema":"nub-ia.background-subagents/v1","policy":"on"|"off"}.
  * Any malformed shape (bad JSON, wrong schema, unknown keys, invalid policy)
  * returns undefined so the caller fails closed to "off".
  */
@@ -97,7 +97,7 @@ export function resolveBackgroundSubagentsPolicy(
 	let projectFile = "";
 	let globalFile = "";
 	try {
-		const configHome = options.gentlePiConfigHome ?? gentlePiConfigHome();
+		const configHome = options.nubiaConfigHome ?? nubiaConfigHome();
 		projectFile = projectConfigReadPath(cwd, BACKGROUND_SUBAGENTS_FILE);
 		globalFile = configReadPath(configHome, BACKGROUND_SUBAGENTS_FILE, env);
 		const projectFileExists = existsSync(projectFile);

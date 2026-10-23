@@ -8,7 +8,7 @@ Bind this to the parent Pi session only. Load it when the Verification rule fire
 
 Before delivery of a non-trivial change, run `nub_review` (tool) over the diff and address its BLOCKER/CRITICAL findings; the push gate asks for confirmation when changes were not reviewed or were blocked. A code review is not a substitute for applicable functional checks: tests, builds, and functional verification such as browser checks for UI changes still run when applicable. The change's own focused test and suite run inline; a small task needs no separate verifier unless it is high risk.
 
-## Parallel review protocol (gentle-shell#1731)
+## Parallel review protocol (nubia-shell#1731)
 
 1. **Self-review**, required by each writer prompt, in its own session before returning: spec sections by reference (#1713), the request's authorized examples, tests, and typecheck; it fixes and continues (one correction per failing check, a second only if the same check still fails, then `partial`), reporting requirement by requirement. Low and medium risk need nothing else.
 2. **Independent verify per unit**, once, after its final self-review (never per worker cycle or retry), in parallel when several finish together, only when that unit is high risk: its Risk line or the worker's own escalation (high-risk list in Task Size; small-model bias as above), never inferred from the worker's summary alone. Same-model inline code over several deliveries of one feature: one verify at the feature's end; smaller-model writer code stays per unit.

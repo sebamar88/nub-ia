@@ -364,7 +364,7 @@ class BoundedRows implements Component {
 	invalidate(): void {}
 }
 
-// Tool card: every quiet tool call is a rounded petal card, like the Gentle AI
+// Tool card: every quiet tool call is a rounded petal card, like the Nub-IA
 // card, so the call and its output read as one block apart from assistant
 // prose. pi does not paint tool backgrounds for renderShell "self", so the
 // frame tone carries the status the painted Box would otherwise show. The call
@@ -478,7 +478,7 @@ export function createQuietToolRenderer(
 			const callArgs = args as Record<string, unknown>;
 			const renderContext = sanitizedRenderContext(context as ToolRenderContextLike | undefined);
 			const tone = toolTone(renderContext.isPartial !== false, renderContext.isError === true);
-			// Same place and wording as the Gentle AI card: the expand key rides the top rule once the call finished.
+			// Same place and wording as the Nub-IA card: the expand key rides the top rule once the call finished.
 			const finished = renderContext.isPartial === false && (renderContext.executionStarted === true || renderContext.isError === true);
 			const hint = finished ? stripAnsi(keyHint("app.tools.expand", renderContext.expanded === true ? "to collapse" : "to expand")) : undefined;
 			return new ToolCardTop(() => formatToolCall(toolName, callArgs, theme), tone, theme, TOOL_GLYPH[toolName], hint, renderContext);

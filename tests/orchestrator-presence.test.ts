@@ -16,7 +16,7 @@ function fixture(t: test.TestContext) {
 	const profile = fs.mkdtempSync(join(fs.realpathSync(tmpdir()), "presence-test-"));
 	// Each fixture owns precisely these files; never traverse a linked directory.
 	t.after(() => {
-		const root = join(profile, "gentle-agents");
+		const root = join(profile, "nubia-agents");
 		if (fs.existsSync(root) && !fs.lstatSync(root).isSymbolicLink()) {
 			for (const name of fs.readdirSync(root)) {
 				const path = join(root, name);
@@ -80,8 +80,8 @@ function publisher(t: test.TestContext, profile: string, activity = rows()) {
 
 function paths(profile: string, header: { sessionHash: string; incarnation: string }) {
 	const stem = `${header.sessionHash}.${header.incarnation}`;
-	return { header: join(profile, "gentle-agents", "presence", `${stem}.header.json`),
-		activity: join(profile, "gentle-agents", "presence", `${stem}.activity.json`) };
+	return { header: join(profile, "nubia-agents", "presence", `${stem}.header.json`),
+		activity: join(profile, "nubia-agents", "presence", `${stem}.activity.json`) };
 }
 
 function header(profile: string) {
@@ -117,7 +117,7 @@ test("headers are private, lightweight, sanitized and recent at the inclusive TT
 	assert.equal(listPresence(profile, 115_001).entries[0].recent, false);
 	assert.equal(listPresence(profile, 99_999).entries[0].recent, false);
 	if (process.platform !== "win32") {
-		assert.equal(fs.statSync(join(profile, "gentle-agents", "presence")).mode & 0o777, 0o700);
+		assert.equal(fs.statSync(join(profile, "nubia-agents", "presence")).mode & 0o777, 0o700);
 		assert.equal(fs.statSync(paths(profile, h).header).mode & 0o777, 0o600);
 	}
 });
@@ -223,7 +223,7 @@ test("reader rejects malformed, oversized, wrong digest/schema and unsafe exact 
 test("bounded directory scan reports overflow and ignores partial/temp files", (t) => {
 	const profile = fixture(t);
 	publisher(t, profile);
-	const root = join(profile, "gentle-agents", "presence");
+	const root = join(profile, "nubia-agents", "presence");
 	fs.writeFileSync(join(root, ".partial.tmp"), "{");
 	assert.equal(listPresence(profile).rejected, 0);
 	for (let i = 0; i < 130; i++) fs.writeFileSync(join(root, `junk-${i}`), "{}");
@@ -258,18 +258,18 @@ test("symlinks, hardlinks, directories and non-private managed roots fail closed
 	fs.mkdirSync(p.activity);
 	assert.equal(readActivity(profile, h).unavailable, "unsafe-file");
 	fs.rmdirSync(p.activity);
-	fs.chmodSync(join(profile, "gentle-agents", "presence"), 0o755);
+	fs.chmodSync(join(profile, "nubia-agents", "presence"), 0o755);
 	assert.equal(listPresence(profile).unavailable, "unsafe-directory");
-	fs.rmdirSync(join(profile, "gentle-agents", "presence"));
-	fs.symlinkSync(profile, join(profile, "gentle-agents", "presence"));
+	fs.rmdirSync(join(profile, "nubia-agents", "presence"));
+	fs.symlinkSync(profile, join(profile, "nubia-agents", "presence"));
 	assert.equal(listPresence(profile).unavailable, "unsafe-directory");
 	assert.throws(() => publisher(t, profile), /unsafe-directory/);
-	fs.unlinkSync(join(profile, "gentle-agents", "presence"));
-	fs.chmodSync(join(profile, "gentle-agents"), 0o777);
+	fs.unlinkSync(join(profile, "nubia-agents", "presence"));
+	fs.chmodSync(join(profile, "nubia-agents"), 0o777);
 	assert.equal(listPresence(profile).unavailable, "unsafe-directory", "shared root cannot be writable by other users");
-	fs.chmodSync(join(profile, "gentle-agents"), 0o700);
-	fs.rmdirSync(join(profile, "gentle-agents"));
-	fs.symlinkSync(profile, join(profile, "gentle-agents"));
+	fs.chmodSync(join(profile, "nubia-agents"), 0o700);
+	fs.rmdirSync(join(profile, "nubia-agents"));
+	fs.symlinkSync(profile, join(profile, "nubia-agents"));
 	assert.throws(() => publisher(t, profile), /unsafe-directory/, "shared root cannot be a symlink");
 });
 
@@ -301,7 +301,7 @@ test("history created under umask 022 coexists with a dedicated private presence
 	const mask = process.umask(0o022);
 	try { await saveTask(historyDir(profile, profile), task, store.thread(task.id)); }
 	finally { process.umask(mask); }
-	const shared = join(profile, "gentle-agents");
+	const shared = join(profile, "nubia-agents");
 	const before = fs.statSync(shared).mode;
 	if (process.platform !== "win32") assert.equal(before & 0o777, 0o755);
 	const pub = publisher(t, profile);
@@ -338,7 +338,7 @@ test("bounded continuation reaches a live peer beyond 128 stale headers without 
 	const pub = publisher(t, profile);
 	const { recent: _recent, ...base } = header(profile);
 	pub.dispose();
-	const root = join(profile, "gentle-agents", "presence");
+	const root = join(profile, "nubia-agents", "presence");
 	fs.mkdirSync(root, { recursive: true, mode: 0o700 });
 	for (let i = 0; i < 140; i++) {
 		const h = { ...base, incarnation: randomUUID(), heartbeat: 0 };
@@ -407,6 +407,6 @@ if (process.env.PRESENCE_TEST_CHILD === "1") {
 		assert.deepEqual(listPresence(profile).entries.map((h) => h.incarnation), [survivor.incarnation]);
 		assert.ok(readActivity(profile, survivor).activity);
 		await new Promise<void>((resolve) => { children[1].once("exit", () => resolve()); children[1].send("dispose"); });
-		assert.deepEqual(fs.readdirSync(join(profile, "gentle-agents", "presence")), []);
+		assert.deepEqual(fs.readdirSync(join(profile, "nubia-agents", "presence")), []);
 	});
 }

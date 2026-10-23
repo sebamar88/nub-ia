@@ -59,7 +59,7 @@ test("strict decode rejects malformed shapes", () => {
 		"[]",
 		"null",
 		'{"policy":"on"}',
-		'{"schema":"gentle-pi.double-esc-cancel/v2","policy":"on"}',
+		'{"schema":"nub-ia.double-esc-cancel/v2","policy":"on"}',
 		`{"schema":"${DOUBLE_ESC_CANCEL_SCHEMA}","policy":"ON"}`,
 		`{"schema":"${DOUBLE_ESC_CANCEL_SCHEMA}","policy":true}`,
 		`{"schema":"${DOUBLE_ESC_CANCEL_SCHEMA}","policy":"on","extra":1}`,
@@ -71,8 +71,8 @@ test("strict decode rejects malformed shapes", () => {
 // --- cascade: global file > env > default off -------------------------------
 
 test("default is off with no file and no env", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
-	assert.equal(loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: EMPTY_ENV }), "off");
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
+	assert.equal(loadDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: EMPTY_ENV }), "off");
 });
 
 test("the resolver reads NUB_IA_CONFIG_HOME from the given env, never from process.env", () => {
@@ -84,23 +84,23 @@ test("the resolver reads NUB_IA_CONFIG_HOME from the given env, never from proce
 });
 
 test("global file overrides env", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
 	writePolicyFile(configHome, "on");
 	assert.equal(
-		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "off" } }),
+		loadDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "off" } }),
 		"on",
 	);
 });
 
 test("env var applies only when no policy file exists, and only exact on|off", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
 	assert.equal(
-		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" } }),
+		loadDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" } }),
 		"on",
 	);
 	for (const invalid of ["1", "true", "ON", "yes", ""]) {
 		assert.equal(
-			loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: invalid } }),
+			loadDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: invalid } }),
 			"off",
 			`env value "${invalid}" must fail closed to off`,
 		);
@@ -108,11 +108,11 @@ test("env var applies only when no policy file exists, and only exact on|off", (
 });
 
 test("a malformed global file fails closed to off instead of falling through to env", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
 	mkdirSync(configHome, { recursive: true });
 	writeFileSync(join(configHome, DOUBLE_ESC_CANCEL_FILE), "{malformed");
 	assert.equal(
-		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" } }),
+		loadDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" } }),
 		"off",
 	);
 });
@@ -120,9 +120,9 @@ test("a malformed global file fails closed to off instead of falling through to 
 // --- resolver attribution ---------------------------------------------------
 
 test("the resolver attributes the global file when it decides", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
 	writePolicyFile(configHome, "on");
-	const resolution = resolveDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: EMPTY_ENV });
+	const resolution = resolveDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: EMPTY_ENV });
 	assert.deepEqual(resolution, {
 		policy: "on",
 		source: "global_file",
@@ -134,9 +134,9 @@ test("the resolver attributes the global file when it decides", () => {
 });
 
 test("the resolver attributes the environment variable when no file exists", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
 	const resolution = resolveDoubleEscCancelPolicy({
-		gentlePiConfigHome: configHome,
+		nubiaConfigHome: configHome,
 		env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" },
 	});
 	assert.equal(resolution.source, "environment");
@@ -145,19 +145,19 @@ test("the resolver attributes the environment variable when no file exists", () 
 });
 
 test("the resolver attributes the built-in default when nothing else decides", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
-	const resolution = resolveDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: EMPTY_ENV });
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
+	const resolution = resolveDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: EMPTY_ENV });
 	assert.equal(resolution.source, "default");
 	assert.equal(resolution.policy, "off");
 	assert.equal(resolution.malformed, false);
 });
 
 test("the resolver attributes a malformed global file to that file and does not fall through", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
 	mkdirSync(configHome, { recursive: true });
 	writeFileSync(join(configHome, DOUBLE_ESC_CANCEL_FILE), "{malformed");
 	const resolution = resolveDoubleEscCancelPolicy({
-		gentlePiConfigHome: configHome,
+		nubiaConfigHome: configHome,
 		env: { NUB_IA_DOUBLE_ESC_CANCEL: "on" },
 	});
 	assert.equal(resolution.source, "global_file");
@@ -166,28 +166,28 @@ test("the resolver attributes a malformed global file to that file and does not 
 });
 
 test("loadDoubleEscCancelPolicy delegates to the resolver so the two can never disagree", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
 	writePolicyFile(configHome, "on");
 	assert.equal(
-		loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: EMPTY_ENV }),
-		resolveDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: EMPTY_ENV }).policy,
+		loadDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: EMPTY_ENV }),
+		resolveDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: EMPTY_ENV }).policy,
 	);
 });
 
 // --- writer -------------------------------------------------------------------
 
 test("writeDoubleEscCancelPolicy writes the strict v1 shape to the global file, creating the config home", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai", "nested");
-	const path = writeDoubleEscCancelPolicy("on", { gentlePiConfigHome: configHome });
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia", "nested");
+	const path = writeDoubleEscCancelPolicy("on", { nubiaConfigHome: configHome });
 	assert.equal(path, join(configHome, DOUBLE_ESC_CANCEL_FILE));
-	assert.equal(loadDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: EMPTY_ENV }), "on");
+	assert.equal(loadDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: EMPTY_ENV }), "on");
 });
 
 test("writeDoubleEscCancelPolicy(off) round-trips through the resolver", () => {
-	const configHome = join(makeScratch("gp-esc-home-"), "gentle-ai");
-	writeDoubleEscCancelPolicy("on", { gentlePiConfigHome: configHome });
-	writeDoubleEscCancelPolicy("off", { gentlePiConfigHome: configHome });
-	const resolution = resolveDoubleEscCancelPolicy({ gentlePiConfigHome: configHome, env: EMPTY_ENV });
+	const configHome = join(makeScratch("gp-esc-home-"), "nub-ia");
+	writeDoubleEscCancelPolicy("on", { nubiaConfigHome: configHome });
+	writeDoubleEscCancelPolicy("off", { nubiaConfigHome: configHome });
+	const resolution = resolveDoubleEscCancelPolicy({ nubiaConfigHome: configHome, env: EMPTY_ENV });
 	assert.equal(resolution.policy, "off");
 	assert.equal(resolution.source, "global_file");
 	assert.equal(resolution.malformed, false);

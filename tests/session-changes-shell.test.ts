@@ -19,7 +19,7 @@ function fixture(entries: any[] = []) {
 	const fire=async(key,event={})=>{for(const fn of handlers.get(key)??[]) await fn(event,ctx);};
 	return {pi,ctx,entries,notices,commands,widgets,fire,gitCalls:()=>gitCalls};
 }
-test("Gentle Shell startup never waits for a repository scan",async()=>{
+test("Nub-IA startup never waits for a repository scan",async()=>{
 	const f=fixture();
 	await Promise.race([f.fire("session_start"),new Promise((_,reject)=>setTimeout(()=>reject(new Error("startup blocked by Git inventory")),100))]);
 	assert.equal(f.gitCalls(),0);
@@ -33,7 +33,7 @@ test("reload and new evidence refresh Changes without Git or live file reads",as
 	f.pi.events.emit(SESSION_CHANGE_EVENT,{sessionId:"session"});
 	await new Promise(resolve=>setImmediate(resolve));
 	assert.equal(f.gitCalls(),0);
-	assert.equal(typeof f.widgets.get("gentle-shell-changes"),"function");
+	assert.equal(typeof f.widgets.get("nubia-shell-changes"),"function");
 	await f.fire("session_shutdown");
 });
 test("the changes overlay labels each session tree with its root's branch instead of detached",async()=>{

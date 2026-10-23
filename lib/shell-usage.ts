@@ -2,7 +2,7 @@ import { truncateToWidth } from "@earendil-works/pi-tui";
 import { parseModelRef } from "./agents-config.ts";
 import { paintGauge } from "./shell-gauge.ts";
 
-// Gentle Shell subscription usage: the rate-limit windows each connected
+// Nub-IA subscription usage: the rate-limit windows each connected
 // provider reports. Codex sends them as SSE headers and through its usage
 // endpoint; both land in the same model. Parsing is pure and never keeps
 // account details beyond the plan name.
@@ -138,13 +138,13 @@ export interface ActiveProvider {
 // A generic hook so an extension holding its own provider (its own API token,
 // its own usage endpoint) can plug a usage source into the shell without the
 // shell ever knowing that provider's name. Emitted on `pi.events` as payload
-// under `USAGE_SOURCE_EVENT`; gentle-shell validates the shape below and
+// under `USAGE_SOURCE_EVENT`; nubia-shell validates the shape below and
 // ignores anything else, so a malformed or foreign event never reaches a
 // fetch call. Re-registration for the same provider replaces the previous
 // source, so a second `session_start` emitting the same payload is a no-op
 // in effect, not an accumulation.
-export const USAGE_SOURCE_EVENT = "gentle-pi:usage-source/v1";
-export const USAGE_SOURCE_SCHEMA = "gentle-pi.usage-source/v1";
+export const USAGE_SOURCE_EVENT = "nub-ia:usage-source/v1";
+export const USAGE_SOURCE_SCHEMA = "nub-ia.usage-source/v1";
 const USAGE_SOURCE_PROVIDER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 export interface UsageSource {
@@ -235,7 +235,7 @@ function parseSourceUsageLimit(value: unknown): UsageLimit | undefined {
 // parsed HTTP payload does: it is foreign code's own object, so it is
 // validated field by field and never recorded by reference. Every accepted
 // shape is rebuilt from scratch, so a source mutating its own object after
-// returning it can never reach a snapshot gentle-shell already recorded.
+// returning it can never reach a snapshot nubia-shell already recorded.
 export function parseProviderUsage(value: unknown, expectedProvider: string): ProviderUsage | undefined {
 	if (!value || typeof value !== "object") return undefined;
 	const raw = value as Record<string, unknown>;

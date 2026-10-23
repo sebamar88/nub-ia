@@ -14,7 +14,7 @@ import {
 // Process-wide, not per extension instance: /reload re-runs this factory after
 // the env var was already claimed, and must keep using the same handoff path
 // instead of going inert.
-const STATE_KEY = Symbol.for("gentle-pi.resume-hint");
+const STATE_KEY = Symbol.for("nub-ia.resume-hint");
 type StateHolder = { [STATE_KEY]?: string };
 
 function claimHandoffPath(env: NodeJS.ProcessEnv): string | undefined {

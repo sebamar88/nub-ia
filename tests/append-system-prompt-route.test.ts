@@ -4,10 +4,10 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
-import gentleTodo from "../extensions/nubia-todo.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
+import nubiaTodo from "../extensions/nubia-todo.ts";
 
-// gentle-shell#1485: pi-claude-bridge forwards only the structured
+// nubia-shell#1485: pi-claude-bridge forwards only the structured
 // systemPromptOptions parts of before_agent_start (contextFiles, skills,
 // customPrompt, appendSystemPrompt) after Claude Code's own preset, so a
 // handler-returned replacement systemPrompt never reaches the model on that
@@ -23,7 +23,7 @@ let fixtureRoot: string | undefined;
 const fixtureEnvironment: NodeJS.ProcessEnv = {};
 const previousEnvironment = new Map<string, string | undefined>();
 before(async () => {
-	const root = await mkdtemp(join(tmpdir(), "gentle-pi-append-route-"));
+	const root = await mkdtemp(join(tmpdir(), "nub-ia-append-route-"));
 	fixtureRoot = root;
 	fixtureCwd = join(root, "project");
 	const home = join(root, "home");
@@ -50,7 +50,7 @@ after(async () => {
 	if (fixtureRoot !== undefined) await rm(fixtureRoot, { recursive: true, force: true });
 });
 
-function gentleAiHandlers(processEnv: NodeJS.ProcessEnv = {}): Map<string, Handler> {
+function nubiaHandlers(processEnv: NodeJS.ProcessEnv = {}): Map<string, Handler> {
 	const handlers = new Map<string, Handler>();
 	const pi = {
 		on(name: string, handler: Handler) {
@@ -60,13 +60,13 @@ function gentleAiHandlers(processEnv: NodeJS.ProcessEnv = {}): Map<string, Handl
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({
-		processEnv: { ...fixtureEnvironment, NUB_IA_AGENTS_CHILD: "0", ...processEnv, GENTLE_AI_TELEMETRY: "0" },
+	createNubiaExtension({
+		processEnv: { ...fixtureEnvironment, NUB_IA_AGENTS_CHILD: "0", ...processEnv, NUB_IA_TELEMETRY: "0" },
 	})(pi);
 	return handlers;
 }
 
-function gentleTodoHandlers(): { handlers: Map<string, Handler[]>; tools: Map<string, { execute: (...args: unknown[]) => Promise<unknown> }> } {
+function nubiaTodoHandlers(): { handlers: Map<string, Handler[]>; tools: Map<string, { execute: (...args: unknown[]) => Promise<unknown> }> } {
 	const handlers = new Map<string, Handler[]>();
 	const tools = new Map<string, { execute: (...args: unknown[]) => Promise<unknown>; name: string }>();
 	const pi = {
@@ -78,7 +78,7 @@ function gentleTodoHandlers(): { handlers: Map<string, Handler[]>; tools: Map<st
 		},
 		registerShortcut() {},
 	} as unknown as ExtensionAPI;
-	gentleTodo(pi, {});
+	nubiaTodo(pi, {});
 	return { handlers, tools };
 }
 
@@ -92,8 +92,8 @@ function ctx(): ExtensionContext {
 }
 
 test("both extensions land their block in appendSystemPrompt on one shared options object, and neither returns a replacement systemPrompt", async () => {
-	const aiHandlers = gentleAiHandlers();
-	const { handlers: todoHandlers, tools } = gentleTodoHandlers();
+	const aiHandlers = nubiaHandlers();
+	const { handlers: todoHandlers, tools } = nubiaTodoHandlers();
 	const session = ctx();
 
 	for (const handler of todoHandlers.get("session_start") ?? []) await handler({}, session);
@@ -109,8 +109,8 @@ test("both extensions land their block in appendSystemPrompt on one shared optio
 	let todoResult: unknown;
 	for (const handler of todoHandlers.get("before_agent_start") ?? []) todoResult = await handler(event, session);
 
-	assert.equal(aiResult, undefined, "gentle-ai must not return a replacement systemPrompt");
-	assert.equal(todoResult, undefined, "gentle-todo must not return a replacement systemPrompt");
+	assert.equal(aiResult, undefined, "nub-ia must not return a replacement systemPrompt");
+	assert.equal(todoResult, undefined, "nubia-todo must not return a replacement systemPrompt");
 
 	const appended = event.systemPromptOptions.appendSystemPrompt;
 	assert.match(appended, /Nub-IA Identity and Harness/);
@@ -118,13 +118,13 @@ test("both extensions land their block in appendSystemPrompt on one shared optio
 	assert.match(appended, /1\. \[pending\] Fix the bug/);
 	assert.ok(
 		appended.indexOf("Nub-IA Identity and Harness") < appended.indexOf("## Todo list"),
-		"gentle-ai's block must precede gentle-todo's, matching handler registration order",
+		"nub-ia's block must precede nubia-todo's, matching handler registration order",
 	);
 });
 
 test("re-running both handlers on the same already-populated options object does not duplicate either block", async () => {
-	const aiHandlers = gentleAiHandlers();
-	const { handlers: todoHandlers, tools } = gentleTodoHandlers();
+	const aiHandlers = nubiaHandlers();
+	const { handlers: todoHandlers, tools } = nubiaTodoHandlers();
 	const session = ctx();
 
 	for (const handler of todoHandlers.get("session_start") ?? []) await handler({}, session);
@@ -133,19 +133,19 @@ test("re-running both handlers on the same already-populated options object does
 
 	const event = { systemPrompt: "base", systemPromptOptions: { appendSystemPrompt: "" } };
 	await aiHandlers.get("before_agent_start")!(event, session);
-	const gentleAiOccurrencesAfterFirstRun = event.systemPromptOptions.appendSystemPrompt.split("Nub-IA Identity and Harness").length - 1;
-	assert.equal(gentleAiOccurrencesAfterFirstRun, 1);
+	const nubiaOccurrencesAfterFirstRun = event.systemPromptOptions.appendSystemPrompt.split("Nub-IA Identity and Harness").length - 1;
+	assert.equal(nubiaOccurrencesAfterFirstRun, 1);
 
-	// A defensive re-run of gentle-ai's own handler against an options object
+	// A defensive re-run of nub-ia's own handler against an options object
 	// that already carries its exact block must not append it again.
 	await aiHandlers.get("before_agent_start")!(event, session);
-	const gentleAiOccurrencesAfterSecondRun = event.systemPromptOptions.appendSystemPrompt.split("Nub-IA Identity and Harness").length - 1;
-	assert.equal(gentleAiOccurrencesAfterSecondRun, 1, "a second gentle-ai run on the same options object must not duplicate the harness");
+	const nubiaOccurrencesAfterSecondRun = event.systemPromptOptions.appendSystemPrompt.split("Nub-IA Identity and Harness").length - 1;
+	assert.equal(nubiaOccurrencesAfterSecondRun, 1, "a second nub-ia run on the same options object must not duplicate the harness");
 });
 
 for (const scenario of ["child", "named-agent"] as const) {
 	test(`${scenario} start leaves shared prompt options unchanged and returns no replacement`, async () => {
-		const handlers = gentleAiHandlers(scenario === "child" ? { NUB_IA_AGENTS_CHILD: "1" } : {});
+		const handlers = nubiaHandlers(scenario === "child" ? { NUB_IA_AGENTS_CHILD: "1" } : {});
 		const event = {
 			systemPrompt: "base",
 			systemPromptOptions: { appendSystemPrompt: "Existing provider section" },
@@ -163,8 +163,8 @@ test("without NUB_IA_PROMPT_PROFILE the runtime appends the minimal Nub-IA block
 	delete process.env.NUB_IA_PROMPT_PROFILE;
 	try {
 		const { __testing } = await import("../extensions/nubia-harness.ts");
-		const full = __testing.buildGentlePrompt("gentleman", fixtureCwd, undefined, undefined, "full");
-		const minimal = __testing.buildGentlePrompt("gentleman", fixtureCwd, undefined, undefined, "minimal");
+		const full = __testing.buildNubiaPrompt("gentleman", fixtureCwd, undefined, undefined, "full");
+		const minimal = __testing.buildNubiaPrompt("gentleman", fixtureCwd, undefined, undefined, "minimal");
 		assert.ok(Buffer.byteLength(minimal) * 4 < Buffer.byteLength(full));
 		assert.match(minimal, /^## Nub-IA\n/);
 	} finally {

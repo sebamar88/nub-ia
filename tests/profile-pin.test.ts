@@ -31,7 +31,7 @@ import type { WorktreeIdentity } from "../lib/session-worktree-registry.ts";
 // Git; the worktree identity is injected, which is also how the launch path binds
 // the pin to the repository the child will work in.
 
-const root = mkdtempSync(join(tmpdir(), "gentle-pi-profile-pin-"));
+const root = mkdtempSync(join(tmpdir(), "nub-ia-profile-pin-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 
 function identityAt(name: string): WorktreeIdentity {
@@ -47,8 +47,8 @@ function storeAt(configHome: string, profiles: Record<string, AgentModelConfig>)
 }
 
 test("pin paths follow the shared clone and the worktree", () => {
-	assert.equal(localProfilePinPath("/clone/.git"), join("/clone/.git", "gentle-ai", "profile-pin.json"));
-	assert.equal(repoProfileDeclarationPath("/clone"), join("/clone", ".pi", "gentle-ai", "profile.json"));
+	assert.equal(localProfilePinPath("/clone/.git"), join("/clone/.git", "nub-ia", "profile-pin.json"));
+	assert.equal(repoProfileDeclarationPath("/clone"), join("/clone", ".pi", "nub-ia", "profile.json"));
 });
 
 test("the suggested ignore rules expose only the repository declaration", () => {
@@ -57,7 +57,7 @@ test("the suggested ignore rules expose only the repository declaration", () => 
 	execFileSync("git", ["init", "--quiet", repo]);
 	writeFileSync(join(repo, ".gitignore"), ".pi/\n");
 	writeProfilePinSync(repoProfileDeclarationPath(repo), "team");
-	writeFileSync(join(repo, ".pi", "gentle-ai", "private.json"), "private\n");
+	writeFileSync(join(repo, ".pi", "nub-ia", "private.json"), "private\n");
 	writeFileSync(join(repo, ".pi", "other.json"), "other\n");
 	writeFileSync(
 		join(repo, ".gitignore"),
@@ -68,7 +68,7 @@ test("the suggested ignore rules expose only the repository declaration", () => 
 		["-C", repo, "ls-files", "--others", "--exclude-standard", "--", ".pi"],
 		{ encoding: "utf8" },
 	).trim().split(/\r?\n/).filter(Boolean);
-	assert.deepEqual(visible, [".pi/gentle-ai/profile.json"]);
+	assert.deepEqual(visible, [".pi/nub-ia/profile.json"]);
 });
 
 test("the pin artifact is byte-identical for the same profile", () => {
@@ -94,7 +94,7 @@ test("the pin parser rejects foreign kinds, versions, names, and malformed input
 		"[]",
 		"null",
 		'"deep-work"',
-		JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, profile: "deep-work" }),
+		JSON.stringify({ kind: "nub-ia.agent_model_profiles", version: 1, profile: "deep-work" }),
 		JSON.stringify({ kind: PROFILE_PIN_KIND, version: 2, profile: "deep-work" }),
 		JSON.stringify({ kind: PROFILE_PIN_KIND, version: 1 }),
 		JSON.stringify({ kind: PROFILE_PIN_KIND, version: 1, profile: "not a name" }),
@@ -105,13 +105,13 @@ test("the pin parser rejects foreign kinds, versions, names, and malformed input
 });
 
 test("writeProfilePinSync creates parents, round-trips, and leaves no temp file behind", () => {
-	const path = join(root, "write", "gentle-ai", "profile-pin.json");
+	const path = join(root, "write", "nub-ia", "profile-pin.json");
 	writeProfilePinSync(path, "deep-work");
 	assert.equal(readFileSync(path, "utf8"), serializeProfilePin("deep-work"));
 	assert.equal(readProfilePin(path), "deep-work");
 	writeProfilePinSync(path, "team");
 	assert.equal(readProfilePin(path), "team");
-	assert.deepEqual(readdirSync(join(root, "write", "gentle-ai")).filter((entry) => entry.includes(".tmp")), []);
+	assert.deepEqual(readdirSync(join(root, "write", "nub-ia")).filter((entry) => entry.includes(".tmp")), []);
 	assert.equal(readProfilePin(join(root, "write", "absent.json")), undefined);
 });
 
@@ -272,7 +272,7 @@ test("the read result separates a missing pin from a file that is not a pin", ()
 });
 
 test("clearProfilePinSync removes a pin and tolerates an already-missing file", () => {
-	const path = join(root, "clear", "gentle-ai", "profile-pin.json");
+	const path = join(root, "clear", "nub-ia", "profile-pin.json");
 	writeProfilePinSync(path, "team");
 	clearProfilePinSync(path);
 	assert.equal(existsSync(path), false);

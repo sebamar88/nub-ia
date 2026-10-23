@@ -329,7 +329,7 @@ test("captureEnabled delegates to the shared env-then-Customize gate", () => {
   // lib/history-capture-policy.ts; tests/history-capture-policy.test.ts and
   // the session-writer suite pin the behavior.
   assert.ok(
-    body.includes("historyCaptureEnabled({ env, gentlePiConfigHome: configHome })"),
+    body.includes("historyCaptureEnabled({ env, nubiaConfigHome: configHome })"),
     "the extension must use the shared gate with its injected config home",
   );
   assert.ok(!body.includes(renamedSwitch), "the rename must not ship");

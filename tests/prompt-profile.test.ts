@@ -8,17 +8,17 @@ import { buildMinimalPrompt, parsePromptProfile, resolvePromptProfile, writeProm
 import { __testing } from "../extensions/nubia-harness.ts";
 
 test("the minimal profile adds well under a quarter of the full harness text and keeps the essentials", () => {
-	const minimal = __testing.buildGentlePrompt("gentleman", process.cwd(), undefined, undefined, "minimal");
-	const full = __testing.buildGentlePrompt("gentleman", process.cwd(), undefined, undefined, "full");
+	const minimal = __testing.buildNubiaPrompt("gentleman", process.cwd(), undefined, undefined, "minimal");
+	const full = __testing.buildNubiaPrompt("gentleman", process.cwd(), undefined, undefined, "full");
 	assert.ok(Buffer.byteLength(minimal) < 3_000, `minimal is ${Buffer.byteLength(minimal)} bytes`);
 	assert.ok(Buffer.byteLength(minimal) * 4 < Buffer.byteLength(full), "minimal is at most a quarter of full");
 	for (const essential of ["You are Nub-IA", "Persona:", "Rioplatense Spanish with voseo", "Authorize:", "read-only", "test-first", "subagent_run", "nub_review", "Needs your decision", "`nubia` skill"]) assert.ok(minimal.includes(essential), essential);
 	assert.doesNotMatch(minimal, /\n{3,}/, "no triple blank lines");
-	const neutral = __testing.buildGentlePrompt("neutral", process.cwd(), ["read", "bash"], undefined, "minimal");
+	const neutral = __testing.buildNubiaPrompt("neutral", process.cwd(), ["read", "bash"], undefined, "minimal");
 	assert.match(neutral, /Do NOT use voseo/);
 	assert.match(neutral, /No subagents in this session/);
 	assert.doesNotMatch(neutral, /nub_review/, "review line only when the tool is registered");
-	assert.equal(__testing.buildGentlePrompt("gentleman"), full, "the default argument keeps the full text for existing callers and tests");
+	assert.equal(__testing.buildNubiaPrompt("gentleman"), full, "the default argument keeps the full text for existing callers and tests");
 });
 
 test("buildMinimalPrompt toggles the delegation and review lines on tool availability", () => {

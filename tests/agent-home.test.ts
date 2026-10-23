@@ -3,16 +3,16 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { gentlePiConfigHome } from "../lib/agent-home.ts";
+import { nubiaConfigHome } from "../lib/agent-home.ts";
 
 // The two Pi homes: `~/.pi/agent` holds Pi's own agent definitions and
-// `~/.pi/gentle-ai` holds everything the Gentle AI commands own. Both are resolved
+// `~/.pi/gentle-ai` holds everything the Nub-IA commands own. Both are resolved
 // once and shared, because the launch-time profile pin resolver reads the same
 // profiles store the `/nubia:profiles` panel writes: two spellings of the override
 // would silently read two different stores.
 
 function isolatedHome(t: test.TestContext): string {
-	const home = mkdtempSync(join(tmpdir(), "gentle-pi-config-home-"));
+	const home = mkdtempSync(join(tmpdir(), "nub-ia-config-home-"));
 	const previousHome = process.env.HOME;
 	const previousUserProfile = process.env.USERPROFILE;
 	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
@@ -36,14 +36,14 @@ function isolatedHome(t: test.TestContext): string {
 	return home;
 }
 
-test("gentlePiConfigHome honours the overrides and otherwise falls back to ~/.pi/nub-ia", (t) => {
+test("nubiaConfigHome honours the overrides and otherwise falls back to ~/.pi/nub-ia", (t) => {
 	const home = isolatedHome(t);
-	assert.equal(gentlePiConfigHome({ NUB_IA_CONFIG_HOME: "/custom/nub-ia" }), "/custom/nub-ia");
-	assert.equal(gentlePiConfigHome({ NUB_IA_CONFIG_HOME: "" }), join(homedir(), ".pi", "nub-ia"));
-	assert.equal(gentlePiConfigHome({}), join(homedir(), ".pi", "nub-ia"));
-	assert.equal(gentlePiConfigHome(), join(homedir(), ".pi", "nub-ia"));
+	assert.equal(nubiaConfigHome({ NUB_IA_CONFIG_HOME: "/custom/nub-ia" }), "/custom/nub-ia");
+	assert.equal(nubiaConfigHome({ NUB_IA_CONFIG_HOME: "" }), join(homedir(), ".pi", "nub-ia"));
+	assert.equal(nubiaConfigHome({}), join(homedir(), ".pi", "nub-ia"));
+	assert.equal(nubiaConfigHome(), join(homedir(), ".pi", "nub-ia"));
 	assert.equal(
-		join(gentlePiConfigHome(), "profiles.json"),
+		join(nubiaConfigHome(), "profiles.json"),
 		join(home, ".pi", "nub-ia", "profiles.json"),
 		"the store path is derived from the config home, not from the agent home",
 	);
@@ -58,7 +58,7 @@ test("the isolated home restores defined and undefined config overrides", async 
 			await t.test(`inherited override: ${inherited === undefined ? "unset" : "set"}`, (child) => {
 				const home = isolatedHome(child);
 				assert.equal(process.env.NUB_IA_CONFIG_HOME, undefined);
-				assert.equal(gentlePiConfigHome(), join(home, ".pi", "nub-ia"));
+				assert.equal(nubiaConfigHome(), join(home, ".pi", "nub-ia"));
 			});
 			assert.equal(process.env.NUB_IA_CONFIG_HOME, inherited);
 		}
@@ -73,7 +73,7 @@ test("the config home ignores the Pi agent-home overrides", (t) => {
 	// PI_CODING_AGENT_DIR and NUB_IA_AGENT_HOME move Pi's agent directory only.
 	// Reusing that resolver here would point the profiles store at the agent home.
 	assert.equal(
-		gentlePiConfigHome({ PI_CODING_AGENT_DIR: "/pi/agent", NUB_IA_AGENT_HOME: "/gentle/agent" }),
+		nubiaConfigHome({ PI_CODING_AGENT_DIR: "/pi/agent", NUB_IA_AGENT_HOME: "/gentle/agent" }),
 		join(home, ".pi", "nub-ia"),
 	);
 });

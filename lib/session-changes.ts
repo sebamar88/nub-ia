@@ -5,9 +5,9 @@ import { isAbsolute } from "node:path";
 import { generateUnifiedPatch } from "@earendil-works/pi-coding-agent";
 import { changesModel, type ChangedFile, type WorktreeChanges } from "./shell-changes.ts";
 
-export const SESSION_CHANGE_ENTRY = "gentle-pi.session-change/v1";
-export const SESSION_CHANGE_EVENT = "gentle-pi:session-change";
-export const SESSION_CHANGE_RELAY = "gentle-pi:child-session-change";
+export const SESSION_CHANGE_ENTRY = "nub-ia.session-change/v1";
+export const SESSION_CHANGE_EVENT = "nub-ia:session-change";
+export const SESSION_CHANGE_RELAY = "nub-ia:child-session-change";
 export const MAX_CHANGE_BYTES = 64 * 1024;
 const MAX_RECORDS = 256;
 const MAX_SESSION_BYTES = 4 * 1024 * 1024;

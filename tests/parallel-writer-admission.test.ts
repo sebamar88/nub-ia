@@ -5,7 +5,7 @@ import { TASK_STATUS, TaskStore } from "../lib/agents-protocol.ts";
 import { AgentRunner, type TaskRequest } from "../lib/agents-runner.ts";
 import { fakeChild, type FakeChild } from "./agents-fake-child.ts";
 
-// gentle-shell#1731 T4 (S2, AC6): the runner admits a writer only while no
+// nubia-shell#1731 T4 (S2, AC6): the runner admits a writer only while no
 // queued or running writer in the same worktree root claims an overlapping
 // `## Allowed edit surfaces` entry. Admission and registration happen in the
 // same synchronous run() call, and every terminal path releases the claim.

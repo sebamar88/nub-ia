@@ -90,7 +90,7 @@ test("session bindings from one process never leak into a fresh map state", () =
 	assert.equal(readSessionProfileBinding("session-a"), undefined);
 });
 
-// Cross-entrypoint sharing of the store (gentle-shell#1558).
+// Cross-entrypoint sharing of the store (nubia-shell#1558).
 //
 // Pi loads every extension entrypoint with its own Jiti instance and
 // `moduleCache: false`, so each entrypoint re-evaluates `lib/` modules and a
@@ -104,7 +104,7 @@ test("session bindings from one process never leak into a fresh map state", () =
 // The specifier is built as a URL string because the TypeScript checker
 // cannot resolve a literal query-string import; at runtime Node still keys
 // the module cache on the full URL, giving this evaluation its own copy.
-const secondEntrypointSpecifier = new URL("../lib/session-profile-binding.ts?gentle-agents-entrypoint", import.meta.url).href;
+const secondEntrypointSpecifier = new URL("../lib/session-profile-binding.ts?nubia-agents-entrypoint", import.meta.url).href;
 const otherEntrypoint = await import(secondEntrypointSpecifier);
 
 test("a binding written by one entrypoint is visible to every other entrypoint", (t) => {

@@ -73,7 +73,7 @@ for (const race of ["loss", "replacement", "cancellation"] as const) {
 	});
 }
 
-// gentle-shell#1713: a writer continuation without its own section was
+// nubia-shell#1713: a writer continuation without its own section was
 // rejected, and every retry shortened the follow-up. A continuation resumes
 // the same delegated task, so it inherits the surfaces that launch admitted.
 test("writer continuations inherit the original surfaces only when they carry none", () => {
@@ -94,7 +94,7 @@ test("writer continuations inherit the original surfaces only when they carry no
 	assert.deepEqual(allowedEditSurfaces(inheritAllowedEditSurfaces("worker", "Continue.", undefined, quotedOnly)), ["-", "src/model.ts"]);
 });
 
-// gentle-shell#1731: only agents behind the surfaces guard claim surfaces at runtime.
+// nubia-shell#1731: only agents behind the surfaces guard claim surfaces at runtime.
 test("bounded writers are exactly the agents behind the Allowed edit surfaces guard", () => {
 	for (const name of ["nubia-worker", "worker", "jd-fix-agent"]) assert.equal(isBoundedWriter(name), true, name);
 	for (const name of ["explore", "nubia-explore", "nubia-verify", "reviewer", ""]) assert.equal(isBoundedWriter(name), false, name);
