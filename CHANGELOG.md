@@ -2,6 +2,18 @@
 
 Releases de Nub-IA. Generado por `scripts/release.mjs` a partir de los Conventional Commits de `main`.
 
+## v1.1.0 (2026-10-25)
+
+### Nuevo
+
+- add Development Workflow layer (none | sdd | svsd) ([33d120c](https://github.com/sebamar88/nub-ia/commit/33d120c5aa30af491336a89f591d61e642f9ea02))
+
+### Refactors
+
+- rename inherited gentle identifiers to nubia and drop upstream sync ([3458005](https://github.com/sebamar88/nub-ia/commit/3458005b125f18d77e293f993722997dc2e629b3))
+
+Diff completo: https://github.com/sebamar88/nub-ia/compare/v1.0.2...v1.1.0
+
 ## v1.0.2 (2026-10-15)
 
 ### Otros
