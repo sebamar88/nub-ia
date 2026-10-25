@@ -12,6 +12,8 @@ rechaza una herramienta, le dice que pida el cambio.
 | ▶ **auto** (default) | ✔ | ✔ | ✔ salvo guardados | pregunta | siempre |
 | 🚀 **yolo** | ✔ | ✔ | ✔ | ✔ (ver [YOLO](yolo-mode.md)) | siempre |
 
+> El modo de permisos es independiente del [Development Workflow](development-workflows.md) (`none`, `sdd`, `svsd`): el workflow no cambia qué puede hacer el agente.
+
 Invariantes:
 
 - Los guardrails de comandos (`confirm`/`block` en `runtime-guardrails.json`), la frontera de pérdida de datos y las

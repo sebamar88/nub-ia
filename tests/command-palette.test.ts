@@ -363,6 +363,7 @@ test("COMMAND_PALETTE_CATALOG matches the curated command set, in order", () => 
 		"nubia:models",
 		"nubia:profiles",
 		"nubia:persona",
+		"nubia:workflow",
 		"nubia:review-mode",
 		"nubia:background-subagents",
 		"nubia:double-esc-cancel",

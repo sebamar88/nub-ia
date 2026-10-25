@@ -77,6 +77,7 @@ nub-ia install npm:<pkg> | remove <source> | list | update [target] | config | a
 | `/nubia:customize` | Apariencia, Vim, YOLO, captura de historial de prompts. |
 | `/nubia:banner`, `/nubia:toggle-rose`, `/nubia:toggle-text-logo`, `/nubia:banner-color` | Banner de inicio (ver [la shell](nub-ia-shell.md#personalización)). |
 | `/nubia:animations`, `/nubia:vim`, `/nubia:double-esc-cancel` | Animaciones, edición modal, doble Esc (ver más abajo). |
+| `/nubia:workflow [<workflow>\|status\|default <workflow>]` | Development Workflow de la sesión (ver [workflows](development-workflows.md)). |
 | `/nubia:review [staged\|working\|<ref>]` | Review 4R en proceso. |
 | `/skill-registry:refresh` | Regenera `.atl/skill-registry.md`. |
 | `/skill-creation` | Crea o actualiza una skill LLM-first con el [style guide](skill-style-guide.md). |
