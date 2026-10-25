@@ -23,7 +23,7 @@ import {
 import { stripAnsi } from "../lib/terminal-theme.ts";
 import { CARD_STYLE, cardStyle, setCardStyle, type CardStyle } from "../lib/shell-card.ts";
 
-// The Gentle Shell bar replaces pi's three-line footer with one line of
+// The Nub-IA bar replaces pi's three-line footer with one line of
 // segments. Rendering is pure so it can be verified without a TUI.
 
 const taggedTheme: ShellBarTheme = {
@@ -82,7 +82,7 @@ function bodyText(row: string): string {
 
 function model(overrides: Partial<ShellBarModel> = {}): ShellBarModel {
 	return {
-		cwd: "~/work/gentle-pi",
+		cwd: "~/work/nub-ia-ui",
 		branch: "main",
 		dirty: undefined,
 		sessionName: undefined,
@@ -149,7 +149,7 @@ test("renderShellBar renders one line with the segments in order", () => {
 	assert.equal(rest.length, 0);
 	assert.equal(
 		line,
-		"∞ nub-ia ⟡ ~/work/gentle-pi main ⟡ gpt-5.5 · medium ⟡ ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub",
+		"∞ nub-ia ⟡ ~/work/nub-ia-ui main ⟡ gpt-5.5 · medium ⟡ ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub",
 	);
 });
 
@@ -164,7 +164,7 @@ test("renderShellBar colors the brand, model, effort, and gauge by role", () => 
 
 test("renderShellBar shows the branch as dirty-neutral and omits it outside git", () => {
 	const [line] = renderShellBar(model({ branch: null }), plainTheme, 160);
-	assert.match(line, /⟡ ~\/work\/gentle-pi ⟡/);
+	assert.match(line, /⟡ ~\/work\/nub-ia-ui ⟡/);
 });
 
 test("renderShellBar shows the session dirty count next to the branch", () => {
@@ -244,10 +244,10 @@ test("renderShellBar repaints extension statuses in the bar role, discarding col
 test("renderShellBar compacts the path and branch before it sacrifices an extension status", () => {
 	const long = model({ branch: "fix/shell-bar-status-ansi", dirty: 2, statuses: ["MCP: 3/3 servers"] });
 	const [full] = renderShellBar(long, plainTheme, 160);
-	assert.match(full, /~\/work\/gentle-pi fix\/shell-bar-status-ansi ±2 .* MCP: 3\/3 servers$/);
+	assert.match(full, /~\/work\/nub-ia-ui fix\/shell-bar-status-ansi ±2 .* MCP: 3\/3 servers$/);
 	const [compact] = renderShellBar(long, plainTheme, 118);
 	assert.ok(visibleWidth(compact) <= 118, `line overflowed: ${visibleWidth(compact)}`);
-	assert.match(compact, /⟡ gentle-pi fix\/shell-bar-… ±2 ⟡/);
+	assert.match(compact, /⟡ nub-ia-ui fix\/shell-bar-… ±2 ⟡/);
 	assert.match(compact, /MCP: 3\/3 servers$/);
 });
 
@@ -263,7 +263,7 @@ test("renderShellBar drops the session name, then trailing segments, before trun
 	assert.match(atFifty, /^∞ nub-ia/);
 });
 
-test("shellEnabled stays off inside a Gentle Agents child", () => {
+test("shellEnabled stays off inside a Nub-IA Agents child", () => {
 	assert.equal(shellEnabled({ NUB_IA_AGENTS_CHILD: "1" }), false);
 });
 
@@ -345,7 +345,7 @@ test("sidebar Status card drops Model, Effort, Context, Cost and Usage, keeping 
 test("buildShellHeaderModel keeps only the header's fields from the bar model", () => {
 	const header = buildShellHeaderModel(model({ profile: "team", statuses: ["MCP: 3 servers"] }));
 	assert.deepEqual(header, {
-		cwd: "~/work/gentle-pi",
+		cwd: "~/work/nub-ia-ui",
 		branch: "main",
 		dirty: undefined,
 		modelId: "gpt-5.5",
@@ -362,7 +362,7 @@ test("buildShellHeaderModel keeps only the header's fields from the bar model", 
 test("renderShellHeaderBar draws the brand, identity, and right-aligned counters (plus the standing usage segment) in one line", () => {
 	const header = buildShellHeaderModel(model({ profile: "team" }));
 	const { text: line } = renderShellHeaderBar(header, plainTheme, 120);
-	const left = "∞ Nub-IA ⟡ ~/work/gentle-pi main ⟡ gpt-5.5 · medium · team";
+	const left = "∞ Nub-IA ⟡ ~/work/nub-ia-ui main ⟡ gpt-5.5 · medium · team";
 	const right = "ctx ▰▰▰▰▱▱▱▱ 45% ⟡ $9.49 sub ⟡ usage";
 	assert.equal(line, left + " ".repeat(120 - visibleWidth(left) - visibleWidth(right)) + right);
 	assert.equal(visibleWidth(line), 120);
@@ -386,14 +386,14 @@ test("renderShellHeaderBar drops the profile, then the effort, then the whole lo
 	const withProfile = buildShellHeaderModel(model({ profile: "team" }));
 	const { text: wide } = renderShellHeaderBar(withProfile, plainTheme, 120);
 	assert.match(wide, /gpt-5\.5 · medium · team/);
-	assert.match(wide, /~\/work\/gentle-pi main/);
+	assert.match(wide, /~\/work\/nub-ia-ui main/);
 	assert.match(wide, /ctx ▰▰▰▰▱▱▱▱ 45% ⟡ \$9\.49 sub ⟡ usage$/);
 
 	// 94 cols (100 minus the six columns the shorter brand saves): the profile no longer fits, but effort and location still do.
 	const { text: noProfile } = renderShellHeaderBar(withProfile, plainTheme, 94);
 	assert.doesNotMatch(noProfile, /team/);
 	assert.match(noProfile, /gpt-5\.5 · medium/);
-	assert.match(noProfile, /~\/work\/gentle-pi main/);
+	assert.match(noProfile, /~\/work\/nub-ia-ui main/);
 	assert.equal(visibleWidth(noProfile), 94);
 
 	// 90 cols: effort goes too, only the bare model id remains next to location.
@@ -401,12 +401,12 @@ test("renderShellHeaderBar drops the profile, then the effort, then the whole lo
 	assert.doesNotMatch(noEffort, /medium/);
 	assert.doesNotMatch(noEffort, /team/);
 	assert.match(noEffort, /gpt-5\.5/);
-	assert.match(noEffort, /~\/work\/gentle-pi main/);
+	assert.match(noEffort, /~\/work\/nub-ia-ui main/);
 	assert.equal(visibleWidth(noEffort), 84);
 
 	// 82 cols: the whole location segment goes; brand and model survive with the counters.
 	const { text: noLocation } = renderShellHeaderBar(withProfile, plainTheme, 76);
-	assert.doesNotMatch(noLocation, /~\/work\/gentle-pi/);
+	assert.doesNotMatch(noLocation, /~\/work\/nub-ia-ui/);
 	assert.match(noLocation, /gpt-5\.5/);
 	assert.match(noLocation, /∞ Nub-IA/);
 	assert.match(noLocation, /ctx ▰▰▰▰▱▱▱▱ 45% ⟡ \$9\.49 sub ⟡ usage$/);
@@ -414,7 +414,7 @@ test("renderShellHeaderBar drops the profile, then the effort, then the whole lo
 
 	// 60 cols: even the standing usage segment is gone now; brand+model and ctx/cost survive.
 	const { text: noUsage } = renderShellHeaderBar(withProfile, plainTheme, 54);
-	assert.doesNotMatch(noUsage, /~\/work\/gentle-pi/);
+	assert.doesNotMatch(noUsage, /~\/work\/nub-ia-ui/);
 	assert.doesNotMatch(noUsage, /usage/);
 	assert.match(noUsage, /gpt-5\.5/);
 	assert.match(noUsage, /∞ Nub-IA/);

@@ -24,7 +24,7 @@ test("a child process cannot overwrite the primary process phase even with the s
 test("separate extension loaders share only the active session's ODD phase and redraw", async () => {
 	const aiLoader = createJiti(import.meta.url, { moduleCache: false });
 	const shellLoader = createJiti(import.meta.url, { moduleCache: false });
-	const { createGentleAiExtension } = await aiLoader.import<typeof import("../extensions/nubia-harness.ts")>("../extensions/nubia-harness.ts");
+	const { createNubiaExtension } = await aiLoader.import<typeof import("../extensions/nubia-harness.ts")>("../extensions/nubia-harness.ts");
 	const { default: shell } = await shellLoader.import<typeof import("../extensions/nubia-shell.ts")>("../extensions/nubia-shell.ts");
 	const aiRegistry = (await aiLoader.import<typeof import("../lib/odd-phase.ts")>("../lib/odd-phase.ts")).oddPhaseRegistry;
 	const shellRegistry = (await shellLoader.import<typeof import("../lib/odd-phase.ts")>("../lib/odd-phase.ts")).oddPhaseRegistry;
@@ -42,7 +42,7 @@ test("separate extension loaders share only the active session's ODD phase and r
 		events: { on: () => () => {}, emit() {} },
 		exec: async () => ({ stdout: "", stderr: "", code: 0, killed: false }),
 	};
-	createGentleAiExtension({ } as never)(pi as never);
+	createNubiaExtension({ } as never)(pi as never);
 	shell(pi as never, {}, { resolveWorktree: (path: string) => ({ root: path, commonDir: path }), gitRunner: () => async () => ({ stdout: "", stderr: "", code: 0, killed: false }), devBinary: () => undefined } as never);
 	let sessionId: string | undefined = "primary-loader-test";
 	let editorFactory: ((tui: unknown, theme: unknown, bindings: unknown) => { render(width: number): string[]; setAnimationPolicy(policy: string): void; dispose(): void }) | undefined;
@@ -63,16 +63,16 @@ test("separate extension loaders share only the active session's ODD phase and r
 	let editor: ReturnType<NonNullable<typeof editorFactory>> | undefined;
 	try {
 		await fire("session_start");
-		assert.ok(editorFactory, "Gentle Shell should install its prompt");
+		assert.ok(editorFactory, "Nub-IA should install its prompt");
 		editor = editorFactory({ terminal: { rows: 40, columns: 120 }, requestRender() { redraws++; } }, { borderColor: (text: string) => text, selectList: {} }, { matches: () => false });
 		editor.setAnimationPolicy("potato");
 		await fire("agent_start");
 		const render = () => stripAnsi(editor!.render(60)[0]!);
 		assert.match(render(), /working…/);
-		assert.ok(tools.get("gentle_odd_phase"));
-		const report = (phase: string) => tools.get("gentle_odd_phase")!.execute("call", { phase }, undefined, undefined, ctx);
+		assert.ok(tools.get("nubia_odd_phase"));
+		const report = (phase: string) => tools.get("nubia_odd_phase")!.execute("call", { phase }, undefined, undefined, ctx);
 		redraws = 0;
-		const phaseTool = tools.get("gentle_odd_phase")!;
+		const phaseTool = tools.get("nubia_odd_phase")!;
 		const successful = await report("authorizing");
 		assert.equal(phaseTool.renderShell, "self", "Pi must not paint its default tool card");
 		const toolTheme = { fg: (_color: string, text: string) => text, bold: (text: string) => text };
@@ -145,11 +145,11 @@ test("separate extension loaders share only the active session's ODD phase and r
 });
 
 // The label follows the primary session's own tool activity without any
-// gentle_odd_phase call; an explicit report still refines it.
+// nubia_odd_phase call; an explicit report still refines it.
 test("tool activity in the primary session drives the working label across extension loaders", async () => {
 	const aiLoader = createJiti(import.meta.url, { moduleCache: false });
 	const shellLoader = createJiti(import.meta.url, { moduleCache: false });
-	const { createGentleAiExtension } = await aiLoader.import<typeof import("../extensions/nubia-harness.ts")>("../extensions/nubia-harness.ts");
+	const { createNubiaExtension } = await aiLoader.import<typeof import("../extensions/nubia-harness.ts")>("../extensions/nubia-harness.ts");
 	const { default: shell } = await shellLoader.import<typeof import("../extensions/nubia-shell.ts")>("../extensions/nubia-shell.ts");
 	const registry = (await aiLoader.import<typeof import("../lib/odd-phase.ts")>("../lib/odd-phase.ts")).oddPhaseRegistry;
 	const tools = new Map<string, { execute: (...args: unknown[]) => Promise<unknown> }>();
@@ -161,7 +161,7 @@ test("tool activity in the primary session drives the working label across exten
 		events: { on: () => () => {}, emit() {} },
 		exec: async () => ({ stdout: "", stderr: "", code: 0, killed: false }),
 	};
-	createGentleAiExtension({ } as never)(pi as never);
+	createNubiaExtension({ } as never)(pi as never);
 	shell(pi as never, {}, { resolveWorktree: (path: string) => ({ root: path, commonDir: path }), gitRunner: () => async () => ({ stdout: "", stderr: "", code: 0, killed: false }), devBinary: () => undefined } as never);
 	let sessionId = "tool-activity-loader-test";
 	let redraws = 0;
@@ -183,7 +183,7 @@ test("tool activity in the primary session drives the working label across exten
 	let editor: ReturnType<NonNullable<typeof editorFactory>> | undefined;
 	try {
 		await fire("session_start");
-		assert.ok(editorFactory, "Gentle Shell should install its prompt");
+		assert.ok(editorFactory, "Nub-IA should install its prompt");
 		editor = editorFactory({ terminal: { rows: 40, columns: 120 }, requestRender() { redraws++; } }, { borderColor: (text: string) => text, selectList: {} }, { matches: () => false });
 		editor.setAnimationPolicy("potato");
 		await fire("agent_start");
@@ -229,8 +229,8 @@ test("tool activity in the primary session drives the working label across exten
 		await tool("edit", { path: "lib/odd-phase.ts" });
 		assert.match(render(), /implementing…/, "a subsequent source edit can restart implementation");
 
-		await tools.get("gentle_odd_phase")!.execute("call", { phase: "researching" }, undefined, undefined, ctx);
-		await tool("gentle_odd_phase", { phase: "researching" });
+		await tools.get("nubia_odd_phase")!.execute("call", { phase: "researching" }, undefined, undefined, ctx);
+		await tool("nubia_odd_phase", { phase: "researching" });
 		await tool("grep", { pattern: "x" });
 		assert.match(render(), /researching…/, "an explicit phase survives a following grep");
 		await tool("edit", { path: "lib/odd-phase.ts" });

@@ -50,7 +50,7 @@ import { AGENTS_GLYPH, renderAgentsCard, widgetExpiryMs, widgetRows } from "../l
 import { AGENTS_STATUS_EVENT, agentsStatusPayload } from "../lib/agents-status-model.ts";
 import { CARD_TONE, renderCard } from "../lib/shell-card.ts";
 import { openInExternalEditor } from "./nubia-shell.ts";
-import { gentlePiConfigHome } from "../lib/agent-home.ts";
+import { nubiaConfigHome } from "../lib/agent-home.ts";
 import { resolveAgentHomeDirectory } from "../lib/agent-model-resolution.ts";
 import { resolveProfilePin, resolveUnversionedProjectProfile } from "../lib/agent-profile-pin.ts";
 import { allowedEditSurfaces, inheritAllowedEditSurfaces, isBoundedWriter, isDevelopmentSurface, isGenericBoundedWriter, prepareBoundSessionRepository, rejectUnscopedBoundedWriterDispatch, safeBootstrapDirectory, sessionRepositoryAuthority } from "../lib/bounded-writer-admission.ts";
@@ -59,33 +59,33 @@ import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
 import { readEnv } from "../lib/config-home.ts";
 
 // Nub-IA Agents: subagents as isolated `pi --mode rpc` children, a task
-// store that notifies per task, and a Gentle Shell card above the editor.
+// store that notifies per task, and a Nub-IA card above the editor.
 // The tool names match the retired pi-subagents package so prompts, skills,
-// and gentle-ai's delegation rules keep working unchanged.
+// and nub-ia's delegation rules keep working unchanged.
 
-export const AGENTS_WIDGET_KEY = "gentle-agents";
+export const AGENTS_WIDGET_KEY = "nubia-agents";
 export const AGENTS_COMMAND_NAME = "nubia:agents";
-export const AGENTS_RESULT_TYPE = "gentle-agents.result";
-export const AGENTS_MESSAGE_TYPE = "gentle-agents.message";
-export const AGENTS_ORCHESTRATOR_MESSAGE_TYPE = "gentle-agents.orchestrator-message";
-export const AGENTS_STALE_RESULT_TYPE = "gentle-agents.stale-result";
+export const AGENTS_RESULT_TYPE = "nubia-agents.result";
+export const AGENTS_MESSAGE_TYPE = "nubia-agents.message";
+export const AGENTS_ORCHESTRATOR_MESSAGE_TYPE = "nubia-agents.orchestrator-message";
+export const AGENTS_STALE_RESULT_TYPE = "nubia-agents.stale-result";
 const RENDER_COALESCE_MS = 400;
 const CLOCK_TICK_MS = 1000;
 const TOOL_PREFIX = "subagent_";
 // Wakes an idle parent after child content was stored as a custom message.
 // It names itself as automated so the model never attributes it to the human.
 const PARENT_WAKE_TEXT = "[System-generated Nub-IA Agents notification, not written by the user] Subagent output was delivered to this session above. Review it and continue.";
-const PARENT_WAKE_TYPE = "gentle-agents.wake";
-const BRIDGE_WAKE_IDENTITY_TYPE = "gentle-agents.wake-identity";
+const PARENT_WAKE_TYPE = "nubia-agents.wake";
+const BRIDGE_WAKE_IDENTITY_TYPE = "nubia-agents.wake-identity";
 interface BridgeWakeIdentity {
 	sessionId: string;
 	nonce: string;
 	text: string;
 }
-const bridgeWakeText = (nonce: string): string => `${PARENT_WAKE_TEXT} [gentle-agents wake: ${nonce}]`;
+const bridgeWakeText = (nonce: string): string => `${PARENT_WAKE_TEXT} [nubia-agents wake: ${nonce}]`;
 // Sessions persisted before the rename recorded this wording in their wake identity; still recognised so their generated bubbles stay hidden.
-const LEGACY_PARENT_WAKE_TEXT = "[System-generated Gentle Agents notification, not written by the user] Subagent output was delivered to this session above. Review it and continue.";
-const legacyBridgeWakeText = (nonce: string): string => `${LEGACY_PARENT_WAKE_TEXT} [gentle-agents wake: ${nonce}]`;
+const LEGACY_PARENT_WAKE_TEXT = "[System-generated Nub-IA Agents notification, not written by the user] Subagent output was delivered to this session above. Review it and continue.";
+const legacyBridgeWakeText = (nonce: string): string => `${LEGACY_PARENT_WAKE_TEXT} [nubia-agents wake: ${nonce}]`;
 const NATIVE_PARENT_WAKE_TEXT = "Review the delivered subagent output and continue.";
 // How long a dispatched wake may take to start a parent run before a later
 // delivery may send another one.
@@ -127,15 +127,15 @@ export interface AgentsDeps extends RunnerDeps {
 	resolveWorktree: WorktreeResolver;
 	metricsNow?: () => number;
 	metricsSchedule?: RunnerDeps["schedule"];
-	// Extensions every child loads with --extension (gentle-shell#1587).
+	// Extensions every child loads with --extension (nubia-shell#1587).
 	childExtensionPaths?: string[];
 }
 
-// gentle-shell#1587: children do not load the gentle-pi package in the
-// isolated Gentle Shell home, so context filtering and destructive-command
+// nubia-shell#1587: children do not load the nub-ia package in the
+// isolated Nub-IA home, so context filtering and destructive-command
 // safety are passed to every child explicitly. Missing files are omitted;
 // installations must include both entries to provide the delegated boundary.
-// gentle-shell#1731 T32: the nan provider is registered by a gentle-pi
+// nubia-shell#1731 T32: the nan provider is registered by a nub-ia
 // extension, so children need it too or a model routed to nan/* is not found.
 export function childContextExtensionPaths(exists: (path: string) => boolean = existsSync): string[] {
 	try {
@@ -148,7 +148,7 @@ export function childContextExtensionPaths(exists: (path: string) => boolean = e
 }
 
 export function agentRuntimePaths(home: string, agentHome = join(home, ".pi", "agent")): { sessions: string; transcripts: string } {
-	const root = join(agentHome, "gentle-agents");
+	const root = join(agentHome, "nubia-agents");
 	return { sessions: join(root, "sessions"), transcripts: join(root, "transcripts") };
 }
 
@@ -273,7 +273,7 @@ function text(value: string, details: Record<string, unknown> = {}, terminate = 
 	return { content: [{ type: "text", text: value }], details, ...(terminate ? { terminate: true } : {}) };
 }
 
-// gentle-pi#1175: the writer profile the runtime resolved for this task,
+// nub-ia#1175: the writer profile the runtime resolved for this task,
 // carried on its review-mutation receipt so ASSESS never trusts a model
 // re-declaration. `task.model` is the child's reported model once get_state
 // answers, or the launch profile's model. An inherited model is recorded as
@@ -281,7 +281,7 @@ function text(value: string, details: Record<string, unknown> = {}, terminate = 
 // model is not reliable evidence (the child resolves its own default), so it is
 // omitted and ASSESS treats the writer as unknown, i.e. small.
 function taskDetails(task: TaskRecord): Record<string, unknown> {
-	return { gentleAgents: { taskId: task.id, agent: task.agent, status: task.status, mode: task.mode, cwd: task.cwd } };
+	return { nubiaAgents: { taskId: task.id, agent: task.agent, status: task.status, mode: task.mode, cwd: task.cwd } };
 }
 
 export function describeTask(task: TaskRecord): string {
@@ -307,7 +307,7 @@ function expandHint(expanded: boolean): string {
 
 // pi runs `-p` and `--mode json` through one one-shot runner that disposes
 // the runtime as soon as the prompt returns, so a background result has no
-// parent session left to reach (gentle-shell#1731 T18).
+// parent session left to reach (nubia-shell#1731 T18).
 export function isSingleShotMode(mode: string | undefined): boolean {
 	return mode === "print" || mode === "json";
 }
@@ -375,7 +375,7 @@ export async function answerThroughUi(ui: ExtensionContext["ui"] | undefined, as
 	}
 }
 
-export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env, overrides: Partial<AgentsDeps> = {}): void {
+export default function nubiaAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env, overrides: Partial<AgentsDeps> = {}): void {
 	const childIpc = ownedChildIpc(env, overrides.childIpc ?? (process.send ? process as unknown as IpcEndpoint : undefined));
 	if (readEnv(env, "NUB_IA_AGENTS_CHILD") === "1") {
 		// A stale managed-SDD child must never inherit unrestricted ordinary tools.
@@ -408,8 +408,8 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	let ui: ExtensionContext["ui"] | undefined;
 	let host: { requestRender(): void } | undefined;
 	let sidebarTui: TUI | undefined;
-	const visualHome = gentlePiConfigHome(env);
-	let agentsVisible = resolveVisualSettings({ gentlePiConfigHome: visualHome }).settings.visibility.agents;
+	const visualHome = nubiaConfigHome(env);
+	let agentsVisible = resolveVisualSettings({ nubiaConfigHome: visualHome }).settings.visibility.agents;
 	let stopVisualUpdates: (() => void) | undefined;
 	let sessions: ExtensionContext["sessionManager"] | undefined;
 	let presence: PresencePublisher | undefined;
@@ -566,7 +566,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 				listener = sessionTransport.createListener(registry, sessionId, async (notification) => {
 					const active = activeSessionTransport;
 					if (!active || active.generation !== generation || active.sessionManager !== sessionManager || active.sessionId !== sessionId || sessions !== sessionManager || activeSessionId() !== sessionId) throw new Error("stale session transport");
-					pi.sendMessage({ customType: AGENTS_ORCHESTRATOR_MESSAGE_TYPE, content: `Session message from ${notification.senderSessionId} (correlation ${notification.id}): ${notification.message}`, display: true, details: { gentleAgents: { senderSessionId: notification.senderSessionId, recipientSessionId: sessionId, correlationId: notification.id, direction: "incoming" } } }, { deliverAs: "followUp", triggerTurn: true });
+					pi.sendMessage({ customType: AGENTS_ORCHESTRATOR_MESSAGE_TYPE, content: `Session message from ${notification.senderSessionId} (correlation ${notification.id}): ${notification.message}`, display: true, details: { nubiaAgents: { senderSessionId: notification.senderSessionId, recipientSessionId: sessionId, correlationId: notification.id, direction: "incoming" } } }, { deliverAs: "followUp", triggerTurn: true });
 				});
 				client = sessionTransport.createClient(registry, sessionId);
 				if (sessions !== sessionManager || generation !== transportGeneration || activeSessionId() !== sessionId) {
@@ -1078,7 +1078,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	});
 
 	pi.registerMessageRenderer(AGENTS_MESSAGE_TYPE, (message, options, theme) => {
-		const details = (message.details as { gentleAgents?: { taskId?: unknown; agent?: unknown } } | undefined)?.gentleAgents;
+		const details = (message.details as { nubiaAgents?: { taskId?: unknown; agent?: unknown } } | undefined)?.nubiaAgents;
 		const taskId = typeof details?.taskId === "string" ? details.taskId : "unknown";
 		const agent = typeof details?.agent === "string" ? details.agent : "Subagent";
 		const heading = `${sanitizeTerminalText(agent)} message · Task ${sanitizeTerminalText(taskId)}`;
@@ -1087,7 +1087,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	});
 
 	pi.registerMessageRenderer(AGENTS_ORCHESTRATOR_MESSAGE_TYPE, (message, options, theme) => {
-		const details = (message.details as { gentleAgents?: { senderSessionId?: unknown } } | undefined)?.gentleAgents;
+		const details = (message.details as { nubiaAgents?: { senderSessionId?: unknown } } | undefined)?.nubiaAgents;
 		const sender = typeof details?.senderSessionId === "string" ? details.senderSessionId : "unknown";
 		const heading = `⇄ Orchestrator message · Received · From ${sanitizeTerminalText(sender)}`;
 		const body = sanitizeTerminalText(messageText(message.content));
@@ -1095,7 +1095,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	});
 
 	pi.registerMessageRenderer(AGENTS_RESULT_TYPE, (message, options, theme) => {
-		const details = (message.details as { gentleAgents?: { agent?: string; status?: string } } | undefined)?.gentleAgents;
+		const details = (message.details as { nubiaAgents?: { agent?: string; status?: string } } | undefined)?.nubiaAgents;
 		const content = message.content as string | Array<{ type: string; text?: string }>;
 		const text = typeof content === "string" ? content : content.map((part) => (part.type === "text" ? (part.text ?? "") : "")).join("\n");
 		const body = options.expanded ? text.split("\n") : agentResultPreview(text).split("\n").filter((line) => line.trim() !== "");
@@ -1193,7 +1193,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	};
 
 	// A guessed id ("1") leads back to real ids instead of a dead end, so the
-	// parent retries the same call rather than re-summarizing it (gentle-shell#1713).
+	// parent retries the same call rather than re-summarizing it (nubia-shell#1713).
 	const unknownTask = (id: unknown, ctx: ExtensionContext | undefined) => {
 		const recent = [...store.list(ctx?.sessionManager?.getSessionId() ?? "")].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
 		const hint = recent.length ? ` Recent task ids: ${recent.map((task) => `${task.id} (${task.agent})`).join(", ")}.` : "";
@@ -1306,11 +1306,11 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 	const showWidget = (ctx: ExtensionContext) => {
 		ui = ctx.hasUI ? ctx.ui : undefined;
 		sessions = ctx.sessionManager;
-		agentsVisible = resolveVisualSettings({ gentlePiConfigHome: visualHome }).settings.visibility.agents;
+		agentsVisible = resolveVisualSettings({ nubiaConfigHome: visualHome }).settings.visibility.agents;
 		stopVisualUpdates?.();
 		stopVisualUpdates = pi.events.on(VISUAL_SETTINGS_CHANGED, (event) => {
 			if ((event as { configHome?: unknown } | undefined)?.configHome !== visualHome) return;
-			agentsVisible = resolveVisualSettings({ gentlePiConfigHome: visualHome }).settings.visibility.agents;
+			agentsVisible = resolveVisualSettings({ nubiaConfigHome: visualHome }).settings.visibility.agents;
 			if (sidebarTui) invalidateSidebar(sidebarTui);
 			host?.requestRender();
 		});
@@ -1350,7 +1350,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 		if (isGenericBoundedWriter(agent.name) && !current()) throw new Error("Writer session Git authority changed before admission.");
 		let admittedModel: string | undefined;
 		const surfaces = allowedEditSurfaces(prompt, context);
-		// gentle-shell#1064 slice 2: the binding is read once per task request,
+		// nubia-shell#1064 slice 2: the binding is read once per task request,
 		// before admission, so the admitted model and the launch routing resolve
 		// the same session layer and can never disagree about it (#1558: a bound
 		// session used to kill its own non-git writer mid-preparation because
@@ -1363,7 +1363,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 				loadAgentsConfig(roots(ctx)),
 				sessionOrPinModelProfiles(
 					sessionBinding?.modelProfiles,
-					resolveUnversionedProjectProfile(root, gentlePiConfigHome(deps.env))?.modelProfiles,
+					resolveUnversionedProjectProfile(root, nubiaConfigHome(deps.env))?.modelProfiles,
 				),
 			);
 			const model = resolveAgentProfile(agent, config).model ?? ctx.model;
@@ -1410,7 +1410,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 		const pinIdentity: WorktreeResolver = foreign ? resolveSessionWorktree : target !== undefined && parentIdentity !== undefined && target === parentIdentity.root
 			? () => parentIdentity
 			: deps.resolveWorktree;
-		// gentle-shell#1064 slice 1: a parent-session profile binding outranks the
+		// nubia-shell#1064 slice 1: a parent-session profile binding outranks the
 		// pin layers for launches from that session (`session → p → P → global`),
 		// with the same wholesale-replacement contract as the pin. The binding is
 		// resolved here, at task-request creation, so queued and running children
@@ -1421,7 +1421,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 				sessionBinding?.modelProfiles,
 				resolveProfilePin({
 					cwd: target ?? parentCwd,
-					configHome: gentlePiConfigHome(deps.env),
+					configHome: nubiaConfigHome(deps.env),
 					resolveWorktree: pinIdentity,
 				})?.modelProfiles,
 			),
@@ -1539,7 +1539,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 				const questionSuffix = query.message ? `\n\nQuestion:\n${query.message}` : "";
 				return text(
 					`Subagent ${live.agent} is waiting for your reply to request ${query.requestId}.${questionSuffix}`,
-					{ gentleAgents: { taskId: live.id, agent: live.agent, status: live.status, mode: live.mode, requestId: query.requestId, ...(query.message ? { question: query.message } : {}) } },
+					{ nubiaAgents: { taskId: live.id, agent: live.agent, status: live.status, mode: live.mode, requestId: query.requestId, ...(query.message ? { question: query.message } : {}) } },
 					true,
 				);
 			}
@@ -1569,7 +1569,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 				return new Text(theme.fg("toolTitle", `${AGENTS_GLYPH} agent ${name.replace(/_/g, " ")}${params.agent ? ` · ${params.agent}` : params.task_id ? ` · ${params.task_id}` : ""}`), 0, 0);
 			},
 			renderResult(result, options, theme) {
-				const task = (result.details as { gentleAgents?: { status?: string; taskId?: string } } | undefined)?.gentleAgents;
+				const task = (result.details as { nubiaAgents?: { status?: string; taskId?: string } } | undefined)?.nubiaAgents;
 				if (name === "result" && task?.status === TASK_STATUS.RUNNING) {
 					return { render: () => [], invalidate() {} };
 				}
@@ -1615,7 +1615,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 			const alias = sanitizeDisplayLabel(ctx.sessionManager.getSessionName?.() ?? "");
 			if (state !== undefined) publishActivity();
 			presence?.refreshLabel();
-			return text(`Active session ID: ${transport.sessionId}\nCurrent alias: ${alias || "unnamed"}`, { gentleAgents: { senderSessionId: transport.sessionId, alias } });
+			return text(`Active session ID: ${transport.sessionId}\nCurrent alias: ${alias || "unnamed"}`, { nubiaAgents: { senderSessionId: transport.sessionId, alias } });
 		},
 	});
 	pi.registerTool({
@@ -1642,10 +1642,10 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 			const transport = activeTransportFor(ctx);
 			const result = (receipt: MetadataReceipt) => {
 				const output = kind === "metadata" ? receipt : { status: "unavailable", code: receipt.unknowns[0], source: "helper_advice", ownerReply: false, authority: "none" };
-				return text(JSON.stringify(output), { gentleAgents: { senderSessionId: transport?.sessionId, receipt: output } });
+				return text(JSON.stringify(output), { nubiaAgents: { senderSessionId: transport?.sessionId, receipt: output } });
 			};
 			if (!transport) return result(unavailableMetadata(selection.recipientSessionId, "not-ready"));
-			const reply = (receipt: unknown) => text(JSON.stringify(receipt), { gentleAgents: { senderSessionId: transport.sessionId, receipt } });
+			const reply = (receipt: unknown) => text(JSON.stringify(receipt), { nubiaAgents: { senderSessionId: transport.sessionId, receipt } });
 			if (kind === "revoke-reasoning") {
 				helperPermission.revoke(selection.recipientSessionId);
 				return reply({ status: "revoked", source: "helper_advice", ownerReply: false, authority: "none" });
@@ -1710,7 +1710,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 				if (filter !== undefined) {
 					const workSearch = searchPublishedWork(agentHome, activations, filter, params.recipient_session_id
 						? { recipientSessionId: params.recipient_session_id, cursor: params.cursor } : undefined);
-					return text(JSON.stringify(workSearch), { gentleAgents: { workSearch } });
+					return text(JSON.stringify(workSearch), { nubiaAgents: { workSearch } });
 				}
 				const peers = discoverOrchestrators(agentHome, activations, Date.now(), params.recipient_session_id
 					? { recipientSessionId: params.recipient_session_id, cursor: params.cursor } : undefined);
@@ -1726,7 +1726,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 					const note = params.recipient_session_id ? `\n  owner-curated recorded state (not consent or owner reply; authority none): ${peer.state ? JSON.stringify(peer.state) : "unknown"}` : "";
 					return `- ${peer.sessionId}${context} · ${repository(peer.scope?.host)} · metadata: ${peer.freshness}${tasks}${registered}${gaps}${catalog}${note}${peer.omitted ? `\n  (${peer.omitted} more tasks omitted)` : ""}`;
 				});
-				return peers.length === 0 ? text("No other sessions are currently advertised. Advertisements have unknown reachability and do not guarantee a live session.") : text(`Advertised sessions (reachability is unknown):\n${rows.join("\n")}`, { gentleAgents: { candidates: peers } });
+				return peers.length === 0 ? text("No other sessions are currently advertised. Advertisements have unknown reachability and do not guarantee a live session.") : text(`Advertised sessions (reachability is unknown):\n${rows.join("\n")}`, { nubiaAgents: { candidates: peers } });
 			} catch {
 				return text("Error: session discovery is unavailable.", { error: "unavailable" });
 			}
@@ -1769,7 +1769,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 					if (candidates.length === 1) {
 						recipient = candidates[0].sessionId;
 						activation = candidates[0];
-					} else if (!ctx.hasUI) return text("Several recipient orchestrators are available. Ask the user to choose a recipient label; do not ask for a session ID.", { gentleAgents: { candidates: candidates.map((candidate) => ({ label: `Orchestrator ${candidate.sessionId}`, sessionId: candidate.sessionId })) } });
+					} else if (!ctx.hasUI) return text("Several recipient orchestrators are available. Ask the user to choose a recipient label; do not ask for a session ID.", { nubiaAgents: { candidates: candidates.map((candidate) => ({ label: `Orchestrator ${candidate.sessionId}`, sessionId: candidate.sessionId })) } });
 					else {
 						const labels = candidates.map((candidate) => `Orchestrator ${candidate.sessionId}`);
 						const selected = await ctx.ui.select("Select recipient orchestrator", labels, { signal });
@@ -1793,7 +1793,7 @@ export default function gentleAgents(pi: ExtensionAPI, env: NodeJS.ProcessEnv = 
 			}
 			try {
 				const accepted = await transport.client.sendNotification(recipient, message, { signal, expectedActivation: activation, beforeConnect: () => activeTransportFor(ctx) === transport });
-				return activeTransportFor(ctx) === transport ? text(`Message ${accepted.id} from ${transport.sessionId} to ${recipient} accepted for delivery; it is not a delivery or read receipt.`, { gentleAgents: { messageId: accepted.id, senderSessionId: transport.sessionId, recipientSessionId: recipient, state: "accepted" } }) : text("Error: session messaging is not ready.", { error: "stale" });
+				return activeTransportFor(ctx) === transport ? text(`Message ${accepted.id} from ${transport.sessionId} to ${recipient} accepted for delivery; it is not a delivery or read receipt.`, { nubiaAgents: { messageId: accepted.id, senderSessionId: transport.sessionId, recipientSessionId: recipient, state: "accepted" } }) : text("Error: session messaging is not ready.", { error: "stale" });
 			} catch {
 				return text("Error: session message was not accepted.", { error: "not accepted" });
 			}

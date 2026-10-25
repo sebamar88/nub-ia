@@ -4,13 +4,13 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
 import { YOLO_STATUS_TEXT } from "../lib/yolo-session-policy.ts";
 
 const ON_TEXT = "🚀 YOLO ON 🔥 — destructive confirmations remain";
 const USAGE = "Use /nubia:yolo enable|disable|status. State unchanged.";
 const STALE_MENU = "YOLO unchanged — the session changed while the menu was open.";
-const menuTitle = (state: "ON" | "OFF") => `🚀 Gentle YOLO 🔥 — full speed, destructive actions still ask (current: ${state})`;
+const menuTitle = (state: "ON" | "OFF") => `🚀 Nub-IA YOLO 🔥 — full speed, destructive actions still ask (current: ${state})`;
 
 export function harness(env: NodeJS.ProcessEnv = {}) {
 	const commands = new Map<string, { handler: (args: string, ctx: ExtensionContext) => Promise<void> }>();
@@ -41,7 +41,7 @@ export function harness(env: NodeJS.ProcessEnv = {}) {
 		events: { emit() {}, on: () => () => {} },
 		getActiveTools: () => [],
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: env,
+	createNubiaExtension({ processEnv: env,
 	})(pi);
 	return { ctx, commands, tools, notices, statuses, widgets, confirmations: () => confirmations,
 		setSessionId: (id: string) => { sessionId = id; },
@@ -187,7 +187,7 @@ test("active YOLO waives only ordinary push after full destructive/guard evaluat
 });
 
 test("active command path preserves configured push confirmations and blocks, including env override", async () => {
-	const configHome = mkdtempSync(join(tmpdir(), "gentle-yolo-config-"));
+	const configHome = mkdtempSync(join(tmpdir(), "nubia-yolo-config-"));
 	const previousHome = process.env.NUB_IA_CONFIG_HOME;
 	const previousAutonomy = process.env.NUB_IA_AUTONOMOUS_MODE;
 	process.env.NUB_IA_CONFIG_HOME = configHome;

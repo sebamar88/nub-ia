@@ -8,7 +8,7 @@ import { DEFAULT_VISUAL_SETTINGS, DENSITY, HEADER_PLACEMENT, parseVisualSettings
 test("missing settings use responsive defaults and return independent copies", () => {
 	const home = mkdtempSync(join(tmpdir(), "visual-policy-"));
 	try {
-		const resolved = resolveVisualSettings({ gentlePiConfigHome: home });
+		const resolved = resolveVisualSettings({ nubiaConfigHome: home });
 		assert.deepEqual(resolved.settings, DEFAULT_VISUAL_SETTINGS);
 		assert.equal(DEFAULT_VISUAL_SETTINGS.statusPlacement, "auto");
 		assert.equal(DEFAULT_VISUAL_SETTINGS.headerPlacement, "below-input");
@@ -16,7 +16,7 @@ test("missing settings use responsive defaults and return independent copies", (
 		assert.deepEqual(DEFAULT_VISUAL_SETTINGS.visibility, { changes: true, rdd: true, agents: true, todo: true, usageCost: true, modelDetails: true });
 		resolved.settings.visibility.agents = false;
 		assert.equal(DEFAULT_VISUAL_SETTINGS.visibility.agents, true);
-		assert.equal(resolveVisualSettings({ gentlePiConfigHome: home }).settings.visibility.agents, true);
+		assert.equal(resolveVisualSettings({ nubiaConfigHome: home }).settings.visibility.agents, true);
 	} finally { rmSync(home, { recursive: true, force: true }); }
 });
 
@@ -44,7 +44,7 @@ test("settings saved before the rdd section existed load as valid with rdd shown
 	const home = mkdtempSync(join(tmpdir(), "visual-policy-"));
 	try {
 		writeFileSync(join(home, "visual-customization.json"), JSON.stringify(legacy));
-		const resolved = resolveVisualSettings({ gentlePiConfigHome: home });
+		const resolved = resolveVisualSettings({ nubiaConfigHome: home });
 		assert.equal(resolved.malformed, false);
 		assert.deepEqual(resolved.settings, expected);
 		const { rdd: _rdd, ...legacyVisibility } = expected.visibility;
@@ -56,7 +56,7 @@ test("an unreadable settings path is a read error, not malformed content", () =>
 	const home = mkdtempSync(join(tmpdir(), "visual-policy-"));
 	try {
 		mkdirSync(join(home, "visual-customization.json"));
-		const result = resolveVisualSettings({ gentlePiConfigHome: home });
+		const result = resolveVisualSettings({ nubiaConfigHome: home });
 		assert.equal(result.malformed, false);
 		assert.equal(result.readError, true);
 		assert.equal(result.source, "global_file");
@@ -69,7 +69,7 @@ test("failed rename preserves the destination and removes the temporary file", (
 	try {
 		const destination = join(home, "visual-customization.json");
 		mkdirSync(destination);
-		assert.throws(() => writeVisualSettings(DEFAULT_VISUAL_SETTINGS, { gentlePiConfigHome: home }));
+		assert.throws(() => writeVisualSettings(DEFAULT_VISUAL_SETTINGS, { nubiaConfigHome: home }));
 		assert.deepEqual(readdirSync(home), ["visual-customization.json"]);
 		assert.equal(statSync(destination).isDirectory(), true);
 	} finally { rmSync(home, { recursive: true, force: true }); }
@@ -82,8 +82,8 @@ test("each placement and density value survives a versioned write and read", () 
 			for (const headerPlacement of Object.values(HEADER_PLACEMENT)) {
 				for (const density of Object.values(DENSITY)) {
 					const settings = { ...DEFAULT_VISUAL_SETTINGS, statusPlacement, headerPlacement, density };
-					writeVisualSettings(settings, { gentlePiConfigHome: home });
-					assert.deepEqual(resolveVisualSettings({ gentlePiConfigHome: home }).settings, settings);
+					writeVisualSettings(settings, { nubiaConfigHome: home });
+					assert.deepEqual(resolveVisualSettings({ nubiaConfigHome: home }).settings, settings);
 				}
 			}
 		}
@@ -94,17 +94,17 @@ test("atomic write round trips and invalid existing files fall back without over
 	const home = mkdtempSync(join(tmpdir(), "visual-policy-"));
 	try {
 		const settings = { ...DEFAULT_VISUAL_SETTINGS, statusPlacement: "hidden" as const, headerPlacement: "below-input" as const, density: "minimal" as const, visibility: { ...DEFAULT_VISUAL_SETTINGS.visibility, agents: false } };
-		const path = writeVisualSettings(settings, { gentlePiConfigHome: home });
+		const path = writeVisualSettings(settings, { nubiaConfigHome: home });
 		assert.equal(path, join(home, "visual-customization.json"));
 		if (process.platform !== "win32") assert.equal(statSync(path).mode & 0o777, 0o600);
-		assert.deepEqual(resolveVisualSettings({ gentlePiConfigHome: home }).settings, settings);
+		assert.deepEqual(resolveVisualSettings({ nubiaConfigHome: home }).settings, settings);
 		assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { schema: VISUAL_SCHEMA, ...settings });
 		const validFile = readFileSync(path, "utf8");
-		assert.throws(() => writeVisualSettings({ ...settings, density: "bad" as typeof settings.density }, { gentlePiConfigHome: home }));
+		assert.throws(() => writeVisualSettings({ ...settings, density: "bad" as typeof settings.density }, { nubiaConfigHome: home }));
 		assert.equal(readFileSync(path, "utf8"), validFile);
 		writeFileSync(path, "broken");
-		assert.deepEqual(resolveVisualSettings({ gentlePiConfigHome: home }).settings, DEFAULT_VISUAL_SETTINGS);
-		assert.equal(resolveVisualSettings({ gentlePiConfigHome: home }).malformed, true);
+		assert.deepEqual(resolveVisualSettings({ nubiaConfigHome: home }).settings, DEFAULT_VISUAL_SETTINGS);
+		assert.equal(resolveVisualSettings({ nubiaConfigHome: home }).malformed, true);
 		assert.equal(readFileSync(path, "utf8"), "broken");
 	} finally { rmSync(home, { recursive: true, force: true }); }
 });

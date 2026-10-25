@@ -1,4 +1,4 @@
-# Actividad de Agents (`gentle-agents.activity/v1`)
+# Actividad de Agents (`nubia-agents.activity/v1`)
 
 Un host RPC interactivo (un cliente que ejecuta `pi --mode rpc`, como la app de escritorio) recibe el estado vivo de los subagentes como un documento JSON acotado por ventana de coalescencia, para dibujar una vista de helpers por chat sin hacer polling de `subagent_status`. Esta página también resume las herramientas de descubrimiento entre orquestadores del mismo perfil.
 
@@ -43,7 +43,7 @@ Cada peer reciente puede traer `catalog`: ocho resúmenes de hijos (`id`, `label
 
 | Límite | Contrato |
 | --- | --- |
-| Snapshot | Un archivo `gentle-agents/catalog` privado por publisher, máx. 64 KiB |
+| Snapshot | Un archivo `nubia-agents/catalog` privado por publisher, máx. 64 KiB |
 | Entradas | Hasta 64 tareas y 64 rutas; ocho de cada una por página, máx. ocho páginas |
 | Rutas | Hechos absolutos literales de hasta 256 bytes; con controles o separadores raros quedan `null` |
 | Cursor | Hasta 1.024 caracteres; ata sesión, incarnation, activación y digest del catálogo público |
@@ -70,8 +70,8 @@ Poné `NUB_IA_INTERACTIVE_HOST=1` en el proceso `pi --mode rpc` que el host lanz
 {
   "type": "extension_ui_request",
   "method": "setWidget",
-  "widgetKey": "gentle-agents",
-  "widgetLines": ["{\"schema\":\"gentle-agents.activity/v1\", ...}"]
+  "widgetKey": "nubia-agents",
+  "widgetLines": ["{\"schema\":\"nubia-agents.activity/v1\", ...}"]
 }
 ```
 
@@ -81,7 +81,7 @@ Poné `NUB_IA_INTERACTIVE_HOST=1` en el proceso `pi --mode rpc` que el host lanz
 
 ```jsonc
 {
-  "schema": "gentle-agents.activity/v1",
+  "schema": "nubia-agents.activity/v1",
   "summary": { "running": 1, "queued": 0, "waiting": 0, "finished": 2 },
   "tasks": [
     {
@@ -127,4 +127,4 @@ Mientras un mensaje del asistente genera un bloque de tool-call, los deltas de a
 
 ## Coalescencia
 
-`createRpcActivityPublisher` se suscribe a `TaskStore#subscribeSummary` y a `TaskStore#subscribe(id)` de cada tarea; los cambios dentro de una ventana de 150 ms se colapsan en exactamente un `setWidget("gentle-agents", [línea])`.
+`createRpcActivityPublisher` se suscribe a `TaskStore#subscribeSummary` y a `TaskStore#subscribe(id)` de cada tarea; los cambios dentro de una ventana de 150 ms se colapsan en exactamente un `setWidget("nubia-agents", [línea])`.

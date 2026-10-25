@@ -88,7 +88,7 @@ test("(a) a legacy-home models.json keeps applying and is copied forward to the 
 test("(b) profiles.json legacy agent keys are renamed in every profile and written back once", async t => {
 	const { root, configHome } = withHomes(t);
 	const profilesPath = join(configHome, "profiles.json");
-	writeFileSync(profilesPath, JSON.stringify({ kind: "gentle-pi.agent_model_profiles", version: 1, profiles: { fast: { "gentle-ai-worker": "a/b" }, deep: { "gentle-ai-worker": "x/y", "nubia-worker": "keep/me", other: "o/p" } } }));
+	writeFileSync(profilesPath, JSON.stringify({ kind: "nub-ia.agent_model_profiles", version: 1, profiles: { fast: { "gentle-ai-worker": "a/b" }, deep: { "gentle-ai-worker": "x/y", "nubia-worker": "keep/me", other: "o/p" } } }));
 	const parsed = parseProfilesFileText(readFileSync(profilesPath, "utf8"));
 	assert.equal(parsed.status, "valid");
 	if (parsed.status === "valid") {
@@ -125,7 +125,7 @@ test("install retires managed legacy gentle-ai-* agent copies and keeps user-edi
 	// Package v0.1.0 copy of the explorer (hash recorded in managed-assets-v0.1.0.json) vs a user-edited worker.
 	const legacyExplore = join(agentHome, "agents", "gentle-ai-explore.md");
 	const legacyWorker = join(agentHome, "agents", "gentle-ai-worker.md");
-	const manifestPath = join(agentHome, "gentle-ai", "managed-assets.json");
+	const manifestPath = join(agentHome, "nub-ia", "managed-assets.json");
 	installPackageAssets(agentHome, true, ["delegation"]);
 	assert.ok(existsSync(join(agentHome, "agents", "nubia-worker.md")));
 	const migration = JSON.parse(readFileSync(new URL("../assets/migrations/managed-assets-v0.1.0.json", import.meta.url), "utf8")) as { assets: Record<string, string> };

@@ -5,7 +5,7 @@ import test from "node:test";
 import { __testing } from "../extensions/nubia-harness.ts";
 import { readDelegationDetail } from "./support/orchestrator-modules.ts";
 
-// gentle-shell#1494: task size is decided by understanding, risk, and whether
+// nubia-shell#1494: task size is decided by understanding, risk, and whether
 // the work can be resumed from the diff, never by counting files, commands,
 // fixes, or a requested todo list. Each mechanism (ask, explore, verify,
 // track, writer) turns on only by its own trigger.
@@ -53,7 +53,7 @@ test("AC2: counts never classify, and the step-count classifier is gone", () => 
 	for (const [path, text] of Object.entries({ core, delegation, skill, extension, readme: read("docs/readme-reference.md") })) {
 		assert.ok(!text.includes("two or more meaningful implementation steps"), `${path} keeps the step-count classifier`);
 	}
-	const prompt = __testing.buildGentlePrompt("gentleman");
+	const prompt = __testing.buildNubiaPrompt("gentleman");
 	const classify = prompt.slice(prompt.indexOf("4. **Classify.**"), prompt.indexOf("5. **Track before the first write.**"));
 	assert.ok(classify.includes("Task Size"), "ODD step 4 must classify by the Task Size section");
 });
@@ -92,7 +92,7 @@ test("AC4: each mechanism turns on only by its own trigger and size is re-evalua
 		"open product or design decision",
 		"high risk",
 		"never by file count",
-		// gentle-shell#1731: the writer fires on reasons, not on size alone.
+		// nubia-shell#1731: the writer fires on reasons, not on size alone.
 		"never by file count or a large task alone",
 	]) {
 		assert.ok(triggers.includes(clause), `mechanism list is missing: ${clause}`);
@@ -108,7 +108,7 @@ test("AC5: the high-risk list lives once in the core, native tier wins, unclear 
 		"**High risk**",
 		"hard to detect, hard to undo, or reaches beyond the change",
 		"(1) data or irreversible effects",
-		// gentle-shell#1731 T10: items 1 and 3 cover changing or breaking existing things, not adding.
+		// nubia-shell#1731 T10: items 1 and 3 cover changing or breaking existing things, not adding.
 		"rewriting or deleting stored data, format changes, writing data without validation; not saving new records",
 		"(2) security",
 		"(3) changing or removing contracts others already consume",
@@ -131,14 +131,14 @@ test("AC5: the high-risk list lives once in the core, native tier wins, unclear 
 // AC7 (S7): the small path reads no lazy rule file, and each lazy module stays
 // small enough that one mechanism costs one bounded read instead of 49 KB.
 const MODULE_BUDGETS: Record<string, number> = {
-	// gentle-shell#1731 merge with main: main's session subject/state guidance plus the reason-based Writer rule (20,000 -> 20,500 B).
+	// nubia-shell#1731 merge with main: main's session subject/state guidance plus the reason-based Writer rule (20,000 -> 20,500 B).
 	"orchestrator-delegation.md": 20_500,
-	// gentle-shell#1731 T23: Close gate accepts one Needs your decision result as a stop (12,500 -> 12,600 B).
+	// nubia-shell#1731 T23: Close gate accepts one Needs your decision result as a stop (12,500 -> 12,600 B).
 	"orchestrator-tracking.md": 12_600,
-	// gentle-shell#1731 T3: parallel review protocol; lazy (delegation or high risk only), core and normative rule untouched.
-	// gentle-shell#1731 T11/T12: verify-per-unit timing and the every-S# verify handoff (6,000 -> 6,400 B).
-	// gentle-shell#1731 T15: one end-of-feature verify for same-model inline deliveries (6,400 -> 6,500 B).
-	// gentle-shell#1731 T23: bounded self-review and partial/blocked writer -> Needs your decision (7,000 -> 7,300 B).
+	// nubia-shell#1731 T3: parallel review protocol; lazy (delegation or high risk only), core and normative rule untouched.
+	// nubia-shell#1731 T11/T12: verify-per-unit timing and the every-S# verify handoff (6,000 -> 6,400 B).
+	// nubia-shell#1731 T15: one end-of-feature verify for same-model inline deliveries (6,400 -> 6,500 B).
+	// nubia-shell#1731 T23: bounded self-review and partial/blocked writer -> Needs your decision (7,000 -> 7,300 B).
 	"orchestrator-verification.md": 7_300,
 	"orchestrator-writer.md": 4_500,
 	"orchestrator-prompts.md": 13_000,
@@ -167,8 +167,8 @@ test("AC7: each delegation module stays under its byte budget and is loaded by i
 
 test("work usage stays complete in the human guide while routing precedence stays canonical", () => {
 	const asset = read("assets/orchestrator-delegation.md");
-	const guide = read("docs/gentle-agents-activity.md");
-	assert.ok(asset.includes("tool schemas and `docs/gentle-agents-activity.md`"));
+	const guide = read("docs/nubia-agents-activity.md");
+	assert.ok(asset.includes("tool schemas and `docs/nubia-agents-activity.md`"));
 	for (const clause of [
 		'`{"area":"Auth","topic":"Login","tags":["Review"],"refs":[{"kind":"issue","repository":"github.com/Owner/Repo","id":"12"}]}`',
 		'`filter: {"related_to":{"session_id":"<stable owner ID>"}}`',
@@ -206,7 +206,7 @@ test("T6: each delegation module carries its own clauses and names the modules i
 		"orchestrator-tracking.md": ["#### Authorization and progress", "Delivery follows work units", "run `nub_review` (tool) over the diff"],
 		"orchestrator-verification.md": [
 			"Before delivery of a non-trivial change, run `nub_review`",
-			"## Parallel review protocol (gentle-shell#1731)",
+			"## Parallel review protocol (nubia-shell#1731)",
 		],
 		"orchestrator-writer.md": ["#### Allowed edit surfaces (MANDATORY)", "#### Judgment Day fix dispatch"],
 		"orchestrator-prompts.md": ["### Lossless Blocking Prompts (MANDATORY)"],

@@ -7,7 +7,7 @@ import type {
 	ExtensionAPI,
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
 
 // ---------------------------------------------------------------------------
 // Bounded writer edit-surface scope guard (issue #484).
@@ -49,10 +49,10 @@ function dispatchWriter(input: Record<string, unknown>) {
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ })(pi);
+	createNubiaExtension({ })(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
-	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-writer-surfaces-"));
+	const cwd = mkdtempSync(join(tmpdir(), "nub-ia-writer-surfaces-"));
 	scratchRoots.push(cwd);
 	return toolCall!({ toolName: "subagent_run", input }, {
 		cwd,
@@ -84,7 +84,7 @@ async function assertRejected(input: Record<string, unknown>, message: string) {
 	rejectionProblem(result.reason);
 }
 
-// gentle-shell#1713: an unexplained rejection made the orchestrator resend
+// nubia-shell#1713: an unexplained rejection made the orchestrator resend
 // shorter, re-summarized tasks (1786 -> 1542 chars) and lose requirements.
 test("rejection names the offending line and asks for the same task unchanged", async () => {
 	const result = await dispatchWriter({

@@ -11,7 +11,7 @@ import { readDelegationDetail } from "./support/orchestrator-modules.ts";
 // Freezes the pre-change wrapper (nubia-harness.ts) and orchestrator.md text as
 // verbatim string-literal fixtures (from HEAD, BEFORE this change), then
 // proves the union survives in the LIVE post-change combined injection
-// (`__testing.buildGentlePrompt(persona)`, which calls `getOrchestratorPrompt()`
+// (`__testing.buildNubiaPrompt(persona)`, which calls `getOrchestratorPrompt()`
 // internally and reads `assets/orchestrator.md` from disk, memoized for the
 // lifetime of the process — see nubia-harness.ts:118-133).
 //
@@ -234,12 +234,12 @@ test("fixture integrity: POST_WRAPPER_IDENTITY_BLOCK matches design.md converged
 // ---------------------------------------------------------------------------
 // Line-level union sweep — one named assertion per Table A / Table B rule.
 // Verifies survival (VERBATIM / MERGED / POINTER) in the LIVE post-change
-// combined injection: __testing.buildGentlePrompt(persona).
+// combined injection: __testing.buildNubiaPrompt(persona).
 // ---------------------------------------------------------------------------
 
 test("Table A rule: wrapper :177 'You are Nub-IA...' survives verbatim (KEEP once, wrapper)", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/You are Nub-IA: the Nubiral team's Pi coding-agent harness for controlled development work\./,
@@ -250,7 +250,7 @@ test("Table A rule: wrapper :177 'You are Nub-IA...' survives verbatim (KEEP onc
 
 test("Table A rule: wrapper :180/:181 + orchestrator :9,:12 self-description MERGE into wrapper bullet 1", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/answer as Nub-IA, not as a generic assistant/,
@@ -271,7 +271,7 @@ test("Table A rule: wrapper :180/:181 + orchestrator :9,:12 self-description MER
 
 test("Table A rule: orchestrator :17 'never introduce yourself...' ADDED to wrapper (orchestrator-only rule)", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/never introduce yourself as only "your assistant" or "the default assistant"/,
@@ -282,7 +282,7 @@ test("Table A rule: orchestrator :17 'never introduce yourself...' ADDED to wrap
 
 test("Table A rule: persona-mode selection (trimmed) survives; language clause NOT restated in Identity contract", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/Follow the currently selected persona mode\./,
@@ -293,7 +293,7 @@ test("Table A rule: persona-mode selection (trimmed) survives; language clause N
 
 test("Table A rule: ODD and subagents core-capabilities bullet survives (KEEP once)", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/Mention ODD as the development workflow and subagents as a core capability\./,
@@ -304,7 +304,7 @@ test("Table A rule: ODD and subagents core-capabilities bullet survives (KEEP on
 
 test("Table A rule: memory rule (wrapper phrasing, with never-invent clause) survives (KEEP wrapper)", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/Mention memory only when memory packages or callable memory tools are actually active; never invent persistent memory\./,
@@ -315,7 +315,7 @@ test("Table A rule: memory rule (wrapper phrasing, with never-invent clause) sur
 
 test("Table A rule: 'Do not claim portability outside the Pi runtime.' survives (KEEP once, byte-identical wrapper :184 / orchestrator :20)", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/Do not claim portability outside the Pi runtime\./,
@@ -331,7 +331,7 @@ test("Table B rule: LB2 subagent-English delegation kept verbatim in orchestrato
 	// assertion is repointed, not weakened.
 	const delegationDetail = readDelegationDetail();
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona) + delegationDetail;
+		const prompt = __testing.buildNubiaPrompt(persona) + delegationDetail;
 		assert.match(
 			prompt,
 			/Subagent-facing prompts should be written in English by default, even when the user speaks Spanish\./,
@@ -342,7 +342,7 @@ test("Table B rule: LB2 subagent-English delegation kept verbatim in orchestrato
 
 test("Table B rule: LB3 artifacts-English kept verbatim in orchestrator (unique)", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/Generated technical artifacts — whether by the parent inline or by subagents/,
@@ -353,7 +353,7 @@ test("Table B rule: LB3 artifacts-English kept verbatim in orchestrator (unique)
 
 test("Table B rule: LB4 public-comment target language kept verbatim in orchestrator (unique)", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.match(
 			prompt,
 			/Public\/contextual comments and replies are different from technical artifacts\./,
@@ -369,7 +369,7 @@ test("Table B rule: LB5 exceptions kept verbatim in orchestrator (unique)", () =
 	// read so this assertion is repointed, not weakened.
 	const delegationDetail = readDelegationDetail();
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona) + delegationDetail;
+		const prompt = __testing.buildNubiaPrompt(persona) + delegationDetail;
 		assert.match(
 			prompt,
 			/Preserve exact user quotes, UI copy, error messages, filenames, commands, and domain terms in their original language when they are evidence\./,
@@ -423,7 +423,7 @@ function countOccurrences(haystack: string, needle: string): number {
 
 test("dup guard (exact-string): 'Do not claim portability outside the Pi runtime.' occurs exactly once", () => {
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.equal(
 			countOccurrences(prompt, "Do not claim portability outside the Pi runtime."),
 			1,
@@ -436,7 +436,7 @@ test("dup guard (exact-string): identity self-description sentence occurs exactl
 	const selfDescription =
 		"I am Nub-IA: a Pi-specific coding-agent harness for controlled development, with a senior architect persona. I run Organic Driven Development, coordinate subagents, track substantial work, run commands, and edit files. I am not a generic chatbot.";
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.equal(
 			countOccurrences(prompt, selfDescription),
 			1,
@@ -459,7 +459,7 @@ test("dup guard (exact-string): LB2/LB3/LB4 each occur exactly once", () => {
 	const lb4 =
 		"Public/contextual comments and replies are different from technical artifacts.";
 	for (const persona of ["gentleman", "neutral"] as const) {
-		const prompt = __testing.buildGentlePrompt(persona);
+		const prompt = __testing.buildNubiaPrompt(persona);
 		assert.equal(
 			countOccurrences(prompt + delegationDetail, lb2),
 			1,
@@ -492,8 +492,8 @@ function countLanguageMatchConceptOccurrences(text: string): number {
 }
 
 test("dup guard (concept-level): language-match regex matches exactly once per rendered mode, excluding the scoped self-description exception", () => {
-	const gentlemanPrompt = __testing.buildGentlePrompt("gentleman");
-	const neutralPrompt = __testing.buildGentlePrompt("neutral");
+	const gentlemanPrompt = __testing.buildNubiaPrompt("gentleman");
+	const neutralPrompt = __testing.buildNubiaPrompt("neutral");
 	assert.equal(
 		countLanguageMatchConceptOccurrences(gentlemanPrompt),
 		1,
@@ -511,7 +511,7 @@ test("dup guard (concept-level): language-match regex matches exactly once per r
 // ---------------------------------------------------------------------------
 
 test("added rule: gentleman output contains the new GENTLEMAN_PERSONA_PROMPT language-match clause", () => {
-	const prompt = __testing.buildGentlePrompt("gentleman");
+	const prompt = __testing.buildNubiaPrompt("gentleman");
 	assert.match(
 		prompt,
 		/Always respond in the same language the user writes in\./,
@@ -520,7 +520,7 @@ test("added rule: gentleman output contains the new GENTLEMAN_PERSONA_PROMPT lan
 });
 
 test("regression: neutral output still contains its own unchanged language-match clause (:158)", () => {
-	const prompt = __testing.buildGentlePrompt("neutral");
+	const prompt = __testing.buildNubiaPrompt("neutral");
 	assert.match(
 		prompt,
 		/Always respond in the same language the user writes in\./,
@@ -597,7 +597,7 @@ test("byte delta: net per-session injection delta matches byte-measurements.md (
 // ---------------------------------------------------------------------------
 
 test("gentleman persona selected: GENTLEMAN_PERSONA_PROMPT content appears once, no neutral-only rule leaks in", () => {
-	const prompt = __testing.buildGentlePrompt("gentleman");
+	const prompt = __testing.buildNubiaPrompt("gentleman");
 	assert.match(prompt, /Current persona mode: gentleman/);
 	assert.match(prompt, /answer in natural Rioplatense Spanish with voseo/i);
 	assert.doesNotMatch(
@@ -608,7 +608,7 @@ test("gentleman persona selected: GENTLEMAN_PERSONA_PROMPT content appears once,
 });
 
 test("neutral persona selected: NEUTRAL_PERSONA_PROMPT content appears once, no gentleman-only rule leaks in", () => {
-	const prompt = __testing.buildGentlePrompt("neutral");
+	const prompt = __testing.buildNubiaPrompt("neutral");
 	assert.match(prompt, /Current persona mode: neutral/);
 	assert.match(prompt, /Do NOT use voseo/i);
 	assert.doesNotMatch(

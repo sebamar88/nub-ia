@@ -11,7 +11,7 @@ import type {
 	Theme,
 	ToolCallEventResult,
 } from "@earendil-works/pi-coding-agent";
-import { __testing, applyModelConfig, createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { __testing, applyModelConfig, createNubiaExtension } from "../extensions/nubia-harness.ts";
 import { PROFILES_KIND, PROFILES_VERSION, readProfilesFileResult } from "../lib/agent-profiles.ts";
 import { bindSessionProfile, readSessionProfileBinding, resetSessionProfileBindingsForTesting } from "../lib/session-profile-binding.ts";
 import type { AgentRoutingEntry, ThinkingLevel } from "../lib/model-routing-authority.ts";
@@ -38,10 +38,10 @@ interface RoutingConsumerPanel {
 }
 
 function routingConsumerFixture(t: test.TestContext, agents = ["worker"]) {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-routing-consumers-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-routing-consumers-"));
 	const configHome = join(root, "global");
 	const agentHome = join(root, "agent-home");
-	const projectPath = join(root, ".pi", "gentle-ai", "models.json");
+	const projectPath = join(root, ".pi", "nub-ia", "models.json");
 	const globalPath = join(configHome, "models.json");
 	const exportPath = join(configHome, "models.export.json");
 	for (const dir of [dirname(projectPath), join(root, "agents"), join(agentHome, "agents"), join(agentHome, "subagents")]) {
@@ -80,7 +80,7 @@ function routingConsumerFixture(t: test.TestContext, agents = ["worker"]) {
 	let setModelResult = true;
 	let thinkingRejects = false;
 	let liveThinking = "medium";
-	createGentleAiExtension({})({
+	createNubiaExtension({})({
 		on() {},
 		registerTool() {},
 		registerCommand(name, command) { commands.set(name, command); },
@@ -271,9 +271,9 @@ function isolateHome(t: test.TestContext): void {
 }
 
 test("session startup reports invalid project routing without mutating the profile", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-model-routing-startup-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-model-routing-startup-"));
 	const configHome = join(root, "global");
-	const projectConfigDir = join(root, ".pi", "gentle-ai");
+	const projectConfigDir = join(root, ".pi", "nub-ia");
 	const projectAgentsDir = join(root, ".pi", "agents");
 	const projectProfileDir = join(root, ".pi");
 	const rootAgentsDir = join(root, "agents");
@@ -316,7 +316,7 @@ test("session startup reports invalid project routing without mutating the profi
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({})(pi);
+	createNubiaExtension({})(pi);
 	const sessionStart = handlers.get("session_start");
 	assert.equal(typeof sessionStart, "function");
 	const notifications: Array<{ message: string; severity: string }> = [];
@@ -353,7 +353,7 @@ test("session startup reports invalid project routing without mutating the profi
 });
 
 test("agent discovery skips skills directories", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-agents-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-agents-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	const dotAgents = join(root, ".agents");
 	writeMarkdown(join(dotAgents, "review-risk.md"), "name: review-risk\n");
@@ -378,7 +378,7 @@ test("agent discovery skips skills directories", async (t) => {
 });
 
 test("managed routing timeout leaves its profile, agent, and manifest unchanged", (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-managed-routing-timeout-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-managed-routing-timeout-"));
 	const agentHome = join(root, "agent-home");
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	t.after(() => {
@@ -390,14 +390,14 @@ test("managed routing timeout leaves its profile, agent, and manifest unchanged"
 	process.env.NUB_IA_AGENT_HOME = agentHome;
 	installPackageAssets(root, false, ["delegation"]);
 	const agentPath = join(agentHome, "agents", "nubia-worker.md");
-	const manifestPath = join(agentHome, "gentle-ai", "managed-assets.json");
+	const manifestPath = join(agentHome, "nub-ia", "managed-assets.json");
 	const profilePath = join(agentHome, "subagents.json");
 	const profileBefore = "{\n  \"unrelated\": true\n}\n";
 	writeFileSync(profilePath, profileBefore);
 	const agentBefore = readFileSync(agentPath, "utf8");
 	const manifestBefore = readFileSync(manifestPath, "utf8");
 	writeFileSync(
-		join(agentHome, "gentle-ai", "managed-assets.lock"),
+		join(agentHome, "nub-ia", "managed-assets.lock"),
 		JSON.stringify({ schemaVersion: 1, token: "foreign", pid: process.pid, createdAtMs: Date.now() }),
 	);
 
@@ -411,7 +411,7 @@ test("managed routing timeout leaves its profile, agent, and manifest unchanged"
 });
 
 test("a later alias keeps managed-root precedence and manifest ownership", (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-agent-root-alias-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-agent-root-alias-"));
 	const agentHome = join(root, "agent-home");
 	const home = join(root, "home");
 	const cwd = join(root, "project");
@@ -447,7 +447,7 @@ test("a later alias keeps managed-root precedence and manifest ownership", (t) =
 	const selected = __testing.listDiscoverableAgents(cwd).find((agent) => agent.name === "nubia-worker");
 	assert.equal(selected?.filePath, join(managed, "nubia-worker.md"));
 	applyModelConfig(cwd, { "nubia-worker": { model: "test/managed", thinking: "high" } });
-	const manifest = JSON.parse(readFileSync(join(agentHome, "gentle-ai", "managed-assets.json"), "utf8")) as { assets: Record<string, string> };
+	const manifest = JSON.parse(readFileSync(join(agentHome, "nub-ia", "managed-assets.json"), "utf8")) as { assets: Record<string, string> };
 	const routed = readFileSync(join(managed, "nubia-worker.md"), "utf8");
 	assert.match(routed, /^model: test\/managed$/m);
 	assert.equal(manifest.assets["agents/nubia-worker.md"], createHash("sha256").update(routed).digest("hex"));
@@ -461,14 +461,14 @@ test("retired SDD startup flag is not registered or imported", () => {
 		registerTool() {},
 		registerFlag(name: string) { flags.push(name); },
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({})(pi);
+	createNubiaExtension({})(pi);
 	assert.ok(!flags.includes("gentle-sdd-change"));
 	const source = readFileSync(new URL("../extensions/nubia-harness.ts", import.meta.url), "utf8");
 	assert.doesNotMatch(source, /from ["']\.\.\/lib\/sdd-preflight\.ts["']/);
 });
 
 test("agent model discovery prioritizes Judgment Day agents", (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-model-agents-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-model-agents-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	writeMarkdown(join(root, "zeta.md"), "name: zeta\n");
 	writeMarkdown(join(root, "jd-fix-agent.md"), "name: jd-fix-agent\n");
@@ -496,7 +496,7 @@ test("agent model discovery prioritizes Judgment Day agents", (t) => {
 });
 
 test("discoverable model agents include installed Judgment Day agents", (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-installed-agents-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-installed-agents-"));
 	const previousHome = process.env.NUB_IA_AGENT_HOME;
 	process.env.NUB_IA_AGENT_HOME = root;
 	t.after(() => {
@@ -517,7 +517,7 @@ test("discoverable model agents include installed Judgment Day agents", (t) => {
 });
 
 test("per-JD-agent model assignment keeps judge-a and judge-b profiles divergent", (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-jd-diversity-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-jd-diversity-"));
 	const previousHome = process.env.NUB_IA_AGENT_HOME;
 	process.env.NUB_IA_AGENT_HOME = root;
 	t.after(() => {
@@ -568,7 +568,7 @@ test("per-JD-agent model assignment keeps judge-a and judge-b profiles divergent
 	);
 });
 
-test("model panel render does not auto-apply the Gentle theme and sanitizes agent labels", () => {
+test("model panel render does not auto-apply the Nub-IA theme and sanitizes agent labels", () => {
 	const lines = __testing.renderSddModelPanel(
 		{},
 		["openai/gpt-5.5"],
@@ -669,10 +669,10 @@ test("guarded command confirmation emits a generic correlated permission lifecyc
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
+	createNubiaExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
-	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-permission-request-"));
+	const cwd = mkdtempSync(join(tmpdir(), "nub-ia-permission-request-"));
 	try {
 		const ctx = {
 			cwd,
@@ -804,12 +804,12 @@ test("concurrent guarded confirmations coalesce the Herdr lifecycle per extensio
 			registerCommand() {},
 			registerTool() {},
 		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
+		createNubiaExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 		return { handlers, emitted, confirmations };
 	};
 	const first = createHarness();
 	const second = createHarness();
-	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-permission-concurrent-"));
+	const cwd = mkdtempSync(join(tmpdir(), "nub-ia-permission-concurrent-"));
 	try {
 		const context = (confirmations: Array<(approved: boolean) => void>) => ({
 			cwd,
@@ -865,7 +865,7 @@ test("concurrent guarded confirmations coalesce the Herdr lifecycle per extensio
 });
 
 
-for (const channel of ["rpiv:ask-user:blocked", "gentle-pi:ask-user-question:blocked"]) {
+for (const channel of ["rpiv:ask-user:blocked", "nub-ia:ask-user-question:blocked"]) {
 test(`${channel} emits only a private, balanced Herdr projection`, () => {
 	type HerdrBlockedEvent = { active: boolean; label?: string };
 	const eventHandlers = new Map<string, (data: unknown) => void>();
@@ -888,16 +888,16 @@ test(`${channel} emits only a private, balanced Herdr projection`, () => {
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({})(pi);
+	createNubiaExtension({})(pi);
 	const privateHostDiscovery = "nubia:yolo:host-ui";
 	assert.equal(eventHandlers.has(privateHostDiscovery), true);
 	assert.deepEqual([...eventHandlers.keys()].filter(name => name !== privateHostDiscovery).sort(), [
-		"gentle-pi:ask-user-choice:blocked", "gentle-pi:ask-user-question:blocked", "rpiv:ask-user:blocked",
+		"nub-ia:ask-user-choice:blocked", "nub-ia:ask-user-question:blocked", "rpiv:ask-user:blocked",
 	], "only the original three blocked channels remain besides the known private host adapter");
 	assert.deepEqual(published, [], "registering host discovery emits no public event or private payload");
-	assert.equal(eventHandlers.has("gentle-pi:ask-user-choice:blocked"), true);
+	assert.equal(eventHandlers.has("nub-ia:ask-user-choice:blocked"), true);
 	assert.equal(eventHandlers.has("rpiv:ask-user:blocked"), true);
-	assert.equal(eventHandlers.has("gentle-pi:ask-user-question:blocked"), true);
+	assert.equal(eventHandlers.has("nub-ia:ask-user-question:blocked"), true);
 
 	const source = {
 		active: true,
@@ -969,7 +969,7 @@ test("Herdr preserves the initial label and balanced edges across overlapping so
 			registerCommand() {},
 			registerTool() {},
 		} as unknown as ExtensionAPI;
-		createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
+		createNubiaExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 		const context = {
 			cwd: process.cwd(),
 			hasUI: true,
@@ -999,7 +999,7 @@ test("Herdr preserves the initial label and balanced edges across overlapping so
 	]);
 
 	// Each event channel is independent, even when native and legacy producers overlap.
-	const channels = ["gentle-pi:ask-user-question:blocked", "rpiv:ask-user:blocked", "gentle-pi:ask-user-choice:blocked"];
+	const channels = ["nub-ia:ask-user-question:blocked", "rpiv:ask-user:blocked", "nub-ia:ask-user-choice:blocked"];
 	for (const lastChannel of channels) {
 		const overlap = createHarness();
 		for (const channel of channels) overlap.pi.events.emit(channel, { active: true });
@@ -1054,7 +1054,7 @@ test("closed choice blockers retain the visible choice label through guarded-con
 		events: {
 			emit(channel: string, data: unknown) {
 				if (channel === "herdr:blocked") herdrEvents.push(data as HerdrBlockedEvent);
-				if (channel === "gentle-pi:ask-user-choice:blocked") choiceEvents.push(data as { active: boolean });
+				if (channel === "nub-ia:ask-user-choice:blocked") choiceEvents.push(data as { active: boolean });
 				eventHandlers.get(channel)?.(data);
 			},
 			on(channel: string, handler: (data: unknown) => void) {
@@ -1065,15 +1065,15 @@ test("closed choice blockers retain the visible choice label through guarded-con
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
-	assert.equal(eventHandlers.has("gentle-pi:ask-user-choice:blocked"), true);
+	createNubiaExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
+	assert.equal(eventHandlers.has("nub-ia:ask-user-choice:blocked"), true);
 
 	for (const malformed of [null, [], {}, { active: "true" }]) {
-		pi.events.emit("gentle-pi:ask-user-choice:blocked", malformed);
+		pi.events.emit("nub-ia:ask-user-choice:blocked", malformed);
 	}
 	assert.deepEqual(herdrEvents, []);
 	choiceEvents.length = 0;
-	pi.events.emit("gentle-pi:ask-user-choice:blocked", { active: true });
+	pi.events.emit("nub-ia:ask-user-choice:blocked", { active: true });
 	assert.deepEqual(choiceEvents, [{ active: true }]);
 	assert.deepEqual(herdrEvents, [{ active: true, label: "Choice awaiting input" }]);
 
@@ -1091,7 +1091,7 @@ test("closed choice blockers retain the visible choice label through guarded-con
 	assert.equal(confirmations.length, 1);
 	assert.deepEqual(herdrEvents, [{ active: true, label: "Choice awaiting input" }]);
 
-	pi.events.emit("gentle-pi:ask-user-choice:blocked", { active: false });
+	pi.events.emit("nub-ia:ask-user-choice:blocked", { active: false });
 	assert.deepEqual(choiceEvents, [{ active: true }, { active: false }]);
 	assert.deepEqual(herdrEvents, [
 		{ active: true, label: "Choice awaiting input" },
@@ -1122,10 +1122,10 @@ test("permission lifecycle is inactive for unguarded and headless commands", asy
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
+	createNubiaExtension({ processEnv: { NUB_IA_AGENTS_CHILD: "0" } })(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
-	const cwd = mkdtempSync(join(tmpdir(), "gentle-pi-permission-headless-"));
+	const cwd = mkdtempSync(join(tmpdir(), "nub-ia-permission-headless-"));
 	try {
 		const confirm = async () => {
 			confirmations += 1;
@@ -1166,11 +1166,11 @@ test("bash tool_call confirms a late guarded npm publish and denies on non-appro
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({})(pi);
+	createNubiaExtension({})(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 
-	const configHome = mkdtempSync(join(tmpdir(), "gentle-pi-guard-confirm-"));
+	const configHome = mkdtempSync(join(tmpdir(), "nub-ia-guard-confirm-"));
 	const ctx = {
 		cwd: process.cwd(),
 		hasUI: true,
@@ -1219,11 +1219,11 @@ test("bash tool_call confirms every compound action and centers a long git -C pu
 		registerCommand() {},
 		registerTool() {},
 	} as unknown as ExtensionAPI;
-	createGentleAiExtension({})(pi);
+	createNubiaExtension({})(pi);
 	const toolCall = handlers.get("tool_call");
 	assert.equal(typeof toolCall, "function");
 
-	const configHome = mkdtempSync(join(tmpdir(), "gentle-pi-guard-compound-"));
+	const configHome = mkdtempSync(join(tmpdir(), "nub-ia-guard-compound-"));
 	const previousConfigHome = process.env.NUB_IA_CONFIG_HOME;
 	process.env.NUB_IA_CONFIG_HOME = configHome;
 	try {
@@ -1256,7 +1256,7 @@ function applyOnce(
 	fixture: { onInput(action: (panel: { handleInput(data: string): void }) => void): void },
 ): void {
 	let visits = 0;
-	// gentle-shell#1064: Enter now binds the parent session, so the legacy global
+	// nubia-shell#1064: Enter now binds the parent session, so the legacy global
 	// apply these tests exercise is the explicit `a` key.
 	fixture.onInput((panel) => {
 		visits += 1;
@@ -1305,8 +1305,8 @@ function profilesStoreFixture(t: test.TestContext) {
 		settingsPath,
 		writeStore,
 		writeSettings,
-		localPinPath: join(pinCommonDir, "gentle-ai", "profile-pin.json"),
-		repoPinPath: join(pinRoot, ".pi", "gentle-ai", "profile.json"),
+		localPinPath: join(pinCommonDir, "nub-ia", "profile-pin.json"),
+		repoPinPath: join(pinRoot, ".pi", "nub-ia", "profile.json"),
 		writePin,
 	};
 }
@@ -2297,7 +2297,7 @@ test("effective routing prefers models.json over the materialized stores", (t) =
 		worker: { model: "openai/alpha" },
 		helper: { model: "openai/beta" },
 	});
-	assert.equal(existsSync(join(fixture.root, ".pi", "gentle-ai", "models.json")), false, "reading never writes");
+	assert.equal(existsSync(join(fixture.root, ".pi", "nub-ia", "models.json")), false, "reading never writes");
 });
 
 test("the profiles panel fills the terminal, lists routing per agent, and scrolls", async (t) => {
@@ -2525,7 +2525,7 @@ test("the profile pin scope note sanitizes its worktree-derived path", (t) => {
 	const { fixture, writeStore } = profilesStoreFixture(t);
 	writeStore({ team: { worker: { model: "openai/alpha" } } }, "team");
 	const commonDir = join(fixture.root, "git-\x1b]52;c;payload\x07-common");
-	const localPath = join(commonDir, "gentle-ai", "profile-pin.json");
+	const localPath = join(commonDir, "nub-ia", "profile-pin.json");
 	writeProfilePinSync(localPath, "team");
 	setProfilePinWorktreeResolverForTesting(() => ({ root: fixture.root, commonDir }));
 
@@ -2700,14 +2700,14 @@ test("deleting a profile is refused when a non-winning pin layer names it", asyn
 });
 
 test("a rename follows the clone pin and leaves the committed declaration naming the old profile", () => {
-	const base = mkdtempSync(join(tmpdir(), "gentle-pi-pin-rename-"));
+	const base = mkdtempSync(join(tmpdir(), "nub-ia-pin-rename-"));
 	try {
 		const renameRoot = join(base, "worktree");
 		const commonDir = join(base, "git-common");
 		mkdirSync(renameRoot, { recursive: true });
 		setProfilePinWorktreeResolverForTesting(() => ({ root: renameRoot, commonDir }));
-		const localPath = join(commonDir, "gentle-ai", "profile-pin.json");
-		const repoPath = join(renameRoot, ".pi", "gentle-ai", "profile.json");
+		const localPath = join(commonDir, "nub-ia", "profile-pin.json");
+		const repoPath = join(renameRoot, ".pi", "nub-ia", "profile.json");
 		writeProfilePinSync(localPath, "old");
 		writeProfilePinSync(repoPath, "old");
 		const follow = __testing.followRenamedPin(renameRoot, "old", "new");
@@ -2721,7 +2721,7 @@ test("a rename follows the clone pin and leaves the committed declaration naming
 	}
 });
 
-// getPiModelOptions guard branches (gentle-pi regression coverage)
+// getPiModelOptions guard branches (nub-ia regression coverage)
 
 function makeContext(registry?: ExtensionContext["modelRegistry"]): ExtensionContext {
 	return {
@@ -2797,7 +2797,7 @@ test("getPiModelOptions drops models that normalize to undefined", async () => {
 	);
 });
 
-// switchLiveOrchestrator regression coverage (gentle-pi)
+// switchLiveOrchestrator regression coverage (nub-ia)
 
 test("switchLiveOrchestrator returns fallback note when modelRegistry is absent", async () => {
 	const live = {
@@ -2897,8 +2897,8 @@ test("Enter binds the selected profile to the parent session and writes nothing"
 	assert.equal(readFileSync(settingsPath, "utf8"), before.settings, "Pi settings are untouched");
 	assert.equal(existsSync(fixture.globalPath), false, "no global models.json is written");
 	assert.equal(existsSync(join(fixture.root, ".pi", "subagents.json")), false, "no materialized store is written");
-	// gentle-shell#1557: slice 1 stores the binding; the notice must not claim
-	// launch resolution (that is slice 2, gentle-shell#1558) and must keep the
+	// nubia-shell#1557: slice 1 stores the binding; the notice must not claim
+	// launch resolution (that is slice 2, nubia-shell#1558) and must keep the
 	// nothing-was-written sentence.
 	const applied = notifications.at(-1)?.message ?? "";
 	assert.match(applied, /bound profile "team" to this session/);

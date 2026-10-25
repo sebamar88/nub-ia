@@ -6,7 +6,7 @@ import test from "node:test";
 import { reconcileGeneratedRuntimeSources } from "../scripts/verify-package-files.mjs";
 
 function makeFixtureRoot(): string {
-	return mkdtempSync(join(tmpdir(), "gentle-pi-verify-package-files-"));
+	return mkdtempSync(join(tmpdir(), "nub-ia-verify-package-files-"));
 }
 
 test("sources <-> runtime/*.mjs walk fails when a generated runtime file is absent from the generator's sources array", () => {

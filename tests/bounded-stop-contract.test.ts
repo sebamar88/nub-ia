@@ -4,7 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { __testing } from "../extensions/nubia-harness.ts";
 
-// gentle-shell#1731 T23 (G1 audit L48): port the gentle-ai Native Checking
+// nubia-shell#1731 T23 (G1 audit L48): port the nub-ia Native Checking
 // Contract bounded stop. Partial, blocked, unavailable, or exhausted proof
 // becomes one **Needs your decision** result instead of more verification; the
 // close gate accepts that result as a stop; writer self-review and worker
@@ -30,7 +30,7 @@ function containsAll(text: string, clauses: readonly string[], label: string): v
 }
 
 function closeStep(persona: (typeof personas)[number]): string {
-	return lineStarting(__testing.buildGentlePrompt(persona), "7. **Close.**");
+	return lineStarting(__testing.buildNubiaPrompt(persona), "7. **Close.**");
 }
 
 test("T23(a): a partial or blocked writer gets the one correction, then Needs your decision, never more verify", () => {

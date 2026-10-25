@@ -1,7 +1,7 @@
 import { isAbsolute } from "node:path";
 import { decodeWork, type PublishedWork } from "./orchestrator-work.ts";
 
-export const ORCHESTRATOR_STATE_ENTRY = "gentle-agents.published-state";
+export const ORCHESTRATOR_STATE_ENTRY = "nubia-agents.published-state";
 const fields = ["objective", "progress", "decisions", "blockers"] as const;
 export type CuratedState = Partial<Record<typeof fields[number], string>> & { work?: PublishedWork };
 export interface PublishedState {

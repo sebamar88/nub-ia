@@ -31,7 +31,7 @@ function harness(overrides: NodeJS.ProcessEnv = {}, socket = true) {
 		fire: (name: string, event = {}, context = ctx) => handlers.get(name)?.(event, context) };
 }
 const wait = () => new Promise((resolve) => setTimeout(resolve, 180));
-const todo = (title?: string) => ({ toolName: "todo", result: { details: { gentleTodo: {
+const todo = (title?: string) => ({ toolName: "todo", result: { details: { nubiaTodo: {
 	tasks: title === undefined ? [] : [{ title, status: "in_progress" }],
 } } } });
 test("tools and failed Todo snapshots never supply fallback summaries", async () => {
@@ -41,7 +41,7 @@ test("tools and failed Todo snapshots never supply fallback summaries", async ()
 	h.fire("tool_execution_end", { toolName: "read" });
 	h.tick(); await wait(); assert.equal(h.values.at(-1), null);
 	h.fire("tool_execution_end", { toolName: "todo", isError: true,
-		result: { details: { gentleTodo: { tasks: [{ title: "failed", status: "in_progress" }] } } } });
+		result: { details: { nubiaTodo: { tasks: [{ title: "failed", status: "in_progress" }] } } } });
 	h.tick(); await wait(); assert.equal(h.values.at(-1), null);
 	h.fire("session_shutdown");
 });
@@ -57,7 +57,7 @@ test("children, missing Herdr and socket, and non-TUI never publish", async () =
 test("root uses only Todo despite ODD; TTL, idle, ownership and cleanup remain guarded", async () => {
 	const h = harness(); h.fire("session_start"); h.fire("agent_start");
 	oddPhaseRegistry.report("root", "exploring");
-	h.fire("tool_execution_end", { toolName: "todo", result: { details: { gentleTodo: { tasks: [{ title: "Revisar integración Herdr", status: "in_progress" }] } } } });
+	h.fire("tool_execution_end", { toolName: "todo", result: { details: { nubiaTodo: { tasks: [{ title: "Revisar integración Herdr", status: "in_progress" }] } } } });
 	h.tick(); await wait(); assert.equal(h.values.at(-1), "◐ Revisar integración Herdr");
 	const count = h.values.length;
 	h.tick(); await wait(); assert.equal(h.values.length, count);
@@ -93,7 +93,7 @@ test("malformed successful Todo snapshots clear previous activity, unlike failed
 	const h = harness(); h.fire("session_start"); h.fire("agent_start");
 	for (const tasks of [null, {}, [{ title: 42, status: "in_progress" }]]) {
 		h.fire("tool_execution_end", todo("valid")); h.tick(); await wait();
-		h.fire("tool_execution_end", { toolName: "todo", result: { details: { gentleTodo: { tasks } } } });
+		h.fire("tool_execution_end", { toolName: "todo", result: { details: { nubiaTodo: { tasks } } } });
 		h.tick(); await wait(); assert.equal(h.values.at(-1), null);
 	}
 	h.fire("session_shutdown");

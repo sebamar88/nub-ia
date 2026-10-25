@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { createChildSafetyExtension } from "../extensions/child-safety.ts";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
 
 type Handler = (event: { toolName: string; input: { command: string } }, ctx: ExtensionContext) => unknown;
 function harness(child: boolean, primary = false) {
@@ -14,7 +14,7 @@ function harness(child: boolean, primary = false) {
 		registerTool() {}, registerCommand() {}, registerShortcut() {}, registerMessageRenderer() {},
 	} as unknown as ExtensionAPI;
 	const env = { NUB_IA_AGENTS_CHILD: child ? "1" : "0" };
-	if (primary) createGentleAiExtension({ processEnv: env, })(pi);
+	if (primary) createNubiaExtension({ processEnv: env, })(pi);
 	else createChildSafetyExtension(env)(pi);
 	return { handlers, events };
 }

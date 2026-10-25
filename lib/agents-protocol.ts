@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { sanitizeTerminalText } from "./terminal-theme.ts";
 
-// Gentle Agents protocol. A child pi process streams RPC events; the host
+// Nub-IA Agents protocol. A child pi process streams RPC events; the host
 // turns each one into a small typed delta, applies it to an append-only,
 // bounded thread, and tells only the listeners of that task. Nothing here
 // rebuilds a transcript, re-validates a whole snapshot, or fans out globally.

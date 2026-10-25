@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "gentle-ai.telemetry-runtime-aggregate/v1",
-  "description": "Sanitized stdin for gentle-ai telemetry runtime send --json. Maximum UTF-8 input 16384 bytes. One best-effort send attempt, no client persistence or retry. Rows are independent observations, not a session composition. No caller identity is accepted.",
+  "title": "nub-ia.telemetry-runtime-aggregate/v1",
+  "description": "Sanitized stdin for nub-ia telemetry runtime send --json. Maximum UTF-8 input 16384 bytes. One best-effort send attempt, no client persistence or retry. Rows are independent observations, not a session composition. No caller identity is accepted.",
   "type": "object", "additionalProperties": false,
   "required": ["schema", "registry", "host", "rows"],
   "properties": {
-    "schema": {"const": "gentle-ai.telemetry-runtime-aggregate/v1"},
+    "schema": {"const": "nub-ia.telemetry-runtime-aggregate/v1"},
     "registry": {"const": 1},
     "host": {"enum": ["claude-code", "opencode", "codex", "pi"]},
     "rows": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"$ref": "#/$defs/row"}}

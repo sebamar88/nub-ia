@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import skillRegistry, { __testing } from "../extensions/skill-registry.ts";
 
 // Registered startup reads process.env directly; a suite launched from a
-// delegated child must still exercise the parent paths (gentle-shell#1690).
+// delegated child must still exercise the parent paths (nubia-shell#1690).
 delete process.env.NUB_IA_AGENTS_CHILD;
 
 test("project skill dirs include supported workspace roots", () => {
@@ -37,7 +37,7 @@ test("project skill dirs include supported workspace roots", () => {
 });
 
 test("registry renders indexed skill paths instead of compact rules", () => {
-	const cwd = join(tmpdir(), `gentle-pi-render-${Date.now()}`);
+	const cwd = join(tmpdir(), `nub-ia-render-${Date.now()}`);
 	const skillPath = join(cwd, "skills", "go-testing", "SKILL.md");
 	const registry = __testing.renderRegistry(cwd, ["skills"], [
 		{
@@ -97,7 +97,7 @@ test("description normalization preserves trigger and collapses whitespace", () 
 });
 
 test("project-scoped duplicate wins over user duplicate", () => {
-	const cwd = join(tmpdir(), `gentle-pi-registry-${Date.now()}`);
+	const cwd = join(tmpdir(), `nub-ia-registry-${Date.now()}`);
 	const projectPath = join(cwd, ".opencode/skills/dup/SKILL.md");
 	const userPath = join(cwd + "-home", ".config/opencode/skills/dup/SKILL.md");
 	const entries = [
@@ -110,7 +110,7 @@ test("project-scoped duplicate wins over user duplicate", () => {
 });
 
 test("uniqueExistingDirs normalizes duplicates and ignores missing roots", async () => {
-	const root = join(tmpdir(), `gentle-pi-existing-${Date.now()}`);
+	const root = join(tmpdir(), `nub-ia-existing-${Date.now()}`);
 	const existing = join(root, "skills");
 	mkdirSync(existing, { recursive: true });
 
@@ -121,7 +121,7 @@ test("uniqueExistingDirs normalizes duplicates and ignores missing roots", async
 });
 
 test("findSkillFiles scans one skill directory level only", async () => {
-	const root = join(tmpdir(), `gentle-pi-shallow-${Date.now()}`);
+	const root = join(tmpdir(), `nub-ia-shallow-${Date.now()}`);
 	const skillPath = join(root, "docs", "SKILL.md");
 	const nestedSkillPath = join(root, "fixtures", "nested", "SKILL.md");
 	mkdirSync(dirname(skillPath), { recursive: true });
@@ -133,8 +133,8 @@ test("findSkillFiles scans one skill directory level only", async () => {
 });
 
 test("findSkillFiles follows symlinked skill directories", async (t) => {
-	const root = join(tmpdir(), `gentle-pi-symlink-root-${Date.now()}`);
-	const realSkillDir = join(tmpdir(), `gentle-pi-symlink-target-${Date.now()}`);
+	const root = join(tmpdir(), `nub-ia-symlink-root-${Date.now()}`);
+	const realSkillDir = join(tmpdir(), `nub-ia-symlink-target-${Date.now()}`);
 	const linkedSkillDir = join(root, "linked");
 	const skillPath = join(linkedSkillDir, "SKILL.md");
 	mkdirSync(root, { recursive: true });
@@ -151,7 +151,7 @@ test("findSkillFiles follows symlinked skill directories", async (t) => {
 });
 
 test("skill registry watchers close on shutdown", async () => {
-	const root = join(tmpdir(), `gentle-pi-watchers-${Date.now()}`);
+	const root = join(tmpdir(), `nub-ia-watchers-${Date.now()}`);
 	const skillPath = join(root, "skills", "docs", "SKILL.md");
 	mkdirSync(dirname(skillPath), { recursive: true });
 	writeFileSync(skillPath, "---\nname: docs\ndescription: Docs.\n---\n");
@@ -198,20 +198,20 @@ test("duplicate extension load is skipped only across different sources", () => 
 		false,
 	);
 	assert.equal(
-		__testing.shouldSkipDuplicateExtensionLoad("file:///home/.pi/node_modules/gentle-pi/extensions/skill-registry.ts", "/workspace", state),
+		__testing.shouldSkipDuplicateExtensionLoad("file:///home/.pi/node_modules/nub-ia/extensions/skill-registry.ts", "/workspace", state),
 		true,
 	);
 });
 
 test("project-local skill registry extension wins over installed package copy", () => {
-	const cwd = join(tmpdir(), `gentle-pi-local-extension-${Date.now()}`);
+	const cwd = join(tmpdir(), `nub-ia-local-extension-${Date.now()}`);
 	const localExtension = join(cwd, "extensions", "skill-registry.ts");
 	mkdirSync(dirname(localExtension), { recursive: true });
 	writeFileSync(localExtension, "");
 
 	assert.equal(
 		__testing.shouldSkipDuplicateExtensionLoad(
-			"file:///home/.pi/agent/npm/node_modules/gentle-pi/extensions/skill-registry.ts",
+			"file:///home/.pi/agent/npm/node_modules/nub-ia/extensions/skill-registry.ts",
 			cwd,
 			{},
 		),
@@ -224,9 +224,9 @@ test("project-local skill registry extension wins over installed package copy", 
 });
 
 test("scope and markdown cells are represented in registry", () => {
-	const cwd = join(tmpdir(), `gentle-pi-scope-${Date.now()}`);
+	const cwd = join(tmpdir(), `nub-ia-scope-${Date.now()}`);
 	const projectPath = join(cwd, "skills", "docs", "SKILL.md");
-	const userPath = join(tmpdir(), `gentle-pi-home-${Date.now()}`, ".claude", "skills", "docs", "SKILL.md");
+	const userPath = join(tmpdir(), `nub-ia-home-${Date.now()}`, ".claude", "skills", "docs", "SKILL.md");
 	const registry = __testing.renderRegistry(cwd, ["skills"], [
 		{ name: "project-docs", path: projectPath, description: "Docs | guides" },
 		{ name: "user-docs", path: userPath, description: "" },
@@ -237,7 +237,7 @@ test("scope and markdown cells are represented in registry", () => {
 });
 
 test("generated registry file indexes skill path and omits body rules", async () => {
-	const cwd = join(tmpdir(), `gentle-pi-regenerate-${Date.now()}`);
+	const cwd = join(tmpdir(), `nub-ia-regenerate-${Date.now()}`);
 	const skillPath = join(cwd, "skills", "go-testing", "SKILL.md");
 	mkdirSync(dirname(skillPath), { recursive: true });
 	writeFileSync(
@@ -277,7 +277,7 @@ test("orchestrator documents path injection protocol", () => {
 });
 
 test("non-forced regeneration invalidates cache when skill bytes change but path, size, and mtime are restored", async () => {
-	const cwd = join(tmpdir(), `gentle-pi-fingerprint-${Date.now()}`);
+	const cwd = join(tmpdir(), `nub-ia-fingerprint-${Date.now()}`);
 	const skillPath = join(cwd, "skills", "alpha", "SKILL.md");
 	mkdirSync(dirname(skillPath), { recursive: true });
 
@@ -326,7 +326,7 @@ test("non-forced regeneration invalidates cache when skill bytes change but path
 });
 
 test("ensureAtlIgnored creates .atl/.gitignore with * and leaves root .gitignore untouched (#1387)", async (t) => {
-	const cwd = mkdtempSync(join(tmpdir(), `gentle-pi-git-atl-${Date.now()}-`));
+	const cwd = mkdtempSync(join(tmpdir(), `nub-ia-git-atl-${Date.now()}-`));
 	t.after(() => rmSync(cwd, { recursive: true, force: true }));
 
 	// An empty index is sufficient; fixtures never need commits.
@@ -372,7 +372,7 @@ test("ensureAtlIgnored creates .atl/.gitignore with * and leaves root .gitignore
 });
 
 // Keep runtime scans inside an isolated home, including the existing watcher tests.
-const fixtureHome = mkdtempSync(join(tmpdir(), "gentle-pi-registry-home-"));
+const fixtureHome = mkdtempSync(join(tmpdir(), "nub-ia-registry-home-"));
 const originalHome = process.env.HOME;
 const originalUserProfile = process.env.USERPROFILE;
 const originalGitCeiling = process.env.GIT_CEILING_DIRECTORIES;
@@ -409,7 +409,7 @@ function registeredRegistry(cwd: string, suppressed = false) {
 }
 
 function registryFixture(git = true, nested = false) {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-protected-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-protected-"));
 	if (git) execSync("git init", { cwd: root, stdio: "ignore" });
 	const cwd = nested ? join(root, "nested") : root;
 	mkdirSync(join(cwd, ".atl"), { recursive: true });
@@ -557,7 +557,7 @@ for (const control of ["environment", "--no-skills", "-ns"]) {
 	});
 }
 
-// gentle-shell#1690: delegated rpc children have hasUI=true but must not write
+// nubia-shell#1690: delegated rpc children have hasUI=true but must not write
 // .atl/, rename the legacy registry or start a watcher in the shared cwd.
 test("registered startup in a delegated child avoids writes, legacy rename and watchers", async (t) => {
 	const fixture = registryFixture();

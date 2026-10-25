@@ -53,7 +53,7 @@ function routineRenderContext(overrides: Record<string, unknown> = {}) {
 
 // Content assertions read the quiet tool card content: the top rule becomes its
 // call text (glyph, fill, and hint dropped), sides are stripped, and the closing
-// rule is dropped. Gentle AI cards keep their raw frame for the card-text
+// rule is dropped. Nub-IA cards keep their raw frame for the card-text
 // helpers, and the quiet card tests assert the raw frame via frameLines.
 // Legacy bash argument assertions drop its new identity prefix here; distinct
 // tool identity is asserted separately against the actual unmodified frame.
@@ -470,7 +470,7 @@ test("quiet Bash normalizes compact JSON for bounded previews while keeping expa
 test("quiet Bash previews semantic lines for generic JSON output", () => {
 	const tools = registeredQuietTools();
 	const tool = tools.get("bash");
-	const command = "gentle-ai review capabilities --contract gentle-ai.review-integration/v2 | python3 -m json.tool";
+	const command = "nub-ia review capabilities --contract gentle-ai.review-integration/v2 | python3 -m json.tool";
 	const json = (value: unknown) => JSON.stringify(value, null, 2);
 	const object = json({ schema: "gentle-ai.review-integration/v2", contract: "review", protocol: { version: 2 }, payload: { items: [{ value: true }] } });
 	const error = json({ error: "failed", payload: { items: [{ code: 1 }] } });
@@ -782,7 +782,7 @@ test("quiet tool calls draw a rounded petal card in the lifecycle tone", () => {
 	const empty = tools.get("grep").renderResult(textResult("No matches found"), { expanded: false, isPartial: false }, passthroughTheme, {}).render(width);
 	assert.deepEqual(empty, [`╰${"─".repeat(28)}╯`], "an empty result still closes the card");
 
-	// The expand key rides the top rule once the call finished, like the Gentle AI card.
+	// The expand key rides the top rule once the call finished, like the Nub-IA card.
 	const wide = 80;
 	const expandKey = keyHint("app.tools.expand", "to expand").replace(/\x1b\[[0-9;]*m/g, "");
 	const finishedTop = bash.renderCall(args, passthroughTheme, routineRenderContext({ args, executionStarted: true, isPartial: false })).render(wide)[0] ?? "";
@@ -883,7 +883,7 @@ test("float quiet cards render the call and result as one panel with a single se
 	const width = 60;
 	const rows = withFloatCards(() => [
 		...read.renderCall({ path: "package.json" }, floatToolTheme, context).render(width),
-		...read.renderResult(textResult("{\n  \"name\": \"gentle-pi\""), { expanded: false, isPartial: false }, floatToolTheme, context).render(width),
+		...read.renderResult(textResult("{\n  \"name\": \"nub-ia\""), { expanded: false, isPartial: false }, floatToolTheme, context).render(width),
 	]);
 	const plain = rows.map(stripAnsi);
 	for (const line of rows) {
@@ -896,7 +896,7 @@ test("float quiet cards render the call and result as one panel with a single se
 	assert.match(plain[1]!, /^ ▎ ≡ read package\.json +.*to expand {4}$/);
 	assert.match(plain[2]!, /^ ▎ +$/);
 	assert.match(plain[3]!, /^ ▎ \{ +$/);
-	assert.match(plain[4]!, /^ ▎ {3}"name": "gentle-pi" +$/);
+	assert.match(plain[4]!, /^ ▎ {3}"name": "nub-ia" +$/);
 	assert.match(plain.at(-1)!, /^ ▎ +$/);
 	assert.equal(plain.length, 6);
 	assert.equal(plain[1]!.indexOf("≡"), plain[3]!.indexOf("{"), "the glyph starts in the body text column");

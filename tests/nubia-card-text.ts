@@ -1,6 +1,6 @@
 import { stripAnsi } from "../lib/terminal-theme.ts";
 
-// Test-only readers for Gentle AI cards: the title text in the top rule,
+// Test-only readers for Nub-IA cards: the title text in the top rule,
 // the tone tag around it (with tagged fake themes), and the body between
 // the rules with the frame removed. They accept both plain and tagged output.
 
@@ -18,8 +18,8 @@ export function cardTitle(rendered: string): string {
 }
 
 export function cardTone(rendered: string): string | undefined {
-	// Shell notices read `∞ Gentle AI`; rose tool cards read `🌹 rdd …` or `🌹 gentle-ai …`.
-	return (rendered.split("\n")[0] ?? "").match(/<([a-zA-Z]+)>(?:∞ Gentle AI<\/|\u{1F339} (?:rdd|gentle-ai)\b)/u)?.[1];
+	// Shell notices read `∞ Nub-IA`; rose tool cards read `🌹 rdd …` or `🌹 nub-ia …`.
+	return (rendered.split("\n")[0] ?? "").match(/<([a-zA-Z]+)>(?:∞ Nub-IA<\/|\u{1F339} (?:rdd|nub-ia)\b)/u)?.[1];
 }
 
 export function cardBody(rendered: string): string {

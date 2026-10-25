@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-// gentle-shell#1731 T11 (S4, S5; L24): in the bench the independent verifier
+// nubia-shell#1731 T11 (S4, S5; L24): in the bench the independent verifier
 // re-ran the writer's own tests and happy-path examples and missed defects that
 // blind adversarial probes found (an import accepting invalid split groups; a
 // budget ignoring refund parts whose own test locked the bug in). The verifier

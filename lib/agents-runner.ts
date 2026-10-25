@@ -10,7 +10,7 @@ import { CHILD_QUERY_MAX_INFLIGHT, CHILD_QUERY_TIMEOUT_MS, parseChildFrame, vali
 import { isFinished, normalizeRpcEvent, ToolArgumentProgress, TASK_EVENT, TASK_STATUS, taskLabel, type AskRequest, type ChildResponseObservation, type TaskRecord, type TaskStore } from "./agents-protocol.ts";
 import { WriterSurfaceRegistry, writerSurfaceConflictMessage } from "./writer-surfaces.ts";
 
-// Gentle Agents runner. Every subagent is its own `pi --mode rpc` process:
+// Nub-IA Agents runner. Every subagent is its own `pi --mode rpc` process:
 // the host never runs subagent work on the TUI thread. It writes JSON
 // commands, reads JSON lines, applies deltas to the store, answers dialogs,
 // and enforces an inactivity watchdog per task.
@@ -130,7 +130,7 @@ export interface TaskRequest {
 	extensionPaths?: string[];
 	// Parsed `## Allowed edit surfaces` of a bounded writer. While the task is
 	// queued or running it claims them in `cwd`; run() rejects an overlapping
-	// claim (gentle-shell#1731). Read-only agents leave this unset.
+	// claim (nubia-shell#1731). Read-only agents leave this unset.
 	writerSurfaces?: readonly string[];
 	// Canonical worktree root the claim is keyed to; the parent computes it before
 	// run() so admission stays synchronous. Defaults to `cwd`.
@@ -493,7 +493,7 @@ export class AgentRunner {
 		if (Buffer.byteLength(request.agent.instructions, "utf8") > MAX_INLINE_INSTRUCTIONS_BYTES) {
 			try {
 				const prefix = (request.agent.name || "instructions").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, MAX_TRANSPORT_PREFIX_CHARS);
-				instructionsTransportDir = mkdtempSync(join(tmpdir(), `gentle-pi-subagent-${prefix}-`));
+				instructionsTransportDir = mkdtempSync(join(tmpdir(), `nub-ia-subagent-${prefix}-`));
 				try { chmodSync(instructionsTransportDir, DIR_MODE); } catch { /* best effort */ }
 				instructionsTransportPath = join(instructionsTransportDir, "instructions.md");
 				writeFileSync(instructionsTransportPath, request.agent.instructions, { mode: FILE_MODE, encoding: "utf8" });
@@ -800,7 +800,7 @@ export class AgentRunner {
 				const task = this.store.get(id);
 				if (mutation && task && raw.isError === false && !event.isError) {
 					try {
-						const evidence = (raw.result as { details?: { gentleSessionChange?: unknown } } | undefined)?.details?.gentleSessionChange;
+						const evidence = (raw.result as { details?: { nubiaSessionChange?: unknown } } | undefined)?.details?.nubiaSessionChange;
 						const observed = isSessionChangeEvidence(evidence) && evidence.id === mutation.toolCallId ? { ...mutation, evidence: structuredClone(evidence) } : mutation;
 						void Promise.resolve(this.hooks.onSuccessfulMutation?.(task, observed)).catch(() => {});
 					}

@@ -25,7 +25,7 @@ Once a meaningful task subject is clear, before delegation or cross-session coor
 
 Publish explicit `state.work` with `orchestrator_session_id` or `subagent_run.work`;
 never publish private history. Opt into search with `orchestrator_list.filter`.
-Follow tool schemas and `docs/gentle-agents-activity.md` for full usage and examples.
+Follow tool schemas and `docs/nubia-agents-activity.md` for full usage and examples.
 Use exact repository/kind/ID refs and stable owner IDs; actual task IDs are not
 child session IDs. Unknown or omitted projections are non-exhaustive, never authority.
 
@@ -119,7 +119,7 @@ Use the configured subagent runtime when available. Prefer the `subagent_*` tool
 
 For bounded writes, follow the canonical Writer rule under Mandatory Delegation Triggers.
 
-<!-- gentle-pi:background-subagents -->
+<!-- nub-ia:background-subagents -->
 #### Background Subagent Policy
 
 Background execution is policy-gated: the always-on orchestrator prompt renders one status line, `Background subagent policy: on|off (capability: ready|absent)`. If the policy is off OR the `subagent_run` tool is unavailable, run every delegation in the foreground — `mode: "task"` when `subagent_*` tools exist, otherwise the native `Agent` fallback — always.
@@ -128,12 +128,12 @@ When the policy is on and `subagent_run` is available:
 
 - The runtime already defaults `subagent_run` to `mode: "background"` under this policy in interactive and RPC sessions, so omit `mode` for ordinary delegation. It returns a task id at once; the terminal stays free and the human keeps typing. Pass a `label` of three to six words naming the work.
 - A child `agent_end` retains its latest answer but is not completion: Pi may still retry, compact, or run a queued follow-up. Treat the task as finished only at `agent_settled`; only then release its queue slot, publish its background result, or terminate it. If it exits first, report failure with its retained answer as diagnostics.
-- When a background task settles, its result arrives as a message in this session (custom type `gentle-agents.result`, one per task) and starts a new turn if you are idle. Wait for it: end the turn once launches and any non-overlapping work are done. Never sleep or periodically poll `subagent_status`/`subagent_result` for completion or cache maintenance. Retain the task ID. Use `subagent_status` only at a real orchestration decision boundary: user-requested inspection, relevant scope change, input request, or suspected abnormal behavior. Never relaunch equivalent work merely because it is queued or running. Cache warming belongs to Pi's native runtime, never to model-driven maintenance turns.
+- When a background task settles, its result arrives as a message in this session (custom type `nubia-agents.result`, one per task) and starts a new turn if you are idle. Wait for it: end the turn once launches and any non-overlapping work are done. Never sleep or periodically poll `subagent_status`/`subagent_result` for completion or cache maintenance. Retain the task ID. Use `subagent_status` only at a real orchestration decision boundary: user-requested inspection, relevant scope change, input request, or suspected abnormal behavior. Never relaunch equivalent work merely because it is queued or running. Cache warming belongs to Pi's native runtime, never to model-driven maintenance turns.
 - Do not claim an implementation ready while its required verification or correction follow-up remains queued. Run the required focused verification before that claim, and retain legitimate post-correction verification. This does not invent a universal full-suite requirement or make a receipt a delivery gate.
 - Use `mode: "task"` only when the subagent must ask the human something mid-flight (task-mode dialogs reach the human; background dialogs are dismissed) or when the human asked to wait.
 - Launch as many independent tasks as the work has; the runner queues beyond `max_concurrency`. Do not duplicate launches or work, and do not overlap files or topics.
 - Finished tasks persist across restarts; running ones are stopped when pi exits and must be relaunched, never claimed as recovered.
-<!-- /gentle-pi:background-subagents -->
+<!-- /nub-ia:background-subagents -->
 
 For generic mapping, follow the Evidence-budget rule under Pi Trigger Runtime Bindings.
 

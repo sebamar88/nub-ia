@@ -8,7 +8,7 @@ import { createStatsLoader, currentSessionStats, type StatsLoader } from "../lib
 import { StatsView } from "../lib/stats-view.ts";
 import { readEnv } from "../lib/config-home.ts";
 
-// Gentle Stats: /nubia:stats opens a full-terminal panel over local Pi
+// Nub-IA Stats: /nubia:stats opens a full-terminal panel over local Pi
 // session history (tokens, cost, models, activity). It only reads the
 // session files Pi already writes; nothing new is persisted.
 //
@@ -17,7 +17,7 @@ import { readEnv } from "../lib/config-home.ts";
 // (default ~/.pi/nub-ia/metrics/); see lib/runtime-metrics-sink.ts. This panel
 // does not read them; NUB_IA_METRICS=off disables the sink.
 //
-// History spans two homes: the active one (Gentle Shell's isolated home) and
+// History spans two homes: the active one (Nub-IA's isolated home) and
 // the user's regular Pi home, which the launcher records before isolating.
 // Launched without it (plain pi, or an older launcher), the conventional
 // ~/.pi/agent stands in. The loader reads an alias of the same root once and
@@ -37,14 +37,14 @@ export function statsSessionRoots(agentDir: string, env: NodeJS.ProcessEnv = pro
 	return [join(agentDir, "sessions"), join(userHome, "sessions")];
 }
 
-export interface GentleStatsDeps {
+export interface NubiaStatsDeps {
 	env?: NodeJS.ProcessEnv;
 	now?: () => number;
 	sessionsRoots?: () => readonly string[];
 	loader?: StatsLoader;
 }
 
-export default function gentleStats(pi: ExtensionAPI, deps: GentleStatsDeps = {}): void {
+export default function nubiaStats(pi: ExtensionAPI, deps: NubiaStatsDeps = {}): void {
 	const env = deps.env ?? process.env;
 	const now = deps.now ?? (() => Date.now());
 	const sessionsRoots = deps.sessionsRoots ?? (() => statsSessionRoots(getAgentDir(), env));

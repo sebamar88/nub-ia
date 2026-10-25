@@ -45,7 +45,7 @@ interface PrivateEditor {
   exitHistoryBrowsing(): void;
 }
 
-// The single audited-release source for the adapter and Gentle Shell's runtime
+// The single audited-release source for the adapter and Nub-IA's runtime
 // identity gates. Add a release only after re-auditing the files named above.
 export const AUDITED_PI_EDITOR_VERSIONS = Object.freeze(["0.99.1", "0.99.2", "1.0.0"] as const);
 export type AuditedPiEditorVersion = (typeof AUDITED_PI_EDITOR_VERSIONS)[number];

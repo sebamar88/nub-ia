@@ -71,11 +71,11 @@ function rgb(r: number, g: number, b: number, text: string): string {
   return `\x1b[38;2;${r};${g};${b}m${text}\x1b[39m`;
 }
 
-function gentleAiConfigHome(): string {
+function nubiaDefaultConfigHome(): string {
   return nubIaConfigHome(process.env);
 }
 
-function bannerConfigPath(configHome = gentleAiConfigHome()): string {
+function bannerConfigPath(configHome = nubiaDefaultConfigHome()): string {
   return join(configHome, "banner.json");
 }
 
@@ -95,7 +95,7 @@ function normalizeBannerConfig(value: unknown): BannerConfig {
 
 // Modal mutations must not turn an unreadable or malformed existing file into defaults.
 // Legacy banner commands retain their original tolerant read behavior below.
-export async function readBannerConfigForEdit(configHome = gentleAiConfigHome()): Promise<BannerConfig> {
+export async function readBannerConfigForEdit(configHome = nubiaDefaultConfigHome()): Promise<BannerConfig> {
   const path = bannerReadPath(configHome);
   let raw: string;
   try {
@@ -114,7 +114,7 @@ export async function readBannerConfigForEdit(configHome = gentleAiConfigHome())
   return { showRose: config.showRose, showTextLogo: config.showTextLogo, color: config.color as BannerColor };
 }
 
-export async function readBannerConfig(configHome = gentleAiConfigHome()): Promise<BannerConfig> {
+export async function readBannerConfig(configHome = nubiaDefaultConfigHome()): Promise<BannerConfig> {
   try {
     return normalizeBannerConfig(JSON.parse(await readFile(bannerReadPath(configHome), "utf8")));
   } catch {
@@ -122,7 +122,7 @@ export async function readBannerConfig(configHome = gentleAiConfigHome()): Promi
   }
 }
 
-export async function writeBannerConfig(config: BannerConfig, configHome = gentleAiConfigHome()): Promise<void> {
+export async function writeBannerConfig(config: BannerConfig, configHome = nubiaDefaultConfigHome()): Promise<void> {
   const path = bannerConfigPath(configHome);
   await mkdir(join(path, ".."), { recursive: true });
   await writeFile(path, `${JSON.stringify(config, null, 2)}\n`, "utf8");
@@ -575,7 +575,7 @@ export function readGitBranch(cwd: string, run: typeof execFile = execFile): Pro
 }
 
 // Pi dispatches its subcommands purely on the first argument, so only that
-// token decides. Flag values such as the package directory the Gentle Shell
+// token decides. Flag values such as the package directory the Nub-IA
 // launcher injects with `-e <dir>` must not be mistaken for a subcommand.
 export function isPiCliSubcommandInvocation(argv: readonly string[]): boolean {
   const first = argv[2];
@@ -657,7 +657,7 @@ export default function (pi: ExtensionAPI) {
     disposeHeader();
     if (!ctx.hasUI) return;
     // Delegated rpc children report hasUI=true but have no terminal to paint
-    // (gentle-shell#1690); do not rely on a piped stdout lacking rows/columns.
+    // (nubia-shell#1690); do not rely on a piped stdout lacking rows/columns.
     if (readEnv(process.env, "NUB_IA_AGENTS_CHILD") === "1") return;
 
     // CLI subcommands such as `pi update` or `pi install` skip the animated intro.
@@ -696,7 +696,7 @@ export default function (pi: ExtensionAPI) {
       (async () => {
         try {
           // Same global mcp.json Pi itself loads: <agentDir>/mcp.json, which
-          // follows PI_CODING_AGENT_DIR (for example the Gentle Shell home).
+          // follows PI_CODING_AGENT_DIR (for example the Nub-IA home).
           const raw = await readFile(
             join(getAgentDir(), "mcp.json"),
             "utf8",

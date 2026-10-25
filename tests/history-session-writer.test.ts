@@ -19,7 +19,7 @@ function makeRoot(): string {
 
 const CWD = "/pi-history-test/project-a";
 
-/** An empty Gentle config home: the Customize preference is unset. */
+/** An empty Nub-IA config home: the Customize preference is unset. */
 function makeConfigHome(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "pi-history-config-"));
 }
@@ -62,7 +62,7 @@ function handlersWith(
     agentDir: path.join(root, "agent"),
     sessionsRoot: path.join(root, "sessions"),
     // Never read a developer's real Customize preference.
-    gentlePiConfigHome: configHome,
+    nubiaConfigHome: configHome,
   });
   return new Map(
     registered.map(([event, handler]) => [
@@ -177,7 +177,7 @@ test("the extension entry registers exactly the slice-6 wiring surface", () => {
   // touching the real store root while the defaults are exercised.
   promptHistoryExtension(pi as never, {
     env: { NUB_IA_HISTORY_CAPTURE: "off" },
-    gentlePiConfigHome: makeConfigHome(),
+    nubiaConfigHome: makeConfigHome(),
   });
   assert.deepEqual(
     registered.map(([event]) => event),
@@ -269,12 +269,12 @@ test("the Customize preference enables capture without the env switch and toggle
   const handler = captureHandlerWith({}, root, configHome);
   handler({ prompt: "before opt-in" });
   assert.deepEqual(fs.readdirSync(root), []);
-  writeHistoryCapturePolicy("on", { gentlePiConfigHome: configHome });
+  writeHistoryCapturePolicy("on", { nubiaConfigHome: configHome });
   handler({ prompt: "captured" });
   const file = sessionFilePath(root, CWD, "inst-entry");
   assert.deepEqual(fileTexts(file), ["captured"]);
   // Turning the preference off stops new lines and keeps stored history.
-  writeHistoryCapturePolicy("off", { gentlePiConfigHome: configHome });
+  writeHistoryCapturePolicy("off", { nubiaConfigHome: configHome });
   handler({ prompt: "never written" });
   assert.deepEqual(fileTexts(file), ["captured"]);
 });
@@ -282,10 +282,10 @@ test("the Customize preference enables capture without the env switch and toggle
 test("an explicit env value overrides the Customize preference", () => {
   const root = makeRoot();
   const configHome = makeConfigHome();
-  writeHistoryCapturePolicy("on", { gentlePiConfigHome: configHome });
+  writeHistoryCapturePolicy("on", { nubiaConfigHome: configHome });
   captureHandlerWith({ NUB_IA_HISTORY_CAPTURE: "0" }, root, configHome)({ prompt: "forced off" });
   assert.deepEqual(fs.readdirSync(root), []);
-  writeHistoryCapturePolicy("off", { gentlePiConfigHome: configHome });
+  writeHistoryCapturePolicy("off", { nubiaConfigHome: configHome });
   captureHandlerWith({ NUB_IA_HISTORY_CAPTURE: "On" }, root, configHome)({ prompt: "forced on" });
   assert.deepEqual(fileTexts(sessionFilePath(root, CWD, "inst-entry")), ["forced on"]);
 });
@@ -302,7 +302,7 @@ test("a malformed Customize preference fails closed", () => {
 test("the extension resolves the preference under NUB_IA_CONFIG_HOME by default", () => {
   const root = makeRoot();
   const configHome = makeConfigHome();
-  writeHistoryCapturePolicy("on", { gentlePiConfigHome: configHome });
+  writeHistoryCapturePolicy("on", { nubiaConfigHome: configHome });
   const registered: Array<[string, unknown]> = [];
   promptHistoryExtension({ on: (event: string, handler: unknown) => registered.push([event, handler]), registerShortcut: () => {}, registerCommand: () => {} } as never, {
     env: { NUB_IA_CONFIG_HOME: configHome },

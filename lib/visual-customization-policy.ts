@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { gentlePiConfigHome } from "./agent-home.ts";
+import { nubiaConfigHome } from "./agent-home.ts";
 import { configReadPath } from "./config-home.ts";
 
-export const VISUAL_SCHEMA = "gentle-pi.visual-customization/v1";
+export const VISUAL_SCHEMA = "nub-ia.visual-customization/v1";
 export const STATUS_PLACEMENT = { AUTO: "auto", RIGHT: "right", BOTTOM: "bottom", HIDDEN: "hidden" } as const;
 export const HEADER_PLACEMENT = { TOP: "top", BELOW_INPUT: "below-input" } as const;
 export const DENSITY = { COMFORTABLE: "comfortable", COMPACT: "compact", MINIMAL: "minimal" } as const;
@@ -37,7 +37,7 @@ export const VISUAL_SECTION_KEYS = ["changes", "rdd", "agents", "todo", "usageCo
 /** Keys added after v1 shipped: stored settings may omit them together, and they default to shown. */
 const ADDED_SECTION_KEYS: readonly (keyof VisualVisibility)[] = ["rdd"];
 const LEGACY_SECTION_KEYS = VISUAL_SECTION_KEYS.filter((key) => !ADDED_SECTION_KEYS.includes(key));
-interface VisualOptions { gentlePiConfigHome?: string }
+interface VisualOptions { nubiaConfigHome?: string }
 export interface VisualResolution {
 	settings: VisualSettings;
 	source: "global_file" | "default";
@@ -83,7 +83,7 @@ export function parseVisualSettingsFile(raw: string): VisualSettings | undefined
 	} catch { return undefined; }
 }
 export function resolveVisualSettings(options: VisualOptions = {}): VisualResolution {
-	const globalFile = configReadPath(options.gentlePiConfigHome ?? gentlePiConfigHome(), "visual-customization.json");
+	const globalFile = configReadPath(options.nubiaConfigHome ?? nubiaConfigHome(), "visual-customization.json");
 	try {
 		const settings = parseVisualSettingsFile(readFileSync(globalFile, "utf8"));
 		return { settings: settings ?? structuredClone(DEFAULT_VISUAL_SETTINGS), source: "global_file", malformed: settings === undefined, readError: false, globalFile };
@@ -95,7 +95,7 @@ export function resolveVisualSettings(options: VisualOptions = {}): VisualResolu
 /** Same-directory rename keeps partial JSON invisible to readers. */
 export function writeVisualSettings(settings: VisualSettings, options: VisualOptions = {}): string {
 	if (!isVisualSettings(settings)) throw new TypeError("Invalid visual settings");
-	const home = options.gentlePiConfigHome ?? gentlePiConfigHome();
+	const home = options.nubiaConfigHome ?? nubiaConfigHome();
 	const path = join(home, "visual-customization.json");
 	const temporary = `${path}.${randomUUID()}.tmp`;
 	mkdirSync(home, { recursive: true });

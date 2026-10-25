@@ -13,7 +13,7 @@ import { stripAnsi } from "../lib/terminal-theme.ts";
 import { canonicalHash } from "../lib/canonical-hash.ts";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const { createGentleAiExtension } = await import(pathToFileURL(join(ROOT, "extensions/nubia-harness.ts")).href);
+const { createNubiaExtension } = await import(pathToFileURL(join(ROOT, "extensions/nubia-harness.ts")).href);
 const EXTENSIONS = [
 	"extensions/nubia-harness.ts",
 	"extensions/nan-provider.ts",
@@ -195,7 +195,7 @@ function gitSync(cwd, ...arguments_) {
 }
 
 async function tempWorkspace() {
-	return mkdtemp(join(tmpdir(), "gentle-pi-runtime-"));
+	return mkdtemp(join(tmpdir(), "nub-ia-runtime-"));
 }
 
 function restoreWorkspaceWritePermissions(cwd) {
@@ -218,7 +218,7 @@ async function loadExtensions(pi, fixtureDependencies) {
 	for (const [index, rel] of EXTENSIONS.entries()) {
 		const mod = await import(`${pathToFileURL(join(ROOT, rel)).href}?runtime-harness=${index}`);
 		assert.equal(typeof mod.default, "function", `${rel} must export a default function`);
-		if (rel === "extensions/nubia-harness.ts") createGentleAiExtension(fixtureDependencies)(pi);
+		if (rel === "extensions/nubia-harness.ts") createNubiaExtension(fixtureDependencies)(pi);
 		else mod.default(pi);
 	}
 }
@@ -246,7 +246,7 @@ async function run() {
 			NUB_IA_CONFIG_HOME: globalConfigHome, NUB_IA_AGENT_HOME: globalAgentHome,
 			PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,
 			XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
-			NUB_IA_AGENTS_CHILD: "0", GENTLE_AI_TELEMETRY: "0",
+			NUB_IA_AGENTS_CHILD: "0", NUB_IA_TELEMETRY: "0",
 			// The harness asserts the complete orchestrator text; the runtime
 			// default is the minimal profile (T5.0, tests/prompt-profile.test.ts).
 			NUB_IA_PROMPT_PROFILE: "full",
@@ -290,8 +290,8 @@ async function run() {
 	assert.equal(typeof codemode.renderResult, "function");
 	assert.equal(typeof codemode.prepareLoadout, "function", "upstream loadout policy must survive decoration");
 	assert.deepEqual(pi.getActiveTools(), ["read", "bash", "edit", "write"], "card registration must not change tool activation");
-	assert.equal(tools.has("gentle_review"), false, "the gentle-ai review controller tool is gone");
-	assert.ok(tools.has("gentle_odd_phase"), "missing registered ODD phase tool");
+	assert.equal(tools.has("gentle_review"), false, "the nub-ia review controller tool is gone");
+	assert.ok(tools.has("nubia_odd_phase"), "missing registered ODD phase tool");
 
 	for (const entry of await readdir(join(ROOT, "assets", "agents"))) {
 		if (!entry.endsWith(".md")) continue;
@@ -337,7 +337,7 @@ async function run() {
 	const promptCwd = await tempWorkspace();
 	try {
 		const promptHook = hooks.get("before_agent_start")[0];
-		// gentle-shell#1485: pi-claude-bridge drops a handler-returned systemPrompt
+		// nubia-shell#1485: pi-claude-bridge drops a handler-returned systemPrompt
 		// and forwards only structured systemPromptOptions, so the harness must
 		// land in appendSystemPrompt and the hook must never return a replacement.
 		const promptEvent = { systemPrompt: "base", systemPromptOptions: { appendSystemPrompt: "" } };
@@ -382,9 +382,9 @@ async function run() {
 		const subagentPromptResult = await promptHook(subagentEvent, createCtx(promptCwd));
 		assert.equal(subagentPromptResult, undefined, "before_agent_start must not return a replacement systemPrompt");
 		assert.equal(subagentEvent.systemPromptOptions.appendSystemPrompt, "", "a named agent gets nothing appended");
-		await mkdir(join(promptCwd, ".pi", "gentle-ai"), { recursive: true });
+		await mkdir(join(promptCwd, ".pi", "nub-ia"), { recursive: true });
 		await writeFile(
-			join(promptCwd, ".pi", "gentle-ai", "persona.json"),
+			join(promptCwd, ".pi", "nub-ia", "persona.json"),
 			'{"mode":"gentleman"}\n',
 		);
 		const localOverrideEvent = { systemPrompt: "base", systemPromptOptions: { appendSystemPrompt: "" } };
@@ -816,7 +816,7 @@ async function run() {
 			const ctx = createCtx(noUiCwd, true);
 			await commands.get(diagnostic).handler("", ctx);
 		}
-		// gentle-pi#311 P5: the Pi-authored adversarial role agents are retired;
+		// nub-ia#311 P5: the Pi-authored adversarial role agents are retired;
 		// installation must not (re)create them.
 		const installedRefuterPath = join(globalAgentHome, "agents", "review-refuter.md");
 		assert.equal(existsSync(installedRefuterPath), false, "the retired review-refuter agent must not be installed");
@@ -838,7 +838,7 @@ async function run() {
 		);
 		assert.match(installedRiskSource, /You are \*\*R1 Risk\*\*, a read-only code reviewer for the Nub-IA 4R review/);
 		assert.match(installedRiskSource, /^model: nub-ia\/strong$/m, "the packaged lens routes through the strong tier");
-		const managedAssetsManifestPath = join(globalAgentHome, "gentle-ai", "managed-assets.json");
+		const managedAssetsManifestPath = join(globalAgentHome, "nub-ia", "managed-assets.json");
 		const managedAssetsManifest = JSON.parse(
 			await readFile(managedAssetsManifestPath, "utf8"),
 		);
@@ -942,7 +942,7 @@ async function run() {
 			const selectedPath = join(agentHome, "agents", representatives[owner]);
 			const packaged = await readFile(selectedPath, "utf8");
 			assert.doesNotMatch(packaged, /test\/installer-must-not-apply/);
-			const manifestPath = join(agentHome, "gentle-ai", "managed-assets.json");
+			const manifestPath = join(agentHome, "nub-ia", "managed-assets.json");
 			const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 			for (const [candidate, name] of Object.entries(representatives)) {
 				const stale = `stale managed ${candidate}\n`;
@@ -992,7 +992,7 @@ async function run() {
 		}
 		await commands.get("nubia:install-delegation").handler("", ctx);
 		await commands.get("nubia:install-review").handler("", ctx);
-		const manifest = JSON.parse(await readFile(join(process.env.NUB_IA_AGENT_HOME, "gentle-ai", "managed-assets.json"), "utf8"));
+		const manifest = JSON.parse(await readFile(join(process.env.NUB_IA_AGENT_HOME, "nub-ia", "managed-assets.json"), "utf8"));
 		for (const key of Object.keys(manifest.assets)) {
 			await rm(join(process.env.NUB_IA_AGENT_HOME, key));
 		}
@@ -1047,13 +1047,13 @@ async function run() {
 	const legacyModelsCwd = await tempWorkspace();
 	try {
 		await mkdir(join(legacyModelsCwd, ".pi", "agents"), { recursive: true });
-		await mkdir(join(legacyModelsCwd, ".pi", "gentle-ai"), { recursive: true });
+		await mkdir(join(legacyModelsCwd, ".pi", "nub-ia"), { recursive: true });
 		await writeFile(
 			join(legacyModelsCwd, ".pi", "agents", "sdd-apply.md"),
 			`---\nname: sdd-apply\ndescription: Apply phase\n---\n\nbody\n`,
 		);
 		await writeFile(
-			join(legacyModelsCwd, ".pi", "gentle-ai", "models.json"),
+			join(legacyModelsCwd, ".pi", "nub-ia", "models.json"),
 			JSON.stringify({ "sdd-apply": "legacy/provider-model" }, null, 2),
 		);
 		const legacyCtx = createCtx(legacyModelsCwd, true);
@@ -1493,7 +1493,7 @@ async function run() {
 			thinking: "high",
 		});
 		assert.equal(
-			existsSync(join(modelsCwd, ".pi", "gentle-ai", "models.json")),
+			existsSync(join(modelsCwd, ".pi", "nub-ia", "models.json")),
 			false,
 			"/nubia:models must save model routing globally, not per project",
 		);
@@ -1609,7 +1609,7 @@ async function run() {
 		};
 		await commands.get("nubia:models").handler("", ctx);
 		const exported = JSON.parse(await readFile(join(globalConfigHome, "models.export.json"), "utf8"));
-		assert.equal(exported.kind, "gentle-pi.agent_model_routing");
+		assert.equal(exported.kind, "nub-ia.agent_model_routing");
 		assert.equal(exported.version, 1);
 		assert.deepEqual(exported.agents["sdd-apply"], {
 			model: "custom/provider-model",
@@ -1619,7 +1619,7 @@ async function run() {
 		await writeFile(
 			join(globalConfigHome, "models.export.json"),
 			JSON.stringify({
-				kind: "gentle-pi.agent_model_routing",
+				kind: "nub-ia.agent_model_routing",
 				version: 1,
 				agents: { "sdd-apply": { model: "restore/provider", thinking: "high" } },
 			}, null, 2),

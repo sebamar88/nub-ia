@@ -41,7 +41,7 @@ con identidad propia.
 - **Gobernanza**: política de organización (`nub-ia policy`), roles, paquetes aprobados, auditoría, firmas.
 - **Observabilidad**: métricas JSONL locales (runtime/review/audit), `nub-ia usage`, espejo opt-in al equipo.
 - **Shell**: banner y tema Nubiral, Status con Review / Subagentes / Router / Mode / Audit, `/nubia:*`, perfil de prompt minimal.
-- **Operación**: launcher `nub-ia` con home aislado, `nub-ia init|update|setup|policy|audit|usage|review`, rtk pinneado con SHA-256, workflows de sync con upstream y bumps de pins.
+- **Operación**: launcher `nub-ia` con home aislado, `nub-ia init|update|setup|policy|audit|usage|review`, rtk pinneado con SHA-256, releases semver automáticas por Conventional Commits y bumps de pins (`pin-bumps.yml`).
 
 ## Arquitectura en diez líneas
 
@@ -156,7 +156,6 @@ con `rtk` adelante.
 ```bash
 node scripts/bench-prompt.mjs            # bytes por sección, sin llamar al modelo
 node scripts/bench-prompt.mjs --tokens   # + un turno real por configuración (usa tu auth de ~/.nub-ia/agent)
-node scripts/upstream-diff.mjs           # divergencia real frente a gentle-shell
 ```
 
 Para otros agentes: clonar su repo y medir los archivos listados; para el prompt ensamblado hace falta instrumentar cada
@@ -167,5 +166,4 @@ uno (OpenCode y Codex permiten verlo con sus modos de debug/trace; Claude Code n
 - Guardrails, modos y políticas son redes basadas en patrones sobre las herramientas del agente, no un sandbox.
 - La clasificación "solo lectura" de bash es una lista blanca conservadora: un comando desconocido cuenta como mutante.
 - El router depende de los nombres de modelo de cada provider (regex en `model-tiers.json`); `/nubia:doctor` avisa cuando dejan de matchear.
-- Upstream gentle-shell avanza rápido; el fork trae su propio costo de merge (`upstream-sync.yml` lo hace visible cada semana).
 - Los schemas de herramientas (~5 k tokens) son hoy el mayor costo fijo por turno frío; está en el roadmap.

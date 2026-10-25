@@ -363,6 +363,7 @@ test("COMMAND_PALETTE_CATALOG matches the curated command set, in order", () => 
 		"nubia:models",
 		"nubia:profiles",
 		"nubia:persona",
+		"nubia:workflow",
 		"nubia:review-mode",
 		"nubia:background-subagents",
 		"nubia:double-esc-cancel",
@@ -392,7 +393,7 @@ test("retired SDD commands are absent from the palette and extension registratio
 	assert.match(source, /for \(const owner of \["delegation", "review"\] as const\) \{\s*const label = owner;\s*pi\.registerCommand\(`nubia:install-\$\{owner\}`/);
 	assert.ok(catalogCommands.includes("nubia:review"), "the in-process 4R review is reachable from the palette");
 	for (const retiredNative of ["nubia:review-session-permission", "nubia:dev-binary", "nubia:telemetry"]) {
-		assert.ok(!catalogCommands.includes(retiredNative), `${retiredNative} belonged to the removed gentle-ai binary`);
+		assert.ok(!catalogCommands.includes(retiredNative), `${retiredNative} belonged to the removed nub-ia binary`);
 	}
 });
 

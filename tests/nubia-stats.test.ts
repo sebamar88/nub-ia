@@ -4,7 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { stripAnsi } from "../lib/terminal-theme.ts";
-import gentleStats, { STATS_COMMAND_NAME, statsSessionRoots, statsViewKey } from "../extensions/nubia-stats.ts";
+import nubiaStats, { STATS_COMMAND_NAME, statsSessionRoots, statsViewKey } from "../extensions/nubia-stats.ts";
 
 // /nubia:stats wiring: the command (and optional shortcut) opens the stats
 // panel as a full-terminal overlay, loads sessions after it opens, closes
@@ -71,18 +71,18 @@ test("statsViewKey is off by default and honors an explicit key", () => {
 
 test("registers /nubia:stats and only registers a shortcut when one is configured", () => {
 	const plain = fakePi();
-	gentleStats(plain.pi, { env: {} });
+	nubiaStats(plain.pi, { env: {} });
 	assert.equal(STATS_COMMAND_NAME, "nubia:stats");
 	assert.match(plain.commands.get(STATS_COMMAND_NAME)!.description, /usage/i);
 	assert.equal(plain.shortcuts.size, 0);
 	const keyed = fakePi();
-	gentleStats(keyed.pi, { env: { NUB_IA_STATS_VIEW_KEY: "alt+t" } });
+	nubiaStats(keyed.pi, { env: { NUB_IA_STATS_VIEW_KEY: "alt+t" } });
 	assert.deepEqual([...keyed.shortcuts.keys()], ["alt+t"]);
 });
 
 test("the command opens a full-terminal overlay that loads, renders, and closes with a repaint", async () => {
 	const { pi, commands } = fakePi();
-	gentleStats(pi, { env: {}, now: () => NOW, sessionsRoots: () => [SESSIONS] });
+	nubiaStats(pi, { env: {}, now: () => NOW, sessionsRoots: () => [SESSIONS] });
 	const context = fakeContext();
 	const opened = commands.get(STATS_COMMAND_NAME)!.handler("", context.ctx);
 	assert.deepEqual(context.options[0], { overlay: true, overlayOptions: { width: "100%", maxHeight: "100%", margin: 0, anchor: "center" } });
@@ -105,9 +105,9 @@ test("stats read the active home and the user's original Pi home, falling back t
 	assert.deepEqual(statsSessionRoots("/gs/agent", { NUB_IA_USER_PI_HOME: "" }, "/home/u"), ["/gs/agent/sessions", "/home/u/.pi/agent/sessions"]);
 });
 
-test("the overlay totals combine the Gentle Shell and regular Pi histories", async () => {
+test("the overlay totals combine the Nub-IA and regular Pi histories", async () => {
 	const { pi, commands } = fakePi();
-	gentleStats(pi, { env: {}, now: () => NOW, sessionsRoots: () => statsSessionRoots(STATS_HOME, { NUB_IA_USER_PI_HOME: USER_PI_HOME }) });
+	nubiaStats(pi, { env: {}, now: () => NOW, sessionsRoots: () => statsSessionRoots(STATS_HOME, { NUB_IA_USER_PI_HOME: USER_PI_HOME }) });
 	const context = fakeContext();
 	const opened = commands.get(STATS_COMMAND_NAME)!.handler("", context.ctx);
 	const view = context.component()!;
@@ -119,7 +119,7 @@ test("the overlay totals combine the Gentle Shell and regular Pi histories", asy
 
 test("the shortcut opens the same overlay", async () => {
 	const { pi, shortcuts } = fakePi();
-	gentleStats(pi, { env: { NUB_IA_STATS_VIEW_KEY: "alt+t" }, now: () => NOW, sessionsRoots: () => [SESSIONS] });
+	nubiaStats(pi, { env: { NUB_IA_STATS_VIEW_KEY: "alt+t" }, now: () => NOW, sessionsRoots: () => [SESSIONS] });
 	const context = fakeContext();
 	const opened = shortcuts.get("alt+t")!.handler(context.ctx);
 	assert.equal(context.options.length, 1);
@@ -130,7 +130,7 @@ test("the shortcut opens the same overlay", async () => {
 
 test("non-TUI modes get a notice and headless contexts get nothing", async () => {
 	const { pi, commands } = fakePi();
-	gentleStats(pi, { env: {}, sessionsRoots: () => [SESSIONS] });
+	nubiaStats(pi, { env: {}, sessionsRoots: () => [SESSIONS] });
 	const rpc = fakeContext("rpc");
 	await commands.get(STATS_COMMAND_NAME)!.handler("", rpc.ctx);
 	assert.deepEqual(rpc.notices, ["The stats overlay requires TUI mode."]);
@@ -143,7 +143,7 @@ test("non-TUI modes get a notice and headless contexts get nothing", async () =>
 
 test("session shutdown force-closes an open overlay", async () => {
 	const { pi, commands, fire } = fakePi();
-	gentleStats(pi, { env: {}, now: () => NOW, sessionsRoots: () => [SESSIONS] });
+	nubiaStats(pi, { env: {}, now: () => NOW, sessionsRoots: () => [SESSIONS] });
 	const context = fakeContext();
 	const opened = commands.get(STATS_COMMAND_NAME)!.handler("", context.ctx);
 	await fire("session_shutdown", context.ctx);

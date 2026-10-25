@@ -6,7 +6,7 @@ import test from "node:test";
 import { __testing } from "../extensions/nubia-harness.ts";
 import { readDelegationDetail } from "./support/orchestrator-modules.ts";
 
-// gentle-shell#1731: the delegated writer fires on named reasons (parallelism,
+// nubia-shell#1731: the delegated writer fires on named reasons (parallelism,
 // context), never on task size. A large task keeps the ODD logbook (#1494
 // resume test) and works inline when no reason fires. T24 (L49) turned the
 // cost reason off: a price ratio never fires the Writer rule, while configured
@@ -123,7 +123,7 @@ function sectionFrom(text: string, heading: string): string {
 	return text.slice(start, next < 0 ? undefined : next + 1);
 }
 
-const reviewSection = (): string => sectionFrom(verification, "## Parallel review protocol (gentle-shell#1731)");
+const reviewSection = (): string => sectionFrom(verification, "## Parallel review protocol (nubia-shell#1731)");
 
 function reviewItem(prefix: string): string {
 	return lineStarting(reviewSection(), prefix);

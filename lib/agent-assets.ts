@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveGentlePiAgentHome } from "./agent-home.ts";
+import { resolveNubiaAgentHome } from "./agent-home.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
  return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -44,8 +44,8 @@ const ASSET_OWNER_BY_KEY = Object.freeze({
 	"agents/review-refuter.md": "review",
 	"agents/review-validator.md": "review",
 	"chains/4r-review.chain.md": "review",
-	"gentle-ai/support/strict-tdd.md": "delegation",
-	"gentle-ai/support/strict-tdd-verify.md": "delegation",
+	"nub-ia/support/strict-tdd.md": "delegation",
+	"nub-ia/support/strict-tdd-verify.md": "delegation",
 } as const);
 
 export type PackageAssetOwner = (typeof ASSET_OWNER_BY_KEY)[keyof typeof ASSET_OWNER_BY_KEY];
@@ -56,8 +56,8 @@ export function getPackageAssetOwner(ownershipKey: string): PackageAssetOwner | 
 		: undefined;
 }
 
-function gentlePiAgentHome(): string {
-	return resolveGentlePiAgentHome();
+function nubiaAgentHome(): string {
+	return resolveNubiaAgentHome();
 }
 
 
@@ -144,7 +144,7 @@ function acquireManagedAssetsLock(
 	agentHome: string,
 	options: PackageAssetInstallLockOptions = {},
 ): { path: string; owner: ManagedAssetsLockOwner } {
-	const lockParent = join(agentHome, "gentle-ai");
+	const lockParent = join(agentHome, "nub-ia");
 	const lockPath = join(lockParent, MANAGED_ASSETS_LOCK);
 	const timeoutMs = normalizedLockDuration(options.timeoutMs, MANAGED_ASSETS_LOCK_TIMEOUT_MS);
 	const retryMs = Math.max(1, normalizedLockDuration(options.retryMs, MANAGED_ASSETS_LOCK_RETRY_MS));
@@ -323,7 +323,7 @@ export function updatePackageManagedSddAgentOwnership(
 	nextContent: string,
 	lockOptions?: PackageAssetInstallLockOptions,
 ): boolean {
-	const agentHome = gentlePiAgentHome();
+	const agentHome = nubiaAgentHome();
 	const relativePath = relative(join(agentHome, "agents"), installedPath);
 	if (
 		relativePath.length === 0 ||
@@ -335,7 +335,7 @@ export function updatePackageManagedSddAgentOwnership(
 	}
 	const ownershipKey = `agents/${relativePath.split(sep).join("/")}`;
 	return withManagedAssetsLock(agentHome, () => {
-		const manifestPath = join(agentHome, "gentle-ai", MANAGED_ASSETS_MANIFEST);
+		const manifestPath = join(agentHome, "nub-ia", MANAGED_ASSETS_MANIFEST);
 		const manifest = readManagedAssetsManifest(manifestPath);
 		if (manifest.assets[ownershipKey] !== managedAssetHash(previousContent)) {
 			return false;
@@ -373,8 +373,8 @@ export function updatePackageManagedSddAgentOwnership(
 }
 
 export function hasPackageAssetOwnerInstallation(owner: PackageAssetOwner): boolean {
-	const agentHome = gentlePiAgentHome();
-	const manifest = readManagedAssetsManifest(join(agentHome, "gentle-ai", MANAGED_ASSETS_MANIFEST));
+	const agentHome = nubiaAgentHome();
+	const manifest = readManagedAssetsManifest(join(agentHome, "nub-ia", MANAGED_ASSETS_MANIFEST));
 	return Object.keys(manifest.assets).some((key) => getPackageAssetOwner(key) === owner) ||
 		Object.entries(ASSET_OWNER_BY_KEY).some(([key, candidate]) =>
 			candidate === owner && existsSync(join(agentHome, key)),
@@ -386,7 +386,7 @@ export function isPackageManagedSddAsset(
 	ownershipKey: string,
 ): boolean {
 	const manifest = readManagedAssetsManifest(
-		join(gentlePiAgentHome(), "gentle-ai", MANAGED_ASSETS_MANIFEST),
+		join(nubiaAgentHome(), "nub-ia", MANAGED_ASSETS_MANIFEST),
 	);
 	const expectedHash = manifest.assets[ownershipKey];
 	if (expectedHash === undefined || !existsSync(installedPath)) return false;
@@ -499,7 +499,7 @@ function copyDirectoryFiles(
 // history); user-modified copies are left in place and only lose managed
 // ownership.
 const RETIRED_MANAGED_ASSETS = Object.freeze([
-	// Canonical spec composition now belongs to archive (gentle-pi#1051).
+	// Canonical spec composition now belongs to archive (nub-ia#1051).
 	"agents/sdd-sync.md",
 	...[
 		"apply", "archive", "design", "explore", "init", "onboard", "proposal",
@@ -508,7 +508,7 @@ const RETIRED_MANAGED_ASSETS = Object.freeze([
 	"chains/sdd-full.chain.md",
 	"chains/sdd-plan.chain.md",
 	"chains/sdd-verify.chain.md",
-	"gentle-ai/support/sdd-status-contract.md",
+	"nub-ia/support/sdd-status-contract.md",
 	"agents/review-refuter.md",
 	"agents/review-validator.md",
 	// Renamed to nubia-* (explore/worker/verify).
@@ -524,7 +524,7 @@ function removeRetiredManagedAssets(
 ): void {
 	let legacyHashes: Record<string, readonly string[]> | undefined;
 	for (const ownershipKey of RETIRED_MANAGED_ASSETS) {
-		if (selected && !selected.has(ownershipKey) && !(ownershipKey.includes("sdd-") && selected.has("gentle-ai/support/strict-tdd.md"))) continue;
+		if (selected && !selected.has(ownershipKey) && !(ownershipKey.includes("sdd-") && selected.has("nub-ia/support/strict-tdd.md"))) continue;
 		const installedPath = join(agentHome, ...ownershipKey.split("/"));
 		if (!existsSync(installedPath)) {
 			delete manifest.assets[ownershipKey];
@@ -561,12 +561,12 @@ export function installPackageAssets(
 	owners?: readonly PackageAssetOwner[],
 	lockOptions?: PackageAssetInstallLockOptions,
 ): { agents: number; chains: number; support: number; skipped: number } {
-	const agentHome = gentlePiAgentHome();
+	const agentHome = nubiaAgentHome();
 	return withManagedAssetsLock(agentHome, () => {
 		const selected = owners === undefined ? undefined : new Set(
 			Object.entries(ASSET_OWNER_BY_KEY).filter(([, owner]) => owners.includes(owner)).map(([key]) => key),
 		);
-		const manifestPath = join(agentHome, "gentle-ai", MANAGED_ASSETS_MANIFEST);
+		const manifestPath = join(agentHome, "nub-ia", MANAGED_ASSETS_MANIFEST);
 		let legacyAssetHashes: (() => Readonly<Record<string, readonly string[]>>) | undefined;
 		if (force) {
 			let cachedLegacyAssetHashes: Record<string, readonly string[]> | undefined;
@@ -595,8 +595,8 @@ export function installPackageAssets(
 		);
 		const support = copyDirectoryFiles(
 			join(ASSETS_DIR, "support"),
-			join(agentHome, "gentle-ai", "support"),
-			"gentle-ai/support",
+			join(agentHome, "nub-ia", "support"),
+			"nub-ia/support",
 			force,
 			manifest,
 			legacyAssetHashes,

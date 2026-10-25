@@ -52,7 +52,7 @@ Changes muestra **las operaciones write/edit capturadas de esta sesión y de sus
 - Los diffs comparan el contenido visto antes de la primera operación del agente con su último resultado, no con HEAD. Ediciones externas rompen la continuidad y el archivo se marca **diff unavailable**.
 - **La cobertura es deliberadamente limitada a las herramientas write/edit.** Shell, herramientas de mutación custom, salidas fallidas o hijos sin la extensión de captura no generan diff; una fila ausente no significa repo limpio.
 - Límites: se lee solo el target, hasta 64 KiB y 2.000 líneas; binarios y archivos enormes muestran "unavailable". Se retienen hasta 256 operaciones y 4 MiB por sesión (al llegar al límite hay advertencia).
-- Las capturas se guardan en la sesión (`gentle-pi.session-change/v1`) y se restauran solo para el mismo UUID de sesión; `--no-session` no persiste.
+- Las capturas se guardan en la sesión (`nub-ia.session-change/v1`) y se restauran solo para el mismo UUID de sesión; `--no-session` no persiste.
 - Visor de dos paneles: worktrees en acordeón a la izquierda, diff a la derecha. `j`/`k` o flechas navegan; `ctrl+j/k` o PgUp/PgDn desplazan el diff; `o`/Enter abre el archivo real en `$VISUAL`/`$EDITOR`; `esc`/`q` cierra. En fullscreen el click selecciona y la rueda desplaza.
 - `NUB_IA_SHELL_CHANGES_KEY` cambia el atajo (`off` lo deshabilita); `NUB_IA_SHELL_CHANGES_POLL_MS` ajusta solo el refresco del overlay abierto.
 
@@ -118,9 +118,9 @@ Las herramientas `subagent_*` y la card de Agents reemplazan al paquete de terce
 - Un hijo puede usar `subagent_parent_message`: una notificación, o `kind: "query"` que espera una única `subagent_reply` correlacionada hasta 30 segundos (máximo cuatro pendientes por hijo).
 - La card muestra solo las tareas de la sesión activa (filas terminadas: un minuto, tres como máximo; ocupa hasta un cuarto de la terminal y el resto se pliega en `… N more · alt+a to view`).
 - **Overlay** (`/nubia:agents` o `alt+a`): con 60+ columnas, vista dividida grupos/tareas junto al hilo semántico (`F` lo expande); con 12–59, click en un subagente para ver su hilo. Controles: **Follow** (`f`), **Open session** (`o`, escribe un transcript markdown para `$EDITOR`), **Stop** (`s`, solo tareas propias activas), **Scope** (`a`: hijos directos de esta sesión o todos los orquestadores abiertos). `Escape` retrocede un nivel.
-- El historial queda en `~/.pi/agent/gentle-agents/tasks/` (un JSON por tarea, últimas 200) y las sesiones hijas en `~/.pi/agent/gentle-agents/sessions/`. `alt+s` confirma detener las tareas activas o encoladas propias.
+- El historial queda en `~/.pi/agent/nubia-agents/tasks/` (un JSON por tarea, últimas 200) y las sesiones hijas en `~/.pi/agent/nubia-agents/sessions/`. `alt+s` confirma detener las tareas activas o encoladas propias.
 - Teclas: `NUB_IA_AGENTS_KEY` (colapsar la card, `ctrl+shift+a`), `NUB_IA_AGENTS_VIEW_KEY`, `NUB_IA_AGENTS_STOP_KEY`; `NUB_IA_AGENTS_PI` cambia el comando de Pi de los hijos; `NUB_IA_AGENTS=0` desactiva herramientas y card.
-- El esquema de actividad para hosts RPC está en [gentle-agents-activity.md](gentle-agents-activity.md).
+- El esquema de actividad para hosts RPC está en [nubia-agents-activity.md](nubia-agents-activity.md).
 
 ## Todo
 

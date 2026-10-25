@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import askUserQuestion, { askMultiSelect } from "../extensions/ask-user-question.ts";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
 
 /** Plain theme fake: identity styling keeps rendered assertions readable. */
 interface Theme {
@@ -66,7 +66,7 @@ interface ExtensionSlot {
 	tools: Map<string, RegisteredTool>;
 }
 
-const OURS_PATH = "gentle-pi/extensions/ask-user-question.ts";
+const OURS_PATH = "nub-ia/extensions/ask-user-question.ts";
 
 function registerQuestionTool(slot?: ExtensionSlot, withHerdr = false): { tool: RegisteredTool; slot: ExtensionSlot; emitted: LifecycleEvent[] } {
 	const target: ExtensionSlot = slot ?? { path: OURS_PATH, tools: new Map() };
@@ -89,7 +89,7 @@ function registerQuestionTool(slot?: ExtensionSlot, withHerdr = false): { tool: 
 			},
 		},
 	};
-	if (withHerdr) createGentleAiExtension({ })(pi as never);
+	if (withHerdr) createNubiaExtension({ })(pi as never);
 	askUserQuestion(pi as never);
 	const tool = target.tools.get("ask_user_question");
 	if (!tool) throw new Error("ask_user_question must register");
@@ -261,8 +261,8 @@ test("ask_user_question resolves a single-select answer through RPC dialogs on a
 		{ questionIndex: 0, question: "Proceed?", kind: "option", answer: "Alpha" },
 	]);
 	assert.deepEqual(emitted, [
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: true } },
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: false } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: true } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: false } },
 	]);
 });
 
@@ -401,8 +401,8 @@ test("ask_user_question cancels through RPC dialogs like the TUI path when selec
 	assert.equal(result.content[0]?.text, "User cancelled the questionnaire");
 	assert.deepEqual(result.details, { cancelled: true });
 	assert.deepEqual(emitted, [
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: true } },
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: false } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: true } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: false } },
 	]);
 });
 
@@ -435,8 +435,8 @@ test("ask_user_question commits a single-select answer end-to-end", async () => 
 		{ questionIndex: 0, question: "Proceed?", kind: "option", answer: "Alpha" },
 	]);
 	assert.deepEqual(emitted, [
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: true } },
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: false } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: true } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: false } },
 	]);
 });
 
@@ -572,8 +572,8 @@ test("ask_user_question reports cancellation without answers", async () => {
 	assert.equal(result.content[0]?.text, "User cancelled the questionnaire");
 	assert.deepEqual(result.details, { cancelled: true });
 	assert.deepEqual(emitted, [
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: true } },
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: false } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: true } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: false } },
 	]);
 });
 
@@ -587,8 +587,8 @@ test("ask_user_question settles its lifecycle after a custom UI error", async ()
 	);
 
 	assert.deepEqual(emitted, [
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: true } },
-		{ channel: "gentle-pi:ask-user-question:blocked", data: { active: false } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: true } },
+		{ channel: "nub-ia:ask-user-question:blocked", data: { active: false } },
 	]);
 });
 

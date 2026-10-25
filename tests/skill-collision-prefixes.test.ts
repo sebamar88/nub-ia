@@ -45,9 +45,9 @@ test("technical reference documents legacy skill-name compatibility aliases", ()
 });
 
 for (const dir of UNPREFIXED_DIRS) {
-	test(`skills/${dir}/SKILL.md frontmatter name carries no gentle-ai- prefix`, () => {
+	test(`skills/${dir}/SKILL.md frontmatter name carries no nub-ia- prefix`, () => {
 		const name = readSkillName(dir);
 		assert.ok(name, `expected a name for ${dir}`);
-		assert.ok(!name?.startsWith("gentle-ai-"), `${dir} should not be prefixed, got ${name}`);
+		assert.ok(!name?.startsWith("nub-ia-"), `${dir} should not be prefixed, got ${name}`);
 	});
 }

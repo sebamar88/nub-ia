@@ -10,7 +10,7 @@ import { AgentRunner, childArguments, JsonLines, piCommand, abortReasonText, typ
 import { fakeChild, type FakeChild } from "./agents-fake-child.ts";
 import { INTERACTIVE_HOST_ENV } from "../lib/rpc-host.ts";
 
-// Gentle Agents runner: every subagent is a child `pi --mode rpc` process.
+// Nub-IA Agents runner: every subagent is a child `pi --mode rpc` process.
 // The host only parses JSON lines, applies deltas to the store, answers
 // dialogs, and enforces its inactivity watchdog. These tests drive a fake child.
 
@@ -467,9 +467,9 @@ test("child session diff evidence travels only with a paired successful tool out
  const child = h.children[0];
  const evidence = {id:"w",root:"/repo",path:"src/file.ts",before:{kind:"absent"},after:{kind:"text",text:"agent\n"}};
  child.emit({type:"tool_execution_start",toolCallId:"w",toolName:"write",args:{path:"src/file.ts"}});
- child.emit({type:"tool_execution_end",toolCallId:"w",isError:false,result:{content:[],details:{gentleSessionChange:evidence}}});
+ child.emit({type:"tool_execution_end",toolCallId:"w",isError:false,result:{content:[],details:{nubiaSessionChange:evidence}}});
  assert.deepEqual(observed[0].evidence,evidence);
- child.emit({type:"tool_execution_end",toolCallId:"w",isError:false,result:{content:[],details:{gentleSessionChange:evidence}}});
+ child.emit({type:"tool_execution_end",toolCallId:"w",isError:false,result:{content:[],details:{nubiaSessionChange:evidence}}});
  assert.equal(observed.length,1);
  h.runner.cancel(task.id); await tick();
 });
@@ -1566,8 +1566,8 @@ test("long agent names are truncated in the instructions transport directory nam
 	const promptValue = launches[0][launches[0].indexOf("--append-system-prompt") + 1];
 	assert.equal(readFileSync(promptValue, "utf8"), largeInstructions);
 	const dirName = basename(dirname(promptValue));
-	assert.ok(dirName.startsWith(`gentle-pi-subagent-${"a".repeat(64)}-`), dirName);
-	assert.ok(dirName.length <= "gentle-pi-subagent-".length + 64 + 1 + 6, `directory name too long: ${dirName.length}`);
+	assert.ok(dirName.startsWith(`nub-ia-subagent-${"a".repeat(64)}-`), dirName);
+	assert.ok(dirName.length <= "nub-ia-subagent-".length + 64 + 1 + 6, `directory name too long: ${dirName.length}`);
 
 	fake.exit(0);
 	await runner.waitFor(task.id);
@@ -1580,7 +1580,7 @@ test("temporary instructions transport directory is cleaned up if writing instru
 	let transportDir: string | undefined;
 	t.mock.method(fs, "writeFileSync", (...args: Parameters<typeof fs.writeFileSync>) => {
 		const [target] = args;
-		if (typeof target === "string" && basename(target) === "instructions.md" && basename(dirname(target)).startsWith("gentle-pi-subagent-")) {
+		if (typeof target === "string" && basename(target) === "instructions.md" && basename(dirname(target)).startsWith("nub-ia-subagent-")) {
 			transportDir = dirname(target);
 			throw new Error("EACCES: simulated write failure");
 		}

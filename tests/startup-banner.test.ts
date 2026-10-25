@@ -11,7 +11,7 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 
 // The banner reads process.env directly; a suite launched from a delegated
-// child must still exercise the parent paths (gentle-shell#1690).
+// child must still exercise the parent paths (nubia-shell#1690).
 delete process.env.NUB_IA_AGENTS_CHILD;
 
 test("startup artwork is the traced Nubiral wordmark and isologo with aligned animation spans", () => {
@@ -48,7 +48,7 @@ test("startup branch lookup uses direct git argv and hides its Windows child", a
 
 test("startup banner keeps animating after invalidate and cleans up on dispose", async (t) => {
 	const home = mkdtempSync(join(tmpdir(), "gp-banner-quality-"));
-	writeFileSync(join(home, "animations.json"), '{"schema":"gentle-pi.animations/v1","policy":"quality"}');
+	writeFileSync(join(home, "animations.json"), '{"schema":"nub-ia.animations/v1","policy":"quality"}');
 	const previousHome = process.env.NUB_IA_CONFIG_HOME;
 	process.env.NUB_IA_CONFIG_HOME = home;
 	t.after(() => {
@@ -144,7 +144,7 @@ test("animation modes retain banner lifetime policy, final artwork and approxima
 	const ctx = { hasUI: true, cwd: "/fixture", ui: { setHeader(factory: (tui: unknown, theme: unknown) => typeof header) {
 		header = factory({ requestRender() { paints++; } }, { fg: (_role: string, text: string) => text });
 	} } };
-	const save = (policy: string) => writeFileSync(join(home, "animations.json"), JSON.stringify({ schema: "gentle-pi.animations/v1", policy }));
+	const save = (policy: string) => writeFileSync(join(home, "animations.json"), JSON.stringify({ schema: "nub-ia.animations/v1", policy }));
 	try {
 		save("potato");
 		await start!({}, ctx); boot!();
@@ -358,17 +358,17 @@ test("startup banner counts packages, extensions and agents from the active Pi a
 });
 
 test("launcher-injected extension directories do not suppress the startup banner", () => {
-	// Gentle Shell launches `pi -e <package-root-dir>`; a directory path is not a subcommand.
-	assert.equal(isPiCliSubcommandInvocation(["node", "pi", "-e", "/opt/gentle-pi"]), false);
+	// Nub-IA launches `pi -e <package-root-dir>`; a directory path is not a subcommand.
+	assert.equal(isPiCliSubcommandInvocation(["node", "pi", "-e", "/opt/nub-ia"]), false);
 	assert.equal(isPiCliSubcommandInvocation(["node", "pi", "--no-extensions", "-e", "/a", "-e", "/b/ext.mjs"]), false);
 	assert.equal(isPiCliSubcommandInvocation(["node", "pi"]), false);
-	assert.equal(isPiCliSubcommandInvocation(["node", "pi", "-e", "/opt/gentle-pi", "install"]), false);
+	assert.equal(isPiCliSubcommandInvocation(["node", "pi", "-e", "/opt/nub-ia", "install"]), false);
 	for (const sub of ["install", "remove", "uninstall", "update", "list", "config", "auth"]) {
 		assert.equal(isPiCliSubcommandInvocation(["node", "pi", sub, "npm:x"]), true, sub);
 	}
 });
 
-// gentle-shell#1690: a delegated rpc child has hasUI=true; only a piped stdout
+// nubia-shell#1690: a delegated rpc child has hasUI=true; only a piped stdout
 // without rows/columns kept the banner off before the explicit child guard.
 test("delegated children never paint the startup banner", async (t) => {
 	const previousChild = process.env.NUB_IA_AGENTS_CHILD;

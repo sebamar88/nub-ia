@@ -1,4 +1,4 @@
-// Gentle Agents subagent message delivery queue (issue #1162).
+// Nub-IA Agents subagent message delivery queue (issue #1162).
 //
 // Background and foreground child notifications and queries used to be handed
 // straight to the host as `deliverAs: "followUp"` messages. Because the host
@@ -91,7 +91,7 @@ export function createAgentMessageQueue(): AgentMessageQueue {
 				parentSessionId: task.parentSessionId,
 				display: false,
 				details: {
-					gentleAgents: {
+					nubiaAgents: {
 						taskId: task.id,
 						agent: task.agent,
 						parentSessionId: task.parentSessionId,
@@ -115,7 +115,7 @@ export function createAgentMessageQueue(): AgentMessageQueue {
 				requestId,
 				display: true,
 				details: {
-					gentleAgents: {
+					nubiaAgents: {
 						taskId: task.id,
 						agent: task.agent,
 						parentSessionId: task.parentSessionId,

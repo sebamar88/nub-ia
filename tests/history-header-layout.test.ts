@@ -119,7 +119,7 @@ async function withSelector(
     } as never,
     {
       env: { NUB_IA_HISTORY_CAPTURE: "1" },
-      gentlePiConfigHome: fs.mkdtempSync(
+      nubiaConfigHome: fs.mkdtempSync(
         path.join(os.tmpdir(), "pi-history-header-config-"),
       ),
       root,

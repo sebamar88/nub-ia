@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { gentlePiConfigHome } from "./agent-home.ts";
+import { nubiaConfigHome } from "./agent-home.ts";
 import { configReadPath, readEnv } from "./config-home.ts";
 
 // ---------------------------------------------------------------------------
@@ -32,12 +32,12 @@ export interface DoubleEscCancelResolution {
 
 export interface LoadDoubleEscCancelOptions {
 	/** Override the config home directory (used in tests to avoid touching ~/.pi). */
-	gentlePiConfigHome?: string;
+	nubiaConfigHome?: string;
 	/** Override the environment lookup (used in tests). */
 	env?: Record<string, string | undefined>;
 }
 
-export const DOUBLE_ESC_CANCEL_SCHEMA = "gentle-pi.double-esc-cancel/v1";
+export const DOUBLE_ESC_CANCEL_SCHEMA = "nub-ia.double-esc-cancel/v1";
 export const DOUBLE_ESC_CANCEL_FILE = "double-esc-cancel.json";
 
 // Pi's own idle double-Esc (empty editor -> /tree or /fork, interactive-mode.js
@@ -51,7 +51,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Strict decode of {"schema":"gentle-pi.double-esc-cancel/v1","policy":"on"|"off"}.
+ * Strict decode of {"schema":"nub-ia.double-esc-cancel/v1","policy":"on"|"off"}.
  * Any malformed shape (bad JSON, wrong schema, unknown keys, invalid policy)
  * returns undefined so the caller fails closed to "off".
  */
@@ -90,7 +90,7 @@ export function resolveDoubleEscCancelPolicy(
 	const envValue = readEnv(env, "NUB_IA_DOUBLE_ESC_CANCEL");
 	let globalFile = "";
 	try {
-		const configHome = options.gentlePiConfigHome ?? gentlePiConfigHome(env);
+		const configHome = options.nubiaConfigHome ?? nubiaConfigHome(env);
 		globalFile = configReadPath(configHome, DOUBLE_ESC_CANCEL_FILE, env);
 		const globalFileExists = existsSync(globalFile);
 		if (globalFileExists) {
@@ -129,9 +129,9 @@ export function loadDoubleEscCancelPolicy(options: LoadDoubleEscCancelOptions = 
  */
 export function writeDoubleEscCancelPolicy(
 	policy: DoubleEscCancelPolicy,
-	options: { gentlePiConfigHome?: string } = {},
+	options: { nubiaConfigHome?: string } = {},
 ): string {
-	const configHome = options.gentlePiConfigHome ?? gentlePiConfigHome();
+	const configHome = options.nubiaConfigHome ?? nubiaConfigHome();
 	const path = join(configHome, DOUBLE_ESC_CANCEL_FILE);
 	mkdirSync(configHome, { recursive: true });
 	writeFileSync(path, `${JSON.stringify({ schema: DOUBLE_ESC_CANCEL_SCHEMA, policy }, null, 2)}\n`);

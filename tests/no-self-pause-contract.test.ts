@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-// gentle-shell#1731 T13 (evidence L24): in bench task x4 the user wrote "I may
-// stop you between the two and pick the second part up later"; every Gentle
+// nubia-shell#1731 T13 (evidence L24): in bench task x4 the user wrote "I may
+// stop you between the two and pick the second part up later"; every Nub-IA
 // cell delivered only the first part and paused by itself. Hedged delivery
 // wording asks for resumable notes and separate commits, never a stop, and
 // the close step must not leave tracked tasks pending without a user stop.

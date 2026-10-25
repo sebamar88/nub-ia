@@ -1,5 +1,5 @@
 // Interactive RPC host signal: the desktop app sets this environment variable
-// on the pi process it spawns directly (`--mode rpc`), letting Gentle answer
+// on the pi process it spawns directly (`--mode rpc`), letting Nub-IA answer
 // ask-user tools through pi's RPC dialogs and publish live subagent state.
 // `lib/agents-runner.ts` strips it from every subagent child env so headless
 // RPC children never see it and stay unaffected by this feature.

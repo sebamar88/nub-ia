@@ -1,6 +1,6 @@
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
-// Gentle Shell changes: the working tree against HEAD, new files included.
+// Nub-IA changes: the working tree against HEAD, new files included.
 // Git is the source of truth; this module turns raw `git diff --numstat` and
 // `git status --porcelain -z` output into a model and renders the widget.
 

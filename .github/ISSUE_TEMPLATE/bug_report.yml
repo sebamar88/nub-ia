@@ -52,7 +52,7 @@ body:
       required: true
 
   - type: input
-    id: gentle_pi_version
+    id: nubia_version
     attributes:
       label: Nub-IA version
       description: Provide the installed package version, or the commit if running from source.

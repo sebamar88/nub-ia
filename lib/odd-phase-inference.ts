@@ -1,6 +1,6 @@
-// Deterministic ODD phase inference from observed tool activity. The Gentle
+// Deterministic ODD phase inference from observed tool activity. The Nub-IA
 // Shell working label used to depend only on the model calling
-// gentle_odd_phase, which models routinely skip; the tools the primary
+// nubia_odd_phase, which models routinely skip; the tools the primary
 // session actually runs are a reliable, observable signal instead.
 //
 // The mapping is deliberately conservative: an unknown tool, unknown subagent

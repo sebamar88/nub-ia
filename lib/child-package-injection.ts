@@ -1,6 +1,6 @@
 import { isAbsolute } from "node:path";
 
-// #1690: the gentle-shell launcher injects the gentle-pi package into the
+// #1690: the nubia-shell launcher injects the nub-ia package into the
 // parent pi with `-e` instead of a settings declaration, so delegated children
 // would otherwise start without it. The launcher records the exact extension
 // set it injected in this variable; the subagent runner forwards that set to
@@ -11,7 +11,7 @@ const CHILD_PACKAGE_INJECTION_VERSION = 1;
 
 export interface ChildPackageInjection {
 	// True for a launcher takeover: the parent ran with --no-extensions, so the
-	// child must too, or settings discovery would load a second gentle-pi.
+	// child must too, or settings discovery would load a second nub-ia.
 	noExtensions: boolean;
 	// Absolute extension paths, in the order the launcher passed them to `-e`.
 	extensionPaths: string[];

@@ -1,10 +1,10 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { filterChildSessionContextFiles, type ContextFileOptions } from "../lib/child-context-files.ts";
 
-// gentle-shell#1587: delegated children drop the orchestrator-only gentle-ai
-// managed blocks from their context files. Gentle Agents passes this file to
-// every child with --extension because children do not load the gentle-pi
-// package in the isolated Gentle Shell home. It registers one hook and has no
+// nubia-shell#1587: delegated children drop the orchestrator-only nub-ia
+// managed blocks from their context files. Nub-IA Agents passes this file to
+// every child with --extension because children do not load the nub-ia
+// package in the isolated Nub-IA home. It registers one hook and has no
 // other side effects; outside a child session it is a no-op.
 export function createChildContextExtension(env: NodeJS.ProcessEnv = process.env): (pi: ExtensionAPI) => void {
 	return (pi) => {

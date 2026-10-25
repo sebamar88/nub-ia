@@ -32,8 +32,8 @@ test("loader reads top-level session files only and tolerates malformed lines", 
 
 test("loader returns nothing for a missing or empty sessions root", async () => {
 	const loader = createStatsLoader();
-	assert.deepEqual(await loader.load([join(tmpdir(), "gentle-stats-missing-root")]), []);
-	assert.deepEqual(await loader.load([mkdtempSync(join(tmpdir(), "gentle-stats-empty-"))]), []);
+	assert.deepEqual(await loader.load([join(tmpdir(), "nubia-stats-missing-root")]), []);
+	assert.deepEqual(await loader.load([mkdtempSync(join(tmpdir(), "nubia-stats-empty-"))]), []);
 	assert.deepEqual(await loader.load([]), []);
 });
 
@@ -59,7 +59,7 @@ test("a duplicate session keeps the copy with the most usage records, then the l
 		assert.deepEqual(sessions.find((session) => session.id === "bbb")!.messages.map((message) => message.total), [30, 70, 100]);
 		assert.equal(sessions.filter((session) => session.id === "aaa" || session.id === "bbb").length, 2);
 	}
-	const root = mkdtempSync(join(tmpdir(), "gentle-stats-tie-"));
+	const root = mkdtempSync(join(tmpdir(), "nubia-stats-tie-"));
 	const header = (id: string) => JSON.stringify({ type: "session", version: 3, id, timestamp: "2026-09-01T00:00:00.000Z", cwd: "/t" });
 	const usage = (at: string, total: number) => JSON.stringify({ type: "message", timestamp: at, message: { role: "assistant", model: "m", usage: { output: total } } });
 	const write = (dir: string, name: string, lines: string[]) => { mkdirSync(join(root, dir), { recursive: true }); writeFileSync(join(root, dir, name), `${lines.join("\n")}\n`); };
@@ -74,9 +74,9 @@ test("a duplicate session keeps the copy with the most usage records, then the l
 });
 
 test("alias roots (trailing slash, dot segments, symlinks) and missing roots never double count", async () => {
-	const link = join(mkdtempSync(join(tmpdir(), "gentle-stats-alias-")), "sessions-link");
+	const link = join(mkdtempSync(join(tmpdir(), "nubia-stats-alias-")), "sessions-link");
 	symlinkSync(SESSIONS, link, "dir");
-	const missing = join(tmpdir(), "gentle-stats-missing-root");
+	const missing = join(tmpdir(), "nubia-stats-missing-root");
 	const once = aggregateStats(await createStatsLoader().load([SESSIONS]), filter());
 	const aliased = aggregateStats(await createStatsLoader().load([SESSIONS, `${SESSIONS}/`, join(SESSIONS, "..", "sessions"), link, missing]), filter());
 	assert.deepEqual(aliased.totals, once.totals);

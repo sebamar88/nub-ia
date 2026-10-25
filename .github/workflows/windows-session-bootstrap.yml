@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   test:
-    if: github.repository == 'decode2/gentle-pi'
+    if: github.repository == 'decode2/nub-ia'
     strategy:
       fail-fast: false
       matrix:

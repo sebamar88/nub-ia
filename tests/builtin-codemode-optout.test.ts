@@ -12,17 +12,17 @@ import {
 	withBuiltinExtensionExcluded,
 } from "../lib/builtin-codemode-optout.ts";
 
-// gentle-pi replaces Pi's builtin codemode with its compact renderer, so Pi
-// warns at every startup. In a user-owned Pi home gentle-pi may only add the
+// nub-ia replaces Pi's builtin codemode with its compact renderer, so Pi
+// warns at every startup. In a user-owned Pi home nub-ia may only add the
 // `-builtin:codemode` opt-out after the user accepts a one-time prompt.
 
 type Prompt = { title: string; message: string };
 
 function fixture(t: TestContext, settings?: string) {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-codemode-optout-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-codemode-optout-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	const agentDir = join(root, "agent");
-	const configHome = join(root, "gentle-ai");
+	const configHome = join(root, "nub-ia");
 	mkdirSync(agentDir, { recursive: true });
 	const settingsPath = join(agentDir, "settings.json");
 	if (settings !== undefined) writeFileSync(settingsPath, settings);

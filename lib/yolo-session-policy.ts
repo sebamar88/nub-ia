@@ -4,12 +4,12 @@ import { captureSessionIdentity, sameSessionIdentity, type SessionIdentity } fro
 
 export const YOLO_STATUS_KEY = "nubia:yolo";
 export const YOLO_STATUS_TEXT = "🚀 YOLO ON 🔥 — destructive confirmations remain";
-export const YOLO_DIRECTIVE = `<gentle-yolo-session>
+export const YOLO_DIRECTIVE = `<nubia-yolo-session>
 YOLO session standing permission is ON, explicitly activated by the human for this live primary session and Git clone.
 Qualify the default commit, push and PR confirmation clauses: for ordinary already-scoped implementation, checks, commits, non-force pushes and PR creation, this activation supplies standing permission instead of repeated permission questions. Make ordinary reversible implementation choices without needless interviews.
 This does NOT override explicit human restrictions, repository policy, project trust, configured confirmations or blocks, or the authorized task scope. Ask before scope expansion, privacy-sensitive disclosure, genuinely unresolved consequential product choices, or ambiguous destinations or credentials. Never invent destinations or credentials.
 Destructive/data-loss confirmations remain mandatory and independent. Never auto-answer ask_user tools, maintenance/recovery authorization or opaque-token decisions. Children remain bounded by their delegated task; they receive no independent delivery grant or YOLO inheritance.
-</gentle-yolo-session>`;
+</nubia-yolo-session>`;
 
 /** No registry, entries, configuration or environment enable switch. */
 export class YoloSessionPolicy {
@@ -219,7 +219,7 @@ export function registerYoloSessionPolicy(pi: ExtensionAPI, env: NodeJS.ProcessE
 			if (!args.trim() && context.hasUI && typeof context.ui.select === "function") {
 				current = bindCurrent(context);
 				const state = await active(context) ? YOLO_DISPLAY.on : YOLO_DISPLAY.off;
-				const selected = await context.ui.select(`🚀 Gentle YOLO 🔥 — full speed, destructive actions still ask (current: ${state})`, ["enable", "disable", "status"]);
+				const selected = await context.ui.select(`🚀 Nub-IA YOLO 🔥 — full speed, destructive actions still ask (current: ${state})`, ["enable", "disable", "status"]);
 				if (selected === undefined) return;
 				action = selected;
 			}

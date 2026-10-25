@@ -1,5 +1,5 @@
 // Nub-IA review: in-process 4R code review and a push gate, replacing the
-// gentle-ai native review (RDD) binary with a Pi-only extension.
+// nub-ia native review (RDD) binary with a Pi-only extension.
 //
 // `nub_review` (tool) and `/nubia:review` (command) take the current diff
 // (staged, working tree, or base..HEAD), hand it to the four packaged lens

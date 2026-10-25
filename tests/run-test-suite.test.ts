@@ -66,7 +66,7 @@ test("all-pass summary reports success", async () => {
 const runnerPath = join(dirname(fileURLToPath(import.meta.url)), "..", "scripts", "run-test-suite.mjs");
 
 function writeStagesFile(t: test.TestContext, stages: Array<{ name: string; command: string }>): string {
-	const dir = mkdtempSync(join(tmpdir(), "gentle-pi-run-test-suite-"));
+	const dir = mkdtempSync(join(tmpdir(), "nub-ia-run-test-suite-"));
 	t.after(() => rmSync(dir, { recursive: true, force: true }));
 	const stagesPath = join(dir, "stages.json");
 	writeFileSync(stagesPath, JSON.stringify(stages));
@@ -95,7 +95,7 @@ test("direct invocation exits 0 when every stage passes", (t) => {
 });
 
 test("direct invocation still runs stages when reached through a file symlink", (t) => {
-	const dir = mkdtempSync(join(tmpdir(), "gentle-pi-run-test-suite-"));
+	const dir = mkdtempSync(join(tmpdir(), "nub-ia-run-test-suite-"));
 	t.after(() => rmSync(dir, { recursive: true, force: true }));
 	const linkPath = join(dir, "runner-link.mjs");
 	try {
@@ -112,7 +112,7 @@ test("direct invocation still runs stages when reached through a file symlink", 
 });
 
 test("direct invocation rejects a malformed stages file with a non-zero exit", (t) => {
-	const dir = mkdtempSync(join(tmpdir(), "gentle-pi-run-test-suite-"));
+	const dir = mkdtempSync(join(tmpdir(), "nub-ia-run-test-suite-"));
 	t.after(() => rmSync(dir, { recursive: true, force: true }));
 	const stagesPath = join(dir, "stages.json");
 	writeFileSync(stagesPath, JSON.stringify([{ name: "missing-command" }]));

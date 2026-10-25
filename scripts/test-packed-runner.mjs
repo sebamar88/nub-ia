@@ -81,8 +81,8 @@ const UNHOOKED_CHECK_IDS = new Set([
 	"asset-runtime-windows-session-transport-owned", "asset-runtime-windows-session-transport-hash",
 	"asset-lib-windows-session-transport-owned", "asset-lib-windows-session-transport-hash",
 	"asset-lib-agents-session-transport-owned", "asset-lib-agents-session-transport-hash",
-	"asset-extension-gentle-agents-owned", "asset-extension-gentle-agents-hash",
-	"asset-extension-gentle-ai-owned", "asset-extension-gentle-ai-hash",
+	"asset-extension-nubia-agents-owned", "asset-extension-nubia-agents-hash",
+	"asset-extension-nub-ia-owned", "asset-extension-nub-ia-hash",
 	"asset-installer-tui-mode-setting-owned", "asset-installer-tui-mode-setting-hash",
 	"native-package-cache-absent", "native-command-absent", "sdk-manifest-owned", "sdk-version", "jiti-manifest-owned", "jiti-static-export", "jiti-entry-owned", "jiti-version",
 	"home-empty", "nub-ia-agent-empty", "pi-coding-agent-empty", "nub-ia-config-empty", "xdg-config-empty", "xdg-cache-empty", "xdg-data-empty", "appdata-empty", "local-appdata-empty",
@@ -648,7 +648,7 @@ function isolatedUnhookedEnvironment(temporary) {
 	const home = join(homes, "home");
 	const agentHome = join(homes, "nub-ia-agent");
 	const piAgentHome = join(homes, "pi-coding-agent");
-	const gentleConfigHome = join(homes, "nub-ia-config");
+	const nubiaConfigHome = join(homes, "nub-ia-config");
 	const xdgConfigHome = join(homes, "xdg-config");
 	const xdgCacheHome = join(homes, "xdg-cache");
 	const xdgDataHome = join(homes, "xdg-data");
@@ -659,12 +659,12 @@ function isolatedUnhookedEnvironment(temporary) {
 	const passthrough = ["PATH", "SystemRoot", "SYSTEMROOT", "WINDIR", "ComSpec", "PATHEXT", "OS", "CI", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE"];
 	const env = {};
 	for (const key of passthrough) if (typeof process.env[key] === "string") env[key] = process.env[key];
-	for (const directory of [homes, home, agentHome, piAgentHome, gentleConfigHome, xdgConfigHome, xdgCacheHome, xdgDataHome, appData, localAppData, npmCache]) mkdirSync(directory, { recursive: true });
+	for (const directory of [homes, home, agentHome, piAgentHome, nubiaConfigHome, xdgConfigHome, xdgCacheHome, xdgDataHome, appData, localAppData, npmCache]) mkdirSync(directory, { recursive: true });
 	Object.assign(env, {
 		HOME: home, USERPROFILE: home, APPDATA: appData, LOCALAPPDATA: localAppData,
 		XDG_CONFIG_HOME: xdgConfigHome, XDG_CACHE_HOME: xdgCacheHome, XDG_DATA_HOME: xdgDataHome,
 		TMPDIR: temporary, TMP: temporary, TEMP: temporary,
-		NUB_IA_AGENT_HOME: agentHome, NUB_IA_CONFIG_HOME: gentleConfigHome, PI_CODING_AGENT_DIR: piAgentHome,
+		NUB_IA_AGENT_HOME: agentHome, NUB_IA_CONFIG_HOME: nubiaConfigHome, PI_CODING_AGENT_DIR: piAgentHome,
 		NPM_CONFIG_CACHE: npmCache, npm_config_cache: npmCache, NPM_CONFIG_USERCONFIG: npmUserConfig, npm_config_userconfig: npmUserConfig,
 		NPM_CONFIG_TMP: temporary, npm_config_tmp: temporary, NPM_CONFIG_IGNORE_SCRIPTS: "true", npm_config_ignore_scripts: "true",
 		NPM_CONFIG_UPDATE_NOTIFIER: "false", npm_config_update_notifier: "false",
@@ -679,7 +679,7 @@ function isolatedUnhookedEnvironment(temporary) {
 			{ checkId: "home-empty", path: home },
 			{ checkId: "nub-ia-agent-empty", path: agentHome },
 			{ checkId: "pi-coding-agent-empty", path: piAgentHome },
-			{ checkId: "nub-ia-config-empty", path: gentleConfigHome },
+			{ checkId: "nub-ia-config-empty", path: nubiaConfigHome },
 			{ checkId: "xdg-config-empty", path: xdgConfigHome },
 			{ checkId: "xdg-cache-empty", path: xdgCacheHome },
 			{ checkId: "xdg-data-empty", path: xdgDataHome },
@@ -779,8 +779,8 @@ const HASHED_PACKED_ASSETS = [
 	{ ownedCheckId: "asset-runtime-windows-session-transport-owned", hashCheckId: "asset-runtime-windows-session-transport-hash", relativePath: "runtime/windows-session-transport.ps1" },
 	{ ownedCheckId: "asset-lib-windows-session-transport-owned", hashCheckId: "asset-lib-windows-session-transport-hash", relativePath: "lib/windows-session-transport.ts" },
 	{ ownedCheckId: "asset-lib-agents-session-transport-owned", hashCheckId: "asset-lib-agents-session-transport-hash", relativePath: "lib/agents-session-transport.ts" },
-	{ ownedCheckId: "asset-extension-gentle-agents-owned", hashCheckId: "asset-extension-gentle-agents-hash", relativePath: "extensions/nubia-agents.ts" },
-	{ ownedCheckId: "asset-extension-gentle-ai-owned", hashCheckId: "asset-extension-gentle-ai-hash", relativePath: "extensions/nubia-harness.ts" },
+	{ ownedCheckId: "asset-extension-nubia-agents-owned", hashCheckId: "asset-extension-nubia-agents-hash", relativePath: "extensions/nubia-agents.ts" },
+	{ ownedCheckId: "asset-extension-nub-ia-owned", hashCheckId: "asset-extension-nub-ia-hash", relativePath: "extensions/nubia-harness.ts" },
 	{ ownedCheckId: "asset-installer-tui-mode-setting-owned", hashCheckId: "asset-installer-tui-mode-setting-hash", relativePath: "scripts/install-tui-mode-setting.mjs" },
 ];
 
@@ -797,10 +797,10 @@ function assertPackedAssets(packageRoot, receipt) {
 
 function assertNoNativeInstallerArtifacts(packageRoot, consumerDirectory, receipt) {
 	selectUnhookedCheck(receipt, "native-package-cache-absent");
-	if (existsSync(join(packageRoot, ".gentle-ai"))) throw new Error("unhooked install unexpectedly contains a native gentle-ai artifact");
+	if (existsSync(join(packageRoot, ".nub-ia"))) throw new Error("unhooked install unexpectedly contains a native nub-ia artifact");
 	selectUnhookedCheck(receipt, "native-command-absent");
-	const nativeCommand = process.platform === "win32" ? "gentle-ai.cmd" : "gentle-ai";
-	if (existsSync(join(consumerDirectory, "node_modules", ".bin", nativeCommand))) throw new Error("unhooked install unexpectedly exposed a native gentle-ai executable");
+	const nativeCommand = process.platform === "win32" ? "nub-ia.cmd" : "nub-ia";
+	if (existsSync(join(consumerDirectory, "node_modules", ".bin", nativeCommand))) throw new Error("unhooked install unexpectedly exposed a native nub-ia executable");
 }
 
 function compareRelease(left, right) {
@@ -877,7 +877,7 @@ async function register(relativePath) {
 }
 await register("extensions/nubia-agents.ts");
 await register("extensions/nubia-harness.ts");
-for (const name of ["subagent_list_agents", "subagent_run", "orchestrator_session_id", "orchestrator_list", "orchestrator_send_message", "gentle_odd_phase"]) assert.ok(registrations.tools.includes(name), \`missing registered tool: \${name}\`);
+for (const name of ["subagent_list_agents", "subagent_run", "orchestrator_session_id", "orchestrator_list", "orchestrator_send_message", "nubia_odd_phase"]) assert.ok(registrations.tools.includes(name), \`missing registered tool: \${name}\`);
 for (const name of ["nubia:agents", "nubia:status", "nubia:doctor"]) assert.ok(registrations.commands.includes(name), \`missing registered command: \${name}\`);
 assert.ok(registrations.events.includes("session_start"), "expected session_start registration");
 assert.ok(registrations.events.includes("session_shutdown"), "expected session_shutdown registration");
@@ -1180,7 +1180,7 @@ try {
   const cwd = join(probeRoot, "cwd");
   const sessionRoot = join(probeRoot, "sessions");
   const modelRoot = join(probeRoot, "model-runtime");
-  for (const path of [probeRoot, cwd, sessionRoot, modelRoot, agentHome, join(agentHome, "gentle-agents")]) mkdirSync(path, { recursive: true });
+  for (const path of [probeRoot, cwd, sessionRoot, modelRoot, agentHome, join(agentHome, "nubia-agents")]) mkdirSync(path, { recursive: true });
   checkpoint("sdk-load", "sdk-import");
   const sdk = await within(load(import("@earendil-works/pi-coding-agent")), 30000);
   progress.sdkLoaded = true;
@@ -1192,14 +1192,14 @@ try {
   assert.equal(typeof createJiti, "function", "Jiti static export is unavailable");
   const jiti = createJiti(pathToFileURL(${JSON.stringify(consumerPackageJson)}).href, { moduleCache: false });
   const agentsExtensionPath = join(${JSON.stringify(packageRoot)}, "extensions", "nubia-agents.ts");
-  const gentleAiExtensionPath = join(${JSON.stringify(packageRoot)}, "extensions", "nubia-harness.ts");
+  const nubiaExtensionPath = join(${JSON.stringify(packageRoot)}, "extensions", "nubia-harness.ts");
   checkpoint("agents-module-load", "agents-module-import");
   const { createDefaultSessionTransport } = await within(load(jiti.import(pathToFileURL(agentsExtensionPath).href)), 30000);
   checkpoint("agents-module-load", "agents-module-export");
   assert.equal(typeof createDefaultSessionTransport, "function", "packaged agents transport export is unavailable");
       const { WindowsSessionRegistryPhaseSequence } = await within(load(jiti.import(pathToFileURL(join(${JSON.stringify(packageRoot)}, "lib", "windows-session-transport.ts")).href)), 30000);
       assert.equal(typeof WindowsSessionRegistryPhaseSequence, "function", "packaged Windows phase sequence export is unavailable");
-  const expectedExtensionPaths = [agentsExtensionPath, gentleAiExtensionPath];
+  const expectedExtensionPaths = [agentsExtensionPath, nubiaExtensionPath];
   checkpoint("services", "settings-untrusted");
   settingsManager = SettingsManager.inMemory({}, { projectTrusted: false });
   assert.equal(settingsManager.isProjectTrusted(), false, "in-memory settings must keep project discovery untrusted");

@@ -4,10 +4,10 @@ import { formatCost, formatTokens } from "./shell-bar.ts";
 import { paintHoverable } from "./shell-hover.ts";
 import { aggregateStats, daysBetween, shiftDay, STATS_RANGE, STATS_SCOPE, weekdayOf, type CurrentSessionStats, type SessionRecord, type StatsRange, type StatsScope, type StatsSummary, type TokenTotals } from "./stats-collector.ts";
 
-// Gentle Stats overlay: historical usage from local Pi sessions in three
+// Nub-IA Stats overlay: historical usage from local Pi sessions in three
 // tabs. Overview is a weekday-by-week heatmap plus headline figures, Models
 // splits tokens and cost per model, Session describes the live session. All
-// colors come from theme roles so the panel follows the active Gentle theme.
+// colors come from theme roles so the panel follows the active Nub-IA theme.
 
 export interface StatsViewTheme {
 	fg(role: string, text: string): string;

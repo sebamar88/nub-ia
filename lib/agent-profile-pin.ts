@@ -6,8 +6,8 @@
 // A pin re-anchors only the subagent routing of one repository to a named profile
 // from the global store, at launch time, without materialising anything:
 //
-//   local pin         <git-common-dir>/gentle-ai/profile-pin.json
-//   repo declaration  <worktree-root>/.pi/gentle-ai/profile.json
+//   local pin         <git-common-dir>/nub-ia/profile-pin.json
+//   repo declaration  <worktree-root>/.pi/nub-ia/profile.json
 //
 // The local pin sits inside the Git common directory, so it is invisible to Git
 // and shared by every worktree of the clone; the repo declaration is an ordinary
@@ -29,7 +29,7 @@ import { isValidProfileName, profileRoleEntries, profilesReadFilePath, readProfi
 import type { AgentModelConfig } from "./model-routing-authority.ts";
 import { resolveSessionWorktreeWithGit, type WorktreeIdentity, type WorktreeResolver } from "./session-worktree-registry.ts";
 
-export const PROFILE_PIN_KIND = "gentle-pi.agent_model_profile_pin";
+export const PROFILE_PIN_KIND = "nub-ia.agent_model_profile_pin";
 export const PROFILE_PIN_VERSION = 1;
 // Ordered root .gitignore rules that expose only the committable declaration.
 // Git cannot re-include a file while an excluded parent directory remains hidden,
@@ -37,9 +37,9 @@ export const PROFILE_PIN_VERSION = 1;
 export const REPO_PROFILE_DECLARATION_GITIGNORE_RULES = [
 	"!.pi/",
 	".pi/*",
-	"!.pi/gentle-ai/",
-	".pi/gentle-ai/*",
-	"!.pi/gentle-ai/profile.json",
+	"!.pi/nub-ia/",
+	".pi/nub-ia/*",
+	"!.pi/nub-ia/profile.json",
 ] as const;
 
 export interface AgentProfilePinFile {
@@ -109,11 +109,11 @@ export interface ProfilePinResolution extends ProfilePinSelection {
 }
 
 export function localProfilePinPath(commonDir: string): string {
-	return join(commonDir, "gentle-ai", "profile-pin.json");
+	return join(commonDir, "nub-ia", "profile-pin.json");
 }
 
 export function repoProfileDeclarationPath(worktreeRoot: string): string {
-	return join(worktreeRoot, ".pi", "gentle-ai", "profile.json");
+	return join(worktreeRoot, ".pi", "nub-ia", "profile.json");
 }
 
 // Where to READ the repository declaration: `.pi/nub-ia/profile.json` first, then
@@ -198,7 +198,7 @@ export function setProfilePinWorktreeResolverForTesting(resolver?: WorktreeResol
 	profilePinWorktreeResolver = resolver ?? resolveSessionWorktreeWithGit;
 }
 
-function gentlePiWorktreeIdentity(
+function nubiaWorktreeIdentity(
 	cwd: string,
 	resolveWorktree: WorktreeResolver,
 ): WorktreeIdentity | undefined {
@@ -220,7 +220,7 @@ export function readProfilePinStatus(
 	cwd: string,
 	resolveWorktree: WorktreeResolver = profilePinWorktreeResolver,
 ): ProfilePinStatus | undefined {
-	const identity = gentlePiWorktreeIdentity(cwd, resolveWorktree);
+	const identity = nubiaWorktreeIdentity(cwd, resolveWorktree);
 	if (!identity) return undefined;
 	const localPath = localProfilePinPath(identity.commonDir);
 	const repoPath = repoProfileDeclarationReadPath(identity.root);

@@ -33,7 +33,7 @@ import type {
 	ToolCallEventResult,
 } from "@earendil-works/pi-coding-agent";
 import { Key, Text, isKeyRelease, matchesKey, truncateToWidth, type KeybindingsManager, type TuiMouseEvent, type TuiMouseEventResult } from "@earendil-works/pi-tui";
-import { resolveGentlePiAgentHome, gentlePiConfigHome } from "../lib/agent-home.ts";
+import { resolveNubiaAgentHome, nubiaConfigHome } from "../lib/agent-home.ts";
 import {
 	BACKGROUND_SUBAGENTS_FILE,
 	BACKGROUND_SUBAGENTS_SCHEMA,
@@ -121,8 +121,8 @@ import { buildMinimalPrompt, isPromptProfile, PROMPT_PROFILES, type PromptProfil
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const ASSETS_DIR = join(PACKAGE_ROOT, "assets");
 
-function gentlePiAgentHome(): string {
-	return resolveGentlePiAgentHome();
+function nubiaAgentHome(): string {
+	return resolveNubiaAgentHome();
 }
 
 function packageAssetAudit(owner: PackageAssetOwner): { stale: number; overrides: number } {
@@ -131,13 +131,13 @@ function packageAssetAudit(owner: PackageAssetOwner): { stale: number; overrides
 	for (const [assetSubdir, installedSubdir, ownershipPrefix] of [
 		["agents", "agents", "agents"],
 		["chains", "chains", "chains"],
-		["support", join("gentle-ai", "support"), "gentle-ai/support"],
+		["support", join("nub-ia", "support"), "nub-ia/support"],
 	] as const) {
 		const assetDir = join(ASSETS_DIR, assetSubdir);
 		if (!existsSync(assetDir)) continue;
 		for (const entry of readdirSync(assetDir, { withFileTypes: true })) {
 			if (!entry.isFile() || getPackageAssetOwner(`${ownershipPrefix}/${entry.name}`) !== owner) continue;
-			const installedPath = join(gentlePiAgentHome(), installedSubdir, entry.name);
+			const installedPath = join(nubiaAgentHome(), installedSubdir, entry.name);
 			try {
 				if (!existsSync(installedPath)) {
 					stale += 1;
@@ -241,7 +241,7 @@ const DEFAULT_BACKGROUND_SUBAGENTS_RENDERING: BackgroundSubagentsRendering = {
 /** Write the global policy file, creating the config home when needed. */
 function writeGlobalBackgroundSubagentsPolicy(
 	policy: BackgroundSubagentsPolicy,
-	configHome: string = gentleAiConfigHome(),
+	configHome: string = nubiaDefaultConfigHome(),
 ): string {
 	const path = join(configHome, BACKGROUND_SUBAGENTS_FILE);
 	mkdirSync(configHome, { recursive: true });
@@ -578,7 +578,7 @@ function renderBackgroundSubagentsStatusLine(
 	return `Background subagent policy: ${background.policy} (capability: ${background.capability})`;
 }
 
-// gentle-shell#1731 T27: `pi -p` and `pi --mode json` run one prompt and then
+// nubia-shell#1731 T27: `pi -p` and `pi --mode json` run one prompt and then
 // dispose the runtime, so background results can never arrive. Mirrors
 // isSingleShotMode in extensions/nubia-agents.ts, which rejects the launch.
 function isSingleShotHostMode(mode: string | undefined): boolean {
@@ -613,9 +613,9 @@ function renderOrchestratorPrompt(
 ): string {
 	const backgroundPolicyBlock = renderBackgroundSubagentsStatusLine(background);
 	return readFileSync(join(assetsDir, "orchestrator.md"), "utf8")
-		.replaceAll("{{GENTLE_PI_ASSETS_ROOT}}", assetsDir)
+		.replaceAll("{{NUB_IA_ASSETS_ROOT}}", assetsDir)
 		.replaceAll(
-			"{{GENTLE_PI_BACKGROUND_POLICY}}",
+			"{{NUB_IA_BACKGROUND_POLICY}}",
 			backgroundPolicyBlock,
 		)
 		.trim();
@@ -653,7 +653,7 @@ const NEUTRAL_PERSONA_PROMPT = `Persona:
 - Push back when the user asks for code without enough context or understanding.
 - Correct errors directly, explain why, and show the better path.`;
 
-function buildGentlePrompt(
+function buildNubiaPrompt(
 	persona: PersonaMode,
 	cwd: string = process.cwd(),
 	activeTools?: readonly string[],
@@ -703,7 +703,7 @@ Organic Driven Development (ODD) is the predefined workflow of this orchestrator
 5. **Track before the first write.** For large authorized implementation, create \`odd/tasks/<feature-name>.md\` and its Engram mirror \`odd/<feature-name>/tasks\` automatically, then create or rebuild the visible \`todo\` list from the reconciled feature tasks, all before the first source write and without asking permission for tasks or storage. Tell the user in one line which feature document was created and how many tasks it holds. The document is the specification subagents read, in this order: a two- or three-line header; \`## Specs\` with numbered \`S#\` that quote the user's exact strings, error messages, and examples verbatim, never summarized and never adding unrequested requirements; \`## Tasks\` with one line per task (ID, linked \`S#\`, route, commit); \`## Log\` last, where \`L1\` is the user's original request verbatim and later user corrections, evidence, and decisions are appended. A requirement change appends its verbatim Log entry, rewrites only the affected \`S#\`, and reopens only its task.
 6. **Implement task by task.** Hand off by reference, never by paraphrase: name the document, task, and specs (for example \`Spec: odd/tasks/<feature>.md, T2, S3-S4\`), tell workers to read until \`## Log\`, and ask which \`S#\` were covered. Without a feature document, include the user's request verbatim. Verify reads the whole document, runs the spec's examples the parent authorized, against isolated state when they mutate data, and returns a verdict per \`S#\`. When the user reports a failure, reproduce it before deciding it already works. Each test asserts every observable effect of the rule it covers (exit code, exact stdout and stderr, and that rejected input leaves stored data and counters unchanged), covers the cases the rule itself names (its examples, boundaries, and errors), and checks through the public interface, never internal storage. When you add or change a command, option, or message, update the help text and docs that describe it. Route each task through the orchestrator's Mechanisms, honoring its mandatory delegation triggers, with applicable test-first development and checks. These triggers are mandatory, not advisory: executing past a fired trigger inline is a routing defect even if the work succeeds. Check an item off only after its outcome and checks were observed; update the file, mirror, and visible \`todo\` projection after every task transition and material plan change. Every tracked task closes with at least one work-unit commit on the feature branch, branch first when on the default branch, with tests and docs alongside the behavior, using a Conventional Commit message; record the commit identity in the feature document as evidence. Work-unit commits on the feature branch are part of authorized large ODD implementation; push, pull request creation, and merge remain the user's decisions.
 7. **Close.** Report the verified outcome, every failed, skipped, or pending check, and the next step. Before writing \`Risk: none\`, check whether your diff changes code that existing behavior the request did not mention also uses (shared options, parsers, helpers); if it does, that is item 3. Never end with a tracked task pending unless you quote the user's explicit stop. An applicable quick check runs once; an unavailable verifier or subagent is reported as unavailable, never retried or escalated into extra ceremony. Partial, blocked, unavailable, or exhausted proof becomes one **Needs your decision** result naming the open blockers or missing proof, never more verification; that result is a valid stop, hedged wording is not. For a non-trivial change, run \`nub_review\` over the diff before delivery and address its BLOCKER/CRITICAL findings; the push gate asks for confirmation when changes were not reviewed or were blocked.
-Phase reporting: the Nub-IA prompt label is inferred automatically from the primary session's tool activity (reads show \`exploring\`, edits \`implementing\`, test runs \`checking\`, user questions \`deciding\`). When the \`gentle_odd_phase\` tool is available, use it to refine that label with phases tools cannot show (\`authorizing\`, \`researching\`, \`deciding\`, \`closing\`): call \`gentle_odd_phase\` only when the primary session's ODD phase actually changes, never per tool call or on a fixed cadence, and never from a subagent. It drives the Gentle Shell prompt label only.
+Phase reporting: the Nub-IA prompt label is inferred automatically from the primary session's tool activity (reads show \`exploring\`, edits \`implementing\`, test runs \`checking\`, user questions \`deciding\`). When the \`nubia_odd_phase\` tool is available, use it to refine that label with phases tools cannot show (\`authorizing\`, \`researching\`, \`deciding\`, \`closing\`): call \`nubia_odd_phase\` only when the primary session's ODD phase actually changes, never per tool call or on a fixed cadence, and never from a subagent. It drives the Nub-IA prompt label only.
 Resume an interrupted feature with \`mem_context\`, then project- and feature-scoped \`mem_search\`, then \`mem_get_observation\` for the full document, then the task file itself; reconcile before continuing the next unfinished task. Detail for steps 3–7: \`orchestrator-delegation.md\` and \`orchestrator-memory.md\`.
 
 Harness principles:
@@ -782,7 +782,7 @@ interface RuntimeGuardrailsConfig {
 
 interface LoadGuardrailsOptions {
 	/** Override the config home directory (used in tests to avoid touching ~/.pi). */
-	gentlePiConfigHome?: string;
+	nubiaConfigHome?: string;
 }
 
 const GUARDED_KEY_PATTERNS: Record<GuardedCommandKey, RegExp> = {
@@ -947,7 +947,7 @@ function parseGuardrailsConfigFile(
  * Resolution order (project overrides global):
  *   1. Check NUB_IA_AUTONOMOUS_MODE env var — if "1", forces autonomousMode=true
  *      and uses default guarded command actions.
- *   2. Read global config from ${gentlePiConfigHome}/runtime-guardrails.json
+ *   2. Read global config from ${nubiaConfigHome}/runtime-guardrails.json
  *   3. Read project config from ${cwd}/.pi/nub-ia/runtime-guardrails.json (legacy .pi/gentle-ai/ read as fallback)
  *      (project values are merged on top of global)
  *   4. Any parse/read error anywhere → fail safe (return SAFE_GUARDRAILS_CONFIG)
@@ -962,7 +962,7 @@ function loadRuntimeGuardrailsConfig(
 			return { autonomousMode: true, guardedCommands: {} };
 		}
 
-		const configHome = options.gentlePiConfigHome ?? gentleAiConfigHome();
+		const configHome = options.nubiaConfigHome ?? nubiaDefaultConfigHome();
 		const globalConfigPath = configReadPath(configHome, "runtime-guardrails.json");
 		const projectConfigPath = projectConfigReadPath(cwd, "runtime-guardrails.json");
 
@@ -1012,7 +1012,7 @@ const PATH_INPUT_KEYS = new Set([
 const SENSITIVE_PATH_PATTERNS: RegExp[] = [
 	/(^|\/)\.ssh(?:\/|$)/,
 	/(^|\/)\.credentials(?:\/|$)/,
-	/(^|\/)\.pi\/(?:nub-ia|gentle-ai)(?:\/|$)/,
+	/(^|\/)\.pi\/(?:nub-ia|nub-ia)(?:\/|$)/,
 	/(^|\/)library\/keychains(?:\/|$)/,
 	/(^|\/)\.aws\/credentials$/,
 	/(^|\/)\.config\/gh\/hosts\.ya?ml$/,
@@ -1140,8 +1140,8 @@ function evaluateSensitivePathTool(
 	};
 }
 
-const ASK_USER_CHOICE_BLOCKED_EVENT = "gentle-pi:ask-user-choice:blocked";
-const ASK_USER_QUESTION_BLOCKED_EVENT = "gentle-pi:ask-user-question:blocked";
+const ASK_USER_CHOICE_BLOCKED_EVENT = "nub-ia:ask-user-choice:blocked";
+const ASK_USER_QUESTION_BLOCKED_EVENT = "nub-ia:ask-user-question:blocked";
 
 const HERDR_BLOCKER_LABEL = {
 	CHOICE: "Choice awaiting input",
@@ -1218,7 +1218,7 @@ function isOrdinaryYoloPush(command: string, evaluation: GuardEvaluation): boole
 /** Preserve explicitly configured confirmations even when legacy env/autonomy resolution ignores them. */
 function yoloPushConfiguredRestriction(cwd: string, options: LoadGuardrailsOptions = {}): GuardAction | undefined {
 	let restriction: GuardAction | undefined;
-	for (const path of [configReadPath(options.gentlePiConfigHome ?? gentleAiConfigHome(), "runtime-guardrails.json"), projectConfigReadPath(cwd, "runtime-guardrails.json")]) {
+	for (const path of [configReadPath(options.nubiaConfigHome ?? nubiaDefaultConfigHome(), "runtime-guardrails.json"), projectConfigReadPath(cwd, "runtime-guardrails.json")]) {
 		try {
 			if (!existsSync(path)) continue;
 			const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
@@ -1321,28 +1321,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function gentleAiConfigHome(): string {
-	return gentlePiConfigHome();
+function nubiaDefaultConfigHome(): string {
+	return nubiaConfigHome();
 }
 
 function modelConfigPath(_cwd: string): string {
-	return join(gentleAiConfigHome(), "models.json");
+	return join(nubiaDefaultConfigHome(), "models.json");
 }
 
 function modelExportPath(_cwd: string): string {
-	return join(gentleAiConfigHome(), "models.export.json");
+	return join(nubiaDefaultConfigHome(), "models.export.json");
 }
 
-// READ paths fall back to the legacy gentle-ai home; the functions above are the WRITE targets.
+// READ paths fall back to the legacy nub-ia home; the functions above are the WRITE targets.
 function modelConfigReadPath(_cwd: string): string {
-	return configReadPath(gentleAiConfigHome(), "models.json");
+	return configReadPath(nubiaDefaultConfigHome(), "models.json");
 }
 
 function modelExportReadPath(_cwd: string): string {
-	return configReadPath(gentleAiConfigHome(), "models.export.json");
+	return configReadPath(nubiaDefaultConfigHome(), "models.export.json");
 }
 
-const MODEL_EXPORT_KIND = "gentle-pi.agent_model_routing";
+const MODEL_EXPORT_KIND = "nub-ia.agent_model_routing";
 const MODEL_EXPORT_VERSION = 1;
 
 function legacyProjectModelConfigPath(cwd: string): string {
@@ -1358,11 +1358,11 @@ function projectPersonaConfigReadPath(cwd: string): string {
 }
 
 function personaConfigPath(_cwd: string): string {
-	return join(gentleAiConfigHome(), "persona.json");
+	return join(nubiaDefaultConfigHome(), "persona.json");
 }
 
 function personaConfigReadPath(_cwd: string): string {
-	return configReadPath(gentleAiConfigHome(), "persona.json");
+	return configReadPath(nubiaDefaultConfigHome(), "persona.json");
 }
 
 function readPersonaFile(path: string): PersonaMode | undefined {
@@ -1613,7 +1613,7 @@ async function readMaterializedRoutingEntryAsync(
  * would use -- there is no second precedence rule here.
  */
 function pinnedEffectiveModelConfig(cwd: string): AgentModelConfig | undefined {
-	const resolution = resolveProfilePin({ cwd, configHome: gentleAiConfigHome() });
+	const resolution = resolveProfilePin({ cwd, configHome: nubiaDefaultConfigHome() });
 	return resolution === undefined ? undefined : cloneModelConfig(resolution.modelProfiles);
 }
 
@@ -1790,7 +1790,7 @@ interface DiscoverableNonBuiltinAgentRoot {
 }
 
 function discoverableNonBuiltinAgentRoots(cwd: string): DiscoverableNonBuiltinAgentRoot[] {
-	const globalAgentHome = gentlePiAgentHome();
+	const globalAgentHome = nubiaAgentHome();
 	const roots: DiscoverableNonBuiltinAgentRoot[] = [
 		{ dir: join(globalAgentHome, "agents"), source: "user", packageManaged: true },
 		{ dir: join(globalAgentHome, "subagents"), source: "user", packageManaged: false },
@@ -1880,7 +1880,7 @@ function isClearRoutingEntry(entry: AgentRoutingEntry): boolean {
 function agentModelProfileConfigPath(cwd: string, source: AgentSource): string {
 	return source === "project"
 		? join(cwd, ".pi", "subagents.json")
-		: join(gentlePiAgentHome(), "subagents.json");
+		: join(nubiaAgentHome(), "subagents.json");
 }
 
 function modelProfileForRoutingEntry(
@@ -1984,7 +1984,7 @@ function projectSettingsPath(cwd: string): string {
  * reads or writes that file.
  */
 function orchestratorSettingsPath(): string {
-	return join(gentlePiAgentHome(), "settings.json");
+	return join(nubiaAgentHome(), "settings.json");
 }
 
 function removeLegacyAgentOverridesFromSettings(
@@ -2165,7 +2165,7 @@ export async function applyModelConfigAsync(
 }
 
 /**
- * Renames legacy `gentle-ai-*` agent keys in the saved models.json and
+ * Renames legacy `nub-ia-*` agent keys in the saved models.json and
  * profiles.json to their `nubia-*` names, writing each migrated file back to
  * the canonical config home once. Returns the legacy keys that were renamed.
  */
@@ -2193,7 +2193,7 @@ export function migrateSavedAgentRoutingKeys(cwd: string): string[] {
 		}
 		return migrated;
 	});
-	migrateFile(profilesReadFilePath(gentleAiConfigHome()), profilesFilePath(gentleAiConfigHome()), (value) => {
+	migrateFile(profilesReadFilePath(nubiaDefaultConfigHome()), profilesFilePath(nubiaDefaultConfigHome()), (value) => {
 		const profiles = value.profiles;
 		if (!isRecord(profiles)) return [];
 		const all: string[] = [];
@@ -2966,9 +2966,9 @@ interface CurrentProfileTarget {
  */
 function resolveCurrentProfileTarget(
 	cwd: string,
-	store: ProfilesFileReadResult = readProfilesFileResult(profilesReadFilePath(gentleAiConfigHome())),
+	store: ProfilesFileReadResult = readProfilesFileResult(profilesReadFilePath(nubiaDefaultConfigHome())),
 ): CurrentProfileTarget | undefined {
-	const pin = resolveProfilePin({ cwd, configHome: gentleAiConfigHome() });
+	const pin = resolveProfilePin({ cwd, configHome: nubiaDefaultConfigHome() });
 	if (pin) return { name: pin.profile, source: "pinned" };
 	if (store.status !== "valid" || store.file.active === undefined) return undefined;
 	if (!hasOwnProfile(store.file.profiles, store.file.active)) return undefined;
@@ -2987,8 +2987,8 @@ function describeCurrentProfileTarget(target: CurrentProfileTarget | undefined):
  * outcome here speaks only about the profile.
  */
 function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: ExtensionAPI): void {
-	const path = profilesFilePath(gentleAiConfigHome());
-	const read = readProfilesFileResult(profilesReadFilePath(gentleAiConfigHome()));
+	const path = profilesFilePath(nubiaDefaultConfigHome());
+	const read = readProfilesFileResult(profilesReadFilePath(nubiaDefaultConfigHome()));
 	if (read.status === "invalid") {
 		ctx.ui.notify(
 			`Nub-IA saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
@@ -3182,7 +3182,7 @@ function followRenamedPin(
  * names exactly what a launch would use.
  */
 function profilePinScopeNote(cwd: string): string | undefined {
-	const resolution = resolveProfilePin({ cwd, configHome: gentleAiConfigHome() });
+	const resolution = resolveProfilePin({ cwd, configHome: nubiaDefaultConfigHome() });
 	if (!resolution) return undefined;
 	return sanitizeTerminalText(
 		`This repository pins profile "${resolution.profile}" (${resolution.source} pin at ${resolution.path}), so its subagent launches resolve that profile instead of the global routing. Change or remove the pin with /nubia:profiles (p or P).`,
@@ -3503,9 +3503,9 @@ class ProfilesPanel implements OverlayComponent {
 			// any invalid or stale layer, and the scope sentence all come from the shared
 			// precedence rule the launch resolver uses.
 			...profilePinDetailLines(this.pinStatus, this.file.profiles).map((line) => this.renderLine(line, width, "muted")),
-			// gentle-shell#1064 slice 1: the binding is stored for this session and
+			// nubia-shell#1064 slice 1: the binding is stored for this session and
 			// outranks the pin in the panel list, so it is named right after the pin
-			// layers. Launch resolution ships with slice 2 (gentle-shell#1558); this
+			// layers. Launch resolution ships with slice 2 (nubia-shell#1558); this
 			// slice stores the binding only, launch routing is unchanged, and nothing
 			// was written.
 			...(this.sessionBoundName === undefined
@@ -3704,12 +3704,12 @@ async function runProfilesPanelAction(
 	switch (result.type) {
 		case "apply": {
 			if (!hasOwnProfile(file.profiles, result.name)) return file;
-			// gentle-shell#1064 slice 1: Enter binds the selected profile to this
+			// nubia-shell#1064 slice 1: Enter binds the selected profile to this
 			// parent session. The binding is in-process state keyed by the session
 			// id: it writes no store marker, no global routing, no materialized
 			// stores, no agent frontmatter, no Pi settings, and no pin or declaration
 			// layer, pin or not. This slice stores the binding only: launch routing
-			// is unchanged until slice 2 (gentle-shell#1558) resolves the binding
+			// is unchanged until slice 2 (nubia-shell#1558) resolves the binding
 			// at launch. Refreshing the binding means selecting again.
 			const sessionId = ctx.sessionManager?.getSessionId?.();
 			if (typeof sessionId !== "string" || sessionId.length === 0) {
@@ -3733,7 +3733,7 @@ async function runProfilesPanelAction(
 			// pin wins, applying is repo-scoped: re-pin this clone and write no global
 			// routing, no materialized stores, and no orchestrator. The committed
 			// declaration is never rewritten behind a commit.
-			const pinResolution = resolveProfilePin({ cwd: ctx.cwd, configHome: gentleAiConfigHome() });
+			const pinResolution = resolveProfilePin({ cwd: ctx.cwd, configHome: nubiaDefaultConfigHome() });
 			if (pinResolution) {
 				const localPath = pinResolution.status.localPath;
 				let pinNote: string;
@@ -4206,7 +4206,7 @@ async function runProfilesPanelAction(
 		}
 		case "export": {
 			if (!hasOwnProfile(file.profiles, result.name)) return file;
-			const exportPath = profileExportPath(gentleAiConfigHome());
+			const exportPath = profileExportPath(nubiaDefaultConfigHome());
 			try {
 				const text = serializeProfileExport(result.name, file.profiles[result.name]);
 				await mkdir(dirname(exportPath), { recursive: true });
@@ -4218,7 +4218,7 @@ async function runProfilesPanelAction(
 			return file;
 		}
 		case "import": {
-			let importPath = profileExportReadPath(gentleAiConfigHome());
+			let importPath = profileExportReadPath(nubiaDefaultConfigHome());
 			// A packaged preset (assets/profiles/*.json) can be imported by name instead of the export file.
 			const presets = listPackagedProfilePresets();
 			if (presets.length > 0 && typeof ctx.ui.select === "function") {
@@ -4276,8 +4276,8 @@ async function runProfilesPanelAction(
 
 /** `/nubia:profiles`: seed or open the store, then loop the panel over one action at a time until it closes. */
 async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): Promise<void> {
-	const path = profilesFilePath(gentleAiConfigHome());
-	const read = readProfilesFileResult(profilesReadFilePath(gentleAiConfigHome()));
+	const path = profilesFilePath(nubiaDefaultConfigHome());
+	const read = readProfilesFileResult(profilesReadFilePath(nubiaDefaultConfigHome()));
 	if (read.status === "invalid") {
 		ctx.ui.notify(
 			`Nub-IA cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
@@ -4390,7 +4390,7 @@ export const __testing = {
 	loadRuntimeGuardrailsConfig,
 	isOrdinaryYoloPush,
 	yoloPushConfiguredRestriction,
-	buildGentlePrompt,
+	buildNubiaPrompt,
 	renderSddModelPanel: renderSddModelPanelForTesting,
 	getOrchestratorPrompt,
 	renderOrchestratorPrompt,
@@ -4402,21 +4402,21 @@ export const __testing = {
 	resolveBackgroundSubagentsCapability,
 	readActiveToolNames,
 	renderBackgroundSubagentsStatusLine,
-	createGentleAiExtension: createGentleAiExtensionForTesting,
+	createNubiaExtension: createNubiaExtensionForTesting,
 	getPiModelOptions,
 	MODEL_CONTROL_OPTIONS,
 	switchLiveOrchestrator,
 };
 
-export interface GentleAiRuntimeDependencies {
+export interface NubiaRuntimeDependencies {
 	// The environment the session's child processes inherit; tests inject a
 	// plain object so the child/guard checks are observable without touching
 	// the test runner's own process.env.
 	processEnv?: NodeJS.ProcessEnv;
 }
 
-export function createGentleAiExtension(dependencies: GentleAiRuntimeDependencies = {}): (pi: ExtensionAPI) => void {
-	return createGentleAiExtensionForTesting(dependencies);
+export function createNubiaExtension(dependencies: NubiaRuntimeDependencies = {}): (pi: ExtensionAPI) => void {
+	return createNubiaExtensionForTesting(dependencies);
 }
 
 const processAgentEndSubagentDepth = new Map<string | symbol, number>();
@@ -4430,10 +4430,10 @@ function subagentDepthSessionKey(context: ExtensionContext | undefined, fallback
 	return fallbackKey;
 }
 
-function createGentleAiExtensionForTesting(
-	dependencies: GentleAiRuntimeDependencies = {},
+function createNubiaExtensionForTesting(
+	dependencies: NubiaRuntimeDependencies = {},
 ): (pi: ExtensionAPI) => void {
-	return function gentleAi(pi: ExtensionAPI): void {
+	return function nubiaHarness(pi: ExtensionAPI): void {
 	const subagentDepthFallbackKey = Symbol("subagent-depth-fallback");
 	const herdrLifecycle = createHerdrConfirmationLifecycle(pi.events);
 	const permissionEnvironment = dependencies.processEnv ?? process.env;
@@ -4444,8 +4444,8 @@ function createGentleAiExtensionForTesting(
 		processAgentEndSubagentDepth.delete(subagentDepthSessionKey(context, subagentDepthFallbackKey));
 	});
 
-	// gentle-pi ODD input phase labels: the explicit half of the bounded ODD
-	// phase signal for the Gentle prompt's working label. Gentle Shell infers
+	// nub-ia ODD input phase labels: the explicit half of the bounded ODD
+	// phase signal for the Nub-IA prompt's working label. Nub-IA infers
 	// the phase from the primary session's tool activity
 	// (lib/odd-phase-inference.ts); this tool lets the orchestrator refine it
 	// at ODD protocol transitions tools cannot show, and its report is
@@ -4455,10 +4455,10 @@ function createGentleAiExtensionForTesting(
 	// state, so it can never see or override the primary session's phase.
 	const hiddenOddPhaseToolComponent = { render: (_width: number): string[] => [], invalidate() {} };
 	pi.registerTool({
-		name: "gentle_odd_phase",
+		name: "nubia_odd_phase",
 		renderShell: "self",
-		label: "Gentle ODD Phase",
-		description: "Refine the primary session's current ODD phase for the Gentle prompt's working label, which is otherwise inferred automatically from tool activity. Best-effort UI only; never a source of truth for orchestration logic.",
+		label: "Nub-IA ODD Phase",
+		description: "Refine the primary session's current ODD phase for the Nub-IA prompt's working label, which is otherwise inferred automatically from tool activity. Best-effort UI only; never a source of truth for orchestration logic.",
 		promptSnippet: "Refine the automatically inferred working label with authorizing/exploring/researching/deciding/planning/implementing/checking/closing only at real ODD phase transitions of the primary turn; never poll or report per tool call.",
 		promptGuidelines: [
 			`phase must be exactly one of ${ODD_PHASES.join(", ")}, or "clear" to leave the current phase before its turn ends. Call this only when the ODD phase actually changes for the primary session's active turn, not on every tool call or thought.`,
@@ -4554,9 +4554,9 @@ function createGentleAiExtensionForTesting(
 		} else {
 			processAgentEndSubagentDepth.set(subagentDepthKey, 0);
 		}
-		const gentlePrompt = !isPrimarySession
+		const nubiaPrompt = !isPrimarySession
 			? ""
-			: `\n\n${buildGentlePrompt(
+			: `\n\n${buildNubiaPrompt(
 					readPersonaMode(ctx.cwd),
 					ctx.cwd,
 					readActiveToolNames(pi),
@@ -4566,7 +4566,7 @@ function createGentleAiExtensionForTesting(
 		// pi-claude-bridge drops a handler-returned systemPrompt and forwards
 		// only systemPromptOptions, so the harness is delivered through the
 		// mutable appendSystemPrompt section instead of a replacement.
-		appendSystemPromptOnce(event.systemPromptOptions, gentlePrompt);
+		appendSystemPromptOnce(event.systemPromptOptions, nubiaPrompt);
 		updateYoloPrompt(event.systemPromptOptions, isPrimarySession && await yolo.active(ctx));
 		return undefined;
 	});
@@ -4641,7 +4641,7 @@ function createGentleAiExtensionForTesting(
 			const current = resolvePromptProfile({ env: permissionEnvironment, cwd: ctx.cwd });
 			if (action === "") {
 				const sizes = PROMPT_PROFILES.map((profile) => {
-					const text = buildGentlePrompt(readPersonaMode(ctx.cwd), ctx.cwd, readActiveToolNames(pi), ctx.mode, profile);
+					const text = buildNubiaPrompt(readPersonaMode(ctx.cwd), ctx.cwd, readActiveToolNames(pi), ctx.mode, profile);
 					const bytes = Buffer.byteLength(text, "utf8");
 					return `  ${profile.padEnd(8)} ${String(bytes).padStart(6)} bytes ≈ ${String(Math.round(bytes / 4)).padStart(5)} tokens${profile === current.profile ? "  ← active" : ""}`;
 				});
@@ -4748,6 +4748,6 @@ function createGentleAiExtensionForTesting(
 	};
 }
 
-export default function gentleAi(pi: ExtensionAPI): void {
-	return createGentleAiExtension()(pi);
+export default function nubiaHarness(pi: ExtensionAPI): void {
+	return createNubiaExtension()(pi);
 }

@@ -16,7 +16,7 @@ import test from "node:test";
 import ts from "typescript";
 import { fileURLToPath } from "node:url";
 import { applyModelConfig } from "../extensions/nubia-harness.ts";
-import { resolveGentlePiAgentHome } from "../lib/agent-home.ts";
+import { resolveNubiaAgentHome } from "../lib/agent-home.ts";
 import { getPackageAssetOwner, installPackageAssets, type PackageAssetOwner } from "../lib/agent-assets.ts";
 import { AUDITED_PI_EDITOR_VERSIONS } from "../lib/vim-editor-adapter.ts";
 import { resolveProjectPiSdkVersion } from "../scripts/test-packed-runner.mjs";
@@ -56,7 +56,7 @@ const V014_MANAGED_ASSETS = join(
 	"migrations",
 	"managed-assets-v0.14.json",
 );
-// gentle-pi#311 P5: the managed-asset installer mechanism tests use
+// nub-ia#311 P5: the managed-asset installer mechanism tests use
 // nubia-explore.md as their exemplar (packaged, absent from the v0.13
 // manifest) after review-refuter.md was retired together with every
 // Pi-authored adversarial review verdict.
@@ -178,7 +178,7 @@ test("packed runtime uses optional Pi host peers with one open development range
 // Fixture project roots let the resolver's range policy be tested without
 // touching the real install.
 function withPiSdkProject(range: unknown, installed: unknown, run: (root: string) => void): void {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-sdk-version-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-sdk-version-"));
 	try {
 		const sdk = join(root, "node_modules", "@earendil-works", "pi-coding-agent");
 		mkdirSync(sdk, { recursive: true });
@@ -238,7 +238,7 @@ test("package verification excludes the retired init extension while retaining O
 	}
 });
 
-test("package verification requires the runtime boundary and no longer names the gentle-ai binary", () => {
+test("package verification requires the runtime boundary and no longer names the nub-ia binary", () => {
 	const verifier = readFileSync(join(PACKAGE_ROOT, "scripts", "verify-package-files.mjs"), "utf8");
 	const manifest = readPackageJson();
 
@@ -292,7 +292,7 @@ test("generated runtime modules and packed-package checks are deterministic", ()
 	assert.match(runNpmWithEnv, /execFileSync\(invocation\.file, \[\.\.\.invocation\.prefix, \.\.\.arguments_\]/);
 	assert.match(runNpmWithEnv, /\.\.\.options, env/);
 	assert.doesNotMatch(packedRunner, /shell\s*:\s*true/);
-	assert.doesNotMatch(packedRunner, /gentle-ai\.review-integration|native-review-cli|install-gentle-ai/);
+	assert.doesNotMatch(packedRunner, /nub-ia\.review-integration|native-review-cli|install-gentle-ai/);
 	assert.doesNotMatch(packedRunner, /git-commit-transaction|transaction runner/i);
 });
 
@@ -316,22 +316,22 @@ test("package manifest installs pi-pretty through a wrapper without bundling nat
 	assert.equal(
 		packageJson.dependencies?.["@heyhuynhgiabuu/pi-pretty"],
 		"0.6.27",
-		"gentle-pi must install the tested pi-pretty version containing the model-visible result integrity fix",
+		"nub-ia must install the tested pi-pretty version containing the model-visible result integrity fix",
 	);
 	assert.ok(
 		packageJson.pi?.extensions?.includes("./extensions"),
-		"gentle-pi must load packaged extension wrappers",
+		"nub-ia must load packaged extension wrappers",
 	);
 	assert.ok(
 		!packageJson.pi?.extensions?.includes(
 			"./node_modules/@heyhuynhgiabuu/pi-pretty/dist/index.js",
 		),
-		"gentle-pi must not reference pnpm-unportable nested node_modules paths",
+		"nub-ia must not reference pnpm-unportable nested node_modules paths",
 	);
 	const piPrettyWrapperPath = join(PACKAGE_ROOT, "extensions", "pi-pretty.ts");
 	assert.ok(
 		existsSync(piPrettyWrapperPath),
-		"gentle-pi must expose pi-pretty through a packaged wrapper extension",
+		"nub-ia must expose pi-pretty through a packaged wrapper extension",
 	);
 	const piPrettyWrapper = readFileSync(piPrettyWrapperPath, "utf8");
 	assert.match(
@@ -346,7 +346,7 @@ test("package manifest installs pi-pretty through a wrapper without bundling nat
 	);
 	assert.ok(
 		existsSync(join(PACKAGE_ROOT, "extensions", "quiet-tools.ts")),
-		"gentle-pi must expose quiet built-in tool rendering through a packaged extension",
+		"nub-ia must expose quiet built-in tool rendering through a packaged extension",
 	);
 	assert.ok(
 		!packageJson.bundledDependencies?.includes("@heyhuynhgiabuu/pi-pretty"),
@@ -535,7 +535,7 @@ test("packaged agents use YAML list syntax for tool allowlists", () => {
 		entry.endsWith(".md") ? [join(agentsDir, entry)] : [],
 	);
 
-	assert.ok(agentFiles.length > 0, "gentle-pi must ship packaged agents");
+	assert.ok(agentFiles.length > 0, "nub-ia must ship packaged agents");
 
 	for (const file of agentFiles) {
 		const frontmatter = readAgentFrontmatter(file);
@@ -566,7 +566,7 @@ test("packaged agents declare only tool names a Pi child session can resolve", (
 		entry.endsWith(".md") ? [join(agentsDir, entry)] : [],
 	);
 
-	assert.ok(agentFiles.length > 0, "gentle-pi must ship packaged agents");
+	assert.ok(agentFiles.length > 0, "nub-ia must ship packaged agents");
 
 	for (const file of agentFiles) {
 		const { tools } = readAgentDefinition(file);
@@ -580,7 +580,7 @@ test("packaged agents declare only tool names a Pi child session can resolve", (
 });
 
 function withIsolatedAssetHome(run: (agentHome: string) => void): void {
-	const temporary = mkdtempSync(join(tmpdir(), "gentle-asset-owners-"));
+	const temporary = mkdtempSync(join(tmpdir(), "nubia-asset-owners-"));
 	const previous = process.env.NUB_IA_AGENT_HOME;
 	try {
 		process.env.NUB_IA_AGENT_HOME = temporary;
@@ -593,7 +593,7 @@ function withIsolatedAssetHome(run: (agentHome: string) => void): void {
 }
 
 function installedAssetManifest(agentHome: string): ManagedAssetsManifest {
-	return JSON.parse(readFileSync(join(agentHome, "gentle-ai", "managed-assets.json"), "utf8"));
+	return JSON.parse(readFileSync(join(agentHome, "nub-ia", "managed-assets.json"), "utf8"));
 }
 
 test("ODD delegation assets retain applicable test-first checks and independent review boundaries without SDD routing", () => {
@@ -620,8 +620,8 @@ test("delegation installation retains strict TDD support without installing SDD 
 	withIsolatedAssetHome((agentHome) => {
 		installPackageAssets(agentHome, false, ["delegation"]);
 		const keys = Object.keys(installedAssetManifest(agentHome).assets);
-		assert.ok(keys.includes("gentle-ai/support/strict-tdd.md"));
-		assert.ok(keys.includes("gentle-ai/support/strict-tdd-verify.md"));
+		assert.ok(keys.includes("nub-ia/support/strict-tdd.md"));
+		assert.ok(keys.includes("nub-ia/support/strict-tdd-verify.md"));
 		assert.ok(keys.every(key => !key.startsWith("agents/sdd-") && !key.startsWith("chains/sdd-") && !key.includes("sdd-status-contract")));
 	});
 });
@@ -633,22 +633,22 @@ test("selective delegation installation owns only generic agents", () => {
 			"agents/nubia-explore.md",
 			"agents/nubia-verify.md",
 			"agents/nubia-worker.md",
-			"gentle-ai/support/strict-tdd-verify.md",
-			"gentle-ai/support/strict-tdd.md",
+			"nub-ia/support/strict-tdd-verify.md",
+			"nub-ia/support/strict-tdd.md",
 		]);
 		assert.deepEqual(result, { agents: 3, chains: 0, support: 2, skipped: 0 });
 		assert.deepEqual(readdirSync(join(agentHome, "agents")).sort(), [
 			"nubia-explore.md", "nubia-verify.md", "nubia-worker.md",
 		]);
 		assert.equal(existsSync(join(agentHome, "chains")), false);
-		assert.deepEqual(readdirSync(join(agentHome, "gentle-ai", "support")).sort(), ["strict-tdd-verify.md", "strict-tdd.md"]);
+		assert.deepEqual(readdirSync(join(agentHome, "nub-ia", "support")).sort(), ["strict-tdd-verify.md", "strict-tdd.md"]);
 	});
 });
 
 test("selective installation retires only assets belonging to the selected owner", () => {
 	withIsolatedAssetHome((agentHome) => {
 		installPackageAssets(agentHome, false);
-		const manifestPath = join(agentHome, "gentle-ai", "managed-assets.json");
+		const manifestPath = join(agentHome, "nub-ia", "managed-assets.json");
 		const manifest = installedAssetManifest(agentHome);
 		for (const name of RETIRED_ADVERSARIAL_AGENTS) {
 			writeFileSync(join(agentHome, "agents", name), "Previously managed review agent\n");
@@ -675,7 +675,7 @@ test("selective installation retires only assets belonging to the selected owner
 const EXPECTED_OWNER_ASSETS: Record<PackageAssetOwner, readonly string[]> = {
 	delegation: [
 		"agents/nubia-explore.md", "agents/nubia-verify.md", "agents/nubia-worker.md",
-		"gentle-ai/support/strict-tdd.md", "gentle-ai/support/strict-tdd-verify.md",
+		"nub-ia/support/strict-tdd.md", "nub-ia/support/strict-tdd-verify.md",
 	],
 	review: [
 		"agents/jd-fix-agent.md", "agents/jd-judge-a.md", "agents/jd-judge-b.md",
@@ -698,10 +698,10 @@ for (const owner of Object.keys(EXPECTED_OWNER_ASSETS) as PackageAssetOwner[]) {
 			const expected = [...EXPECTED_OWNER_ASSETS[owner]].sort();
 			installPackageAssets(agentHome, false, [owner]);
 			assert.deepEqual(Object.keys(installedAssetManifest(agentHome).assets).sort(), expected);
-			assert.deepEqual(assetFileKeys(agentHome), [...expected, "gentle-ai/managed-assets.json"].sort());
+			assert.deepEqual(assetFileKeys(agentHome), [...expected, "nub-ia/managed-assets.json"].sort());
 			for (const key of expected) {
 				assert.equal(getPackageAssetOwner(key), owner);
-				const source = join(PACKAGE_ROOT, "assets", key.replace(/^gentle-ai\//, ""));
+				const source = join(PACKAGE_ROOT, "assets", key.replace(/^nub-ia\//, ""));
 				assert.equal(readFileSync(join(agentHome, key), "utf8"), readFileSync(source, "utf8"));
 			}
 			const counts = installPackageAssets(agentHome, false, [owner, owner]);
@@ -712,11 +712,11 @@ for (const owner of Object.keys(EXPECTED_OWNER_ASSETS) as PackageAssetOwner[]) {
 
 test("all-assets installation covers every retained packaged file with explicit ownership", () => {
 	const packaged = ["agents", "chains", "support"].flatMap(group =>
-		assetFileKeys(join(PACKAGE_ROOT, "assets", group), group === "support" ? "gentle-ai/support/" : `${group}/`),
+		assetFileKeys(join(PACKAGE_ROOT, "assets", group), group === "support" ? "nub-ia/support/" : `${group}/`),
 	).sort();
 	assert.deepEqual(packaged, Object.values(EXPECTED_OWNER_ASSETS).flat().sort());
 	for (const key of packaged) assert.notEqual(getPackageAssetOwner(key), undefined, key);
-	for (const key of ["agents/sdd-new.md", "gentle-ai/support/new.md", "toString", "__proto__"]) {
+	for (const key of ["agents/sdd-new.md", "nub-ia/support/new.md", "toString", "__proto__"]) {
 		assert.equal(getPackageAssetOwner(key), undefined, "unknown assets must not default to SDD");
 	}
 	withIsolatedAssetHome((agentHome) => {
@@ -741,11 +741,11 @@ test("selective refresh preserves unselected ownership and selected user changes
 		delete manifest.assets[selectedUserKey];
 		assert.deepEqual(installedAssetManifest(agentHome), manifest);
 		for (const [key, content] of before) {
-			if (key !== "gentle-ai/managed-assets.json") assert.equal(readFileSync(join(agentHome, key), "utf8"), content, key);
+			if (key !== "nub-ia/managed-assets.json") assert.equal(readFileSync(join(agentHome, key), "utf8"), content, key);
 		}
-		const manifestBytes = readFileSync(join(agentHome, "gentle-ai", "managed-assets.json"), "utf8");
+		const manifestBytes = readFileSync(join(agentHome, "nub-ia", "managed-assets.json"), "utf8");
 		assert.deepEqual(installPackageAssets(agentHome, true, []), { agents: 0, chains: 0, support: 0, skipped: 0 });
-		assert.equal(readFileSync(join(agentHome, "gentle-ai", "managed-assets.json"), "utf8"), manifestBytes);
+		assert.equal(readFileSync(join(agentHome, "nub-ia", "managed-assets.json"), "utf8"), manifestBytes);
 	});
 });
 
@@ -774,7 +774,7 @@ test("selective review migration adopts only untouched legacy copies and preserv
 				assert.equal(manifest.assets["agents/review-risk.md"], sha256(actual));
 			}
 			assert.equal(existsSync(join(agentHome, "agents", "sdd-apply.md")), false);
-			assert.equal(existsSync(join(agentHome, "gentle-ai", "support", "strict-tdd.md")), true);
+			assert.equal(existsSync(join(agentHome, "nub-ia", "support", "strict-tdd.md")), true);
 		});
 	}
 });
@@ -782,7 +782,7 @@ test("selective review migration adopts only untouched legacy copies and preserv
 test("packed tarball excludes retired workflow paths while source retains legacy migration proof", () => {
 	const fixture = "tests/fixtures/legacy/sdd-research-v2.5.0.md";
 	assert.ok(existsSync(join(PACKAGE_ROOT, fixture)), "the historical source fixture must remain available to migration tests");
-	const destination = mkdtempSync(join(tmpdir(), "gentle-pi-pack-manifest-"));
+	const destination = mkdtempSync(join(tmpdir(), "nub-ia-pack-manifest-"));
 	try {
 		const output = execFileSync("npm", ["pack", "--ignore-scripts", "--offline", "--json", "--pack-destination", destination], {
 			cwd: PACKAGE_ROOT,
@@ -817,7 +817,7 @@ test("legacy research retirement requires exact ownership and preserves edited c
 });
 
 test("the retired Pi adversarial role agents are not packaged", () => {
-	// gentle-pi#311 P5: the refuter and targeted validator verdicts execute
+	// nub-ia#311 P5: the refuter and targeted validator verdicts execute
 	// through Go-owned pi processes via provider-rendered self-contained
 	// vectors; the Pi-authored agent definitions must stay deleted.
 	for (const retired of RETIRED_ADVERSARIAL_AGENTS) {
@@ -827,10 +827,10 @@ test("the retired Pi adversarial role agents are not packaged", () => {
 
 test("forced package installation preserves same-path user-authored agents and separate shadows, including on retired asset paths", () => {
 	// The user-authored file below sits on the RETIRED review-refuter.md path:
-	// this also pins that gentle-pi#311 P5 asset retirement deletes only
+	// this also pins that nub-ia#311 P5 asset retirement deletes only
 	// hash-proven package-managed copies, never user content.
-	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-refuter-home-"));
-	const temporaryProject = mkdtempSync(join(tmpdir(), "gentle-pi-refuter-project-"));
+	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-refuter-home-"));
+	const temporaryProject = mkdtempSync(join(tmpdir(), "nub-ia-refuter-project-"));
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const samePathUserAgent = join(temporaryAgentHome, "agents", RETIRED_REFUTER_FILE);
 	const userShadow = join(temporaryAgentHome, "subagents", RETIRED_REFUTER_FILE);
@@ -912,13 +912,13 @@ test("v0.14 ownership evidence is bundled and matches the self-contained bounded
 });
 
 test("first forced sync migrates untouched v0.13 assets, preserves routing, and owns new assets", () => {
-	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-v013-upgrade-"));
+	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-v013-upgrade-"));
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedReviewRisk = join(temporaryAgentHome, "agents", REVIEW_RISK_FILE);
 	const installedExemplar = join(temporaryAgentHome, "agents", MANAGED_EXEMPLAR_FILE);
 	const managedAssetsManifest = join(
 		temporaryAgentHome,
-		"gentle-ai",
+		"nub-ia",
 		"managed-assets.json",
 	);
 	const legacySource = readFileSync(V013_REVIEW_RISK_FIXTURE, "utf8");
@@ -990,7 +990,7 @@ test("first forced sync migrates untouched v0.13 assets, preserves routing, and 
 });
 
 test("first forced sync migrates untouched v0.14 review contracts and preserves routing", () => {
-	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-v014-upgrade-"));
+	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-v014-upgrade-"));
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedReviewRisk = join(temporaryAgentHome, "agents", REVIEW_RISK_FILE);
 	const legacySource = readFileSync(V014_REVIEW_RISK_FIXTURE, "utf8");
@@ -1028,7 +1028,7 @@ test("first forced sync migrates untouched v0.14 review contracts and preserves 
 });
 
 test("first forced sync preserves a body-edited v0.13 asset byte-for-byte", () => {
-	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-v013-edited-"));
+	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-v013-edited-"));
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedReviewRisk = join(temporaryAgentHome, "agents", REVIEW_RISK_FILE);
 	const editedLegacySource = readFileSync(V013_REVIEW_RISK_FIXTURE, "utf8").replace(
@@ -1045,7 +1045,7 @@ test("first forced sync preserves a body-edited v0.13 asset byte-for-byte", () =
 
 		assert.deepEqual(readFileSync(installedReviewRisk), Buffer.from(editedLegacySource));
 		const manifest = JSON.parse(
-			readFileSync(join(temporaryAgentHome, "gentle-ai", "managed-assets.json"), "utf8"),
+			readFileSync(join(temporaryAgentHome, "nub-ia", "managed-assets.json"), "utf8"),
 		) as ManagedAssetsManifest;
 		assert.equal(manifest.assets[`agents/${REVIEW_RISK_FILE}`], undefined);
 	} finally {
@@ -1059,12 +1059,12 @@ test("first forced sync preserves a body-edited v0.13 asset byte-for-byte", () =
 });
 
 test("forced package installation refreshes an asset recorded as package-managed", () => {
-	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-malformed-refuter-"));
+	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-malformed-refuter-"));
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedExemplar = join(temporaryAgentHome, "agents", MANAGED_EXEMPLAR_FILE);
 	const managedAssetsManifest = join(
 		temporaryAgentHome,
-		"gentle-ai",
+		"nub-ia",
 		"managed-assets.json",
 	);
 	const previousPackageSource =
@@ -1111,12 +1111,12 @@ function assertManagedAgentUserEditIsPreserved(
 	editLabel: string,
 	editSource: (source: string) => string,
 ): void {
-	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-managed-edit-"));
+	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-managed-edit-"));
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedExemplar = join(temporaryAgentHome, "agents", MANAGED_EXEMPLAR_FILE);
 	const managedAssetsManifest = join(
 		temporaryAgentHome,
-		"gentle-ai",
+		"nub-ia",
 		"managed-assets.json",
 	);
 
@@ -1181,13 +1181,13 @@ test("forced package installation preserves an ordinary body edit to a managed a
 });
 
 test("package model assignment keeps only package-managed agents owned", () => {
-	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-model-ownership-"));
+	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-model-ownership-"));
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const installedExemplar = join(temporaryAgentHome, "agents", MANAGED_EXEMPLAR_FILE);
 	const userAgent = join(temporaryAgentHome, "agents", "user-router.md");
 	const managedAssetsManifest = join(
 		temporaryAgentHome,
-		"gentle-ai",
+		"nub-ia",
 		"managed-assets.json",
 	);
 	const userAgentSource = "---\nname: user-router\n---\nuser-owned body\n";
@@ -1261,7 +1261,7 @@ test("deleted SDD definitions remain absent from the installed catalog", () => {
 			"remediate", "research", "spec", "status", "tasks", "verify",
 		].map(name => `agents/sdd-${name}.md`),
 		"chains/sdd-full.chain.md", "chains/sdd-plan.chain.md", "chains/sdd-verify.chain.md",
-		"gentle-ai/support/sdd-status-contract.md",
+		"nub-ia/support/sdd-status-contract.md",
 	];
 	withIsolatedAssetHome(agentHome => {
 		installPackageAssets(agentHome, false);
@@ -1276,7 +1276,7 @@ test("deleted SDD definitions remain absent from the installed catalog", () => {
 test("nubia-worker packages the exact scoped writer contract", () => {
 	const agentsDir = join(PACKAGE_ROOT, "assets", "agents");
 	const agentPath = join(agentsDir, "nubia-worker.md");
-	assert.ok(existsSync(agentPath), "gentle-pi must package nubia-worker.md");
+	assert.ok(existsSync(agentPath), "nub-ia must package nubia-worker.md");
 	for (const genericName of ["worker.md", "generic-writer.md"]) {
 		assert.ok(
 			!existsSync(join(agentsDir, genericName)),
@@ -1385,7 +1385,7 @@ test("nubia-worker packages the exact scoped writer contract", () => {
 });
 
 test("package installation gives nubia-worker a loader-compatible scoped identity", () => {
-	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-agent-home-"));
+	const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-agent-home-"));
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 
 	try {
@@ -1436,41 +1436,41 @@ test("package installation gives nubia-worker a loader-compatible scoped identit
 	);
 });
 
-test("agent home resolver centralizes Gentle and Pi agent-dir precedence", () => {
-	const explicitGentleHome = mkdtempSync(join(tmpdir(), "gentle-pi-resolver-explicit-"));
-	const piAgentDir = mkdtempSync(join(tmpdir(), "gentle-pi-resolver-pi-dir-"));
+test("agent home resolver centralizes Nub-IA and Pi agent-dir precedence", () => {
+	const explicitNubiaHome = mkdtempSync(join(tmpdir(), "nub-ia-resolver-explicit-"));
+	const piAgentDir = mkdtempSync(join(tmpdir(), "nub-ia-resolver-pi-dir-"));
 
 	try {
 		assert.equal(
-			resolveGentlePiAgentHome({
-				NUB_IA_AGENT_HOME: explicitGentleHome,
+			resolveNubiaAgentHome({
+				NUB_IA_AGENT_HOME: explicitNubiaHome,
 				PI_CODING_AGENT_DIR: piAgentDir,
 			}),
-			explicitGentleHome,
+			explicitNubiaHome,
 		);
-		assert.equal(resolveGentlePiAgentHome({ PI_CODING_AGENT_DIR: piAgentDir }), piAgentDir);
-		assert.equal(resolveGentlePiAgentHome({}), join(homedir(), ".pi", "agent"));
+		assert.equal(resolveNubiaAgentHome({ PI_CODING_AGENT_DIR: piAgentDir }), piAgentDir);
+		assert.equal(resolveNubiaAgentHome({}), join(homedir(), ".pi", "agent"));
 		assert.equal(
-			resolveGentlePiAgentHome({ NUB_IA_AGENT_HOME: "", PI_CODING_AGENT_DIR: piAgentDir }),
+			resolveNubiaAgentHome({ NUB_IA_AGENT_HOME: "", PI_CODING_AGENT_DIR: piAgentDir }),
 			piAgentDir,
 			"an empty explicit override falls through like Pi Subagents does",
 		);
 		assert.equal(
-			resolveGentlePiAgentHome({ PI_CODING_AGENT_DIR: "" }),
+			resolveNubiaAgentHome({ PI_CODING_AGENT_DIR: "" }),
 			join(homedir(), ".pi", "agent"),
 			"an empty PI_CODING_AGENT_DIR falls through like Pi Subagents does",
 		);
 	} finally {
-		rmSync(explicitGentleHome, { recursive: true, force: true });
+		rmSync(explicitNubiaHome, { recursive: true, force: true });
 		rmSync(piAgentDir, { recursive: true, force: true });
 	}
 });
 
-test("asset installation uses PI_CODING_AGENT_DIR as the Pi agent home when no explicit Gentle override is set", () => {
+test("asset installation uses PI_CODING_AGENT_DIR as the Pi agent home when no explicit Nub-IA override is set", () => {
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
-	const temporaryPiAgentDir = mkdtempSync(join(tmpdir(), "gentle-pi-agent-dir-"));
-	const explicitGentleHome = mkdtempSync(join(tmpdir(), "gentle-pi-explicit-home-"));
+	const temporaryPiAgentDir = mkdtempSync(join(tmpdir(), "nub-ia-agent-dir-"));
+	const explicitNubiaHome = mkdtempSync(join(tmpdir(), "nub-ia-explicit-home-"));
 
 	try {
 		delete process.env.NUB_IA_AGENT_HOME;
@@ -1482,14 +1482,14 @@ test("asset installation uses PI_CODING_AGENT_DIR as the Pi agent home when no e
 		assert.ok(existsSync(installedPath), "managed agents must install where Pi Subagents reads global definitions");
 		assert.deepEqual(readAgentDefinition(installedPath).tools, MANAGED_EXEMPLAR_TOOLS);
 		assert.ok(
-			!existsSync(join(explicitGentleHome, "agents", "nubia-explore.md")),
+			!existsSync(join(explicitNubiaHome, "agents", "nubia-explore.md")),
 			"the explicit override fixture must still be untouched before it is selected",
 		);
 
-		process.env.NUB_IA_AGENT_HOME = explicitGentleHome;
+		process.env.NUB_IA_AGENT_HOME = explicitNubiaHome;
 		installPackageAssets(PACKAGE_ROOT, true, ["delegation"]);
 		assert.ok(
-			existsSync(join(explicitGentleHome, "agents", "nubia-explore.md")),
+			existsSync(join(explicitNubiaHome, "agents", "nubia-explore.md")),
 			"NUB_IA_AGENT_HOME remains the explicit test/operator override",
 		);
 	} finally {
@@ -1498,15 +1498,15 @@ test("asset installation uses PI_CODING_AGENT_DIR as the Pi agent home when no e
 		if (previousPiAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
 		else process.env.PI_CODING_AGENT_DIR = previousPiAgentDir;
 		rmSync(temporaryPiAgentDir, { recursive: true, force: true });
-		rmSync(explicitGentleHome, { recursive: true, force: true });
+		rmSync(explicitNubiaHome, { recursive: true, force: true });
 	}
 });
 
 test("global model routing uses PI_CODING_AGENT_DIR for package-installed agents", () => {
 	const previousAgentHome = process.env.NUB_IA_AGENT_HOME;
 	const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
-	const temporaryPiAgentDir = mkdtempSync(join(tmpdir(), "gentle-pi-model-agent-dir-"));
-	const temporaryProject = mkdtempSync(join(tmpdir(), "gentle-pi-model-project-"));
+	const temporaryPiAgentDir = mkdtempSync(join(tmpdir(), "nub-ia-model-agent-dir-"));
+	const temporaryProject = mkdtempSync(join(tmpdir(), "nub-ia-model-project-"));
 
 	try {
 		delete process.env.NUB_IA_AGENT_HOME;
@@ -1542,7 +1542,7 @@ test("normal and forced installation copy generic agents with complete role cont
 
 	try {
 		for (const force of [false, true]) {
-			const temporaryAgentHome = mkdtempSync(join(tmpdir(), "gentle-pi-generic-agents-"));
+			const temporaryAgentHome = mkdtempSync(join(tmpdir(), "nub-ia-generic-agents-"));
 			process.env.NUB_IA_AGENT_HOME = temporaryAgentHome;
 			try {
 				installPackageAssets(PACKAGE_ROOT, force, ["delegation"]);
@@ -1662,7 +1662,7 @@ test("Nub-IA package manifest declares the fork identity and release version", (
 	assert.ok(!packageJson.files?.includes("contracts/"));
 
 	const verifier = readFileSync(join(PACKAGE_ROOT, "scripts", "verify-package-files.mjs"), "utf8");
-	// gentle-pi#311 P5: the retired adversarial role agents must not be pinned
+	// nub-ia#311 P5: the retired adversarial role agents must not be pinned
 	// as required package files, while the append-only migration history stays.
 	assert.doesNotMatch(verifier, /assets\/agents\/review-refuter\.md/);
 	assert.doesNotMatch(verifier, /assets\/agents\/review-validator\.md/);
@@ -1683,7 +1683,7 @@ test("bounded review keeps the Judgment Day skill contract at canon metadata ver
 	assert.doesNotMatch(frontmatter, /^  version: "1\.4"$/m);
 });
 
-test("technical reference documents the in-process review and no gentle-ai binary", () => {
+test("technical reference documents the in-process review and no nub-ia binary", () => {
 	const reference = readFileSync(join(PACKAGE_ROOT, "docs", "readme-reference.md"), "utf8");
 	for (const clause of [
 		"nub_review",
@@ -1703,7 +1703,7 @@ test("package installation retires owned sync but preserves modified copies and 
 	withIsolatedAssetHome((agentHome) => {
 		installPackageAssets(agentHome, false);
 		const path = join(agentHome, "agents/sdd-sync.md");
-		const manifestPath = join(agentHome, "gentle-ai/managed-assets.json");
+		const manifestPath = join(agentHome, "nub-ia/managed-assets.json");
 		const legacy = "Previously managed sync executor\n";
 		const manifest = installedAssetManifest(agentHome);
 		manifest.assets["agents/sdd-sync.md"] = sha256(legacy);

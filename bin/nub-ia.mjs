@@ -31,7 +31,7 @@ import {
 	decideTakeOver,
 	describeVersion,
 	discoverLooseExtensionEntries,
-	findGentlePiDeclaration,
+	findNubiaDeclaration,
 	forceJsonFieldIfAbsentInOriginal,
 	helpText,
 	homeSelectorFlags,
@@ -199,9 +199,9 @@ function emptyArgs() {
 	};
 }
 
-// package.json "name" reader injected into findGentlePiDeclaration: a
+// package.json "name" reader injected into findNubiaDeclaration: a
 // missing or unreadable package.json, or a non-string "name", is never an
-// error here — it just means that path package is not gentle-pi.
+// error here — it just means that path package is not nub-ia.
 function readPackageName(dir) {
 	try {
 		const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
@@ -395,7 +395,7 @@ function writeFileAtomically(path, data, { mode } = {}) {
 			if (error.code !== "ENOENT") throw error;
 		}
 	}
-	const tempPath = join(dirname(target), `.${basenameOf(target)}.gentle-shell-${process.pid}.tmp`);
+	const tempPath = join(dirname(target), `.${basenameOf(target)}.nubia-shell-${process.pid}.tmp`);
 	try {
 		writeFileSync(tempPath, data);
 		if (targetMode !== undefined) chmodSync(tempPath, targetMode);
@@ -604,7 +604,7 @@ function safely(label, path, fallback, fn) {
 	}
 }
 
-// gentle-pi replaces Pi's replaceable builtin codemode with its own decorated
+// nub-ia replaces Pi's replaceable builtin codemode with its own decorated
 // codemode tool (extensions/quiet-tools.ts -> registerCompactCodemode in
 // lib/codemode-renderer.ts), and Pi prints a startup warning whenever a
 // builtin loses its tool to another extension. Pi's only per-builtin opt-out
@@ -651,7 +651,7 @@ function ensureBuiltinCodemodeExcluded(settingsPath) {
 	return true;
 }
 
-// Provisions `home`: installs the team companion packages (lib/gentle-shell-
+// Provisions `home`: installs the team companion packages (lib/nubia-shell-
 // launcher.ts TEAM_PACKAGE_SOURCES) the home does not declare yet, through the
 // resolved pi runtime's own `install`. `home` and `runtime` are resolved by the
 // caller exactly as a normal run resolves them (including the isolated/--home
@@ -907,9 +907,9 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 
 	const configPath = resolveConfigPath();
 	const homeKey = safeRealpath(home.dir);
-	const gentlePiVersion = ownPackageVersion();
+	const nubiaVersion = ownPackageVersion();
 	const beforeConfig = readRawConfig(configPath);
-	if (!needsProvisioning(beforeConfig, homeKey, gentlePiVersion)) return undefined;
+	if (!needsProvisioning(beforeConfig, homeKey, nubiaVersion)) return undefined;
 
 	const previous = provisionedEntry(beforeConfig, homeKey);
 	if (homeIsForeign(home, previous, homeHadContentBeforeBootstrap)) {
@@ -931,10 +931,10 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 			);
 		} else {
 			// A marker written before launcher version tracking (or by a build that
-			// provisioned the gentle-ai binary) has no `gentlePi` field or still
+			// provisioned the nub-ia binary) has no `nubiaVersion` field or still
 			// carries a legacy `gentleAi` one: needsProvisioning above treats that
 			// as changed, so this reports "unknown" as its prior version.
-			process.stderr.write(`nub-ia changed (${previous.gentlePi ?? "unknown"} -> ${gentlePiVersion}): updating ${home.dir}\n`);
+			process.stderr.write(`nub-ia changed (${previous.nubiaVersion ?? "unknown"} -> ${nubiaVersion}): updating ${home.dir}\n`);
 		}
 
 		const result = await runSetupFlow(home, runtime, { dryRun: false, stdio: ["ignore", 2, 2], timeoutMs: resolveAutoSetupTimeoutMs() });
@@ -952,7 +952,7 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 			return undefined;
 		}
 
-		writeRawConfig(configPath, recordProvisioned(readRawConfig(configPath), homeKey, gentlePiVersion, new Date().toISOString()));
+		writeRawConfig(configPath, recordProvisioned(readRawConfig(configPath), homeKey, nubiaVersion, new Date().toISOString()));
 		printProviderHint();
 		return undefined;
 	} finally {
@@ -1073,7 +1073,7 @@ async function main() {
 	if (!versionCheck.ok) fail(versionCheck.message, 1);
 
 	if (args.version) {
-		process.stdout.write(`${describeVersion({ gentlePiVersion: ownPackageVersion(), piVersion: versionCheck.version, home })}\n`);
+		process.stdout.write(`${describeVersion({ nubiaVersion: ownPackageVersion(), piVersion: versionCheck.version, home })}\n`);
 		process.exit(0);
 	}
 
@@ -1289,7 +1289,7 @@ async function main() {
 	let otherPackagePaths = [];
 	let looseExtensionEntries = [];
 
-	// Every mode consults the home's own settings.json for a gentle-pi
+	// Every mode consults the home's own settings.json for a nub-ia
 	// declaration, not just --link: `nub-ia setup` installs
 	// npm:gentle-pi into an isolated or --home home's settings.json, and once
 	// that declaration exists the launcher must stop injecting its own copy
@@ -1305,12 +1305,12 @@ async function main() {
 	// subcommand skips this whole block: buildPiInvocation ignores
 	// takeOver/declaration once piSubcommand is set, and running the
 	// take-over/loose-dir discovery anyway would still print a misleading
-	// "taking over gentle-pi..." message (and otherPackageInjections
+	// "taking over nub-ia..." message (and otherPackageInjections
 	// warnings) for a plain `nub-ia install npm:x` that never actually
 	// takes anything over.
 	if (args.piSubcommand === undefined) {
 		const settingsText = readJsonIfExists(join(home.dir, "settings.json"));
-		declaration = findGentlePiDeclaration(settingsText, { agentDir: home.dir, readPackageName });
+		declaration = findNubiaDeclaration(settingsText, { agentDir: home.dir, readPackageName });
 		// --package-root only forces a take-over in --link mode (see below);
 		// in every other mode a declared home silently keeps using its
 		// declared Nub-IA package and --package-root has no effect at all. Warn

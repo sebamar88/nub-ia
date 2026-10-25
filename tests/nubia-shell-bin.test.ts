@@ -108,8 +108,8 @@ test("malformed adjacent metadata never silently falls back to PATH; env overrid
 // The launcher's own gentle-pi version, exactly as `ownPackageVersion()` in
 // bin/nub-ia.mjs reads it (package.json at packageRoot) — used to
 // assert the post-install gentle-pi removal message and the provisioning
-// marker's `gentlePi` field without hardcoding this package's own version.
-function ownGentlePiVersion(): string {
+// marker's `nubiaVersion` field without hardcoding this package's own version.
+function ownNubiaVersion(): string {
 	return JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8")).version;
 }
 
@@ -120,18 +120,18 @@ function ownGentlePiVersion(): string {
 // state). The auto-provision test section below opts back in per test via
 // enableAutoProvision.
 function fixture(t: test.TestContext) {
-	const root = mkdtempSync(join(tmpdir(), "gentle-shell-bin-"));
+	const root = mkdtempSync(join(tmpdir(), "nubia-shell-bin-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	const home = join(root, "home");
 	mkdirSync(home, { recursive: true });
 	const piScript = join(root, "fake-pi.mjs");
 	writePiScript(piScript, "0.99.1");
-	const gentleShellHome = join(root, "gentle-shell-home");
+	const nubiaShellHome = join(root, "nubia-shell-home");
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
 		HOME: home,
 		USERPROFILE: home,
-		NUB_IA_HOME: gentleShellHome,
+		NUB_IA_HOME: nubiaShellHome,
 		NUB_IA_PI: piScript,
 		NUB_IA_NO_AUTO_SETUP: "1",
 		// Never download rtk from a test; the self-heal has its own tests.
@@ -140,7 +140,7 @@ function fixture(t: test.TestContext) {
 		// other setup test keeps a deterministic install sequence.
 		NUB_IA_TEAM_PACKAGES: "",
 	};
-	return { root, home, gentleShellHome, piScript, env };
+	return { root, home, nubiaShellHome, piScript, env };
 }
 
 // Removes the fixture's default NUB_IA_NO_AUTO_SETUP=1 opt-out, for a
@@ -245,8 +245,8 @@ test("Herdr prefers the incoming agent-home bridge and falls back to the convent
 	const previousPaths = extensionPaths(f.launch([], { PI_CODING_AGENT_DIR: previousHome }));
 	assert.ok(previousPaths.includes(realpathSync(previousBridge)));
 	assert.ok(!previousPaths.includes(realpathSync(f.bridge)));
-	assert.ok(extensionPaths(f.launch([], { PI_CODING_AGENT_DIR: f.gentleShellHome })).includes(realpathSync(f.bridge)));
-	const selectedBridge = join(f.gentleShellHome, "extensions", "herdr-agent-state.ts");
+	assert.ok(extensionPaths(f.launch([], { PI_CODING_AGENT_DIR: f.nubiaShellHome })).includes(realpathSync(f.bridge)));
+	const selectedBridge = join(f.nubiaShellHome, "extensions", "herdr-agent-state.ts");
 	mkdirSync(dirname(selectedBridge), { recursive: true });
 	writeFileSync(selectedBridge, "export default function () {}\n");
 	const selectedPaths = extensionPaths(f.launch([], { PI_CODING_AGENT_DIR: previousHome }));
@@ -259,7 +259,7 @@ test("Herdr bridge injection respects disabled extensions, headless modes and ch
 	const f = herdrFixture(t);
 	for (const args of [["--no-extensions"], ["-ne"], ["-p", "prompt"], ["--print", "prompt"],
 		["--mode", "rpc"], ["--mode", "json"], ["--export", "session.jsonl"], ["--list-models"],
-		["--link"], ["--home", f.gentleShellHome], ["list"]]) {
+		["--link"], ["--home", f.nubiaShellHome], ["list"]]) {
 		assert.ok(!extensionPaths(f.launch(args)).includes(realpathSync(f.bridge)), JSON.stringify(args));
 	}
 	for (const overrides of [{ HERDR_ENV: "0" }, { HERDR_ENV: undefined }, { HERDR_PANE_ID: "" },
@@ -326,7 +326,7 @@ test("home with no args prints the default isolated home", (t) => {
 	const f = fixture(t);
 	const result = run(f.env, ["home"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(result.stdout.trim(), `isolated ${f.gentleShellHome}`);
+	assert.equal(result.stdout.trim(), `isolated ${f.nubiaShellHome}`);
 });
 
 test("home link persists and a later home reflects it", (t) => {
@@ -373,13 +373,13 @@ test("NUB_IA_CONFIG redirects the config.json path used by 'home' and auto-provi
 
 test("first isolated run bootstraps the home, writes fullscreen, and prints the hint once", (t) => {
 	const f = fixture(t);
-	assert.equal(existsSync(f.gentleShellHome), false);
+	assert.equal(existsSync(f.nubiaShellHome), false);
 
 	const first = run(f.env, []);
 	assert.equal(first.status, 0, first.stderr);
 	assert.match(first.stderr, /using a separate home at/);
 	assert.match(first.stderr, /nub-ia --link/);
-	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
+	const settings = JSON.parse(readFileSync(join(f.nubiaShellHome, "settings.json"), "utf8"));
 	assert.equal(settings.tuiMode, "fullscreen");
 
 	const second = run(f.env, []);
@@ -400,7 +400,7 @@ test("forwarded args reach pi after the injected extension flags, in order", (t)
 		"-p",
 		"hi",
 	]);
-	assert.equal(payload.NUB_IA_AGENT_HOME, f.gentleShellHome);
+	assert.equal(payload.NUB_IA_AGENT_HOME, f.nubiaShellHome);
 });
 
 // #1690: the spawned pi must carry the launcher's own -e set so the subagent
@@ -428,16 +428,16 @@ test("an isolated launch keeps its own agent home and carries the user's origina
 		return JSON.parse(result.stdout);
 	};
 	const conventional = launch({});
-	assert.equal(conventional.PI_CODING_AGENT_DIR, f.gentleShellHome);
+	assert.equal(conventional.PI_CODING_AGENT_DIR, f.nubiaShellHome);
 	assert.equal(conventional.NUB_IA_USER_PI_HOME, join(f.home, ".pi", "agent"));
 	const customHome = join(f.root, "custom-pi");
 	const custom = launch({ PI_CODING_AGENT_DIR: customHome });
-	assert.equal(custom.PI_CODING_AGENT_DIR, f.gentleShellHome);
-	assert.equal(custom.NUB_IA_AGENT_HOME, f.gentleShellHome);
+	assert.equal(custom.PI_CODING_AGENT_DIR, f.nubiaShellHome);
+	assert.equal(custom.NUB_IA_AGENT_HOME, f.nubiaShellHome);
 	assert.equal(custom.NUB_IA_USER_PI_HOME, customHome);
 	// A nub-ia started from inside a Nub-IA session inherits both variables.
 	const nested = launch({ PI_CODING_AGENT_DIR: custom.PI_CODING_AGENT_DIR, NUB_IA_USER_PI_HOME: custom.NUB_IA_USER_PI_HOME });
-	assert.equal(nested.PI_CODING_AGENT_DIR, f.gentleShellHome);
+	assert.equal(nested.PI_CODING_AGENT_DIR, f.nubiaShellHome);
 	assert.equal(nested.NUB_IA_USER_PI_HOME, customHome);
 	const linked = launch({ PI_CODING_AGENT_DIR: customHome }, ["--link"]);
 	assert.equal(linked.PI_CODING_AGENT_DIR, customHome);
@@ -472,20 +472,20 @@ test("--link skips injection and leaves settings.json byte-identical when it alr
 
 test("an isolated home whose settings.json declares npm:gentle-pi gets no injection", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
-	writeFileSync(join(f.gentleShellHome, "settings.json"), JSON.stringify({ packages: ["npm:gentle-pi@3.5.1"], tuiMode: "fullscreen" }));
+	mkdirSync(f.nubiaShellHome, { recursive: true });
+	writeFileSync(join(f.nubiaShellHome, "settings.json"), JSON.stringify({ packages: ["npm:gentle-pi@3.5.1"], tuiMode: "fullscreen" }));
 
 	const result = run(f.env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, ["--mode", "rpc"]);
-	assert.equal(payload.PI_CODING_AGENT_DIR, f.gentleShellHome);
+	assert.equal(payload.PI_CODING_AGENT_DIR, f.nubiaShellHome);
 });
 
 test("an isolated home whose settings.json does not declare gentle-pi keeps the plain injection", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
-	writeFileSync(join(f.gentleShellHome, "settings.json"), JSON.stringify({ tuiMode: "fullscreen" }));
+	mkdirSync(f.nubiaShellHome, { recursive: true });
+	writeFileSync(join(f.nubiaShellHome, "settings.json"), JSON.stringify({ tuiMode: "fullscreen" }));
 
 	const result = run(f.env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
@@ -500,11 +500,11 @@ test("an isolated home whose settings.json does not declare gentle-pi keeps the 
 
 test("an isolated home whose settings.json declares a path-based gentle-pi takes over, same as --link", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
-	writeFileSync(join(f.gentleShellHome, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"], tuiMode: "fullscreen" }));
+	mkdirSync(f.nubiaShellHome, { recursive: true });
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	writeFileSync(join(f.nubiaShellHome, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"], tuiMode: "fullscreen" }));
 
 	const result = run(f.env, ["--mode", "rpc"], { cwd: f.root });
 	assert.equal(result.status, 0, result.stderr);
@@ -525,7 +525,7 @@ test("nub-ia list forwards to pi as a bare subcommand, with no injected extensio
 	assert.equal(result.status, 0, result.stderr);
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, ["list"]);
-	assert.equal(payload.PI_CODING_AGENT_DIR, f.gentleShellHome);
+	assert.equal(payload.PI_CODING_AGENT_DIR, f.nubiaShellHome);
 });
 
 test("nub-ia install npm:<pkg> forwards the subcommand and its argument verbatim", (t) => {
@@ -534,7 +534,7 @@ test("nub-ia install npm:<pkg> forwards the subcommand and its argument verbatim
 	assert.equal(result.status, 0, result.stderr);
 	const payload = JSON.parse(result.stdout);
 	assert.deepEqual(payload.args, ["install", "npm:pi-btw"]);
-	assert.equal(payload.PI_CODING_AGENT_DIR, f.gentleShellHome);
+	assert.equal(payload.PI_CODING_AGENT_DIR, f.nubiaShellHome);
 });
 
 test("a too-old pi exits 1 naming both versions", (t) => {
@@ -634,7 +634,7 @@ test("nub-ia setup installs the packaged team packages via pi's own install, in 
 	assert.equal(records.length, 1, result.stdout);
 	// The exact pin lives in lib/nubia-launcher.ts (TEAM_PACKAGE_SOURCES); the test follows it.
 	assert.deepEqual(records[0].args, ["install", TEAM_PACKAGE_SOURCES[0]]);
-	assert.equal(records[0].PI_CODING_AGENT_DIR, f.gentleShellHome);
+	assert.equal(records[0].PI_CODING_AGENT_DIR, f.nubiaShellHome);
 });
 
 test("nub-ia setup never spawns a gentle-ai binary", (t) => {
@@ -647,8 +647,8 @@ test("nub-ia setup never spawns a gentle-ai binary", (t) => {
 
 test("nub-ia setup skips team packages the home already declares, at any version", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
-	writeFileSync(join(f.gentleShellHome, "settings.json"), JSON.stringify({ packages: ["npm:@dietrichgebert/ponytail@4.12.0"] }));
+	mkdirSync(f.nubiaShellHome, { recursive: true });
+	writeFileSync(join(f.nubiaShellHome, "settings.json"), JSON.stringify({ packages: ["npm:@dietrichgebert/ponytail@4.12.0"] }));
 	const env = provisioning(f);
 	delete env.NUB_IA_TEAM_PACKAGES;
 
@@ -729,11 +729,11 @@ test("first launch auto-provisions the isolated home, writes the marker, then la
 	assert.match(result.stderr, /nub-ia: first run in .+: installing the team packages \(one time; set NUB_IA_NO_AUTO_SETUP=1 to skip\)/);
 
 	const config = JSON.parse(readFileSync(join(f.home, ".nub-ia", "config.json"), "utf8"));
-	const homeKey = realpathSync(f.gentleShellHome);
-	assert.equal(config.provisioned[homeKey].gentleAi, undefined, "new markers never carry a gentle-ai pin");
-	assert.equal(config.provisioned[homeKey].gentlePi, ownGentlePiVersion());
+	const homeKey = realpathSync(f.nubiaShellHome);
+	assert.equal(config.provisioned[homeKey].gentleAi, undefined, "new markers never carry a nub-ia pin");
+	assert.equal(config.provisioned[homeKey].nubiaVersion, ownNubiaVersion());
 	assert.equal(typeof config.provisioned[homeKey].at, "string");
-	assert.equal(existsSync(join(f.gentleShellHome, ".nub-ia-setup.lock")), false);
+	assert.equal(existsSync(join(f.nubiaShellHome, ".nub-ia-setup.lock")), false);
 });
 
 test("a second launch against an already-provisioned home skips the flow entirely", (t) => {
@@ -751,32 +751,32 @@ test("a second launch against an already-provisioned home skips the flow entirel
 	assert.equal(installRuns(log).length, 1, "the flow must not run a second time");
 });
 
-test("a marker without a gentlePi field re-runs the flow and backfills it", (t) => {
+test("a marker without a nubiaVersion field re-runs the flow and backfills it", (t) => {
 	const f = fixture(t);
 	const log = join(f.root, "install-runs.log");
 	const env = enableAutoProvision(provisioning(f, { log }));
 	assert.equal(run(env, []).status, 0);
 
 	const configPath = join(f.home, ".nub-ia", "config.json");
-	const homeKey = realpathSync(f.gentleShellHome);
+	const homeKey = realpathSync(f.nubiaShellHome);
 	const staleConfig = JSON.parse(readFileSync(configPath, "utf8"));
-	delete staleConfig.provisioned[homeKey].gentlePi;
+	delete staleConfig.provisioned[homeKey].nubiaVersion;
 	writeFileSync(configPath, JSON.stringify(staleConfig));
 
 	const second = run(env, []);
 	assert.equal(second.status, 0, second.stderr);
 	assert.equal(installRuns(log).length, 2, "the flow must re-run once the marker predates version tracking");
-	assert.equal(JSON.parse(readFileSync(configPath, "utf8")).provisioned[homeKey].gentlePi, ownGentlePiVersion());
+	assert.equal(JSON.parse(readFileSync(configPath, "utf8")).provisioned[homeKey].nubiaVersion, ownNubiaVersion());
 });
 
-test("a legacy marker that still carries a gentle-ai pin re-runs the flow once and drops the field", (t) => {
+test("a legacy marker that still carries a nub-ia pin re-runs the flow once and drops the field", (t) => {
 	const f = fixture(t);
 	const log = join(f.root, "install-runs.log");
 	const env = enableAutoProvision(provisioning(f, { log }));
 	assert.equal(run(env, []).status, 0);
 
 	const configPath = join(f.home, ".nub-ia", "config.json");
-	const homeKey = realpathSync(f.gentleShellHome);
+	const homeKey = realpathSync(f.nubiaShellHome);
 	const legacyConfig = JSON.parse(readFileSync(configPath, "utf8"));
 	legacyConfig.provisioned[homeKey].gentleAi = "3.6.0";
 	writeFileSync(configPath, JSON.stringify(legacyConfig));
@@ -798,16 +798,16 @@ test("a changed nub-ia version re-runs the flow and prints the changed line", (t
 	assert.equal(run(env, []).status, 0);
 
 	const configPath = join(f.home, ".nub-ia", "config.json");
-	const homeKey = realpathSync(f.gentleShellHome);
+	const homeKey = realpathSync(f.nubiaShellHome);
 	const staleConfig = JSON.parse(readFileSync(configPath, "utf8"));
-	staleConfig.provisioned[homeKey].gentlePi = "0.0.0-previous-launcher";
+	staleConfig.provisioned[homeKey].nubiaVersion = "0.0.0-previous-launcher";
 	writeFileSync(configPath, JSON.stringify(staleConfig));
 
 	const second = run(env, []);
 	assert.equal(second.status, 0, second.stderr);
-	assert.match(second.stderr, new RegExp(`nub-ia changed \\(0\\.0\\.0-previous-launcher -> ${escapeForRegExp(ownGentlePiVersion())}\\): updating`));
+	assert.match(second.stderr, new RegExp(`nub-ia changed \\(0\\.0\\.0-previous-launcher -> ${escapeForRegExp(ownNubiaVersion())}\\): updating`));
 	assert.equal(installRuns(log).length, 2);
-	assert.equal(JSON.parse(readFileSync(configPath, "utf8")).provisioned[homeKey].gentlePi, ownGentlePiVersion());
+	assert.equal(JSON.parse(readFileSync(configPath, "utf8")).provisioned[homeKey].nubiaVersion, ownNubiaVersion());
 });
 
 test("a failing auto-provision flow warns, still launches pi, and writes no marker", (t) => {
@@ -867,8 +867,8 @@ test("a pi subcommand (list) never auto-provisions", (t) => {
 
 test("a fresh concurrent lock skips auto-provisioning for this run, without removing the lock", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
-	const lockPath = join(f.gentleShellHome, ".nub-ia-setup.lock");
+	mkdirSync(f.nubiaShellHome, { recursive: true });
+	const lockPath = join(f.nubiaShellHome, ".nub-ia-setup.lock");
 	writeFileSync(lockPath, "");
 	const log = join(f.root, "install-runs.log");
 
@@ -881,8 +881,8 @@ test("a fresh concurrent lock skips auto-provisioning for this run, without remo
 
 test("a stale lock (older than 15 minutes) is removed and auto-provisioning proceeds", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
-	const lockPath = join(f.gentleShellHome, ".nub-ia-setup.lock");
+	mkdirSync(f.nubiaShellHome, { recursive: true });
+	const lockPath = join(f.nubiaShellHome, ".nub-ia-setup.lock");
 	writeFileSync(lockPath, "");
 	const staleTime = new Date(Date.now() - 16 * 60 * 1000);
 	utimesSync(lockPath, staleTime, staleTime);
@@ -942,7 +942,7 @@ test("a freshly bootstrapped isolated or --home directory gets a nub-ia ownershi
 	assert.equal(result.status, 0, result.stderr);
 	const marker = JSON.parse(readFileSync(join(target, ".nub-ia-home"), "utf8"));
 	assert.equal(marker.createdBy, "nub-ia");
-	assert.equal(marker.version, ownGentlePiVersion());
+	assert.equal(marker.version, ownNubiaVersion());
 });
 
 test("a --home directory nub-ia itself bootstrapped is retried after its first auto-provision attempt fails", (t) => {
@@ -1069,7 +1069,7 @@ test("a freshly bootstrapped home defaults to the Nub-IA theme", (t) => {
 	const f = fixture(t);
 	const result = run(f.env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	const settings = JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8"));
+	const settings = JSON.parse(readFileSync(join(f.nubiaShellHome, "settings.json"), "utf8"));
 	assert.equal(settings.theme, "Nub-IA");
 });
 
@@ -1080,7 +1080,7 @@ function ownedHome(f: ReturnType<typeof fixture>, name: string, settings: Record
 	const target = join(f.root, name);
 	mkdirSync(target, { recursive: true });
 	writeFileSync(join(target, "settings.json"), JSON.stringify(settings));
-	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
+	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownNubiaVersion() }));
 	return target;
 }
 
@@ -1119,7 +1119,7 @@ test("automatic setup restores the bootstrapped default theme when the install o
 
 	const result = run(env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(JSON.parse(readFileSync(join(f.gentleShellHome, "settings.json"), "utf8")).theme, "Nub-IA");
+	assert.equal(JSON.parse(readFileSync(join(f.nubiaShellHome, "settings.json"), "utf8")).theme, "Nub-IA");
 });
 
 test("automatic setup restores the home's own theme when the install overwrites it", (t) => {
@@ -1151,29 +1151,29 @@ test("a fresh isolated home excludes Pi's builtin codemode, and a second launch 
 	const f = fixture(t);
 	const first = run(f.env, ["--mode", "rpc"]);
 	assert.equal(first.status, 0, first.stderr);
-	const settings = JSON.parse(settingsText(f.gentleShellHome));
+	const settings = JSON.parse(settingsText(f.nubiaShellHome));
 	assert.deepEqual(settings.extensions, [CODEMODE_EXCLUSION]);
 	assert.equal(settings.tuiMode, "fullscreen");
 	assert.equal(settings.theme, "Nub-IA");
 
-	const before = settingsText(f.gentleShellHome);
+	const before = settingsText(f.nubiaShellHome);
 	const second = run(f.env, ["--mode", "rpc"]);
 	assert.equal(second.status, 0, second.stderr);
-	assert.equal(settingsText(f.gentleShellHome), before);
+	assert.equal(settingsText(f.nubiaShellHome), before);
 	assert.doesNotMatch(second.stderr, /builtin codemode/);
 });
 
 test("an existing isolated home gains the exclusion after its own extension entries, keeping every other key and its formatting", (t) => {
 	for (const [indent, newline] of [[4, "\n"], [undefined, ""]] as const) {
 		const f = fixture(t);
-		mkdirSync(f.gentleShellHome, { recursive: true });
+		mkdirSync(f.nubiaShellHome, { recursive: true });
 		const original = { tuiMode: "fullscreen", theme: "rose", extensions: ["./ext/a.ts", "!./ext/b.ts"], packages: ["npm:pi-btw"] };
-		writeFileSync(join(f.gentleShellHome, "settings.json"), `${JSON.stringify(original, null, indent)}${newline}`);
+		writeFileSync(join(f.nubiaShellHome, "settings.json"), `${JSON.stringify(original, null, indent)}${newline}`);
 
 		const result = run(f.env, ["--mode", "rpc"]);
 		assert.equal(result.status, 0, result.stderr);
 		const expected = { ...original, extensions: [...original.extensions, CODEMODE_EXCLUSION] };
-		assert.equal(settingsText(f.gentleShellHome), `${JSON.stringify(expected, null, indent)}${newline}`);
+		assert.equal(settingsText(f.nubiaShellHome), `${JSON.stringify(expected, null, indent)}${newline}`);
 		assert.match(result.stderr, /builtin codemode/);
 	}
 });
@@ -1181,35 +1181,35 @@ test("an existing isolated home gains the exclusion after its own extension entr
 test("an explicit user entry for builtin:codemode is left byte-identical", (t) => {
 	for (const entry of ["+builtin:codemode", "!builtin:codemode", "builtin:codemode", CODEMODE_EXCLUSION]) {
 		const f = fixture(t);
-		mkdirSync(f.gentleShellHome, { recursive: true });
+		mkdirSync(f.nubiaShellHome, { recursive: true });
 		const text = JSON.stringify({ tuiMode: "fullscreen", extensions: ["./ext/a.ts", entry] });
-		writeFileSync(join(f.gentleShellHome, "settings.json"), text);
+		writeFileSync(join(f.nubiaShellHome, "settings.json"), text);
 
 		const result = run(f.env, ["--mode", "rpc"]);
 		assert.equal(result.status, 0, result.stderr);
-		assert.equal(settingsText(f.gentleShellHome), text, entry);
+		assert.equal(settingsText(f.nubiaShellHome), text, entry);
 	}
 });
 
 test("a malformed or unexpected settings.json is never overwritten and pi still starts", (t) => {
 	for (const text of ["{ not json", "[]", '{"extensions":"oops"}']) {
 		const f = fixture(t);
-		mkdirSync(f.gentleShellHome, { recursive: true });
-		writeFileSync(join(f.gentleShellHome, "settings.json"), text);
+		mkdirSync(f.nubiaShellHome, { recursive: true });
+		writeFileSync(join(f.nubiaShellHome, "settings.json"), text);
 
 		const result = run(f.env, ["--mode", "rpc"]);
 		assert.equal(result.status, 0, result.stderr);
 		assert.deepEqual(JSON.parse(result.stdout).args.slice(-2), ["--mode", "rpc"]);
-		assert.equal(settingsText(f.gentleShellHome), text);
+		assert.equal(settingsText(f.nubiaShellHome), text);
 	}
 });
 
 test("an owned home without settings.json is not given one", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
+	mkdirSync(f.nubiaShellHome, { recursive: true });
 	const result = run(f.env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(existsSync(join(f.gentleShellHome, "settings.json")), false);
+	assert.equal(existsSync(join(f.nubiaShellHome, "settings.json")), false);
 });
 
 test("--link never gains the exclusion", (t) => {
@@ -1245,28 +1245,28 @@ test("a foreign --home and pi's own default agent home are never edited, while a
 
 test("a pi subcommand and setup --dry-run never edit the home's settings", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
+	mkdirSync(f.nubiaShellHome, { recursive: true });
 	const text = JSON.stringify({ tuiMode: "fullscreen" });
-	writeFileSync(join(f.gentleShellHome, "settings.json"), text);
+	writeFileSync(join(f.nubiaShellHome, "settings.json"), text);
 	const env = provisioning(f);
 
 	for (const args of [["list"], ["setup", "--dry-run"]]) {
 		const result = run(env, args);
 		assert.equal(result.status, 0, result.stderr);
-		assert.equal(settingsText(f.gentleShellHome), text, args.join(" "));
+		assert.equal(settingsText(f.nubiaShellHome), text, args.join(" "));
 	}
 });
 
 test("the exclusion is ensured after automatic setup rewrites settings.json", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
-	writeFileSync(join(f.gentleShellHome, "settings.json"), `${JSON.stringify({ tuiMode: "fullscreen", extensions: [CODEMODE_EXCLUSION] }, null, 2)}\n`);
+	mkdirSync(f.nubiaShellHome, { recursive: true });
+	writeFileSync(join(f.nubiaShellHome, "settings.json"), `${JSON.stringify({ tuiMode: "fullscreen", extensions: [CODEMODE_EXCLUSION] }, null, 2)}\n`);
 	const dropExtensions = "const settingsPath = join(process.env.PI_CODING_AGENT_DIR, 'settings.json'); const { extensions, ...settings } = JSON.parse(readFileSync(settingsPath, 'utf8')); writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\\n');";
 	const env = enableAutoProvision(provisioning(f, { installJs: dropExtensions }));
 
 	const result = run(env, ["--mode", "rpc"]);
 	assert.equal(result.status, 0, result.stderr);
-	assert.deepEqual(JSON.parse(settingsText(f.gentleShellHome)).extensions, [CODEMODE_EXCLUSION]);
+	assert.deepEqual(JSON.parse(settingsText(f.nubiaShellHome)).extensions, [CODEMODE_EXCLUSION]);
 });
 
 // --- atomic writes keep symlinked config files intact ------------------------
@@ -1278,7 +1278,7 @@ test("the exclusion is ensured after automatic setup rewrites settings.json", (t
 
 // File symlinks need extra privileges on Windows; skip where unavailable.
 const fileSymlinkSkip = (() => {
-	const dir = mkdtempSync(join(tmpdir(), "gentle-shell-symlink-probe-"));
+	const dir = mkdtempSync(join(tmpdir(), "nubia-shell-symlink-probe-"));
 	try {
 		writeFileSync(join(dir, "target"), "");
 		symlinkSync(join(dir, "target"), join(dir, "link"), "file");
@@ -1309,7 +1309,7 @@ function assertStillLinkedTo(linkPath: string, targetPath: string, mode: number)
 
 test("the builtin codemode exclusion writes through a symlinked settings.json", { skip: fileSymlinkSkip }, (t) => {
 	const f = fixture(t);
-	const linkPath = join(f.gentleShellHome, "settings.json");
+	const linkPath = join(f.nubiaShellHome, "settings.json");
 	const targetPath = join(f.root, "dotfiles", "settings.json");
 	symlinkedFile(linkPath, targetPath, JSON.stringify({ tuiMode: "fullscreen", theme: "rose" }), 0o640);
 
@@ -1325,7 +1325,7 @@ test("the automatic setup theme restore writes through a symlinked settings.json
 	const linkPath = join(target, "settings.json");
 	const targetPath = join(f.root, "dotfiles", "themed-settings.json");
 	symlinkedFile(linkPath, targetPath, JSON.stringify({ tuiMode: "fullscreen", theme: "dracula" }), 0o600);
-	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownGentlePiVersion() }));
+	writeFileSync(join(target, ".nub-ia-home"), JSON.stringify({ createdBy: "nub-ia", version: ownNubiaVersion() }));
 
 	const env = enableAutoProvision(provisioning(f, { installJs: SET_THEME_JS("kanagawa") }));
 
@@ -1365,8 +1365,8 @@ test("a dangling config.json symlink is replaced in place, never followed to cre
 
 test("--package-root warns and is ignored when an isolated home already declares gentle-pi", (t) => {
 	const f = fixture(t);
-	mkdirSync(f.gentleShellHome, { recursive: true });
-	writeFileSync(join(f.gentleShellHome, "settings.json"), JSON.stringify({ packages: ["npm:gentle-pi@3.5.1"], tuiMode: "fullscreen" }));
+	mkdirSync(f.nubiaShellHome, { recursive: true });
+	writeFileSync(join(f.nubiaShellHome, "settings.json"), JSON.stringify({ packages: ["npm:gentle-pi@3.5.1"], tuiMode: "fullscreen" }));
 	const forcedRoot = join(f.root, "forced-root");
 	mkdirSync(forcedRoot, { recursive: true });
 
@@ -1375,7 +1375,7 @@ test("--package-root warns and is ignored when an isolated home already declares
 	assert.match(
 		result.stderr,
 		new RegExp(
-			`--package-root only forces a take-over in --link mode; ${f.gentleShellHome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} declares the Nub-IA package, so the installed package is used and ${forcedRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} is ignored`,
+			`--package-root only forces a take-over in --link mode; ${f.nubiaShellHome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} declares the Nub-IA package, so the installed package is used and ${forcedRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} is ignored`,
 		),
 	);
 	assert.doesNotMatch(result.stderr, /taking over the Nub-IA package declared in/);
@@ -1405,7 +1405,7 @@ test("--help mentions the setup subcommand", (t) => {
 //
 // Regression coverage for the settings.json shape that triggered the tool
 // conflict bug: gentle-pi declared as a relative *path* package (not
-// npm:gentle-pi) alongside another package. findGentlePiDeclaration now
+// npm:gentle-pi) alongside another package. findNubiaDeclaration now
 // recognises that path declaration by reading its package.json "name", and
 // the launcher takes over the pi invocation instead of also injecting its
 // own -e, which used to load two copies of gentle-pi side by side.
@@ -1415,9 +1415,9 @@ test("--link takes over a path-declared conflicting gentle-pi: --no-extensions, 
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	// "npm:some-other" must actually be installed under
 	// <agentDir>/npm/node_modules for it to be re-injected (R3-001): a
@@ -1455,9 +1455,9 @@ test("--link install npm:x with a path-declared conflicting gentle-pi in setting
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	const settingsPath = join(piAgentDir, "settings.json");
 	const settingsText = JSON.stringify({ packages: ["npm:some-other", "../other-gentle-pi"] });
@@ -1479,9 +1479,9 @@ test("--link does not take over a git-sourced other package: it is skipped with 
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	const settingsPath = join(piAgentDir, "settings.json");
 	writeFileSync(settingsPath, JSON.stringify({ packages: ["git:github.com/foo/bar", "../other-gentle-pi"] }));
@@ -1595,9 +1595,9 @@ test("--link take-over re-injects loose extension files, one -e per discovered f
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	const settingsPath = join(piAgentDir, "settings.json");
 	const settingsText = JSON.stringify({ packages: ["../other-gentle-pi"] });
@@ -1609,7 +1609,7 @@ test("--link take-over re-injects loose extension files, one -e per discovered f
 	mkdirSync(join(looseAgentExtensions, "sub"), { recursive: true });
 	writeFileSync(join(looseAgentExtensions, "a.ts"), "export default () => {};");
 	writeFileSync(join(looseAgentExtensions, "b.js"), "export default () => {};");
-	writeFileSync(join(looseAgentExtensions, "gentle-agent-state.ts.bak-pre-fullscreen-fix"), "stale backup");
+	writeFileSync(join(looseAgentExtensions, "nubia-agent-state.ts.bak-pre-fullscreen-fix"), "stale backup");
 	writeFileSync(join(looseAgentExtensions, ".hidden.ts"), "export default () => {};");
 	writeFileSync(join(looseAgentExtensions, "sub", "index.ts"), "export default () => {};");
 
@@ -1651,9 +1651,9 @@ test("--link take-over injects a root-level index.ts as its own loose file entry
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"] }));
 
@@ -1687,9 +1687,9 @@ test("--link take-over injects a subdirectory's own index.ts entry point even wh
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"] }));
 
@@ -1717,9 +1717,9 @@ test("--link take-over omits -e flags for loose extension dirs that do not exist
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"] }));
 
@@ -1747,9 +1747,9 @@ test("--link take-over skips a declared package directory that is not installed,
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	// "npm:some-other" is declared but never installed under
 	// <agentDir>/npm/node_modules, so its resolved directory does not exist.
@@ -1845,9 +1845,9 @@ test("--link take-over warns once when a loose extensions directory cannot be re
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"] }));
 
@@ -1878,9 +1878,9 @@ test("--link take-over falls through to per-file discovery when a loose dir's pa
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"] }));
 
@@ -1908,9 +1908,9 @@ test("--link take-over treats a malformed package.json as no manifest and falls 
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"] }));
 
@@ -1940,9 +1940,9 @@ test("--link take-over stderr message also notes that the taken-over declaration
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"] }));
 
@@ -1958,9 +1958,9 @@ test("--link take-over treats a file named `extensions` as not a loose extension
 	const piAgentDir = join(f.root, "pi-agent");
 	mkdirSync(piAgentDir, { recursive: true });
 
-	const otherGentlePiDir = join(f.root, "other-gentle-pi");
-	mkdirSync(otherGentlePiDir, { recursive: true });
-	writeFileSync(join(otherGentlePiDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
+	const otherNubiaDir = join(f.root, "other-gentle-pi");
+	mkdirSync(otherNubiaDir, { recursive: true });
+	writeFileSync(join(otherNubiaDir, "package.json"), JSON.stringify({ name: "gentle-pi" }));
 
 	writeFileSync(join(piAgentDir, "settings.json"), JSON.stringify({ packages: ["../other-gentle-pi"] }));
 	writeFileSync(join(piAgentDir, "extensions"), "not a directory");
@@ -2058,14 +2058,14 @@ function runInPty(env: NodeJS.ProcessEnv, args: string[], expectedStatus = 0): s
 }
 
 const PI_HINT = "To resume this session: pi --session abc\r\n";
-const GENTLE_HINT = "\u001b[2mTo resume in nub-ia:\u001b[22m nub-ia --link --session abc\r\n";
+const NUB_IA_HINT = "\u001b[2mTo resume in nub-ia:\u001b[22m nub-ia --link --session abc\r\n";
 
 test("on a TTY the launcher appends a nub-ia resume line below pi's hint", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
 	const f = fixture(t);
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeHandoffPiScript(piScript);
 	const out = runInPty({ ...f.env, NUB_IA_PI: piScript }, ["--link"]);
-	assert.ok(out.endsWith(PI_HINT + GENTLE_HINT), JSON.stringify(out));
+	assert.ok(out.endsWith(PI_HINT + NUB_IA_HINT), JSON.stringify(out));
 });
 
 test("on a TTY the nub-ia line still follows a non-zero pi exit, keeping the code", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {
@@ -2073,7 +2073,7 @@ test("on a TTY the nub-ia line still follows a non-zero pi exit, keeping the cod
 	const piScript = join(f.root, "tty-pi.cjs");
 	writeHandoffPiScript(piScript, 3);
 	const out = runInPty({ ...f.env, NUB_IA_PI: piScript }, ["--link"], 3);
-	assert.ok(out.endsWith(PI_HINT + GENTLE_HINT), JSON.stringify(out));
+	assert.ok(out.endsWith(PI_HINT + NUB_IA_HINT), JSON.stringify(out));
 });
 
 // A stand-in pi that writes the handoff and then waits: it quits with its
@@ -2115,7 +2115,7 @@ test("on a TTY a forwarded SIGINT that pi survives does not silence the nub-ia l
 	writeWaitingPiScript(piScript);
 	const out = runInPty({ ...f.env, NUB_IA_PI: piScript, PTY_SIGNAL_AFTER: "ready", PTY_SIGNAL: "2" }, ["--link"]);
 	assert.ok(out.includes("interrupted"), JSON.stringify(out));
-	assert.ok(out.endsWith(PI_HINT + GENTLE_HINT), JSON.stringify(out));
+	assert.ok(out.endsWith(PI_HINT + NUB_IA_HINT), JSON.stringify(out));
 });
 
 test("on a TTY a cross-project session resumes by its session file", { skip: !hasPythonPty && "needs python3 pty" }, (t) => {

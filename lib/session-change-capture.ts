@@ -84,7 +84,7 @@ export function installSessionChangeCapture(pi: ExtensionAPI, env: NodeJS.Proces
 			if (item.sessionId !== ctx.sessionManager.getSessionId() || pending.get(event.toolCallId) !== item) return;
 			item.evidence = { id: event.toolCallId, root: item.root, path: item.relativePath, before, after: verified };
 			// Use the existing RPC tool-result envelope, not a new IPC channel or a model message.
-			if (child) return { details: { ...(event.details && typeof event.details === "object" ? event.details : {}), gentleSessionChange: item.evidence } };
+			if (child) return { details: { ...(event.details && typeof event.details === "object" ? event.details : {}), nubiaSessionChange: item.evidence } };
 		} catch { pending.delete(event.toolCallId); }
 	});
 	pi.on("tool_execution_end", (event, ctx) => {

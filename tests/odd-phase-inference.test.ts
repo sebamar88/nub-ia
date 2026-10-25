@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { inferOddPhase } from "../lib/odd-phase-inference.ts";
 
-// Deterministic, conservative tool -> ODD phase mapping for the Gentle Shell
+// Deterministic, conservative tool -> ODD phase mapping for the Nub-IA
 // working label. Unknown tools and ambiguous shell commands never change it.
 
 test("read-only file tools infer exploring", () => {
@@ -113,7 +113,7 @@ test("real compound read-only shell commands infer exploring", () => {
 		`cd ~/w && grep -rniI "bridge" src | grep -v test | head -15; echo ===; cat ~/.config/settings.json 2>/dev/null | head -40; cd ~/repo && git branch -a --contains 6776520be 2>/dev/null | head`,
 		`f=~/.local/bin/tool; ls -la $f; file -h $f; readlink -f $f; head -c 1500 "$(readlink -f $f)" | strings | head -40`,
 		`which -a pi; readlink -f "$(which pi)"; cd ~/work/pi 2>/dev/null && git branch --show-current && git rev-list --left-right --count HEAD...origin/main 2>/dev/null`,
-		`ps -axo pid,command | grep -E "gentle-shell|pi-coding-agent|/pi " | grep -v grep | cut -c1-300; echo ===; cd ~/w && grep -n "isInteractiveMode" -A8 lib/rpc-host.ts | head -30`,
+		`ps -axo pid,command | grep -E "nubia-shell|pi-coding-agent|/pi " | grep -v grep | cut -c1-300; echo ===; cd ~/w && grep -n "isInteractiveMode" -A8 lib/rpc-host.ts | head -30`,
 		`pgrep -P 96445; for p in 96445 $(pgrep -P 96445); do echo "== $p"; ps -o command= -p $p | cut -c1-250; lsof -p $p 2>/dev/null | grep -E "lib/(a|b)" | awk '{print $NF}' | sort -u | head; done`,
 		`d=~/.sessions; for x in $(grep -l "probe" $(find $d -name "*.jsonl" -mmin -120) 2>/dev/null); do echo "== $x"; grep -o '"toolName":"[^"]*"' $x | sort | uniq -c; done`,
 		`cd ~/w && git tag --contains 53d62fbf3 | head; git log -1 --format='%h %ad' --date=short 53d62fbf3; git tag --sort=-creatordate | head -3`,
@@ -193,10 +193,10 @@ test("known delegated agents infer the parent work phase in foreground and backg
 
 test("unknown or malformed delegation arguments never infer from task prose", () => {
 	for (const args of [
-		{}, null, "nubia-worker", { agent: 5 }, { agent: "gentle-ai-writer" },
+		{}, null, "nubia-worker", { agent: 5 }, { agent: "nub-ia-writer" },
 		{ task: "nubia-verify checking" }, { agent: "nubia-verify-extra" },
 	]) assert.equal(inferOddPhase("subagent_run", args), undefined);
-	for (const tool of ["subagent_start", "subagent_wait", "gentle_odd_phase", "mem_save", "web_fetch", ""]) {
+	for (const tool of ["subagent_start", "subagent_wait", "nubia_odd_phase", "mem_save", "web_fetch", ""]) {
 		assert.equal(inferOddPhase(tool, {}), undefined, tool);
 	}
 });

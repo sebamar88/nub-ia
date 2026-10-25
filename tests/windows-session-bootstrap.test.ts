@@ -1042,9 +1042,9 @@ test("Windows bootstrap startup control", { skip: process.platform !== "win32", 
 
 test("Windows-native bootstrap pins ancestors, creates exact private boundaries, and remains partial", { skip: process.platform !== "win32", timeout: 20_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-bootstrap-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-bootstrap-"));
 	const agentHome = join(root, "profile", "agent");
-	const routing = join(agentHome, "gentle-agents");
+	const routing = join(agentHome, "nubia-agents");
 	const baseline = join(root, "ancestor.sd");
 	const ancestorBaselines = [root, join(root, "profile"), agentHome, routing].map((path, index) => ({ path, baseline: join(root, `ancestor-${index}.sd`) }));
 	await mkdir(routing, { recursive: true });
@@ -1063,9 +1063,9 @@ test("Windows-native bootstrap pins ancestors, creates exact private boundaries,
 
 test("Windows-native presence publishes, resolves, lists, and removes only its own record", { skip: process.platform !== "win32", timeout: 30_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-presence-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-presence-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	const held = await openInitializedHelper(agentHome, { diagnostics });
 	try {
 		const recorded = await held.presence("record", { sessionId: "session-a", createdAt: 1 });
@@ -1073,7 +1073,7 @@ test("Windows-native presence publishes, resolves, lists, and removes only its o
 		const record = recorded.result as Record<string, unknown>;
 		assert.deepEqual(Object.keys(record).sort(), ["createdAt", "endpoint", "sessionId", "version"]);
 		assert.equal(record.sessionId, "session-a");
-		assert.match(record.endpoint as string, /^\\\\\.\\pipe\\gentle-pi-[0-9a-f]{32}$/);
+		assert.match(record.endpoint as string, /^\\\\\.\\pipe\\nub-ia-[0-9a-f]{32}$/);
 		assert.equal((await held.presence("publish", { record })).ok, true);
 		assert.equal((await held.presence("publish", { record })).error, "busy", "no-replace collision preserves the published record");
 		assert.deepEqual(requirePublicPresenceResult(await held.presence("list")), { records: [record] }, "an omitted excludeSessionId lists one record");
@@ -1086,8 +1086,8 @@ test("Windows-native presence publishes, resolves, lists, and removes only its o
 		assert.equal((await held.presence("list", { excludeSessionId: "" })).error, "invalid", "an explicit malformed excludeSessionId is rejected");
 		assert.equal((await held.presence("remove", { record: secondRecord })).ok, true);
 		assert.deepEqual((await held.presence("resolve", { sessionId: "session-a" })).result, record);
-		const token = (record.endpoint as string).slice("\\\\.\\pipe\\gentle-pi-".length);
-		const publishedPath = join(agentHome, "gentle-agents", "transport", "presence", `session-a.${token}.json`);
+		const token = (record.endpoint as string).slice("\\\\.\\pipe\\nub-ia-".length);
+		const publishedPath = join(agentHome, "nubia-agents", "transport", "presence", `session-a.${token}.json`);
 		assert.deepEqual(await fixtureResult("replace-identical", publishedPath), { ok: true, replaced: true });
 		assert.deepEqual(requirePublicPresenceResult(await held.presence("list")), { records: [record] }, "the replacement retains the public record and accepted ACL");
 		assert.equal((await held.presence("remove", { record })).error, "unsafe", "a replacement with identical public bytes and ACL is not owned");
@@ -1097,9 +1097,9 @@ test("Windows-native presence publishes, resolves, lists, and removes only its o
 
 test("Windows-native owned publication removes its unchanged rooted record", { skip: process.platform !== "win32", timeout: 30_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-presence-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-presence-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	const held = await openInitializedHelper(agentHome, { diagnostics });
 	try {
 		const recorded = await held.presence("record", { sessionId: "session-remove", createdAt: 1 });
@@ -1114,9 +1114,9 @@ test("Windows-native owned publication removes its unchanged rooted record", { s
 
 test("Windows-native shutdown releases and cleans unchanged owned publications", { skip: process.platform !== "win32", timeout: 30_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-presence-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-presence-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	const held = await openInitializedHelper(agentHome, { diagnostics });
 	let publishedPath = "";
 	try {
@@ -1124,25 +1124,25 @@ test("Windows-native shutdown releases and cleans unchanged owned publications",
 		assert.equal(recorded.ok, true);
 		const record = recorded.result as Record<string, unknown>;
 		assert.equal((await held.presence("publish", { record })).ok, true);
-		const token = (record.endpoint as string).slice("\\\\.\\pipe\\gentle-pi-".length);
-		publishedPath = join(agentHome, "gentle-agents", "transport", "presence", `session-shutdown.${token}.json`);
+		const token = (record.endpoint as string).slice("\\\\.\\pipe\\nub-ia-".length);
+		publishedPath = join(agentHome, "nubia-agents", "transport", "presence", `session-shutdown.${token}.json`);
 	} finally { await held.closeInput(); }
 	await assert.rejects(stat(publishedPath));
 });
 
 test("Windows-native invalid owned ACL removal preserves the record and releases ownership before shutdown", { skip: process.platform !== "win32", timeout: 30_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-presence-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-presence-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	const held = await openInitializedHelper(agentHome, { diagnostics });
 	try {
 		const recorded = await held.presence("record", { sessionId: "session-invalid-acl", createdAt: 1 });
 		assert.equal(recorded.ok, true);
 		const record = recorded.result as Record<string, unknown>;
 		assert.equal((await held.presence("publish", { record })).ok, true);
-		const token = (record.endpoint as string).slice("\\\\.\\pipe\\gentle-pi-".length);
-		const publishedPath = join(agentHome, "gentle-agents", "transport", "presence", `session-invalid-acl.${token}.json`);
+		const token = (record.endpoint as string).slice("\\\\.\\pipe\\nub-ia-".length);
+		const publishedPath = join(agentHome, "nubia-agents", "transport", "presence", `session-invalid-acl.${token}.json`);
 		assert.deepEqual(await fixtureResult("add-extra-ace", publishedPath), { ok: true, changed: true });
 		assert.equal((await held.presence("remove", { record })).error, "unsafe");
 		await stat(publishedPath);
@@ -1152,12 +1152,12 @@ test("Windows-native invalid owned ACL removal preserves the record and releases
 
 test("Windows-native presence rejects hardlinks, corrupted ACLs, and oversized records", { skip: process.platform !== "win32", timeout: 30_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-presence-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-presence-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	const held = await openInitializedHelper(agentHome, { diagnostics });
 	try {
-		const presence = join(agentHome, "gentle-agents", "transport", "presence");
+		const presence = join(agentHome, "nubia-agents", "transport", "presence");
 		assert.deepEqual(await fixtureResult("junction", join(presence, "reparse.0123456789abcdef0123456789abcdef.json"), ["-Target", root]), { ok: true, reparse: true });
 		assert.deepEqual(requirePublicPresenceResult(await held.presence("list")), { records: [] }, "a reparse record is ignored");
 		for (const [sessionId, mutation] of [["hardlink", "hardlink"], ["bad-acl", "add-extra-ace"], ["oversize", "append"]] as const) {
@@ -1165,8 +1165,8 @@ test("Windows-native presence rejects hardlinks, corrupted ACLs, and oversized r
 			assert.equal(recorded.ok, true);
 			const record = recorded.result as Record<string, unknown>;
 			assert.equal((await held.presence("publish", { record })).ok, true);
-			const token = (record.endpoint as string).slice("\\\\.\\pipe\\gentle-pi-".length);
-			const publishedPath = join(agentHome, "gentle-agents", "transport", "presence", `${sessionId}.${token}.json`);
+			const token = (record.endpoint as string).slice("\\\\.\\pipe\\nub-ia-".length);
+			const publishedPath = join(agentHome, "nubia-agents", "transport", "presence", `${sessionId}.${token}.json`);
 			if (mutation === "hardlink") await fixtureResult("hardlink", publishedPath, ["-Target", join(dirname(publishedPath), `other.${token}.json`)]);
 			else await fixtureResult(mutation, publishedPath);
 			assert.deepEqual(requirePublicPresenceResult(await held.presence("list")), { records: [] });
@@ -1178,9 +1178,9 @@ test("Windows-native presence rejects hardlinks, corrupted ACLs, and oversized r
 test("Windows-native bootstrap rejects a corrupted private boundary and preserves a failed bootstrap without recursive cleanup", { skip: process.platform !== "win32", timeout: 20_000 }, async (t) => {
 	const emitted: string[] = [];
 	const diagnostics: BootstrapDiagnosticContext = { diagnostic: (message) => { emitted.push(message); t.diagnostic(message); } };
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-bootstrap-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-bootstrap-"));
 	const agentHome = join(root, "profile", "agent");
-	const routing = join(agentHome, "gentle-agents");
+	const routing = join(agentHome, "nubia-agents");
 	const badBoundary = join(routing, "transport");
 	const badBaseline = join(root, "bad-boundary.sd");
 	await mkdir(badBoundary, { recursive: true });
@@ -1197,9 +1197,9 @@ test("Windows-native bootstrap rejects a corrupted private boundary and preserve
 
 test("Windows-native bootstrap releases handles on shutdown before its stdin closes", { skip: process.platform !== "win32", timeout: 20_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-bootstrap-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-bootstrap-"));
 	const agentHome = join(root, "profile", "agent");
-	const routing = join(agentHome, "gentle-agents");
+	const routing = join(agentHome, "nubia-agents");
 	await mkdir(routing, { recursive: true });
 	const held = await openInitializedHelper(agentHome, { diagnostics });
 	try {
@@ -1212,9 +1212,9 @@ test("Windows-native bootstrap releases handles on shutdown before its stdin clo
 
 test("Windows-native bootstrap exits on an invalid recognized schema while stdin remains open", { skip: process.platform !== "win32", timeout: 20_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-bootstrap-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-bootstrap-"));
 	const agentHome = join(root, "profile", "agent");
-	const routing = join(agentHome, "gentle-agents");
+	const routing = join(agentHome, "nubia-agents");
 	await mkdir(routing, { recursive: true });
 	const held = await openInitializedHelper(agentHome, { diagnostics });
 	try {
@@ -1227,9 +1227,9 @@ test("Windows-native bootstrap exits on an invalid recognized schema while stdin
 
 test("Windows-native failed bootstrap releases its handles before stdin closes", { skip: process.platform !== "win32", timeout: 20_000 }, async (t) => {
 	const diagnostics: BootstrapDiagnosticContext = t;
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-bootstrap-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-bootstrap-"));
 	const agentHome = join(root, "profile", "agent");
-	const routing = join(agentHome, "gentle-agents");
+	const routing = join(agentHome, "nubia-agents");
 	await mkdir(join(routing, "transport"), { recursive: true });
 	await fixtureResult("add-extra-ace", join(routing, "transport"));
 	const held = await openInitializedHelper(agentHome, { diagnostics });
@@ -1242,9 +1242,9 @@ test("Windows-native failed bootstrap releases its handles before stdin closes",
 });
 
 test("Windows-native bootstrap closes pinned handles after malformed input", { skip: process.platform !== "win32", timeout: 20_000 }, async () => {
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-bootstrap-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-bootstrap-"));
 	const agentHome = join(root, "profile", "agent");
-	const routing = join(agentHome, "gentle-agents");
+	const routing = join(agentHome, "nubia-agents");
 	await mkdir(routing, { recursive: true });
 	const input = ['{"requestId":"start-1","operation":"start"}', JSON.stringify({ requestId: "initialize-2", operation: "initialize", agentHome }), "{"].join("\n") + "\n";
 	const result = await runPowerShell(runtime, [], input);
@@ -1258,9 +1258,9 @@ test("Windows-native bootstrap closes pinned handles after malformed input", { s
 test("Windows-native bootstrap rejects a reparse routing parent and concurrent initialize does not hang", { skip: process.platform !== "win32", timeout: 20_000 }, async (t) => {
 	const emitted: string[] = [];
 	const diagnostics: BootstrapDiagnosticContext = { diagnostic: (message) => { emitted.push(message); t.diagnostic(message); } };
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-bootstrap-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-bootstrap-"));
 	const agentHome = join(root, "profile", "agent");
-	const routing = join(agentHome, "gentle-agents");
+	const routing = join(agentHome, "nubia-agents");
 	const target = join(root, "routing-target");
 	await mkdir(join(agentHome), { recursive: true });
 	await mkdir(target);
@@ -1271,9 +1271,9 @@ test("Windows-native bootstrap rejects a reparse routing parent and concurrent i
 	assert.equal(rejection.kind, "windows-session-bootstrap-rejection");
 	assert.equal(rejection.stage, "routing-open");
 	assert.ok(rejection.ntstatus === 0xC000050B || rejection.ntstatus === null);
-	const concurrentRoot = await mkdtemp(join(os.tmpdir(), "gentle-pi-bootstrap-"));
+	const concurrentRoot = await mkdtemp(join(os.tmpdir(), "nub-ia-bootstrap-"));
 	const concurrentHome = join(concurrentRoot, "profile", "agent");
-	await mkdir(join(concurrentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(concurrentHome, "nubia-agents"), { recursive: true });
 	await withInitializedHelpers([concurrentHome, concurrentHome], async (helpers) => {
 		const results = await Promise.all(helpers.map((candidate) => candidate.enumerate()));
 		for (const frame of results) assert.deepEqual(frame.result, { state: "initialized", bootstrap: "complete", entries: 0 });
@@ -1282,9 +1282,9 @@ test("Windows-native bootstrap rejects a reparse routing parent and concurrent i
 });
 
 async function withWindowsNativeListener<T>(callback: (notification: Readonly<{ id: string; senderSessionId: string; message: string }>) => Promise<void>, action: (value: Readonly<{ listener: WindowsActiveSessionListener; client: WindowsActiveSessionClient; agentHome: string }>) => Promise<T>, createRegistry: (home: string) => Promise<WindowsSessionPresenceRegistry> = (home) => WindowsSessionPresenceRegistry.create(home)): Promise<T> {
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-listener-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-listener-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	let listenerRegistry: WindowsSessionPresenceRegistry | undefined;
 	let clientRegistry: WindowsSessionPresenceRegistry | undefined;
 	let listener: WindowsActiveSessionListener | undefined;
@@ -1324,9 +1324,9 @@ test("Windows native listener setup closes the first acquired registry when the 
 });
 
 test("Windows default transport creates a registry without an observer", { skip: process.platform !== "win32", timeout: 20_000 }, async () => {
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-observer-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-observer-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	const registry = await createDefaultSessionTransport("win32").createRegistry(agentHome);
 	try {
 		assert.deepEqual(await registry.listActivations(), []);
@@ -1336,9 +1336,9 @@ test("Windows default transport creates a registry without an observer", { skip:
 });
 
 test("Windows default transport emits fixed ordered phase events for its own registry", { skip: process.platform !== "win32", timeout: 20_000 }, async () => {
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-observer-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-observer-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	const events: WindowsSessionRegistryPhaseEvent[] = [];
 	const sequence = new WindowsSessionRegistryPhaseSequence();
 	const registry = await createDefaultSessionTransport("win32").createRegistry(agentHome, (event) => {
@@ -1363,9 +1363,9 @@ test("Windows default transport emits fixed ordered phase events for its own reg
 });
 
 test("Windows default transport rejects asynchronous observer setup without awaiting it", { skip: process.platform !== "win32", timeout: 20_000 }, async () => {
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-observer-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-observer-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	await assert.rejects(createDefaultSessionTransport("win32").createRegistry(agentHome, () => Promise.reject(new Error("observer rejected")) as never));
 	await new Promise<void>((resolve) => setImmediate(resolve));
 	const recovered = await createDefaultSessionTransport("win32").createRegistry(agentHome);
@@ -1528,9 +1528,9 @@ function probeWindowsNativeEndpoint(endpoint: string) {
 }
 
 test("Windows-native listener accepts legacy listen then rejects stale epochs and accepts a newer epoch", { skip: process.platform !== "win32", timeout: 30_000 }, async (t) => {
-	const root = await mkdtemp(join(os.tmpdir(), "gentle-pi-listen-compat-"));
+	const root = await mkdtemp(join(os.tmpdir(), "nub-ia-listen-compat-"));
 	const agentHome = join(root, "profile", "agent");
-	await mkdir(join(agentHome, "gentle-agents"), { recursive: true });
+	await mkdir(join(agentHome, "nubia-agents"), { recursive: true });
 	const held = await openInitializedHelper(agentHome, { diagnostics: t });
 	try {
 		const legacy = await held.presence("listen", { sessionId: "legacy", createdAt: 1 });
@@ -1710,8 +1710,8 @@ test("Windows-native stop closes active delivery, removes publication, and relea
 		await new Promise<void>(() => {});
 	}, async ({ listener, client, agentHome }) => {
 		const record = listener.record!;
-		const token = record.endpoint.slice("\\\\.\\pipe\\gentle-pi-".length);
-		const publication = join(agentHome, "gentle-agents", "transport", "presence", `recipient.${token}.json`);
+		const token = record.endpoint.slice("\\\\.\\pipe\\nub-ia-".length);
+		const publication = join(agentHome, "nubia-agents", "transport", "presence", `recipient.${token}.json`);
 		const pending = client.sendNotification("recipient", "hold", { id: "stop-1" });
 		void pending.catch(() => {});
 		await waitWindowsNativeSignal(seen, "Windows native stop callback did not begin");
@@ -1759,8 +1759,8 @@ test("Windows-native stop removes publication, settles delivery, and releases it
 	const seen = new Promise<void>((resolve) => { callbackSeen = resolve; });
 	await withWindowsNativeListener(async () => { callbackSeen(); await new Promise<void>(() => {}); }, async ({ listener, client, agentHome }) => {
 		const record = listener.record!;
-		const token = record.endpoint.slice("\\\\.\\pipe\\gentle-pi-".length);
-		const publication = join(agentHome, "gentle-agents", "transport", "presence", `recipient.${token}.json`);
+		const token = record.endpoint.slice("\\\\.\\pipe\\nub-ia-".length);
+		const publication = join(agentHome, "nubia-agents", "transport", "presence", `recipient.${token}.json`);
 		const pending = client.sendNotification("recipient", "stop", { id: "stop-probe-1" });
 		void pending.catch(() => {});
 		await waitWindowsNativeSignal(seen, "Windows native endpoint stop callback did not begin");

@@ -2,7 +2,7 @@ import { Key, matchesKey, truncateToWidth, visibleWidth, type TuiMouseEvent, typ
 import { renderUsagePanel, type ActiveProvider, type UsagePanelScope, type UsageSourceRegistry, type UsageStore, type UsageTheme } from "./shell-usage.ts";
 import { paintHoverable } from "./shell-hover.ts";
 
-// Gentle Shell subscriptions overlay: a framed panel over the usage store.
+// Nub-IA subscriptions overlay: a framed panel over the usage store.
 // It reads the store on every render, so a refresh only needs to record.
 
 export interface UsageViewDeps {

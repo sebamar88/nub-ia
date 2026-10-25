@@ -283,7 +283,7 @@ test("audited Pi editor releases are one frozen exact allowlist that includes th
 // A fabricated package root reuses the real installed classes but declares its
 // own release metadata, isolating the audited-version allowlist from identity.
 function fabricatedPiCli(t: test.TestContext, version: string, tuiVersion = version, bundledVersion = version): string {
-  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "gentle-vim-audit-")));
+  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "nubia-vim-audit-")));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const realBundle = resolve(dirname(realpathSync(target)), "index.js");
   const realAgent = resolve(dirname(realpathSync(target)), "../index.js");

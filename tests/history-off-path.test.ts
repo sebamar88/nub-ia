@@ -51,7 +51,7 @@ function loadWithCommand(
     agentDir: path.join(root, "agent"),
     sessionsRoot: path.join(root, "sessions"),
     // An empty config home by default: the Customize preference is unset (off).
-    gentlePiConfigHome: configHome,
+    nubiaConfigHome: configHome,
   });
   const command = commands.find(([name]) => name === "history");
   assert.ok(command, "the history command must be registered");
@@ -96,7 +96,7 @@ test("with capture disabled, the history command imports nothing and warns", asy
     `the warning must name the switch, got: ${notifyCalls[0][0]}`,
   );
   assert.ok(
-    notifyCalls[0][0].includes("Gentle → Customize"),
+    notifyCalls[0][0].includes("Nub-IA → Customize"),
     `the warning must name the Customize control, got: ${notifyCalls[0][0]}`,
   );
   // The gate must fire before the drain: no migration, no seed, no store.
@@ -123,7 +123,7 @@ test("the Customize preference opens the selector without the env switch", async
   assert.equal(notifyCalls[0][1], "warning");
   assert.match(notifyCalls[0][0], /disabled/);
   // The same loaded extension honors a later toggle without restart.
-  writeHistoryCapturePolicy("on", { gentlePiConfigHome: configHome });
+  writeHistoryCapturePolicy("on", { nubiaConfigHome: configHome });
   await commandHandler([], fakeCtx(notifyCalls));
   assert.deepEqual(notifyCalls[1], ["No prompt history available.", "warning"]);
 });
@@ -131,12 +131,12 @@ test("the Customize preference opens the selector without the env switch", async
 test("an explicit env off names the override instead of the Customize fix", async () => {
   const root = makeRoot();
   const configHome = fs.mkdtempSync(path.join(os.tmpdir(), "pi-history-off-config-"));
-  writeHistoryCapturePolicy("on", { gentlePiConfigHome: configHome });
+  writeHistoryCapturePolicy("on", { nubiaConfigHome: configHome });
   const { commandHandler } = loadWithCommand({ NUB_IA_HISTORY_CAPTURE: "false" }, root, configHome);
   const notifyCalls: Array<[string, string]> = [];
   await commandHandler([], fakeCtx(notifyCalls));
   assert.equal(notifyCalls.length, 1);
-  assert.match(notifyCalls[0][0], /disabled by NUB_IA_HISTORY_CAPTURE, which overrides the Gentle → Customize → History preference/);
+  assert.match(notifyCalls[0][0], /disabled by NUB_IA_HISTORY_CAPTURE, which overrides the Nub-IA → Customize → History preference/);
   assert.deepEqual(fs.readdirSync(root), []);
 });
 
@@ -150,7 +150,7 @@ test("a malformed Customize preference is reported as invalid, not just off", as
   await commandHandler([], fakeCtx(notifyCalls));
   assert.equal(notifyCalls.length, 1);
   assert.equal(notifyCalls[0][1], "warning");
-  assert.match(notifyCalls[0][0], /Gentle → Customize → History preference is invalid or unreadable/);
+  assert.match(notifyCalls[0][0], /Nub-IA → Customize → History preference is invalid or unreadable/);
   assert.ok(notifyCalls[0][0].includes(preference), `the warning must name the file, got: ${notifyCalls[0][0]}`);
   assert.ok(notifyCalls[0][0].includes("NUB_IA_HISTORY_CAPTURE=1"));
   // Reporting never repairs: the malformed file and the store stay untouched.

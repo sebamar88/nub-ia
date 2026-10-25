@@ -5,17 +5,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { visibleWidth, type Component } from "@earendil-works/pi-tui";
 import { getThemeByName } from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
-import gentleShell from "../extensions/nubia-shell.ts";
+import nubiaShell from "../extensions/nubia-shell.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 import { createEventBus, createExtensionRuntime, ExtensionRunner, SessionManager, type ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import { loadExtensionFromFactory } from "../node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/loader.js";
 import { discoverYoloUiAdapter, registerYoloSessionPolicy, YOLO_STATUS_KEY, YOLO_STATUS_TEXT } from "../lib/yolo-session-policy.ts";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
 
-test("complete Gentle AI extension registers and executes YOLO through the actual SDK loader", async () => {
+test("complete Nub-IA extension registers and executes YOLO through the actual SDK loader", async () => {
 	const cwd = process.cwd();
 	const runtime = createExtensionRuntime();
-	const extension = await loadExtensionFromFactory(createGentleAiExtension({ processEnv: {} }), cwd, createEventBus(), runtime);
+	const extension = await loadExtensionFromFactory(createNubiaExtension({ processEnv: {} }), cwd, createEventBus(), runtime);
 	assert.equal(extension.handlers.get("session_start")?.length, 1, "original startup hook remains the sole handler");
 	assert.equal(extension.handlers.get("session_shutdown")?.length, 1, "original shutdown hook remains the sole handler");
 	const runner = new ExtensionRunner([extension], runtime, cwd, SessionManager.inMemory(cwd), {} as never);
@@ -92,9 +92,9 @@ for (const shellFirst of [false, true]) test(`SDK loads both extensions on one b
 	t.after(() => rmSync(home, { recursive: true, force: true }));
 	const cwd = process.cwd(), runtime = createExtensionRuntime(), bus = createEventBus();
 	const env = { NUB_IA_CONFIG_HOME: home, NUB_IA_SHELL_CHANGES_WATCH_MS: "off" };
-	const ownerFactory = createGentleAiExtension({ processEnv: env,
+	const ownerFactory = createNubiaExtension({ processEnv: env,
 	});
-	const shellFactory = (pi: Parameters<typeof gentleShell>[0]) => gentleShell(pi, env, {
+	const shellFactory = (pi: Parameters<typeof nubiaShell>[0]) => nubiaShell(pi, env, {
 		fetch: async () => { assert.fail("no network calls"); }, activeProfile: () => undefined,
 	});
 	const extensions = [];

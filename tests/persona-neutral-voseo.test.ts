@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { __testing } from "../extensions/nubia-harness.ts";
 
-// These tests assert that the composed main-agent prompt (built by buildGentlePrompt)
+// These tests assert that the composed main-agent prompt (built by buildNubiaPrompt)
 // does not encourage Rioplatense voseo in neutral mode, and does include the expected
 // voseo/Rioplatense markers in gentleman mode.
 
 test("neutral mode composed prompt does not instruct to use voseo", () => {
-	const prompt = __testing.buildGentlePrompt("neutral");
+	const prompt = __testing.buildNubiaPrompt("neutral");
 	// The neutral prompt must never tell the model to USE voseo
 	assert.doesNotMatch(
 		prompt,
@@ -22,7 +22,7 @@ test("neutral mode composed prompt does not instruct to use voseo", () => {
 });
 
 test("neutral mode composed prompt has no positive voseo/Rioplatense instruction and includes explicit prohibition", () => {
-	const prompt = __testing.buildGentlePrompt("neutral");
+	const prompt = __testing.buildNubiaPrompt("neutral");
 	// Any sentence that affirmatively tells the model to use voseo or natural Rioplatense
 	// must be absent. The prohibition line ("Do NOT use voseo") is the only allowed voseo
 	// mention. We match patterns that indicate a positive directive by requiring the word
@@ -47,7 +47,7 @@ test("neutral mode composed prompt has no positive voseo/Rioplatense instruction
 });
 
 test("gentleman mode composed prompt contains voseo reference", () => {
-	const prompt = __testing.buildGentlePrompt("gentleman");
+	const prompt = __testing.buildNubiaPrompt("gentleman");
 	assert.match(
 		prompt,
 		/voseo/i,
@@ -56,7 +56,7 @@ test("gentleman mode composed prompt contains voseo reference", () => {
 });
 
 test("gentleman mode composed prompt contains Rioplatense reference", () => {
-	const prompt = __testing.buildGentlePrompt("gentleman");
+	const prompt = __testing.buildNubiaPrompt("gentleman");
 	assert.match(
 		prompt,
 		/Rioplatense/i,
@@ -65,7 +65,7 @@ test("gentleman mode composed prompt contains Rioplatense reference", () => {
 });
 
 test("neutral mode composed prompt explicitly states active mode is neutral", () => {
-	const prompt = __testing.buildGentlePrompt("neutral");
+	const prompt = __testing.buildNubiaPrompt("neutral");
 	assert.match(
 		prompt,
 		/Current persona mode: neutral/i,
@@ -74,7 +74,7 @@ test("neutral mode composed prompt explicitly states active mode is neutral", ()
 });
 
 test("gentleman mode composed prompt explicitly states active mode is gentleman", () => {
-	const prompt = __testing.buildGentlePrompt("gentleman");
+	const prompt = __testing.buildNubiaPrompt("gentleman");
 	assert.match(
 		prompt,
 		/Current persona mode: gentleman/i,
@@ -83,7 +83,7 @@ test("gentleman mode composed prompt explicitly states active mode is gentleman"
 });
 
 test("neutral mode composed prompt explicitly forbids voseo conjugations", () => {
-	const prompt = __testing.buildGentlePrompt("neutral");
+	const prompt = __testing.buildNubiaPrompt("neutral");
 	// The neutral persona prompt must explicitly forbid voseo conjugation forms
 	assert.match(
 		prompt,
@@ -93,8 +93,8 @@ test("neutral mode composed prompt explicitly forbids voseo conjugations", () =>
 });
 
 test("neutral and gentleman modes produce different language-boundary text", () => {
-	const neutralPrompt = __testing.buildGentlePrompt("neutral");
-	const gentlemanPrompt = __testing.buildGentlePrompt("gentleman");
+	const neutralPrompt = __testing.buildNubiaPrompt("neutral");
+	const gentlemanPrompt = __testing.buildNubiaPrompt("gentleman");
 
 	// The language-boundary section must differ between modes
 	assert.notEqual(

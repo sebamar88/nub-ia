@@ -102,7 +102,7 @@ test("the capture gate precedes every store touch in the open flow (#1390)", () 
   );
   assert.ok(
     message.includes("NUB_IA_HISTORY_CAPTURE") &&
-      message.includes("Gentle → Customize → History"),
+      message.includes("Nub-IA → Customize → History"),
     "the disabled warning names both the env switch and the Customize control",
   );
   // No writer init on the open path: the selector never touches the

@@ -27,7 +27,7 @@ import { DOUBLE_ESC_CANCEL_HINT, floatPromptRow, framePromptLines, resolvePrompt
 import { oddPhaseRegistry } from "../lib/odd-phase.ts";
 import { inferOddPhase } from "../lib/odd-phase-inference.ts";
 import { isInteractiveMode } from "../lib/rpc-host.ts";
-import { gentlePiConfigHome } from "../lib/agent-home.ts";
+import { nubiaConfigHome } from "../lib/agent-home.ts";
 import { resolveAnimationPolicy, writeAnimationPolicy, type AnimationPolicy } from "../lib/animation-policy.ts";
 import { resolveVimPolicy, writeVimPolicy, type VimPolicy } from "../lib/vim-policy.ts";
 import { resolveHistoryCapture, writeHistoryCapturePolicy } from "../lib/history-capture-policy.ts";
@@ -129,9 +129,9 @@ import { modeChip, PERMISSION_MODE_REQUEST } from "./nubia-permission-mode.ts";
 import { PERMISSION_MODES } from "../lib/permission-mode-policy.ts";
 
 
-// Gentle Shell: the visual layer gentle-pi puts on top of pi. It installs the
+// Nub-IA: the visual layer nub-ia puts on top of pi. It installs the
 // status bar, the petal prompt, the working-tree changes widget and overlay,
-// the subscription usage view, and the cards Gentle notices are drawn with.
+// the subscription usage view, and the cards Nub-IA notices are drawn with.
 
 export interface ShellFooterData {
 	getGitBranch(): string | null;
@@ -176,7 +176,7 @@ export type ActiveProfileReader = (() => string | undefined) & {
 // Unbound reads retain the global file-identity cache, including atomic replacements.
 // Bound reads are snapshots: no filesystem or Git work is done during a frame.
 export function createActiveProfileReader(env: NodeJS.ProcessEnv = process.env): ActiveProfileReader {
-	const configHome = gentlePiConfigHome(env);
+	const configHome = nubiaConfigHome(env);
 	let fingerprint: string | undefined;
 	let name: string | undefined;
 	let bound = false;
@@ -204,7 +204,7 @@ export function createActiveProfileReader(env: NodeJS.ProcessEnv = process.env):
 	const reader = (() => bound ? effective : global()) as ActiveProfileReader;
 	reader.refresh = () => {
 		if (!bound) return false;
-		// gentle-shell#1064 slice 1: a parent-session profile binding outranks
+		// nubia-shell#1064 slice 1: a parent-session profile binding outranks
 		// both the pin layers and the global active profile, with the same
 		// "name (scope)" spelling the pin uses. The shared precedence rule lives
 		// in one place: session → p (local pin) → P (repo declaration) → global.
@@ -374,7 +374,7 @@ export function extractQueuedText(combined: string, draft: string): string | und
 	return combined.endsWith(suffix) ? combined.slice(0, combined.length - suffix.length) : undefined;
 }
 
-export class GentlePromptEditor extends CustomEditor {
+export class NubiaPromptEditor extends CustomEditor {
 	private promptState: PromptState = PROMPT_STATE.IDLE;
 	private tick = 0;
 	private animationPolicy: AnimationPolicy = "quality";
@@ -436,7 +436,7 @@ export class GentlePromptEditor extends CustomEditor {
 				this.vimRejected = true;
 				if (!this.compatibilityNotified) {
 					this.compatibilityNotified = true;
-					this.deps.notifyCompatibility?.("Gentle Vim unsupported by this Pi editor layout/version; ordinary editing remains active.");
+					this.deps.notifyCompatibility?.("Nub-IA Vim unsupported by this Pi editor layout/version; ordinary editing remains active.");
 				}
 				policy = "off";
 			}
@@ -486,7 +486,7 @@ export class GentlePromptEditor extends CustomEditor {
 				try { this.setVimPolicy("off"); this.vimRejected = true; } finally { this.disablingUnsupportedVim = false; }
 				if (!this.compatibilityNotified) {
 					this.compatibilityNotified = true;
-					this.deps.notifyCompatibility?.("Gentle Vim unsupported by this Pi editor layout/version; ordinary editing remains active.");
+					this.deps.notifyCompatibility?.("Nub-IA Vim unsupported by this Pi editor layout/version; ordinary editing remains active.");
 				}
 			}
 			throw error;
@@ -975,7 +975,7 @@ export class GentlePromptEditor extends CustomEditor {
 	 * into the editor and aborts; snapshot the draft first, reconstruct the
 	 * queued text from what comes back, restore the draft alone, and hand
 	 * the queued text to the dispatcher so it is sent once the aborted run
-	 * settles (see the `agent_settled` handler in `gentleShell`). Images
+	 * settles (see the `agent_settled` handler in `nubiaShell`). Images
 	 * inside queued messages are already dropped by Pi's own restore, before
 	 * this code ever sees the text.
 	 *
@@ -1018,7 +1018,7 @@ export class GentlePromptEditor extends CustomEditor {
 		const state = this.promptState === PROMPT_STATE.WORKING && this.deps.pending() ? PROMPT_STATE.QUEUED : this.promptState;
 		// Neon keeps the shell's border role; float follows Pi's live public
 		// borderColor callback so thinking/bash mode accents survive.
-		// Selection is applied only to the owned Pi editor rows, before Gentle
+		// Selection is applied only to the owned Pi editor rows, before Nub-IA
 		// frames them. No second editor factory or private layout mutation.
 		let editorLines = lines;
 		if (this.vimPolicy === "on" && this.vimVisual.active) {
@@ -1054,7 +1054,7 @@ export class GentlePromptEditor extends CustomEditor {
 				: this.selectionEngine.decorateBottomRule(framed[framed.length - 1] ?? "", width, "╯");
 		}
 		// Pi places autocomplete after its bottom border. Keep those rows below
-		// Gentle's frame and preserve their terminal width and row coordinates.
+		// Nub-IA's frame and preserve their terminal width and row coordinates.
 		for (const line of editorLines.slice(borderEnd)) {
 			if (layout.background) {
 				framed.push(floatPromptRow(line, layout, (text) => this.borderColor(text)));
@@ -1094,18 +1094,18 @@ export class GentlePromptEditor extends CustomEditor {
 }
 
 // Stable across extension module reloads; never infer ownership from a name.
-const PROMPT_OWNER = Symbol.for("gentle-pi.prompt-owner");
+const PROMPT_OWNER = Symbol.for("nub-ia.prompt-owner");
 type PromptFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>> & { [PROMPT_OWNER]?: boolean };
 
 function installPrompt(
 	ctx: ExtensionContext,
-	onCreated: (prompt: GentlePromptEditor) => void,
+	onCreated: (prompt: NubiaPromptEditor) => void,
 	promptDeps: { now: () => number; doubleEscCancelEnabled: () => boolean; dispatchQueuedText: (text: string) => void; vimRuntimeVersion?: () => string | undefined },
 ): boolean {
 	const previous = ctx.ui.getEditorComponent() as PromptFactory | undefined;
 	if (previous && !previous[PROMPT_OWNER]) return false;
 	const factory: PromptFactory = (tui, theme, keybindings) => {
-		const prompt = new GentlePromptEditor(tui, theme, keybindings, {
+		const prompt = new NubiaPromptEditor(tui, theme, keybindings, {
 			fg: (color, text) => ctx.ui.theme.fg(color as Parameters<typeof ctx.ui.theme.fg>[0], text),
 			bg: (color, text) => ctx.ui.theme.bg(color as Parameters<typeof ctx.ui.theme.bg>[0], text),
 			bold: (text) => ctx.ui.theme.bold(text),
@@ -1171,8 +1171,8 @@ function renderDoubleEscCancelReport(
 	return { message: lines.join("\n"), type: resolution.malformed ? "warning" : "info" };
 }
 
-const CHANGES_WIDGET_KEY = "gentle-shell-changes";
-const HEADER_WIDGET_KEY = "gentle-shell-below-input-header";
+const CHANGES_WIDGET_KEY = "nubia-shell-changes";
+const HEADER_WIDGET_KEY = "nubia-shell-below-input-header";
 const CHANGES_COMMAND_NAME = "nubia:changes";
 const CHANGES_SHORTCUT_DEFAULT = "alt+g";
 const CHANGES_POLL_DEFAULT_MS = 2000;
@@ -1330,7 +1330,7 @@ async function showCommandPalette(pi: ExtensionAPI, ctx: ExtensionContext, env: 
 		"nubia:agents": agentsViewKey(env),
 	});
 	if (groups.length === 0) {
-		ctx.ui.notify("No Gentle commands are registered.", "info");
+		ctx.ui.notify("No Nub-IA commands are registered.", "info");
 		return;
 	}
 	const result = await ctx.ui.custom<CommandPaletteResult>(
@@ -1411,7 +1411,7 @@ async function fetchFromSource(source: UsageSource, apiKey: string | undefined, 
 	}
 }
 
-export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env, overrides: Partial<ShellDeps> = {}): void {
+export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = process.env, overrides: Partial<ShellDeps> = {}): void {
 	installSessionChangeCapture(pi, env, overrides.resolveWorktree ?? resolveSessionWorktree);
 	if (!shellEnabled(env)) return;
 	const profileReader = createActiveProfileReader(env);
@@ -1424,7 +1424,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		profileReader.reset();
 	};
 	const usage = new UsageStore();
-	// Providers gentle-shell has never heard of get a usage source too, when
+	// Providers nubia-shell has never heard of get a usage source too, when
 	// the extension that owns them registers one on pi.events; see the
 	// USAGE_SOURCE_EVENT subscription below.
 	const usageSources = new UsageSourceRegistry();
@@ -1443,10 +1443,10 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	const usageGenerations = new Map<string, number>();
 	// One spelling of the config home, so the pin resolver, the global profiles
 	// store and the profile reader cannot drift onto two different stores.
-	const usageConfigHome = gentlePiConfigHome(env);
+	const usageConfigHome = nubiaConfigHome(env);
 	const usageFetchTimeout = usageFetchTimeoutMs(env);
 	// The subagent routing in force for this session: a session binding first
-	// (gentle-shell#1064 slice 1), then a repository pin, then the global active
+	// (nubia-shell#1064 slice 1), then a repository pin, then the global active
 	// profile. Only the profile's own role entries count; the reserved
 	// orchestrator key is not a route.
 	const activeRoutingModels = (ctx: ExtensionContext): Array<string | undefined> => {
@@ -1632,7 +1632,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			handler: async (ctx) => openUsage(ctx),
 		});
 	}
-	let prompt: GentlePromptEditor | undefined;
+	let prompt: NubiaPromptEditor | undefined;
 	// Set by abortAndDispatchQueued via dispatchQueuedText when an Esc aborts
 	// a turn with a non-empty queue; sent exactly once, from agent_settled,
 	// once the aborted run has fully settled (issue #1218). Several aborts
@@ -1646,8 +1646,8 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	// re-syncs this cache from disk first, so status, the no-argument toggle
 	// direction, and the Esc gate always describe the same effective policy
 	// even when another session or a hand edit changed the file mid-session.
-	const doubleEscCancelConfigHome = gentlePiConfigHome(env);
-	const animationOptions = { gentlePiConfigHome: doubleEscCancelConfigHome };
+	const doubleEscCancelConfigHome = nubiaConfigHome(env);
+	const animationOptions = { nubiaConfigHome: doubleEscCancelConfigHome };
 	let animationPolicy = resolveAnimationPolicy(animationOptions).policy;
 	let vimPolicy = resolveVimPolicy(animationOptions).policy;
 	// Conversation cards read the style from a process-wide slot; the saved
@@ -1657,7 +1657,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	const reportVim = (ctx: ExtensionContext, result: ReturnType<typeof resolveVimPolicy>) => {
 		const source = result.source === "default" ? "built-in default" : `global file ${result.globalFile}`;
 		const effective = prompt?.effectiveVimPolicy;
-		const state = effective === undefined ? "No active Gentle prompt; preference applies when one starts" :
+		const state = effective === undefined ? "No active Nub-IA prompt; preference applies when one starts" :
 			effective !== result.policy ? `Effective prompt: ${effective}; saved preference and prompt differ; ordinary editing remains active` :
 			result.policy === "off" ? "Prompt applies now; ordinary editing active" : "Prompt applies now";
 		ctx.ui.notify(`vim: ${result.policy} (decided by ${source})${result.malformed ? "; malformed or unreadable file, falling back to off" : ""}. ${state}.`, result.malformed || (effective !== undefined && effective !== result.policy) ? "warning" : "info");
@@ -1674,7 +1674,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	};
 	let doubleEscCancelPolicy: DoubleEscCancelPolicy = resolveDoubleEscCancelPolicy({
 		env,
-		gentlePiConfigHome: doubleEscCancelConfigHome,
+		nubiaConfigHome: doubleEscCancelConfigHome,
 	}).policy;
 	let changes: SessionChanges | undefined;
 	let registry: SessionWorktreeRegistry | undefined;
@@ -1884,7 +1884,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		});
 	}
 	pi.registerCommand(COMMANDS_COMMAND_NAME, {
-		description: "Open the command palette: a curated, grouped menu of Gentle commands.",
+		description: "Open the command palette: a curated, grouped menu of Nub-IA commands.",
 		handler: async (_args, ctx) => showCommandPalette(pi, ctx, env),
 	});
 	const commandsShortcut = commandsKey(env);
@@ -1913,7 +1913,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				if (closeCustomize === close) closeCustomize = undefined;
 			};
 			closeCustomize = close;
-			const home = { gentlePiConfigHome: doubleEscCancelConfigHome };
+			const home = { nubiaConfigHome: doubleEscCancelConfigHome };
 			const rows: CustomizeRow[] = [];
 			const bannerHome = doubleEscCancelConfigHome;
 			let banner = await readBannerConfig(bannerHome).catch(error => { close(); throw error; });
@@ -2071,7 +2071,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			// The prompt-history extension re-reads this preference per prompt, so a
 			// change applies without restart. An explicit NUB_IA_HISTORY_CAPTURE
 			// value wins; the rows say so instead of silently ignoring the choice.
-			const historyCapture = () => resolveHistoryCapture({ env, gentlePiConfigHome: doubleEscCancelConfigHome });
+			const historyCapture = () => resolveHistoryCapture({ env, nubiaConfigHome: doubleEscCancelConfigHome });
 			for (const [label, policy] of [["enable", "on"], ["disable", "off"]] as const) rows.push({
 				category,
 				label: () => {
@@ -2086,7 +2086,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				action: () => {
 					const current = historyCapture();
 					if (current.malformed) throw new Error(`Cannot update malformed or unreadable history capture preference: ${current.globalFile}`);
-					writeHistoryCapturePolicy(policy, { gentlePiConfigHome: doubleEscCancelConfigHome });
+					writeHistoryCapturePolicy(policy, { nubiaConfigHome: doubleEscCancelConfigHome });
 					const result = historyCapture();
 					if (result.envOverride) ctx.ui.notify(`Prompt history capture preference saved: ${result.preference}. NUB_IA_HISTORY_CAPTURE=${result.envOverride} overrides it; capture stays ${result.envOverride}.`, "warning");
 					else ctx.ui.notify(result.enabled ? "Prompt history capture: on. Applies from the next prompt; stored history is kept." : "Prompt history capture: off. New prompts are not recorded; stored history is kept.", "info");
@@ -2229,7 +2229,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 		handler: async (args, ctx) => {
 			let action = args.trim() || "status";
 			if (!args.trim() && ctx.hasUI && typeof ctx.ui.select === "function") {
-				const selected = await ctx.ui.select(`Gentle Vim (current: ${vimPolicy})`, ["enable", "disable", "status"]);
+				const selected = await ctx.ui.select(`Nub-IA Vim (current: ${vimPolicy})`, ["enable", "disable", "status"]);
 				if (selected === undefined) return;
 				action = selected;
 			}
@@ -2256,7 +2256,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 			let action = args.trim() || "status";
 			if (args.trim().length === 0 && ctx.hasUI && typeof ctx.ui.select === "function") {
 				const selected = await ctx.ui.select(
-					`Gentle animations (current: ${animationPolicy})`,
+					`Nub-IA animations (current: ${animationPolicy})`,
 					["quality", "performance", "potato", "status"],
 				);
 				if (selected === undefined) return;
@@ -2291,7 +2291,7 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 				return;
 			}
 			try {
-				const before = resolveDoubleEscCancelPolicy({ env, gentlePiConfigHome: doubleEscCancelConfigHome });
+				const before = resolveDoubleEscCancelPolicy({ env, nubiaConfigHome: doubleEscCancelConfigHome });
 				doubleEscCancelPolicy = before.policy;
 				const subAction = trimmed === "" ? (before.policy === "on" ? "disable" : "enable") : trimmed;
 				if (subAction === "status") {
@@ -2300,8 +2300,8 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 					return;
 				}
 				const wrote: DoubleEscCancelPolicy = subAction === "enable" ? "on" : "off";
-				writeDoubleEscCancelPolicy(wrote, { gentlePiConfigHome: doubleEscCancelConfigHome });
-				const after = resolveDoubleEscCancelPolicy({ env, gentlePiConfigHome: doubleEscCancelConfigHome });
+				writeDoubleEscCancelPolicy(wrote, { nubiaConfigHome: doubleEscCancelConfigHome });
+				const after = resolveDoubleEscCancelPolicy({ env, nubiaConfigHome: doubleEscCancelConfigHome });
 				// Cache what the file actually resolves to, not what was written: a
 				// competing writer or a read failure would otherwise leave the gate
 				// and the report disagreeing.
@@ -2327,13 +2327,13 @@ export default function gentleShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
 	});
 	pi.on("tool_execution_start", (event, ctx) => {
 		// The working label follows the primary session's own tool activity so
-		// it never depends on the model remembering gentle_odd_phase, which
+		// it never depends on the model remembering nubia_odd_phase, which
 		// stays the explicit refinement (its report is already explicit).
 		// Subagents run as headless `pi --mode rpc` children whose env never
 		// carries the interactive-host signal (lib/agents-runner.ts), so they
 		// never infer; their process-local registry could not reach this
 		// label anyway.
-		if (!ctx.hasUI || !isInteractiveMode(ctx.mode) || event.toolName === "gentle_odd_phase") return;
+		if (!ctx.hasUI || !isInteractiveMode(ctx.mode) || event.toolName === "nubia_odd_phase") return;
 		const phase = inferOddPhase(event.toolName, event.args);
 		if (phase) {
 			const delegated = event.toolName === "subagent_run" || /^mcp__.+?__subagent_run$/.test(event.toolName);

@@ -10,7 +10,7 @@ La grabación está **apagada por defecto**: un prompt puede contener secretos, 
 2. Elegí **Prompt history capture: enable** (o **disable**) y presioná Enter o Espacio. Resaltar una fila solo previsualiza.
 3. Aplica desde el próximo prompt; no hace falta reiniciar Pi.
 
-La preferencia es global: `<configHome>/history-capture.json` con la forma estricta `{"schema":"gentle-pi.history-capture/v1","policy":"on"}` (u `off`), escrita de forma atómica y fuera de los perfiles visuales. `configHome` es `NUB_IA_CONFIG_HOME` o, por defecto, `~/.pi/gentle-ai` (ruta heredada del upstream). Para una sola sesión: `NUB_IA_HISTORY_CAPTURE=1 nub-ia`.
+La preferencia es global: `<configHome>/history-capture.json` con la forma estricta `{"schema":"nub-ia.history-capture/v1","policy":"on"}` (u `off`), escrita de forma atómica y fuera de los perfiles visuales. `configHome` es `NUB_IA_CONFIG_HOME` o, por defecto, `~/.pi/gentle-ai` (ruta heredada del upstream). Para una sola sesión: `NUB_IA_HISTORY_CAPTURE=1 nub-ia`.
 
 | Situación | Captura |
 | --- | --- |

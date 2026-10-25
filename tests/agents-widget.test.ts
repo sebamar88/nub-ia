@@ -6,7 +6,7 @@ import { formatElapsed, renderAgentsCard, widgetExpiryMs, widgetRows, widgetTask
 import { CARD_STYLE, cardStyle, setCardStyle, type CardStyle } from "../lib/shell-card.ts";
 import { stripAnsi } from "../lib/terminal-theme.ts";
 
-// Gentle Agents widget: the card above the editor that shows what the
+// Nub-IA Agents widget: the card above the editor that shows what the
 // subagents are doing, drawn from task records only (never from threads).
 // Layout: glyph, agent, task summary (wrapped), then model · tokens · cost · time.
 
@@ -90,14 +90,14 @@ test("renderAgentsCard paints the quiet-state INFO card with the rose frame (bor
 test("renderAgentsCard draws columns for agent, task, and model · tokens · cost · time, with the batch time in the rule", () => {
 	const tasks = [
 		task({ id: "a", status: TASK_STATUS.COMPLETED, startedAt: 1000, endedAt: 26_000 }),
-		task({ id: "b", agent: "sdd-apply", label: "write gentle-shell footer", startedAt: 44_000, tokens: 12_000, cost: 0.09 }),
+		task({ id: "b", agent: "sdd-apply", label: "write nubia-shell footer", startedAt: 44_000, tokens: 12_000, cost: 0.09 }),
 	];
 	const lines = renderAgentsCard(tasks, plainTheme, 84, 85_000, { collapsed: false });
 	for (const line of lines) assert.equal(visibleWidth(line), 84, `"${stripAnsi(line)}" is not 84 wide`);
 	const plain = lines.map(stripAnsi);
 	assert.match(plain[0], /^╭─ ∾ Agents · 1 active · 1 done ─+ 1m24s ╮$/);
 	assert.match(plain[1], /^│ ✓  sdd-explore  map footer data sources +claude-sonnet-5 · 34k · \$0\.270 · 25s │$/);
-	assert.match(plain[2], /^│ ◐  sdd-apply    write gentle-shell footer +claude-sonnet-5 · 12k · \$0\.090 · 41s │$/);
+	assert.match(plain[2], /^│ ◐  sdd-apply    write nubia-shell footer +claude-sonnet-5 · 12k · \$0\.090 · 41s │$/);
 	assert.match(plain[3], /^╰─+╯$/);
 	assert.deepEqual(renderAgentsCard([], plainTheme, 60, 0, { collapsed: false }), []);
 });
@@ -164,7 +164,7 @@ test("renderAgentsCard keeps every task on one line, clipping long labels, and d
 	assert.match(narrow[1], /^│ ◐  sdd-explore +34k · \$0\.270 · 4s │$/, "the model name goes before tokens, cost and elapsed");
 });
 
-// gentle-shell#1143: one long model id used to flip the whole card to the
+// nubia-shell#1143: one long model id used to flip the whole card to the
 // model-only fallback, silently dropping tokens, cost and the running time.
 test("renderAgentsCard keeps tokens, cost and elapsed when a long model name no longer fits", () => {
 	const tasks = [task({ id: "a", model: "anthropic/claude-sonnet-4-5-20250929", tokens: 12_345, cost: 0.42, startedAt: 5_000 - 184_000 })];
@@ -210,7 +210,7 @@ test("renderAgentsCard shows questions and failures in place of the task, and co
 	assert.match(collapsed[1], /^│ \?  sdd-explore  asked: Delete\?/);
 });
 
-// gentle-shell#1143 reversed the old priority: usage (tokens, cost and above
+// nubia-shell#1143 reversed the old priority: usage (tokens, cost and above
 // all elapsed) outranks the model·effort label when the row is narrow, since
 // the label is the one value the user already chose and can look up.
 test("usage outranks the model label at narrow widths without inventing unknown values", () => {
@@ -340,7 +340,7 @@ test("renderAgentsCard formats subagent cost with formatCost (three decimals bel
 test("renderAgentsCard in the float style is a float panel two rows taller than neon with unclipped columns", (t) => {
 	const tasks = [
 		task({ id: "a", status: TASK_STATUS.COMPLETED, startedAt: 1000, endedAt: 26_000 }),
-		task({ id: "b", agent: "sdd-apply", label: "write gentle-shell footer", startedAt: 44_000, tokens: 12_000, cost: 0.09 }),
+		task({ id: "b", agent: "sdd-apply", label: "write nubia-shell footer", startedAt: 44_000, tokens: 12_000, cost: 0.09 }),
 	];
 	const theme = withBackground(plainTheme);
 	for (const options of [{ collapsed: false }, { collapsed: true, collapseKey: "ctrl+a" }, { collapsed: false, maxRows: 1, viewKey: "ctrl+v" }]) {

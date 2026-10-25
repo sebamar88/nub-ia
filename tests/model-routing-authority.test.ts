@@ -28,10 +28,10 @@ test("model routing authority normalizes and preserves sync/async source status"
 		`shared model routing authority must load: ${String(loaded.error)}`,
 	);
 	const authority = loaded.module;
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-model-routing-authority-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-model-routing-authority-"));
 	const globalDir = join(root, "global");
 	const projectDir = join(root, "project");
-	const projectConfigDir = join(projectDir, ".pi", "gentle-ai");
+	const projectConfigDir = join(projectDir, ".pi", "nub-ia");
 	const agentsDir = join(root, "agents");
 	mkdirSync(globalDir, { recursive: true });
 	mkdirSync(projectConfigDir, { recursive: true });
@@ -162,9 +162,9 @@ test("model routing authority normalizes and preserves sync/async source status"
 });
 
 test("saved-routing apply fails closed for invalid project and global sources", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-model-routing-apply-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-model-routing-apply-"));
 	const configHome = join(root, "global");
-	const projectConfigDir = join(root, ".pi", "gentle-ai");
+	const projectConfigDir = join(root, ".pi", "nub-ia");
 	const projectAgentsDir = join(root, ".pi", "agents");
 	const projectProfileDir = join(root, ".pi");
 	const agentHome = join(root, "agent-home");
@@ -228,9 +228,9 @@ test("saved-routing apply fails closed for invalid project and global sources", 
 });
 
 test("saved-routing apply preserves missing, valid, null, inherit, and omission behavior", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "gentle-pi-model-routing-apply-valid-"));
+	const root = mkdtempSync(join(tmpdir(), "nub-ia-model-routing-apply-valid-"));
 	const configHome = join(root, "global");
-	const projectConfigDir = join(root, ".pi", "gentle-ai");
+	const projectConfigDir = join(root, ".pi", "nub-ia");
 	const projectAgentsDir = join(root, ".pi", "agents");
 	const projectProfileDir = join(root, ".pi");
 	const agentHome = join(root, "agent-home");

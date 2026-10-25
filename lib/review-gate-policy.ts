@@ -1,5 +1,5 @@
 // Review gate policy for Nub-IA: whether `git push` is gated on a `nub_review`
-// of the changes being delivered, and how hard. Replaces the gentle-ai
+// of the changes being delivered, and how hard. Replaces the nub-ia
 // `review mode` switch with the same ergonomics (status | enable | disable) on
 // the in-process review. No Pi imports; file I/O only through the config home
 // helpers so the legacy ~/.pi/gentle-ai location keeps being honoured.
@@ -17,7 +17,7 @@
 // attributed to that file.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { gentlePiConfigHome } from "./agent-home.ts";
+import { nubiaConfigHome } from "./agent-home.ts";
 import { configReadPath, projectConfigReadPath } from "./config-home.ts";
 import { loadEffectiveOrgPolicy, orgReviewGate } from "./org-policy.ts";
 
@@ -75,7 +75,7 @@ function readModeFile(path: string): { present: boolean; mode?: ReviewGateMode; 
 
 export function resolveReviewGate(cwd: string, options: ResolveReviewGateOptions = {}): ReviewGateResolution {
 	const env = options.env ?? process.env;
-	const configHome = options.configHome ?? gentlePiConfigHome();
+	const configHome = options.configHome ?? nubiaConfigHome();
 	const projectFile = projectConfigReadPath(cwd, REVIEW_GATE_FILE);
 	const globalFile = configReadPath(configHome, REVIEW_GATE_FILE, env);
 
@@ -105,7 +105,7 @@ export function resolveReviewGate(cwd: string, options: ResolveReviewGateOptions
 
 
 /** Writes the global policy file (always the nub-ia config home), returning its path. */
-export function writeGlobalReviewGate(mode: ReviewGateMode, configHome: string = gentlePiConfigHome()): string {
+export function writeGlobalReviewGate(mode: ReviewGateMode, configHome: string = nubiaConfigHome()): string {
 	mkdirSync(configHome, { recursive: true });
 	const path = join(configHome, REVIEW_GATE_FILE);
 	writeFileSync(path, `${JSON.stringify({ schema: REVIEW_GATE_SCHEMA, mode }, null, 2)}\n`);

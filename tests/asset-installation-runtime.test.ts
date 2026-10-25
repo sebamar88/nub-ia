@@ -16,11 +16,11 @@ async function proveLazyDiscovery(): Promise<void> {
 	const shim = join(cwd, "extensions.ts");
 	const source = (name: string) => JSON.stringify(new URL(`../extensions/${name}.ts`, import.meta.url).href);
 	writeFileSync(shim, `
-import { createGentleAiExtension } from ${source("nubia-harness")};
-import gentleAgents from ${source("nubia-agents")};
+import { createNubiaExtension } from ${source("nubia-harness")};
+import nubiaAgents from ${source("nubia-agents")};
 export default function (pi) {
-  createGentleAiExtension({ processEnv: {} })(pi);
-  gentleAgents(pi);
+  createNubiaExtension({ processEnv: {} })(pi);
+  nubiaAgents(pi);
 }
 `);
 	const modelRuntime = await ModelRuntime.create({
@@ -59,8 +59,8 @@ export default function (pi) {
 		assert.match(before, /- review-risk \(global\)/);
 		assert.doesNotMatch(before, /- sdd-/, "fresh startup must not install SDD definitions");
 		assert.equal(existsSync(join(agentDir, "chains", "sdd-full.chain.md")), false);
-		assert.equal(existsSync(join(agentDir, "gentle-ai", "support", "strict-tdd.md")), true);
-		assert.equal(existsSync(join(agentDir, "gentle-ai", "support", "strict-tdd-verify.md")), true);
+		assert.equal(existsSync(join(agentDir, "nub-ia", "support", "strict-tdd.md")), true);
+		assert.equal(existsSync(join(agentDir, "nub-ia", "support", "strict-tdd-verify.md")), true);
 		assert.equal(session.messages.length, 0, "asset startup must not start a model turn");
 		console.log("SDK discovery: delegation/review only");
 	} finally {
@@ -72,7 +72,7 @@ if (process.env.NUB_IA_ASSET_PROOF_CHILD === "1") {
 	await proveLazyDiscovery();
 } else {
 	test("actual SDK discovers delegation and review assets without SDD activation", () => {
-		const root = mkdtempSync(join(tmpdir(), "gentle-pi-assets-sdk-"));
+		const root = mkdtempSync(join(tmpdir(), "nub-ia-assets-sdk-"));
 		try {
 			const home = join(root, "home");
 			const cwd = join(root, "project");

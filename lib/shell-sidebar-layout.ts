@@ -48,7 +48,7 @@ type PreparedRail = {
 	headerActive: boolean;
 	presentation?: SidebarPresentation;
 };
-const CACHE = Symbol.for("gentle-pi.experimental-sidebar.cache");
+const CACHE = Symbol.for("nub-ia.experimental-sidebar.cache");
 
 function sidebarCache(tui: TUI): SidebarCache {
 	const terminal = tui.terminal as unknown as Record<symbol, SidebarCache>;

@@ -58,8 +58,8 @@ test("parse rejects malformed values without throwing", () => {
 });
 
 test("parse checks absoluteness with the injected path flavor, so Windows paths are accepted", () => {
-	const windows = encodeChildPackageInjection({ noExtensions: false, extensionPaths: ["C:\\x\\gentle-pi"] });
-	assert.deepEqual(parseChildPackageInjection(envWith(windows), win32), { noExtensions: false, extensionPaths: ["C:\\x\\gentle-pi"] });
+	const windows = encodeChildPackageInjection({ noExtensions: false, extensionPaths: ["C:\\x\\nub-ia"] });
+	assert.deepEqual(parseChildPackageInjection(envWith(windows), win32), { noExtensions: false, extensionPaths: ["C:\\x\\nub-ia"] });
 	assert.equal(parseChildPackageInjection(envWith(windows), posix), undefined);
 	const driveRelative = encodeChildPackageInjection({ noExtensions: false, extensionPaths: ["C:x"] });
 	assert.equal(parseChildPackageInjection(envWith(driveRelative), win32), undefined);

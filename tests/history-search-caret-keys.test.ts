@@ -56,7 +56,7 @@ async function selectAfter(keys: string[]): Promise<string | null> {
     } as never,
     {
       env: { NUB_IA_HISTORY_CAPTURE: "1" },
-      gentlePiConfigHome: fs.mkdtempSync(
+      nubiaConfigHome: fs.mkdtempSync(
         path.join(os.tmpdir(), "pi-history-caret-config-"),
       ),
       root,

@@ -119,7 +119,10 @@ Prerrequisito de F1, F2.2, F3.2 y F3.3.
   mover código. Hallazgo: upstream agregó su propio `lib/permission-mode-policy.ts` (`normal|auto|yolo`, archivo
   `permission-mode.json`); el default nuestro se renombró a `permission-mode-default.json` para no colisionar, y la
   conciliación de ambos modelos de modos queda anotada para el merge.
-- [x] **T4.2 Workflow de sincronización con upstream**
+- [x] **T4.2 Workflow de sincronización con upstream** *(retirado)*
+  Hoy Nub-IA ya no sincroniza con gentle-shell: se eliminaron el remote `upstream`, `upstream-sync.yml` y
+  `scripts/upstream-diff.mjs`, y con ellos la restricción de mergeabilidad sobre los archivos heredados (ver `CLAUDE.md`).
+  Lo que hacía:
   `.github/workflows/upstream-sync.yml`: lunes 06:17 UTC o manual; `fetch upstream`, `scripts/upstream-diff.mjs`,
   `merge -X find-renames` en `sync/upstream-<fecha>` → PR con el reporte, o issue (creado/actualizado) con los archivos
   en conflicto. Nunca escribe en `main`. YAML validado; la lógica git se probó localmente con el propio repo como

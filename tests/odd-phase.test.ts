@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { isOddPhase, oddPhaseLabel, oddPhaseRegistry, ODD_PHASES, OddPhaseRegistry } from "../lib/odd-phase.ts";
-import { createGentleAiExtension } from "../extensions/nubia-harness.ts";
+import { createNubiaExtension } from "../extensions/nubia-harness.ts";
 
-// Bounded ODD phase signal for the Gentle prompt's working label: inferred
+// Bounded ODD phase signal for the Nub-IA prompt's working label: inferred
 // from observed tool activity (lib/odd-phase-inference.ts) and refined by
-// explicit orchestrator reports through gentle_odd_phase.
+// explicit orchestrator reports through nubia_odd_phase.
 
 test("ODD_PHASES is the fixed orchestrator-reportable vocabulary covering every ODD protocol step (deciding covers both step 3 and step 4)", () => {
 	assert.deepEqual(ODD_PHASES, ["authorizing", "exploring", "researching", "deciding", "planning", "implementing", "checking", "closing"]);
@@ -217,15 +217,15 @@ interface RegisteredTool {
 	) => Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }>;
 }
 
-function gentleOddPhaseTool(): RegisteredTool {
+function nubiaOddPhaseTool(): RegisteredTool {
 	const tools = new Map<string, RegisteredTool>();
-	createGentleAiExtension({ } as unknown as Parameters<typeof createGentleAiExtension>[0])({
+	createNubiaExtension({ } as unknown as Parameters<typeof createNubiaExtension>[0])({
 		on() {},
 		registerTool(definition: RegisteredTool & { name: string }) { tools.set(definition.name, definition); },
 		registerCommand() {},
 	} as unknown as ExtensionAPI);
-	const tool = tools.get("gentle_odd_phase");
-	assert.ok(tool, "gentle_odd_phase must be registered");
+	const tool = tools.get("nubia_odd_phase");
+	assert.ok(tool, "nubia_odd_phase must be registered");
 	return tool;
 }
 
@@ -233,8 +233,8 @@ function toolContext(sessionId: string | undefined): ExtensionContext {
 	return { sessionManager: { getSessionId: () => sessionId } } as unknown as ExtensionContext;
 }
 
-test("gentle_odd_phase reports a valid phase for the calling session and returns details", async () => {
-	const tool = gentleOddPhaseTool();
+test("nubia_odd_phase reports a valid phase for the calling session and returns details", async () => {
+	const tool = nubiaOddPhaseTool();
 	const ctx = toolContext("tool-session-a");
 	try {
 		const result = await tool.execute("call-1", { phase: "researching" }, undefined, undefined, ctx);
@@ -245,8 +245,8 @@ test("gentle_odd_phase reports a valid phase for the calling session and returns
 	}
 });
 
-test("gentle_odd_phase 'clear' leaves the current phase mid-turn", async () => {
-	const tool = gentleOddPhaseTool();
+test("nubia_odd_phase 'clear' leaves the current phase mid-turn", async () => {
+	const tool = nubiaOddPhaseTool();
 	const ctx = toolContext("tool-session-b");
 	try {
 		await tool.execute("call-1", { phase: "implementing" }, undefined, undefined, ctx);
@@ -258,11 +258,11 @@ test("gentle_odd_phase 'clear' leaves the current phase mid-turn", async () => {
 	}
 });
 
-test("gentle_odd_phase throws (never falsely returns success) for a phase outside the bounded vocabulary", async () => {
+test("nubia_odd_phase throws (never falsely returns success) for a phase outside the bounded vocabulary", async () => {
 	// Pi's own contract: only a thrown error sets isError: true; a returned
 	// value never does, regardless of an isError property on it
 	// (docs/extensions.md "Signaling errors").
-	const tool = gentleOddPhaseTool();
+	const tool = nubiaOddPhaseTool();
 	const ctx = toolContext("tool-session-c");
 	try {
 		await assert.rejects(
@@ -275,8 +275,8 @@ test("gentle_odd_phase throws (never falsely returns success) for a phase outsid
 	}
 });
 
-test("gentle_odd_phase preserves the prior reported phase when given an invalid token; only 'clear' resets it", async () => {
-	const tool = gentleOddPhaseTool();
+test("nubia_odd_phase preserves the prior reported phase when given an invalid token; only 'clear' resets it", async () => {
+	const tool = nubiaOddPhaseTool();
 	const ctx = toolContext("tool-session-d");
 	try {
 		await tool.execute("call-1", { phase: "checking" }, undefined, undefined, ctx);
@@ -287,8 +287,8 @@ test("gentle_odd_phase preserves the prior reported phase when given an invalid 
 	}
 });
 
-test("gentle_odd_phase throws, not falsely succeeds, when there is no active session for a valid phase", async () => {
-	const tool = gentleOddPhaseTool();
+test("nubia_odd_phase throws, not falsely succeeds, when there is no active session for a valid phase", async () => {
+	const tool = nubiaOddPhaseTool();
 	const ctx = toolContext(undefined);
 	await assert.rejects(
 		() => tool.execute("call-1", { phase: "implementing" }, undefined, undefined, ctx),
@@ -300,8 +300,8 @@ test("gentle_odd_phase throws, not falsely succeeds, when there is no active ses
 	);
 });
 
-test("gentle_odd_phase throws for an invalid token even with no active session", async () => {
-	const tool = gentleOddPhaseTool();
+test("nubia_odd_phase throws for an invalid token even with no active session", async () => {
+	const tool = nubiaOddPhaseTool();
 	const ctx = toolContext(undefined);
 	await assert.rejects(() => tool.execute("call-1", { phase: "refactoring" }, undefined, undefined, ctx));
 });

@@ -25,6 +25,7 @@ modelo no pueden aflojar lo que el equipo fijó, y el equipo no puede aflojar lo
 | Comandos guardados | `→ guardedCommands` | `guardedCommands` | — | el más estricto (ya existente) |
 | Gate de review | `review-gate.json`, `NUB_IA_REVIEW_GATE` | `review-gate.json` | `reviewGate: confirm\|strict` | el más estricto (`off` no es válido para la org) |
 | Modelos | — | `model-tiers.json` (ruteo + allowlist + budget) | `modelTiers: { allowedProviders, deniedModels, budget }` | intersección / unión / menor |
+| Development Workflow ([doc](development-workflows.md)) | `workflow.json` | `workflow.json` | — | no es una política: no concede ni quita permisos, así que el repo puede elegirlo (env > repo > usuario > `none`) |
 | Paquetes aprobados | — | — | `approvedPackages` (lista → avisa; `{ "mode": "enforce", "sources": [...] }` → `nub-ia install` rechaza) | — |
 
 ## Política de organización

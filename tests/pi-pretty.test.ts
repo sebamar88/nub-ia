@@ -28,7 +28,7 @@ test("bundled pretty cannot replace or restore an editor owned by the host", asy
 		});
 		api.on("session_shutdown", (_event: unknown, context: any) => context.ui.setEditorComponent(undefined));
 	}, {});
-	assert.equal(thinkingIndicatorDuringActivation, "off", "Gentle Shell disables pi-pretty's global Thinking shimmer");
+	assert.equal(thinkingIndicatorDuringActivation, "off", "Nub-IA disables pi-pretty's global Thinking shimmer");
 	assert.equal(process.env.PRETTY_THINKING_INDICATOR, previousThinkingIndicator, "activation must restore the caller's environment");
 	for (const handler of handlers.get("session_start") ?? []) await handler({}, ctx);
 	assert.equal(editor, owner);
@@ -49,7 +49,7 @@ test("disabled shell leaves bundled editor behavior untouched", async () => {
 	assert.equal(received, pi);
 });
 
-// gentle-shell#1690: a delegated child has no shell (shellEnabled is false),
+// nubia-shell#1690: a delegated child has no shell (shellEnabled is false),
 // so the upstream fallback would start FFF indexing in every child.
 test("delegated children never load upstream pi-pretty", async () => {
 	let loaded = false;

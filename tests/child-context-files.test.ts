@@ -10,10 +10,10 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import childContextExtension, { createChildContextExtension } from "../extensions/child-context.ts";
 
 function block(name: string, body: string): string {
-	return `<!-- gentle-ai:${name} -->\n${body}\n<!-- /gentle-ai:${name} -->`;
+	return `<!-- nub-ia:${name} -->\n${body}\n<!-- /nub-ia:${name} -->`;
 }
 
-// Synthetic file shaped like a gentle-ai managed AGENTS.md: unmanaged project
+// Synthetic file shaped like a nub-ia managed AGENTS.md: unmanaged project
 // text, kept blocks, orchestrator-only blocks, a nested kept block inside
 // agent-routing, and a nested orchestrator-only block inside sdd-orchestrator.
 const REALISTIC_AGENTS_MD = [
@@ -80,7 +80,7 @@ test("filters a realistic managed AGENTS.md: nested kept blocks survive, nested 
 	const output = stripOrchestratorOnlyBlocks(REALISTIC_AGENTS_MD);
 	assert.equal(output, EXPECTED_REALISTIC);
 	assert.doesNotMatch(output, /COORDINATOR|sdd-model-assignments|Implementation Routing|4-file rule/);
-	assert.match(output, /<!-- gentle-ai:remote-authorization -->\n## Remote operation authorization/);
+	assert.match(output, /<!-- nub-ia:remote-authorization -->\n## Remote operation authorization/);
 });
 
 test("keeps codegraph-guidance, engram-protocol, and unknown managed blocks byte-for-byte", () => {
@@ -116,18 +116,18 @@ test("collapses only blank lines left by a removal to at most one", () => {
 	assert.equal(stripOrchestratorOnlyBlocks(trailing), "Last line\n");
 });
 
-test("non gentle-ai HTML comments are plain text", () => {
+test("non nub-ia HTML comments are plain text", () => {
 	const input = "<!-- section:model-capable -->\nkeep\n<!-- /section:model-capable -->\n<!-- orchestrator -->\n";
 	assert.equal(stripOrchestratorOnlyBlocks(input), input);
 });
 
 test("markers mentioned inline or inside fenced code are plain text", () => {
 	const input = [
-		"Managed blocks start with `<!-- gentle-ai:orchestrator -->` in prose.",
+		"Managed blocks start with `<!-- nub-ia:orchestrator -->` in prose.",
 		"```markdown",
-		"<!-- gentle-ai:orchestrator -->",
+		"<!-- nub-ia:orchestrator -->",
 		"example",
-		"<!-- /gentle-ai:orchestrator -->",
+		"<!-- /nub-ia:orchestrator -->",
 		"```",
 		"",
 	].join("\n");
@@ -136,12 +136,12 @@ test("markers mentioned inline or inside fenced code are plain text", () => {
 
 test("unbalanced, mismatched, or duplicate-open markers leave the file unchanged", () => {
 	const cases = [
-		`${block("codegraph-guidance", "cg")}\n<!-- gentle-ai:orchestrator -->\nno close\n`,
-		`<!-- /gentle-ai:orchestrator -->\n${block("agent-routing", "x")}\n`,
-		`<!-- gentle-ai:orchestrator -->\nx\n<!-- /gentle-ai:agent-routing -->\n`,
-		`<!-- gentle-ai:agent-routing -->\n<!-- gentle-ai:remote-authorization -->\nx\n<!-- /gentle-ai:agent-routing -->\n<!-- /gentle-ai:remote-authorization -->\n`,
-		`<!-- gentle-ai:orchestrator -->\n<!-- gentle-ai:orchestrator -->\nx\n<!-- /gentle-ai:orchestrator -->\n`,
-		`<!-- gentle-ai:orchestrator -->\n<!-- gentle-ai:orchestrator -->\nx\n<!-- /gentle-ai:orchestrator -->\n<!-- /gentle-ai:orchestrator -->\n`,
+		`${block("codegraph-guidance", "cg")}\n<!-- nub-ia:orchestrator -->\nno close\n`,
+		`<!-- /nub-ia:orchestrator -->\n${block("agent-routing", "x")}\n`,
+		`<!-- nub-ia:orchestrator -->\nx\n<!-- /nub-ia:agent-routing -->\n`,
+		`<!-- nub-ia:agent-routing -->\n<!-- nub-ia:remote-authorization -->\nx\n<!-- /nub-ia:agent-routing -->\n<!-- /nub-ia:remote-authorization -->\n`,
+		`<!-- nub-ia:orchestrator -->\n<!-- nub-ia:orchestrator -->\nx\n<!-- /nub-ia:orchestrator -->\n`,
+		`<!-- nub-ia:orchestrator -->\n<!-- nub-ia:orchestrator -->\nx\n<!-- /nub-ia:orchestrator -->\n<!-- /nub-ia:orchestrator -->\n`,
 	];
 	for (const input of cases) assert.equal(stripOrchestratorOnlyBlocks(input), input);
 });
@@ -161,7 +161,7 @@ test("filterChildContextFiles returns filtered copies, never mutates inputs, and
 	const files = Object.freeze([
 		Object.freeze({ path: "/home/AGENTS.md", content: REALISTIC_AGENTS_MD }),
 		Object.freeze({ path: "/repo/AGENTS.md", content: "# Plain\n" }),
-		Object.freeze({ path: "/repo/sub/AGENTS.md", content: "<!-- gentle-ai:orchestrator -->\nunbalanced\n" }),
+		Object.freeze({ path: "/repo/sub/AGENTS.md", content: "<!-- nub-ia:orchestrator -->\nunbalanced\n" }),
 	]);
 	const result = filterChildContextFiles(files);
 	assert.notEqual(result.files, files);
