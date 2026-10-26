@@ -2,6 +2,14 @@
 
 Releases de Nub-IA. Generado por `scripts/release.mjs` a partir de los Conventional Commits de `main`.
 
+## v1.1.1 (2026-10-26)
+
+### Otros
+
+- ignore brag output and .claude ([4fe0c43](https://github.com/sebamar88/nub-ia/commit/4fe0c43aec72dee0238dfb88a9f21ca2707f65bb))
+
+Diff completo: https://github.com/sebamar88/nub-ia/compare/v1.1.0...v1.1.1
+
 ## v1.1.0 (2026-10-25)
 
 ### Nuevo
