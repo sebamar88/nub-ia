@@ -67,7 +67,13 @@ async function renderDefaultBanner(t: import("node:test").TestContext, width: nu
 	const out = header!.render(width).join("\n");
 	header!.dispose();
 	// Keep ANSI colors (palette must not change); mask the release-dependent version row.
-	return out.replace(/VER:.*$/m, "VER:").replace(/\x1b\[[0-9;]*m/g, (m) => m) + "\n";
+	// Every glyph carries its own color escape, so "VER:" is never contiguous in the raw
+	// text: detect the row on the stripped text and replace the whole row.
+	const stripAnsi = (line: string) => line.replace(/\x1b\[[0-9;]*m/g, "");
+	return out.split("\n").map((line) => {
+		const plain = stripAnsi(line);
+		return plain.includes("VER:") ? `${plain.slice(0, plain.indexOf("VER:"))}VER:` : line;
+	}).join("\n") + "\n";
 }
 
 test("default-brand banner at width 120 matches the committed snapshot", async (t) => {
