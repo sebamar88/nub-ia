@@ -5,7 +5,47 @@
   "bin": "nub-ia",
   "colors": {
     "primary": "#D6FF00",
-    "accent": "#E9FF5C"
+    "accent": "#E9FF5C",
+    "overrides": {
+      "banner": {
+        "rose": [
+          214,
+          255,
+          0
+        ],
+        "label": [
+          170,
+          200,
+          40
+        ],
+        "value": [
+          230,
+          255,
+          120
+        ],
+        "logoFresh": [
+          240,
+          240,
+          240
+        ],
+        "logoDim": [
+          90,
+          100,
+          40
+        ]
+      },
+      "theme": {
+        "accent": "#D6FF00",
+        "deepPink": "#9DBF00",
+        "activePink": "#E9FF5C",
+        "border": "#3E4A1C",
+        "borderSubtle": "#232A12",
+        "bgPanel": "#111309",
+        "bgElement": "#111309",
+        "bgSubtle": "#111309",
+        "userMessageBg": "#1E2410"
+      }
+    }
   },
   "logos": {
     "wordmark": "assets/brand/nubiral-logo.png",

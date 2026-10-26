@@ -61,6 +61,7 @@ const requiredPaths = [
   "extensions/skill-registry.ts",
   "lib/child-package-injection.ts",
   "lib/nubia-launcher.ts",
+  "lib/brand-colors.ts",
   "lib/nubia-resume-hint.ts",
   "lib/agent-assets.ts",
   "lib/agent-name-migration.ts",

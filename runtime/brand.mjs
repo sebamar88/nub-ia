@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 
 
 
+
 export class BrandError extends Error {
 	constructor(message        ) {
 		super(message);

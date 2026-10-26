@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { BannerPalette } from "./brand-colors.ts";
 
 export interface Brand {
 	name: string;
@@ -12,7 +13,7 @@ export interface Brand {
 	colors: {
 		primary: string;
 		accent: string;
-		overrides?: { banner?: Partial<unknown>; theme?: Record<string, string> };
+		overrides?: { banner?: Partial<BannerPalette>; theme?: Record<string, string> };
 	};
 	logos: { wordmark: string; isologo: string };
 	artwork: string;
