@@ -81,6 +81,7 @@ const requiredPaths = [
 	"docs/CONTRIBUTING.md",
 	"scripts/usage-cli.mjs",
   "scripts/install-tui-mode-setting.mjs",
+  "scripts/brand-guard.mjs",
   "scripts/build-brand-assets.mjs",
   "scripts/brand-trace.mjs",
   "scripts/trace-brand.mjs",

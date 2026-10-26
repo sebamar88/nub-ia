@@ -242,7 +242,7 @@ export function userPiHome(env                                    , homedir     
 }
 
 function isolatedDir(env                                    , homedir        )         {
-	return env.NUB_IA_HOME || join(homedir, ".nub-ia", "agent");
+	return env.NUB_IA_HOME || join(homedir, brand.homeDir, "agent");
 }
 
 export function resolveHome(input                  )               {
@@ -276,7 +276,7 @@ export function homeSelectorFlags(home              )           {
 }
 
 export function launcherConfigPath(homedir        )         {
-	return join(homedir, ".nub-ia", "config.json");
+	return join(homedir, brand.homeDir, "config.json");
 }
 
 // Tolerant on purpose: a malformed or foreign config.json must never crash
@@ -738,7 +738,7 @@ export function otherPackageInjections(input                             )      
 
 		if (kind === "git") {
 			warnings.push(
-				`nub-ia: skipping git-sourced package "${source}" during takeover (its install directory is not derivable without pi's own package manager).`,
+				`${brand.bin}: skipping git-sourced package "${source}" during takeover (its install directory is not derivable without pi's own package manager).`,
 			);
 			continue;
 		}
@@ -746,13 +746,13 @@ export function otherPackageInjections(input                             )      
 		const filters = entryFilterKeys(entry);
 		if (filters.length > 0) {
 			warnings.push(
-				`nub-ia: package "${source}" has ${filters.join("/")} filters that this takeover cannot honour for extensions; its skills, prompts, and themes still load through settings discovery.`,
+				`${brand.bin}: package "${source}" has ${filters.join("/")} filters that this takeover cannot honour for extensions; its skills, prompts, and themes still load through settings discovery.`,
 			);
 		}
 
 		const dir = kind === "npm" ? join(input.agentDir, "npm", "node_modules", npmPackageName(source)) : resolvePath(input.agentDir, source);
 		if (!isDirectory(dir)) {
-			warnings.push(`nub-ia: skipping declared package "${source}": ${dir} is not a directory`);
+			warnings.push(`${brand.bin}: skipping declared package "${source}": ${dir} is not a directory`);
 			continue;
 		}
 		paths.push(dir);
@@ -1156,7 +1156,7 @@ export function forceJsonFieldIfAbsentInOriginal(originalText        , currentTe
 
 export function describeVersion(input                      )         {
 	return [
-		`nub-ia ${input.nubiaVersion}`,
+		`${brand.bin} ${input.nubiaVersion}`,
 		`pi ${input.piVersion ?? "not found"}`,
 		`home ${input.home.mode} ${input.home.dir}`,
 	].join("\n");
@@ -1164,26 +1164,26 @@ export function describeVersion(input                      )         {
 
 export function helpText()         {
 	return [
-		"Usage: nub-ia [options] [-- pi-args...]",
-		"       nub-ia home [link|isolated|<path>]",
-		"       nub-ia [home selectors] setup [--dry-run]",
-		"       nub-ia [home selectors] review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]",
-		"       nub-ia policy [status|pull|set <source>|clear]",
-		"       nub-ia audit [--month YYYY-MM] [--json]",
-		"       nub-ia init [--no-review-gate]",
-		"       nub-ia usage [--month YYYY-MM] [--json]",
+		`Usage: ${brand.bin} [options] [-- pi-args...]`,
+		`       ${brand.bin} home [link|isolated|<path>]`,
+		`       ${brand.bin} [home selectors] setup [--dry-run]`,
+		`       ${brand.bin} [home selectors] review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]`,
+		`       ${brand.bin} policy [status|pull|set <source>|clear]`,
+		`       ${brand.bin} audit [--month YYYY-MM] [--json]`,
+		`       ${brand.bin} init [--no-review-gate]`,
+		`       ${brand.bin} usage [--month YYYY-MM] [--json]`,
 		"",
 		`Opens pi with the ${brand.name} package loaded, without touching your`,
 		"vanilla pi installation.",
 		"",
 		"Options:",
 		"  --link           Use your existing pi agent home (never edits its settings.json).",
-		"  --isolated       Use the dedicated ~/.nub-ia/agent home (default).",
+		`  --isolated       Use the dedicated ~/${brand.homeDir}/agent home (default).`,
 		"  --home <path>    Use a custom agent home directory.",
-		"  --package-root <dir>  Force this directory as the nub-ia package to load, taking over",
+		`  --package-root <dir>  Force this directory as the ${brand.bin} package to load, taking over`,
 		"                        from any conflicting package the target settings.json already declares.",
 		"  --help, -h       Show this help text.",
-		"  --version        Show nub-ia, pi, and home version information.",
+		`  --version        Show ${brand.bin}, pi, and home version information.`,
 		"",
 		"Commands:",
 		"  home             Print or persist the effective home mode (link, isolated, or a path).",
@@ -1207,21 +1207,21 @@ export function helpText()         {
 		"                   confirmations, denials, mode changes, gated pushes, review verdicts. --json dumps rows.",
 		"",
 		"Managing packages:",
-		"  nub-ia install npm:<pkg>   Run pi's own 'install' against the resolved home.",
-		"  nub-ia remove <source>     Run pi's own 'remove' against the resolved home.",
-		"  nub-ia list                Run pi's own 'list' against the resolved home.",
-		"  nub-ia update [target]     Update this nub-ia checkout (git pull + deps, when installed by",
+		`  ${brand.bin} install npm:<pkg>   Run pi's own 'install' against the resolved home.`,
+		`  ${brand.bin} remove <source>     Run pi's own 'remove' against the resolved home.`,
+		`  ${brand.bin} list                Run pi's own 'list' against the resolved home.`,
+		`  ${brand.bin} update [target]     Update this ${brand.bin} checkout (git pull + deps, when installed by`,
 		"                             install.sh/.ps1), then run pi's own 'update' against the home.",
-		"  nub-ia config              Run pi's own 'config' against the resolved home.",
-		"  nub-ia auth <command>      Run pi's own 'auth' against the resolved home.",
+		`  ${brand.bin} config              Run pi's own 'config' against the resolved home.`,
+		`  ${brand.bin} auth <command>      Run pi's own 'auth' against the resolved home.`,
 		"  These run pi's own commands, forwarded verbatim, against the --isolated home",
-		"  (or your own pi home with --link). Installing nub-ia as a pi package",
-		"  inside the isolated home is unnecessary: nub-ia already loads its",
+		`  (or your own pi home with --link). Installing ${brand.bin} as a pi package`,
+		`  inside the isolated home is unnecessary: ${brand.bin} already loads its`,
 		"  own package.",
 		"",
 		"Environment variables:",
 		"  NUB_IA_PI       Path to the pi executable to run.",
-		"  NUB_IA_HOME     Directory for the isolated home (default: ~/.nub-ia/agent).",
+		`  NUB_IA_HOME     Directory for the isolated home (default: ~/${brand.homeDir}/agent).`,
 		"  NUB_IA_TEAM_PACKAGES  Comma-separated Pi package sources setup installs (default: the",
 		"                        packaged team list; empty string installs none).",
 		"  PI_CODING_AGENT_DIR   Directory for the --link home, shared with pi itself.",
