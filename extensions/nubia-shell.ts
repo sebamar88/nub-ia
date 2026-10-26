@@ -127,7 +127,7 @@ import { NubiaStatusBlocks } from "../lib/nubia-status-blocks.ts";
 import { pushDiffHash, readLastReview } from "./nub-ia-review.ts";
 import { modeChip, PERMISSION_MODE_REQUEST } from "./nubia-permission-mode.ts";
 import { PERMISSION_MODES } from "../lib/permission-mode-policy.ts";
-import { cmd, cmdSlash } from "../lib/brand.ts";
+import { cmd, cmdSlash, brand } from "../lib/brand.ts";
 
 
 // Nub-IA: the visual layer nub-ia puts on top of pi. It installs the
@@ -437,7 +437,7 @@ export class NubiaPromptEditor extends CustomEditor {
 				this.vimRejected = true;
 				if (!this.compatibilityNotified) {
 					this.compatibilityNotified = true;
-					this.deps.notifyCompatibility?.("Nub-IA Vim unsupported by this Pi editor layout/version; ordinary editing remains active.");
+					this.deps.notifyCompatibility?.(`${brand.name} Vim unsupported by this Pi editor layout/version; ordinary editing remains active.`);
 				}
 				policy = "off";
 			}
@@ -487,7 +487,7 @@ export class NubiaPromptEditor extends CustomEditor {
 				try { this.setVimPolicy("off"); this.vimRejected = true; } finally { this.disablingUnsupportedVim = false; }
 				if (!this.compatibilityNotified) {
 					this.compatibilityNotified = true;
-					this.deps.notifyCompatibility?.("Nub-IA Vim unsupported by this Pi editor layout/version; ordinary editing remains active.");
+					this.deps.notifyCompatibility?.(`${brand.name} Vim unsupported by this Pi editor layout/version; ordinary editing remains active.`);
 				}
 			}
 			throw error;
@@ -1331,7 +1331,7 @@ async function showCommandPalette(pi: ExtensionAPI, ctx: ExtensionContext, env: 
 		[cmd("agents")]: agentsViewKey(env),
 	});
 	if (groups.length === 0) {
-		ctx.ui.notify("No Nub-IA commands are registered.", "info");
+		ctx.ui.notify(`No ${brand.name} commands are registered.`, "info");
 		return;
 	}
 	const result = await ctx.ui.custom<CommandPaletteResult>(
@@ -1658,7 +1658,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 	const reportVim = (ctx: ExtensionContext, result: ReturnType<typeof resolveVimPolicy>) => {
 		const source = result.source === "default" ? "built-in default" : `global file ${result.globalFile}`;
 		const effective = prompt?.effectiveVimPolicy;
-		const state = effective === undefined ? "No active Nub-IA prompt; preference applies when one starts" :
+		const state = effective === undefined ? `No active ${brand.name} prompt; preference applies when one starts` :
 			effective !== result.policy ? `Effective prompt: ${effective}; saved preference and prompt differ; ordinary editing remains active` :
 			result.policy === "off" ? "Prompt applies now; ordinary editing active" : "Prompt applies now";
 		ctx.ui.notify(`vim: ${result.policy} (decided by ${source})${result.malformed ? "; malformed or unreadable file, falling back to off" : ""}. ${state}.`, result.malformed || (effective !== undefined && effective !== result.policy) ? "warning" : "info");
@@ -1885,7 +1885,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 		});
 	}
 	pi.registerCommand(COMMANDS_COMMAND_NAME, {
-		description: "Open the command palette: a curated, grouped menu of Nub-IA commands.",
+		description: `Open the command palette: a curated, grouped menu of ${brand.name} commands.`,
 		handler: async (_args, ctx) => showCommandPalette(pi, ctx, env),
 	});
 	const commandsShortcut = commandsKey(env);
@@ -2229,7 +2229,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 		handler: async (args, ctx) => {
 			let action = args.trim() || "status";
 			if (!args.trim() && ctx.hasUI && typeof ctx.ui.select === "function") {
-				const selected = await ctx.ui.select(`Nub-IA Vim (current: ${vimPolicy})`, ["enable", "disable", "status"]);
+				const selected = await ctx.ui.select(`${brand.name} Vim (current: ${vimPolicy})`, ["enable", "disable", "status"]);
 				if (selected === undefined) return;
 				action = selected;
 			}
@@ -2256,7 +2256,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 			let action = args.trim() || "status";
 			if (args.trim().length === 0 && ctx.hasUI && typeof ctx.ui.select === "function") {
 				const selected = await ctx.ui.select(
-					`Nub-IA animations (current: ${animationPolicy})`,
+					`${brand.name} animations (current: ${animationPolicy})`,
 					["quality", "performance", "potato", "status"],
 				);
 				if (selected === undefined) return;

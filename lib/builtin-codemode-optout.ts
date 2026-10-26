@@ -4,6 +4,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { nubiaConfigHome } from "./agent-home.ts";
 import { configReadPath } from "./config-home.ts";
+import { brand } from "./brand.ts";
 
 // nub-ia replaces Pi's replaceable builtin codemode with its compact
 // renderer (lib/codemode-renderer.ts), and Pi warns at every startup when a
@@ -126,9 +127,9 @@ function writeSettingsAtomically(path: string, data: string): void {
 
 function promptMessage(settingsPath: string): string {
 	return [
-		"Pi warns at startup that the builtin codemode extension was not loaded, because Nub-IA replaces it with its compact codemode renderer.",
-		`Adding "${BUILTIN_CODEMODE_OPTOUT_ENTRY}" to the "extensions" list in ${settingsPath} silences that warning from the next launch. Nub-IA keeps its compact codemode either way.`,
-		"Nothing is written unless you accept. If you decline, Nub-IA will not ask again.",
+		`Pi warns at startup that the builtin codemode extension was not loaded, because ${brand.name} replaces it with its compact codemode renderer.`,
+		`Adding "${BUILTIN_CODEMODE_OPTOUT_ENTRY}" to the "extensions" list in ${settingsPath} silences that warning from the next launch. ${brand.name} keeps its compact codemode either way.`,
+		`Nothing is written unless you accept. If you decline, ${brand.name} will not ask again.`,
 	].join("\n\n");
 }
 
@@ -152,7 +153,7 @@ export async function offerBuiltinCodemodeOptOut(ctx: BuiltinCodemodeOptOutConte
 		const accepted = (await ctx.ui.confirm("Silence Pi's builtin codemode warning?", promptMessage(settingsPath))) === true;
 		if (!accepted) {
 			recordDeclined(configHome, settingsPath);
-			ctx.ui.notify(`Nub-IA will not ask again. To silence the warning later, add "${BUILTIN_CODEMODE_OPTOUT_ENTRY}" to "extensions" in ${settingsPath}.`, "info");
+			ctx.ui.notify(`${brand.name} will not ask again. To silence the warning later, add "${BUILTIN_CODEMODE_OPTOUT_ENTRY}" to "extensions" in ${settingsPath}.`, "info");
 			return "declined";
 		}
 		// The dialog may have stayed open while the file changed; re-read it.

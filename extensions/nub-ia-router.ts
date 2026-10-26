@@ -30,14 +30,15 @@ import { ROUTER_STATUS_EVENT, RouterJournal } from "../lib/router-status-model.t
 import { type BudgetSpend, budgetState, describeBudget, effectiveTier, readSpendLedger, spendLedgerName, tightestBudget, writeSpendLedger } from "../lib/model-tier-budget.ts";
 import { nubIaConfigHome } from "../lib/config-home.ts";
 import { loadEffectiveOrgPolicy, orgModelTiersText } from "../lib/org-policy.ts";
+import { brand } from "../lib/brand.ts";
 
 export const NUB_IA_PROVIDER = "nub-ia";
 
 const TIER_NAMES: Record<ModelTier, string> = {
-	strong: "Nub-IA Strong",
-	"strong-alt": "Nub-IA Strong (alt)",
-	balanced: "Nub-IA Balanced",
-	fast: "Nub-IA Fast",
+	strong: `${brand.name} Strong`,
+	"strong-alt": `${brand.name} Strong (alt)`,
+	balanced: `${brand.name} Balanced`,
+	fast: `${brand.name} Fast`,
 };
 
 const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
@@ -186,7 +187,7 @@ export default function registerNubIaRouter(pi: ExtensionAPI): void {
 		// One notice per crossed limit per session; the Status card keeps the line.
 		if (state.exceeded && warnedBudget !== state.exceeded && ctx.hasUI) {
 			warnedBudget = state.exceeded;
-			ctx.ui.notify(`Nub-IA ${describeBudget(policy, current, state)}. Edit the budget in ${PACKAGED_CATALOG_PATH} (or .pi/nub-ia/model-tiers.json).`, "warning");
+			ctx.ui.notify(`${brand.name} ${describeBudget(policy, current, state)}. Edit the budget in ${PACKAGED_CATALOG_PATH} (or .pi/nub-ia/model-tiers.json).`, "warning");
 		}
 	});
 	for (const tier of MODEL_TIERS) {

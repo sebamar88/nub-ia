@@ -8,7 +8,7 @@
 // diff hash are what the push gate checks later.
 
 import { createHash } from "node:crypto";
-import { cmdSlash } from "./brand.ts";
+import { cmdSlash, brand } from "./brand.ts";
 
 export const REVIEW_LENSES = ["review-risk", "review-reliability", "review-resilience", "review-readability"] as const;
 export type ReviewLens = (typeof REVIEW_LENSES)[number];
@@ -380,7 +380,7 @@ export function buildReport(input: { scope: DiffScope; diff: string; lenses: Len
 	const when = (input.when ?? new Date()).toISOString();
 	const counts = SEVERITIES.map((severity) => [severity, findings.filter((finding) => finding.severity === severity).length] as const).filter(([, count]) => count > 0);
 	const lines: string[] = [
-		`# Nub-IA review · ${describeScope(input.scope)}`,
+		`# ${brand.name} review · ${describeScope(input.scope)}`,
 		"",
 		`- Verdict: **${VERDICT_LABEL[verdict]}**`,
 		`- Diff: ${diffHash} · ${when}`,
@@ -566,14 +566,14 @@ export function severeFindings(findings: readonly Finding[]): Finding[] {
  * fix or the lineage has used its rounds.
  */
 export function fixBrief(last: LastReview | undefined): { brief: string; round: number } | { reason: string } {
-	if (!last) return { reason: `No Nub-IA review on record. Run ${cmdSlash("review")} first.` };
+	if (!last) return { reason: `No ${brand.name} review on record. Run ${cmdSlash("review")} first.` };
 	const severe = last.severe ?? [];
 	if (severe.length === 0) return { reason: last.verdict === "block" ? `The last review (${last.reportPath}) predates fix support; run ${cmdSlash("review")} again, then ${cmdSlash("review")} fix.` : `The last review was ${last.verdict.toUpperCase()}: nothing BLOCKER/CRITICAL to fix.` };
 	const round = (last.fixRounds ?? 0) + 1;
 	if (round > FIX_ROUNDS_MAX) return { reason: `This change already used ${FIX_ROUNDS_MAX} fix rounds (${last.reportPath}). Fix the remaining findings by hand or split the change.` };
 	const files = [...new Set(severe.map((finding) => finding.location.split(":")[0]!).filter((path) => path !== "(unspecified)"))];
 	const lines = [
-		`## Nub-IA review fix · round ${round} of ${FIX_ROUNDS_MAX}`,
+		`## ${brand.name} review fix · round ${round} of ${FIX_ROUNDS_MAX}`,
 		`Report: ${last.reportPath} (diff ${last.diffHash}).`,
 		"",
 		`Fix exactly these ${severe.length} finding${severe.length === 1 ? "" : "s"}; do not refactor or touch anything else:`,
@@ -603,10 +603,10 @@ export function pushGateQuestion(last: LastReview | undefined, currentHash: stri
 		// range. Confirm mode stays quiet; strict mode cannot verify and refuses.
 		return mode === "strict" ? "Cannot determine what this push would deliver (no upstream or origin/HEAD to compare against); set the tracking branch first (git branch -u origin/<branch>) so the range can be reviewed." : undefined;
 	}
-	if (last === undefined) return "No Nub-IA review on record for the changes this push delivers.";
-	if (last.diffHash !== currentHash) return `The last Nub-IA review (${last.verdict}, ${last.when}) covered a different diff than this push delivers.`;
-	if (last.verdict === "block") return `The Nub-IA review of these changes found BLOCKER/CRITICAL findings (${last.reportPath}).`;
-	if (last.verdict === "incomplete") return `The Nub-IA review of these changes was incomplete (a lens failed).`;
+	if (last === undefined) return `No ${brand.name} review on record for the changes this push delivers.`;
+	if (last.diffHash !== currentHash) return `The last ${brand.name} review (${last.verdict}, ${last.when}) covered a different diff than this push delivers.`;
+	if (last.verdict === "block") return `The ${brand.name} review of these changes found BLOCKER/CRITICAL findings (${last.reportPath}).`;
+	if (last.verdict === "incomplete") return `The ${brand.name} review of these changes was incomplete (a lens failed).`;
 	return undefined;
 }
 

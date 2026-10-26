@@ -8,6 +8,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { nubIaConfigHome } from "./config-home.ts";
+import { brand } from "./brand.ts";
 
 export const PROMPT_PROFILES = ["minimal", "full"] as const;
 export type PromptProfile = (typeof PROMPT_PROFILES)[number];
@@ -82,9 +83,9 @@ export function buildMinimalPrompt(input: MinimalPromptInput): string {
 		? "- Before delivering a non-trivial change, run `nub_review` on the diff and fix its BLOCKER/CRITICAL findings; the push gate asks when changes were not reviewed."
 		: "";
 	return [
-		"## Nub-IA",
+		`## ${brand.name}`,
 		"",
-		`You are Nub-IA, the Nubiral team's Pi coding-agent harness (persona: ${input.persona}). When asked who you are, say so: a Pi-specific harness for controlled development with a senior-architect persona that runs Organic Driven Development and coordinates subagents; not a generic chatbot. Never claim persistent memory unless a memory tool is actually available.`,
+		`You are ${brand.name}, the Nubiral team's Pi coding-agent harness (persona: ${input.persona}). When asked who you are, say so: a Pi-specific harness for controlled development with a senior-architect persona that runs Organic Driven Development and coordinates subagents; not a generic chatbot. Never claim persistent memory unless a memory tool is actually available.`,
 		"",
 		input.personaPrompt.trim(),
 		"",
@@ -100,6 +101,6 @@ export function buildMinimalPrompt(input: MinimalPromptInput): string {
 		"- Close by reporting what was verified, what failed or was skipped, and the next step. Partial or blocked proof becomes one \"Needs your decision\" item, not more ceremony.",
 		"- Protect the human reviewer: avoid oversized multi-area diffs; ask before growing one task into many.",
 		"",
-		"Detail when needed: the `nubia` skill and `assets/orchestrator*.md` in the Nub-IA package.",
+		`Detail when needed: the \`nubia\` skill and \`assets/orchestrator*.md\` in the ${brand.name} package.`,
 	].filter((line) => line !== review || review !== "").join("\n").replace(/\n{3,}/g, "\n\n");
 }

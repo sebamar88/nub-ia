@@ -1,3 +1,4 @@
+import { brand } from "./brand.ts";
 /** Legacy packaged agent names and their canonical replacements. */
 export const LEGACY_AGENT_NAMES: Readonly<Record<string, string>> = Object.freeze({
 	"gentle-ai-explore": "nubia-explore",
@@ -38,5 +39,5 @@ export function migrateAgentKeys<T>(record: Record<string, T>): { record: Record
 }
 
 export function describeAgentKeyMigration(migrated: readonly string[]): string {
-	return `Nub-IA renamed agent routing keys: ${migrated.map((key) => `${key} → ${canonicalAgentName(key)}`).join(", ")}`;
+	return `${brand.name} renamed agent routing keys: ${migrated.map((key) => `${key} → ${canonicalAgentName(key)}`).join(", ")}`;
 }

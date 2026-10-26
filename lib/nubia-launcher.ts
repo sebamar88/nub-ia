@@ -1,5 +1,6 @@
 import { isAbsolute, join, resolve as resolvePath } from "node:path";
 import { CHILD_PACKAGE_INJECTION_ENV, encodeChildPackageInjection, type ChildPackageInjection } from "./child-package-injection.ts";
+import { brand } from "./brand.ts";
 
 // The nub-ia launcher: pure, side-effect-free functions over injected
 // env/fs/exec. `bin/nub-ia.mjs` (T2) wires these into the real process,
@@ -1171,7 +1172,7 @@ export function helpText(): string {
 		"       nub-ia init [--no-review-gate]",
 		"       nub-ia usage [--month YYYY-MM] [--json]",
 		"",
-		"Opens pi with the Nub-IA package loaded, without touching your",
+		`Opens pi with the ${brand.name} package loaded, without touching your`,
 		"vanilla pi installation.",
 		"",
 		"Options:",

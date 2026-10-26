@@ -58,3 +58,33 @@ test("no hard-coded nubia: command prefix outside the allowlist", () => {
 	}
 	assert.deepEqual(hits, [], `Use cmd()/cmdSlash() from lib/brand.ts instead of the literal:\n${hits.join("\n")}`);
 });
+
+// The product display name comes from brand.json (lib/brand.ts `brand.name`).
+// Comment lines are skipped; lib/*.json data files are not scanned.
+const NAME_LITERAL = "Nub-IA";
+
+// Whole files that may hold the literal (none: every hit is display text).
+const NAME_FILE_ALLOWLIST = new Set<string>([]);
+
+// Per-line exceptions: identifiers/persisted values that must not follow the brand.
+const NAME_LINE_ALLOWLIST: Array<{ file: string; includes: string }> = [
+	// Persisted wake text recorded by sessions written before the rename: a frozen match key, not display text.
+	{ file: "extensions/nubia-agents.ts", includes: "const LEGACY_PARENT_WAKE_TEXT" },
+];
+
+test("no hard-coded Nub-IA product name outside the allowlist", () => {
+	const hits: string[] = [];
+	for (const dir of ["lib", "extensions"]) {
+		for (const path of walk(join(root, dir))) {
+			const file = relative(root, path).split("\\").join("/");
+			if (NAME_FILE_ALLOWLIST.has(file)) continue;
+			readFileSync(path, "utf8").split("\n").forEach((line, index) => {
+				if (/^(\/\/|\/\*|\*)/.test(line.trim())) return;
+				if (!line.includes(NAME_LITERAL)) return;
+				if (NAME_LINE_ALLOWLIST.some((entry) => entry.file === file && line.includes(entry.includes))) return;
+				hits.push(`${file}:${index + 1}: ${line.trim().slice(0, 100)}`);
+			});
+		}
+	}
+	assert.deepEqual(hits, [], `Use brand.name from lib/brand.ts instead of the literal:\n${hits.join("\n")}`);
+});

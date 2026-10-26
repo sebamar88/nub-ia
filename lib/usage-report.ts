@@ -1,3 +1,4 @@
+import { brand } from "./brand.ts";
 // Usage report (roadmap T3.2): what the local metrics say about a month, from
 // the runtime rows (tokens per agent class, provider and model), the daily
 // spend ledgers (USD), the review rows and the audit trail. Pure: text in,
@@ -114,7 +115,7 @@ const usd = (value: number): string => `$${value < 10 ? value.toFixed(2) : value
 export function renderUsageReport(report: UsageReport, source: string): string {
 	if (report.runtimeRows === 0 && report.spendByDay.length === 0) return `No usage recorded for ${report.month} (${source}).`;
 	const lines = [
-		`Nub-IA usage · ${report.month} · ${report.responses} response${report.responses === 1 ? "" : "s"} · ${k(report.tokens.total)} tokens (in ${k(report.tokens.input)} · out ${k(report.tokens.output)} · cache read ${k(report.tokens.cacheRead)} · cache write ${k(report.tokens.cacheWrite)})${report.spendByDay.length ? ` · ${usd(report.spendUsd)}` : ""}`,
+		`${brand.name} usage · ${report.month} · ${report.responses} response${report.responses === 1 ? "" : "s"} · ${k(report.tokens.total)} tokens (in ${k(report.tokens.input)} · out ${k(report.tokens.output)} · cache read ${k(report.tokens.cacheRead)} · cache write ${k(report.tokens.cacheWrite)})${report.spendByDay.length ? ` · ${usd(report.spendUsd)}` : ""}`,
 		"",
 	];
 	if (report.byAgentClass.length) {

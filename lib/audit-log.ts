@@ -6,6 +6,7 @@
 
 import { redactSecrets } from "./secret-redaction.ts";
 import { sanitizeTerminalText } from "./terminal-theme.ts";
+import { brand } from "./brand.ts";
 
 export const AUDIT_SCHEMA = "nub-ia.audit/v1";
 
@@ -113,7 +114,7 @@ export function renderAuditSummary(summary: AuditSummary, source: string): strin
 	if (summary.rows === 0) return `No audit rows yet in ${source}.`;
 	const kinds = Object.entries(summary.byKind).sort((a, b) => b[1] - a[1]).map(([kind, count]) => `${kind} ${count}`).join(" · ");
 	return [
-		`Nub-IA audit · ${summary.rows} row${summary.rows === 1 ? "" : "s"} in ${source}${summary.since ? ` · ${summary.since.slice(0, 10)} → ${summary.until?.slice(0, 10)}` : ""}`,
+		`${brand.name} audit · ${summary.rows} row${summary.rows === 1 ? "" : "s"} in ${source}${summary.since ? ` · ${summary.since.slice(0, 10)} → ${summary.until?.slice(0, 10)}` : ""}`,
 		`Approved ${summary.approved} · denied/blocked ${summary.denied} · mode changes ${summary.modeChanges} · gated pushes ${summary.pushesGated}`,
 		kinds,
 	].join("\n");

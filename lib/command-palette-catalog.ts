@@ -1,5 +1,5 @@
 import type { CommandPaletteGroup, CommandPaletteItem } from "./command-palette.ts";
-import { cmd, cmdSlash } from "./brand.ts";
+import { cmd, cmdSlash, brand } from "./brand.ts";
 
 // The curated command set for the command palette: an OpenCode-style
 // grouped menu, not a raw listing of every registered extension command.
@@ -51,7 +51,7 @@ export const COMMAND_PALETTE_CATALOG: readonly CommandPaletteCatalogGroup[] = [
 	{
 		title: "Diagnostics",
 		items: [
-			{ command: cmd("status"), label: "Nub-IA status" },
+			{ command: cmd("status"), label: `${brand.name} status` },
 			{ command: cmd("doctor"), label: "Doctor" },
 		],
 	},
