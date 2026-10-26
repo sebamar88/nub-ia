@@ -94,6 +94,7 @@ const requiredPaths = [
   "scripts/bump-pins.mjs",
   "scripts/bench-prompt.mjs",
   "docs/nub-ia-overview.md",
+  "docs/branding.md",
   "assets/maintainers.allowed_signers",
   "lib/nubia-status-blocks.ts",
   "lib/approved-packages.ts",
