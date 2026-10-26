@@ -177,6 +177,17 @@ async function main() {
     process.exit(1);
   }
 
+  // Existence on disk is not enough: npm only ships what package.json "files" covers.
+  const packageFiles = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).files ?? [];
+  const uncovered = requiredPaths.filter(
+    (relativePath) => !packageFiles.some((entry) => entry === relativePath || (entry.endsWith("/") && relativePath.startsWith(entry))),
+  );
+  if (uncovered.length > 0) {
+    console.error('Required paths not covered by package.json "files" (they would not be packed):');
+    for (const relativePath of uncovered) console.error(`- ${relativePath}`);
+    process.exit(1);
+  }
+
   const generatedRuntimeSources = extractGeneratedRuntimeSources(root);
   const { drifted } = reconcileGeneratedRuntimeSources(root, generatedRuntimeSources, requiredPaths);
   if (drifted.length > 0) {

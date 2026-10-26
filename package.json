@@ -37,7 +37,8 @@
 		"tests/",
 		"!tests/fixtures/legacy/sdd-research-v2.5.0.md",
 		"themes/",
-		"README.md"
+		"README.md",
+		"brand.json"
 	],
 	"scripts": {
 		"postinstall": "node scripts/install-rtk.mjs",
