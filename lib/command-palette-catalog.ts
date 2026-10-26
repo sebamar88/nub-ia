@@ -1,4 +1,5 @@
 import type { CommandPaletteGroup, CommandPaletteItem } from "./command-palette.ts";
+import { cmd, cmdSlash } from "./brand.ts";
 
 // The curated command set for the command palette: an OpenCode-style
 // grouped menu, not a raw listing of every registered extension command.
@@ -20,38 +21,38 @@ export const COMMAND_PALETTE_CATALOG: readonly CommandPaletteCatalogGroup[] = [
 	{
 		title: "Configuration",
 		items: [
-			{ command: "nubia:models", label: "Assign models and effort" },
-			{ command: "nubia:profiles", label: "Agent-model profiles" },
-			{ command: "nubia:persona", label: "Switch persona" },
-			{ command: "nubia:workflow", label: "Development workflow (none | sdd | svsd)" },
-			{ command: "nubia:review-mode", label: "Push review gate (confirm | strict | off)" },
-			{ command: "nubia:background-subagents", label: "Background subagents" },
-			{ command: "nubia:double-esc-cancel", label: "Require double Esc to cancel" },
-			{ command: "nubia:customize", label: "Visual customization" },
-			{ command: "nubia:animations", label: "Animation mode" },
-			{ command: "nubia:vim", label: "Vim opt-in · Pi slash commands" },
-			{ command: "nubia:banner", label: "Startup banner" },
-			{ command: "nubia:banner-color", label: "Banner color" },
-			{ command: "nubia:toggle-rose", label: "Toggle banner isologo" },
-			{ command: "nubia:toggle-text-logo", label: "Toggle banner text logo" },
+			{ command: cmd("models"), label: "Assign models and effort" },
+			{ command: cmd("profiles"), label: "Agent-model profiles" },
+			{ command: cmd("persona"), label: "Switch persona" },
+			{ command: cmd("workflow"), label: "Development workflow (none | sdd | svsd)" },
+			{ command: cmd("review-mode"), label: "Push review gate (confirm | strict | off)" },
+			{ command: cmd("background-subagents"), label: "Background subagents" },
+			{ command: cmd("double-esc-cancel"), label: "Require double Esc to cancel" },
+			{ command: cmd("customize"), label: "Visual customization" },
+			{ command: cmd("animations"), label: "Animation mode" },
+			{ command: cmd("vim"), label: "Vim opt-in · Pi slash commands" },
+			{ command: cmd("banner"), label: "Startup banner" },
+			{ command: cmd("banner-color"), label: "Banner color" },
+			{ command: cmd("toggle-rose"), label: "Toggle banner isologo" },
+			{ command: cmd("toggle-text-logo"), label: "Toggle banner text logo" },
 		],
 	},
 	{
 		title: "Session",
 		items: [
-			{ command: "nubia:yolo", label: "🚀 YOLO 🔥 session permission" },
-			{ command: "nubia:changes", label: "Browse captured changes" },
-			{ command: "nubia:review", label: "4R code review of the current diff" },
-			{ command: "nubia:grill", label: "Grill me about a plan (alias /nubia:quiz)" },
-			{ command: "nubia:agents", label: "Subagents" },
-			{ command: "nubia:usage", label: "Subscription usage" },
+			{ command: cmd("yolo"), label: "🚀 YOLO 🔥 session permission" },
+			{ command: cmd("changes"), label: "Browse captured changes" },
+			{ command: cmd("review"), label: "4R code review of the current diff" },
+			{ command: cmd("grill"), label: `Grill me about a plan (alias ${cmdSlash("quiz")})` },
+			{ command: cmd("agents"), label: "Subagents" },
+			{ command: cmd("usage"), label: "Subscription usage" },
 		],
 	},
 	{
 		title: "Diagnostics",
 		items: [
-			{ command: "nubia:status", label: "Nub-IA status" },
-			{ command: "nubia:doctor", label: "Doctor" },
+			{ command: cmd("status"), label: "Nub-IA status" },
+			{ command: cmd("doctor"), label: "Doctor" },
 		],
 	},
 	{

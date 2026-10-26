@@ -8,6 +8,7 @@
 import { isFinished, TASK_STATUS, type TaskRecord, type TaskStatus } from "./agents-protocol.ts";
 import { formatElapsed, widgetTasks } from "./agents-widget.ts";
 import { sanitizeTerminalText } from "./terminal-theme.ts";
+import { cmdSlash } from "./brand.ts";
 
 export const AGENTS_STATUS_EVENT = "nubia:agents-status/v1";
 
@@ -132,6 +133,6 @@ export function agentsStatusLines(payload: AgentsStatusPayload | undefined, now:
 		return `${GLYPH[item.status]} ${item.agent} · "${item.headline}"${time ? ` · ${time}` : ""}`;
 	});
 	const hidden = payload.items.length - shown.length;
-	if (hidden > 0) items.push(`+${hidden} more · /nubia:agents`);
+	if (hidden > 0) items.push(`+${hidden} more · ${cmdSlash("agents")}`);
 	return { headline, tone, items };
 }

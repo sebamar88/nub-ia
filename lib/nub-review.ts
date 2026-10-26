@@ -8,6 +8,7 @@
 // diff hash are what the push gate checks later.
 
 import { createHash } from "node:crypto";
+import { cmdSlash } from "./brand.ts";
 
 export const REVIEW_LENSES = ["review-risk", "review-reliability", "review-resilience", "review-readability"] as const;
 export type ReviewLens = (typeof REVIEW_LENSES)[number];
@@ -565,9 +566,9 @@ export function severeFindings(findings: readonly Finding[]): Finding[] {
  * fix or the lineage has used its rounds.
  */
 export function fixBrief(last: LastReview | undefined): { brief: string; round: number } | { reason: string } {
-	if (!last) return { reason: "No Nub-IA review on record. Run /nubia:review first." };
+	if (!last) return { reason: `No Nub-IA review on record. Run ${cmdSlash("review")} first.` };
 	const severe = last.severe ?? [];
-	if (severe.length === 0) return { reason: last.verdict === "block" ? `The last review (${last.reportPath}) predates fix support; run /nubia:review again, then /nubia:review fix.` : `The last review was ${last.verdict.toUpperCase()}: nothing BLOCKER/CRITICAL to fix.` };
+	if (severe.length === 0) return { reason: last.verdict === "block" ? `The last review (${last.reportPath}) predates fix support; run ${cmdSlash("review")} again, then ${cmdSlash("review")} fix.` : `The last review was ${last.verdict.toUpperCase()}: nothing BLOCKER/CRITICAL to fix.` };
 	const round = (last.fixRounds ?? 0) + 1;
 	if (round > FIX_ROUNDS_MAX) return { reason: `This change already used ${FIX_ROUNDS_MAX} fix rounds (${last.reportPath}). Fix the remaining findings by hand or split the change.` };
 	const files = [...new Set(severe.map((finding) => finding.location.split(":")[0]!).filter((path) => path !== "(unspecified)"))];

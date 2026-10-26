@@ -67,6 +67,7 @@ import {
 	splitDiff,
 	summarizeReport,
 } from "../lib/nub-review.ts";
+import { cmd, cmdSlash } from "../lib/brand.ts";
 
 const execFileAsync = promisify(execFile);
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -509,7 +510,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 	pi.registerTool({
 		name: "nub_review",
 		label: "Nub-IA review",
-		description: "Run the Nub-IA 4R code review (risk, reliability, resilience, readability) over the current diff in parallel and write a consolidated report under .pi/nub-ia/reviews/. Returns the verdict and top findings. Also available to the user as /nubia:review. Run it before pushing; the push gate asks for confirmation when the changes were not reviewed or were blocked.",
+		description: `Run the Nub-IA 4R code review (risk, reliability, resilience, readability) over the current diff in parallel and write a consolidated report under .pi/nub-ia/reviews/. Returns the verdict and top findings. Also available to the user as ${cmdSlash("review")}. Run it before pushing; the push gate asks for confirmation when the changes were not reviewed or were blocked.`,
 		parameters: Type.Object({
 			scope: Type.Optional(Type.Union([Type.Literal("auto"), Type.Literal("staged"), Type.Literal("working")], { description: "auto (default): with a clean tree and unpushed commits, the range the push gate judges (upstream...HEAD); otherwise staged changes if any, else the working tree vs HEAD." })),
 			baseRef: Type.Optional(Type.String({ description: "Review the committed range <baseRef>...HEAD instead (for example main or origin/main)." })),
@@ -523,7 +524,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 		},
 	});
 
-	pi.registerCommand("nubia:review", {
+	pi.registerCommand(cmd("review"), {
 		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>; add --pr to post the report on the branch's pull request). Also: `fix` (hand the last BLOCKER/CRITICAL findings to the agent and re-review), `stats` (per-lens calibration from local metrics), `eval` (run the packaged fixtures through the real lenses).",
 		handler: async (args, ctx) => {
 			const tokens = args.trim().split(/\s+/).filter(Boolean);
@@ -564,7 +565,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 
 	// /nubia:review-mode — the gate switch (status | enable | strict | disable),
 	// persisted in <configHome>/review-gate.json; user-initiated only.
-	pi.registerCommand("nubia:review-mode", {
+	pi.registerCommand(cmd("review-mode"), {
 		description: "Show or set the push review gate: status | enable (confirm) | strict (refuse unreviewed pushes) | disable. No argument opens a menu.",
 		handler: async (args, ctx) => {
 			let action = args.trim().length === 0 ? "status" : args.trim();
@@ -580,7 +581,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 			}
 			const mode = REVIEW_MODE_ACTIONS[action];
 			if (mode === undefined) {
-				ctx.ui.notify(`Unknown /nubia:review-mode action "${action}". Use status, enable, strict, or disable.`, "warning");
+				ctx.ui.notify(`Unknown ${cmdSlash("review-mode")} action "${action}". Use status, enable, strict, or disable.`, "warning");
 				return;
 			}
 			try {
@@ -606,8 +607,8 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 		if (question === undefined) return;
 		const auditPush = (outcome: "approved" | "denied" | "blocked") => void appendMetricRows("audit", [auditRow({ kind: "push.gate", outcome, by: outcome === "blocked" ? "review-gate" : "human", subject: question, detail: `gate ${gate.mode}`, repository: ctx.cwd })]).catch(() => undefined);
 		if (gate.mode === "strict") auditPush("blocked");
-		if (gate.mode === "strict") return { block: true, reason: `${question} Refused: the review gate is strict. Run nub_review until the verdict is APPROVE or WARN, or /nubia:review-mode enable to be asked instead.` };
-		if (!ctx.hasUI) return { block: true, reason: `${question} No UI to confirm the push; run nub_review first, or /nubia:review-mode disable.` };
+		if (gate.mode === "strict") return { block: true, reason: `${question} Refused: the review gate is strict. Run nub_review until the verdict is APPROVE or WARN, or ${cmdSlash("review-mode")} enable to be asked instead.` };
+		if (!ctx.hasUI) return { block: true, reason: `${question} No UI to confirm the push; run nub_review first, or ${cmdSlash("review-mode")} disable.` };
 		const confirmed = await ctx.ui.confirm("Nub-IA push gate", `${question} Push anyway?`);
 		auditPush(confirmed ? "approved" : "denied");
 		if (!confirmed) return { block: true, reason: "Push cancelled at the Nub-IA review gate." };

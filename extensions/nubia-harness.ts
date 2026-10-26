@@ -117,6 +117,7 @@ import { routerDoctorLines } from "./nub-ia-router.ts";
 import { resolveRtkBinary } from "./rtk-rewrite.ts";
 import { nubiaDoctorLines } from "../lib/nubia-doctor.ts";
 import { buildMinimalPrompt, isPromptProfile, PROMPT_PROFILES, type PromptProfile, resolvePromptProfile, writePromptProfile } from "../lib/prompt-profile.ts";
+import { cmd, cmdSlash } from "../lib/brand.ts";
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const ASSETS_DIR = join(PACKAGE_ROOT, "assets");
@@ -180,7 +181,7 @@ function packageAssetDiagnosticLines(cwd: string): string[] {
 		const local = localAgentOverrideCount(cwd, owner);
 		const lines = [`${stale > 0 ? "warn" : "pass"}: Global ${label} assets stale: ${stale} file(s)`];
 		if (stale > 0) {
-			lines[0] += ` — run /nubia:install-${owner} --force to refresh managed assets`;
+			lines[0] += ` — run ${cmdSlash(`install-${owner}`)} --force to refresh managed assets`;
 		}
 		if (overrides > 0) {
 			lines.push(`info: Global ${label} user overrides: ${overrides} file(s); preserved, not package drift`);
@@ -2841,7 +2842,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 	);
 	if (savedConfig.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA cannot open model config because ${savedConfig.path} is invalid JSON or not an object. Fix or remove the file, then run /nubia:models again.`,
+			`Nub-IA cannot open model config because ${savedConfig.path} is invalid JSON or not an object. Fix or remove the file, then run ${cmdSlash("models")} again.`,
 			"warning",
 		);
 		return;
@@ -2991,7 +2992,7 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 	const read = readProfilesFileResult(profilesReadFilePath(nubiaDefaultConfigHome()));
 	if (read.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
+			`Nub-IA saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run ${cmdSlash("profiles")} again.`,
 			"warning",
 		);
 		return;
@@ -3025,7 +3026,7 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 	const target = resolveCurrentProfileTarget(ctx.cwd, read);
 	if (!target) {
 		ctx.ui.notify(
-			"Nub-IA saved the global routing, but no profile is current: none is active and this repository pins none. Apply or create one with /nubia:profiles, then press u here or s there.",
+			`Nub-IA saved the global routing, but no profile is current: none is active and this repository pins none. Apply or create one with ${cmdSlash("profiles")}, then press u here or s there.`,
 			"warning",
 		);
 		return;
@@ -3138,7 +3139,7 @@ function profilePinDetailLines(
 		lines.push(`              the ${issue.source} pin names "${issue.profile}", which this store does not define; ignoring it (${issue.path}).`);
 	}
 	if (evaluation.winner) {
-		lines.push("              This repository's subagent routing comes from the pin; the globally active profile and /nubia:models writes do not apply here.");
+		lines.push(`              This repository's subagent routing comes from the pin; the globally active profile and ${cmdSlash("models")} writes do not apply here.`);
 	}
 	return lines;
 }
@@ -3185,7 +3186,7 @@ function profilePinScopeNote(cwd: string): string | undefined {
 	const resolution = resolveProfilePin({ cwd, configHome: nubiaDefaultConfigHome() });
 	if (!resolution) return undefined;
 	return sanitizeTerminalText(
-		`This repository pins profile "${resolution.profile}" (${resolution.source} pin at ${resolution.path}), so its subagent launches resolve that profile instead of the global routing. Change or remove the pin with /nubia:profiles (p or P).`,
+		`This repository pins profile "${resolution.profile}" (${resolution.source} pin at ${resolution.path}), so its subagent launches resolve that profile instead of the global routing. Change or remove the pin with ${cmdSlash("profiles")} (p or P).`,
 	);
 }
 
@@ -4126,7 +4127,7 @@ async function runProfilesPanelAction(
 			}
 			if (namedLayers.length > 0) {
 				ctx.ui.notify(
-					`Profile "${result.name}" is pinned for this repository (${namedLayers.join(" and ")}). Remove the pin first with /nubia:profiles (p removes the clone pin, P removes the declaration), then delete it.`,
+					`Profile "${result.name}" is pinned for this repository (${namedLayers.join(" and ")}). Remove the pin first with ${cmdSlash("profiles")} (p removes the clone pin, P removes the declaration), then delete it.`,
 					"warning",
 				);
 				return file;
@@ -4280,7 +4281,7 @@ async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): 
 	const read = readProfilesFileResult(profilesReadFilePath(nubiaDefaultConfigHome()));
 	if (read.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
+			`Nub-IA cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run ${cmdSlash("profiles")} again.`,
 			"warning",
 		);
 		return;
@@ -4523,7 +4524,7 @@ function createNubiaExtensionForTesting(
 			const modelResult = await applySavedModelConfig(ctx);
 			if (ctx.hasUI && modelResult.invalidPath) {
 				ctx.ui.notify(
-					`Nub-IA skipped model config because ${modelResult.invalidPath} is invalid JSON or not an object. Fix or remove the file, then run /nubia:models again.`,
+					`Nub-IA skipped model config because ${modelResult.invalidPath} is invalid JSON or not an object. Fix or remove the file, then run ${cmdSlash("models")} again.`,
 					"warning",
 				);
 				return;
@@ -4599,7 +4600,7 @@ function createNubiaExtensionForTesting(
 
 	for (const owner of ["delegation", "review"] as const) {
 		const label = owner;
-		pi.registerCommand(`nubia:install-${owner}`, {
+		pi.registerCommand(cmd(`install-${owner}`), {
 			description: `Repair or refresh only the global Nub-IA ${label} assets.`,
 			handler: async (args, ctx) => {
 				const force = args.includes("--force");
@@ -4612,21 +4613,21 @@ function createNubiaExtensionForTesting(
 		});
 	}
 
-	pi.registerCommand("nubia:models", {
+	pi.registerCommand(cmd("models"), {
 		description: "Configure global per-agent models for Nub-IA agents.",
 		handler: async (_args, ctx) => {
 			await handleModelsCommand(ctx, pi);
 		},
 	});
 
-	pi.registerCommand("nubia:profiles", {
+	pi.registerCommand(cmd("profiles"), {
 		description: "Create, switch, and manage global agent-model profiles for Nub-IA agents.",
 		handler: async (_args, ctx) => {
 			await handleProfilesCommand(ctx, pi);
 		},
 	});
 
-	pi.registerCommand("nubia:persona", {
+	pi.registerCommand(cmd("persona"), {
 		description: "Switch Nub-IA persona between gentleman and neutral.",
 		handler: async (_args, ctx) => {
 			await handlePersonaCommand(ctx);
@@ -4634,7 +4635,7 @@ function createNubiaExtensionForTesting(
 	});
 
 	// T5.0: how much Nub-IA adds to Pi's system prompt, and the switch.
-	pi.registerCommand("nubia:prompt", {
+	pi.registerCommand(cmd("prompt"), {
 		description: "Show the size of the Nub-IA system-prompt addition and its profile, or set it: minimal (default, ~0.6k tokens) | full (complete harness text, ~4k tokens). Saved per user; a repository can pin one in .pi/nub-ia/prompt-profile.json.",
 		handler: async (args, ctx) => {
 			const action = args.trim();
@@ -4645,10 +4646,10 @@ function createNubiaExtensionForTesting(
 					const bytes = Buffer.byteLength(text, "utf8");
 					return `  ${profile.padEnd(8)} ${String(bytes).padStart(6)} bytes ≈ ${String(Math.round(bytes / 4)).padStart(5)} tokens${profile === current.profile ? "  ← active" : ""}`;
 				});
-				ctx.ui.notify([`Nub-IA prompt profile: ${current.profile} (${current.source})`, "Addition to Pi's own system prompt per profile:", ...sizes, "Mode and YOLO directives add a line only while active. /nubia:prompt minimal|full switches (next turn)."].join("\n"), "info");
+				ctx.ui.notify([`Nub-IA prompt profile: ${current.profile} (${current.source})`, "Addition to Pi's own system prompt per profile:", ...sizes, `Mode and YOLO directives add a line only while active. ${cmdSlash("prompt")} minimal|full switches (next turn).`].join("\n"), "info");
 				return;
 			}
-			if (!isPromptProfile(action)) { ctx.ui.notify("Use /nubia:prompt minimal|full (no argument shows sizes).", "warning"); return; }
+			if (!isPromptProfile(action)) { ctx.ui.notify(`Use ${cmdSlash("prompt")} minimal|full (no argument shows sizes).`, "warning"); return; }
 			try {
 				const path = writePromptProfile(action);
 				const after = resolvePromptProfile({ env: permissionEnvironment, cwd: ctx.cwd });
@@ -4659,7 +4660,7 @@ function createNubiaExtensionForTesting(
 		},
 	});
 
-	pi.registerCommand("nubia:doctor", {
+	pi.registerCommand(cmd("doctor"), {
 		description: "Run read-only Nub-IA diagnostics for this Pi workspace.",
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);
@@ -4695,7 +4696,7 @@ function createNubiaExtensionForTesting(
 	// It matters more here than there, because this policy governs whether
 	// background subagents may be launched at all, so nothing in Pi may write
 	// it. The only writer is this handler, reached only by explicit invocation.
-	pi.registerCommand("nubia:background-subagents", {
+	pi.registerCommand(cmd("background-subagents"), {
 		description: "Show or set the managed background-subagents policy; no argument opens a selectable menu (status|enable|disable). Every sub-action is user-initiated only; Pi automation never toggles it.",
 		// No argument opens a selectable menu when an interactive UI is present;
 		// headless callers and fakes without ui.select keep the status fallback.
@@ -4707,7 +4708,7 @@ function createNubiaExtensionForTesting(
 				subAction = selected;
 			}
 			if (subAction !== "status" && subAction !== "enable" && subAction !== "disable") {
-				ctx.ui.notify(`Unknown /nubia:background-subagents sub-action "${subAction}". Use status, enable, or disable.`, "warning");
+				ctx.ui.notify(`Unknown ${cmdSlash("background-subagents")} sub-action "${subAction}". Use status, enable, or disable.`, "warning");
 				return;
 			}
 			try {
@@ -4723,7 +4724,7 @@ function createNubiaExtensionForTesting(
 		},
 	});
 
-	pi.registerCommand("nubia:status", {
+	pi.registerCommand(cmd("status"), {
 		description: "Show Nub-IA package status for this project.",
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);

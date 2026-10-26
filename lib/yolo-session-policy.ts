@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { appendSystemPromptOnce, type AppendableSystemPromptOptions } from "./append-system-prompt.ts";
 import { captureSessionIdentity, sameSessionIdentity, type SessionIdentity } from "./session-identity.ts";
+import { cmd, cmdSlash } from "./brand.ts";
 
 export const YOLO_STATUS_KEY = "nubia:yolo";
 export const YOLO_STATUS_TEXT = "🚀 YOLO ON 🔥 — destructive confirmations remain";
@@ -210,7 +211,7 @@ export function registerYoloSessionPolicy(pi: ExtensionAPI, env: NodeJS.ProcessE
 			});
 		} catch { /* Missing or obsolete trusted host context: discovery expires closed. */ }
 	});
-	pi.registerCommand("nubia:yolo", {
+	pi.registerCommand(cmd("yolo"), {
 		description: "Session-only ordinary development/delivery permission (enable|disable|status); no argument opens a menu. Destructive confirmations remain.",
 		handler: async (args, context) => {
 			let action = args.trim() || "status";
@@ -224,7 +225,7 @@ export function registerYoloSessionPolicy(pi: ExtensionAPI, env: NodeJS.ProcessE
 				action = selected;
 			}
 			if (action !== "enable" && action !== "disable" && action !== "status") {
-				context.ui.notify("Use /nubia:yolo enable|disable|status. State unchanged.", "warning");
+				context.ui.notify(`Use ${cmdSlash("yolo")} enable|disable|status. State unchanged.`, "warning");
 				return;
 			}
 			if (action === "status") {

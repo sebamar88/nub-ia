@@ -7,6 +7,7 @@ import { withOverlayRepaint } from "../lib/overlay-repaint.ts";
 import { createStatsLoader, currentSessionStats, type StatsLoader } from "../lib/stats-collector.ts";
 import { StatsView } from "../lib/stats-view.ts";
 import { readEnv } from "../lib/config-home.ts";
+import { cmd } from "../lib/brand.ts";
 
 // Nub-IA Stats: /nubia:stats opens a full-terminal panel over local Pi
 // session history (tokens, cost, models, activity). It only reads the
@@ -23,7 +24,7 @@ import { readEnv } from "../lib/config-home.ts";
 // ~/.pi/agent stands in. The loader reads an alias of the same root once and
 // counts a session copied into both homes once.
 
-export const STATS_COMMAND_NAME = "nubia:stats";
+export const STATS_COMMAND_NAME = cmd("stats");
 
 /** Optional shortcut; there is no default key because the common alt+ keys are taken. */
 export function statsViewKey(env: NodeJS.ProcessEnv = process.env): string | undefined {

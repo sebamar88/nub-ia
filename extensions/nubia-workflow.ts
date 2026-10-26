@@ -6,6 +6,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { nubIaConfigHome, readEnv } from "../lib/config-home.ts";
 import { DEFAULT_WORKFLOW, isWorkflow, resolveWorkflow, updateWorkflowPrompt, WORKFLOWS, writeWorkflow, type DevelopmentWorkflow, type WorkflowResolution } from "../lib/workflow-config.ts";
+import { cmd, cmdSlash } from "../lib/brand.ts";
 
 const SUMMARY: Record<DevelopmentWorkflow, string> = {
 	none: "Direct/adaptive execution. Best for fixes and small isolated changes.",
@@ -25,7 +26,7 @@ export default function nubiaWorkflow(pi: ExtensionAPI): void {
 		return undefined;
 	});
 
-	pi.registerCommand("nubia:workflow", {
+	pi.registerCommand(cmd("workflow"), {
 		description: "Show or set the Development Workflow: none | sdd | svsd | status | default <workflow> (saves it). No argument opens a menu. Not a permission mode.",
 		handler: async (args, ctx) => {
 			const tokens = args.trim().split(/\s+/).filter(Boolean);
@@ -40,13 +41,13 @@ export default function nubiaWorkflow(pi: ExtensionAPI): void {
 				ctx.ui.notify([
 					`Development Workflow: ${current.workflow} (${current.source})`,
 					...WORKFLOWS.map((workflow) => `${workflow === current.workflow ? "●" : "○"} ${workflow}: ${SUMMARY[workflow]}`),
-					`/nubia:workflow <workflow> sets it for this session; /nubia:workflow default <workflow> saves it in ${nubIaConfigHome(env)}. A repo may pin one in .pi/nub-ia/workflow.json.`,
+					`${cmdSlash("workflow")} <workflow> sets it for this session; ${cmdSlash("workflow")} default <workflow> saves it in ${nubIaConfigHome(env)}. A repo may pin one in .pi/nub-ia/workflow.json.`,
 				].join("\n"), "info");
 				return;
 			}
 			if (action === "default") {
 				const wanted = tokens[1];
-				if (!isWorkflow(wanted)) { ctx.ui.notify("Use /nubia:workflow default none|sdd|svsd.", "warning"); return; }
+				if (!isWorkflow(wanted)) { ctx.ui.notify(`Use ${cmdSlash("workflow")} default none|sdd|svsd.`, "warning"); return; }
 				try {
 					const path = writeWorkflow(wanted);
 					ctx.ui.notify(`Default workflow saved: ${wanted} (${path}). A repo file or NUB_IA_WORKFLOW still takes precedence; current session unchanged.`, "info");

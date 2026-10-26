@@ -5,6 +5,7 @@ import { sanitizeTerminalText } from "./terminal-theme.ts";
 import { CARD_TONE, floatRows, panelInnerWidth, renderCard } from "./shell-card.ts";
 import type { VisualSettings } from "./visual-customization-policy.ts";
 import { renderChangesWidget, type ChangesModel } from "./shell-changes.ts";
+import { cmdSlash } from "./brand.ts";
 
 type Presentation = Pick<VisualSettings, "density" | "visibility">;
 type HeaderPresentation = Presentation & Partial<Pick<VisualSettings, "headerPlacement" | "statusPlacement">>;
@@ -236,7 +237,7 @@ export function renderShellSidebarBar(model: ShellBarModel, theme: ShellBarTheme
 					? `${changes.files} ${changes.files === 1 ? "file" : "files"} · ${theme.fg("success", `+${changes.added}`)} ${theme.fg("error", `−${changes.deleted}`)}`
 					: label("No captured changes"),
 				...(changes?.notice ? [theme.fg("warning", sanitizeStatus(changes.notice))] : []),
-				label("/nubia:changes"),
+				label(cmdSlash("changes")),
 			],
 		}]),
 		// The `rdd` visibility key is the saved-settings name of this block (it

@@ -57,6 +57,7 @@ import { allowedEditSurfaces, inheritAllowedEditSurfaces, isBoundedWriter, isDev
 import { CHILD_METRICS_EVENT, CHILD_METRICS_REVOKED, childEvent, launchSelection, type LaunchSelection } from "../lib/runtime-metrics-children.ts";
 import { runtimeMetricsEnvAllows } from "../lib/runtime-metrics-policy.ts";
 import { readEnv } from "../lib/config-home.ts";
+import { cmd } from "../lib/brand.ts";
 
 // Nub-IA Agents: subagents as isolated `pi --mode rpc` children, a task
 // store that notifies per task, and a Nub-IA card above the editor.
@@ -64,7 +65,7 @@ import { readEnv } from "../lib/config-home.ts";
 // and nub-ia's delegation rules keep working unchanged.
 
 export const AGENTS_WIDGET_KEY = "nubia-agents";
-export const AGENTS_COMMAND_NAME = "nubia:agents";
+export const AGENTS_COMMAND_NAME = cmd("agents");
 export const AGENTS_RESULT_TYPE = "nubia-agents.result";
 export const AGENTS_MESSAGE_TYPE = "nubia-agents.message";
 export const AGENTS_ORCHESTRATOR_MESSAGE_TYPE = "nubia-agents.orchestrator-message";

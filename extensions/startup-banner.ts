@@ -12,6 +12,7 @@ import { deriveBannerPalette } from "../lib/brand-colors.ts";
 import { resolveAnimationPolicy } from "../lib/animation-policy.ts";
 import { PI_SUBCOMMANDS } from "../lib/nubia-launcher.ts";
 import { configReadPath, nubIaConfigHome, readEnv } from "../lib/config-home.ts";
+import { cmd } from "../lib/brand.ts";
 
 
 /** Version line for the VER row: this package's version plus the Pi runtime's. */
@@ -639,10 +640,10 @@ export default function (pi: ExtensionAPI) {
       },
     });
   };
-  registerBannerCommand("nubia:banner");
-  registerToggleCommand("nubia:toggle-rose", "showRose");
-  registerToggleCommand("nubia:toggle-text-logo", "showTextLogo");
-  registerColorCommand("nubia:banner-color");
+  registerBannerCommand(cmd("banner"));
+  registerToggleCommand(cmd("toggle-rose"), "showRose");
+  registerToggleCommand(cmd("toggle-text-logo"), "showTextLogo");
+  registerColorCommand(cmd("banner-color"));
 
   pi.on("session_start", async (_event, ctx) => {
     disposeHeader();
