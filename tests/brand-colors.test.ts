@@ -41,3 +41,27 @@ test("a new brand changes the theme name and tint vars but keeps other vars", ()
 test("contrastRatio follows WCAG", () => {
 	assert.equal(contrastRatio([0, 0, 0], [255, 255, 255]), 21);
 });
+
+const baseRaw = JSON.parse(readFileSync(new URL("../brand.json", import.meta.url), "utf8"));
+const newBrand = (overrides?: unknown) =>
+	parseBrand({ ...baseRaw, name: "Acme", colors: { primary: "#2255FF", accent: "#FF8800", ...(overrides ? { overrides } : {}) } });
+
+test("new brand derives valid tint vars that differ from the Nub-IA template", () => {
+	const theme = deriveTheme(themeJson, newBrand()) as any;
+	assert.equal(theme.name, "Acme");
+	for (const key of ["border", "borderSubtle", "bgPanel", "bgElement", "bgSubtle", "userMessageBg", "deepPink"]) {
+		assert.match(theme.vars[key], /^#[0-9A-F]{6}$/, key);
+		assert.notEqual(theme.vars[key], themeJson.vars[key], key);
+	}
+});
+
+test("explicit overrides win on a new brand while other fields stay derived", () => {
+	const plain = newBrand();
+	const brand = newBrand({ banner: { label: [1, 2, 3] }, theme: { border: "#123456" } });
+	const palette = deriveBannerPalette(brand.colors);
+	const theme = deriveTheme(themeJson, brand) as any;
+	assert.deepEqual(palette.label, [1, 2, 3]);
+	assert.deepEqual(palette.value, deriveBannerPalette(plain.colors).value);
+	assert.equal(theme.vars.border, "#123456");
+	assert.equal(theme.vars.borderSubtle, (deriveTheme(themeJson, plain) as any).vars.borderSubtle);
+});
