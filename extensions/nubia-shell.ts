@@ -21,7 +21,7 @@ import { VisualCustomizeView, type CustomizeCategory, type CustomizeRow, type Pr
 import { deleteVisualProfile, getVisualProfile, listVisualProfiles, resetVisualProfiles, saveVisualProfile } from "../lib/visual-profiles.ts";
 import { sourcePalettePreview } from "../lib/theme-customization.ts";
 import { DEFAULT_VISUAL_SETTINGS, DENSITY, HEADER_PLACEMENT, STATUS_PLACEMENT, VISUAL_SECTION_KEYS, resolveVisualSettings, writeVisualSettings } from "../lib/visual-customization-policy.ts";
-import { BANNER_COLORS, DEFAULT_BANNER_CONFIG, readBannerConfig, readBannerConfigForEdit, writeBannerConfig } from "./startup-banner.ts";
+import { BANNER_COLORS, BANNER_PALETTES, DEFAULT_BANNER_CONFIG, readBannerConfig, readBannerConfigForEdit, writeBannerConfig } from "./startup-banner.ts";
 import { agentsViewKey } from "../lib/agents-keys.ts";
 import { DOUBLE_ESC_CANCEL_HINT, floatPromptRow, framePromptLines, resolvePromptLayout, IDLE_ESC_CLEAR_HINT, PROMPT_HINT, PROMPT_STATE, SHELL_PULSE_MS, withPromptHint, type PromptState } from "../lib/shell-prompt.ts";
 import { oddPhaseRegistry } from "../lib/odd-phase.ts";
@@ -1937,9 +1937,8 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 				() => ({ title: `${policy} · static animation sample`, sample: policy === "potato" ? "∞  idle → working (no pulse)" : policy === "performance" ? "∞  short pulse → settle (static)" : "∞  gentle wave → settle (static)" }),
 			);
 			category = "Banner";
-			const bannerColors = { lime: [214, 255, 0], pink: [255, 118, 195], cyan: [95, 210, 255], yellow: [255, 210, 95], green: [110, 220, 145] } as const;
 			const bannerPreview = (next: typeof banner) => {
-				const [r, g, b] = bannerColors[next.color];
+				const [r, g, b] = BANNER_PALETTES[next.color].rose;
 				return { title: `Banner · ${next.color} (static)`, sample: `${next.showRose ? `\x1b[38;2;${r};${g};${b}m∞\x1b[0m` : "·"}  ${next.showTextLogo ? "nubiral" : "(logo hidden)"}` };
 			};
 			add(() => `Banner isologo: ${banner.showRose ? "on" : "off"}`, "Banner saved; applies at next startup.", async () => {

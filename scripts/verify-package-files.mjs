@@ -9,6 +9,7 @@ const root = join(fileURLToPath(new URL("..", import.meta.url)));
 const requiredPaths = [
   "bin/nub-ia.mjs",
   "brand.json",
+  "assets/brand/banner-art.json",
   "assets/orchestrator.md",
   "assets/orchestrator-delegation.md",
   "assets/orchestrator-tracking.md",

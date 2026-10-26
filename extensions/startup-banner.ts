@@ -5,7 +5,10 @@ import * as os from "node:os";
 import { execFile } from "node:child_process";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { brand } from "../lib/brand.ts";
+import { deriveBannerPalette } from "../lib/brand-colors.ts";
 import { resolveAnimationPolicy } from "../lib/animation-policy.ts";
 import { PI_SUBCOMMANDS } from "../lib/nubia-launcher.ts";
 import { configReadPath, nubIaConfigHome, readEnv } from "../lib/config-home.ts";
@@ -35,37 +38,24 @@ export const DEFAULT_BANNER_CONFIG: BannerConfig = {
   color: "lime",
 };
 export const BANNER_COLORS: BannerColor[] = ["lime", "pink", "cyan", "yellow", "green"];
-const BANNER_PALETTES: Record<BannerColor, { rose: [number, number, number]; label: [number, number, number]; value: [number, number, number]; logoFresh: [number, number, number]; logoDim: [number, number, number] }> = {
-  // Nubiral brand: lime mark, light wordmark.
-  lime: { rose: [214, 255, 0], label: [170, 200, 40], value: [230, 255, 120], logoFresh: [240, 240, 240], logoDim: [90, 100, 40] },
+export const BANNER_PALETTES: Record<BannerColor, { rose: [number, number, number]; label: [number, number, number]; value: [number, number, number]; logoFresh: [number, number, number]; logoDim: [number, number, number] }> = {
+  // Brand colors drive the lime palette (default brand: Nubiral lime mark, light wordmark).
+  lime: deriveBannerPalette(brand.colors),
   pink: { rose: [255, 118, 195], label: [200, 100, 160], value: [255, 140, 210], logoFresh: [255, 138, 206], logoDim: [95, 30, 60] },
   cyan: { rose: [95, 210, 255], label: [85, 170, 205], value: [130, 225, 255], logoFresh: [105, 220, 255], logoDim: [25, 80, 100] },
   yellow: { rose: [255, 210, 95], label: [210, 165, 65], value: [255, 225, 135], logoFresh: [255, 215, 105], logoDim: [105, 75, 25] },
   green: { rose: [110, 220, 145], label: [85, 175, 115], value: [145, 240, 170], logoFresh: [120, 230, 150], logoDim: [30, 95, 50] },
 };
 
-// Nubiral wordmark, traced from the brand PNG into quadrant blocks
-// (regenerate with `node scripts/trace-brand.mjs wordmark`).
-const TEXT_LOGO = [
-  "                     ▄▄▖        ▗██▖                  ▐██",
-  "                     ██▌        ▝▀▀                   ▐██",
-  "██▙▟███▄  ▐██    ██▖ ██▙▟███▙▖  ▗██  ██▄▟█  ▄▟███▙▟██ ▐██",
-  "██▛▀ ▀██▙ ▐██    ██▌ ███▀▘▝▀██▙ ▐██  ███▀▀ ▟█▛▀▘▝▀███ ▐██",
-  "██▌   ▐██ ▐██    ██▌ ██▌    ▐██ ▐██  ██▌   ██▌    ▐██ ▐██",
-  "██▌   ▐██ ▐██▄ ▗▟██▌ ███▄  ▄██▛ ▐██  ██▌   ▜█▙▄ ▗▄███ ▐██",
-  "██▌   ▐█▛  ▀████▀██▘ ██▛▜███▛▀  ▝██  ██▘    ▀▜███▛▜██ ▐██",
-];
-
-// Nubiral isologo, traced from the brand PNG into braille (regenerate with `node scripts/trace-brand.mjs isologo`).
-const ROSE_LARGE_RAW = [
-  "          ⢀⣤⣶⣿⣿⣿⣿⣶⣦⡀  ",
-  "         ⣴⣿⣿⡿⠛⠛⠛⠛⢿⣿⣿⣦⡀",
-  "   ⣀⣤⣤⣤⣀ ⠈⠻⠏      ⠘⣿⣿⣧",
-  " ⢠⣾⣿⣿⣿⣿⣿⣷⣄         ⣿⣿⣿",
-  " ⣿⣿⣿⠁ ⠈⠻⣿⣿⣷⣄      ⢠⣿⣿⡟",
-  " ⢻⣿⣿⣦⣤⣄ ⠈⠻⣿⡿⢁⣤⣤⣤⣤⣾⣿⣿⠟⠁",
-  "  ⠙⠿⣿⣿⣿⠷  ⠈⠐⠿⣿⣿⣿⣿⠿⠟⠁  ",
-];
+// Banner artwork (wordmark, isologo, letter weights) lives in the file named by brand.artwork.
+// Regenerate the traced art with `node scripts/trace-brand.mjs wordmark|isologo`.
+export interface BannerArt { wordmark: string[]; isologo: string[]; letterWeights: number[] }
+export function loadBannerArt(file: string = join(dirname(fileURLToPath(import.meta.url)), "..", brand.artwork)): BannerArt {
+  return JSON.parse(readFileSync(file, "utf8")) as BannerArt;
+}
+const ART = loadBannerArt();
+const TEXT_LOGO = ART.wordmark;
+const ROSE_LARGE_RAW = ART.isologo;
 
 function rgb(r: number, g: number, b: number, text: string): string {
   return `\x1b[38;2;${r};${g};${b}m${text}\x1b[39m`;
@@ -175,9 +165,9 @@ function isLogoCellType(type: CellType): type is LogoCellType {
   return LOGO_CELL_TYPES.has(type);
 }
 
-type Span = { start: number; end: number };
+export type Span = { start: number; end: number };
 
-function computeLogoBounds(lines: string[]): Span {
+export function computeLogoBounds(lines: string[]): Span {
   let start = Number.POSITIVE_INFINITY;
   let end = Number.NEGATIVE_INFINITY;
   for (const line of lines) {
@@ -194,7 +184,8 @@ function computeLogoBounds(lines: string[]): Span {
   return { start, end };
 }
 
-function buildLetterSpans(bounds: Span, weights: number[]): Span[] {
+export function buildLetterSpans(bounds: Span, weights: number[]): Span[] {
+  if (weights.length === 0) return [{ start: bounds.start, end: Math.max(bounds.start, bounds.end) }];
   const spanWidth = Math.max(1, bounds.end - bounds.start + 1);
   const total = weights.reduce((a, b) => a + b, 0);
   let cursor = bounds.start;
@@ -214,7 +205,7 @@ function buildLetterSpans(bounds: Span, weights: number[]): Span[] {
 
 const LOGO_BOUNDS = computeLogoBounds(TEXT_LOGO);
 // Variable-width script regions, including the gap before Shell and shadows.
-const LETTER_WEIGHTS = [9, 11, 11, 4, 6, 10, 3]; // n u b i r a l (column spans of the traced wordmark)
+const LETTER_WEIGHTS = ART.letterWeights; // one entry per letter (column spans of the traced wordmark)
 const LETTER_SPANS = buildLetterSpans(LOGO_BOUNDS, LETTER_WEIGHTS);
 
 function letterIndexAtX(x: number): number {

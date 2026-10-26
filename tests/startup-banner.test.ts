@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import startup, { isPiCliSubcommandInvocation, readGitBranch, versionLabel } from "../extensions/startup-banner.ts";
+import startup, { buildLetterSpans, computeLogoBounds, isPiCliSubcommandInvocation, readGitBranch, versionLabel } from "../extensions/startup-banner.ts";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { stripAnsi } from "../lib/terminal-theme.ts";
@@ -15,10 +15,12 @@ import { stripAnsi } from "../lib/terminal-theme.ts";
 delete process.env.NUB_IA_AGENTS_CHILD;
 
 test("startup artwork is the traced Nubiral wordmark and isologo with aligned animation spans", () => {
-	const source = readFileSync(new URL("../extensions/startup-banner.ts", import.meta.url), "utf8");
-	const logo = JSON.parse(source.match(/const TEXT_LOGO = (\[[\s\S]*?\]);/)![1].replace(/,\s*]/, "]")) as string[];
-	const weights = JSON.parse(source.match(/const LETTER_WEIGHTS = (\[[^;]+\]);/)![1]) as number[];
-	const mark = JSON.parse(source.match(/const ROSE_LARGE_RAW = (\[[\s\S]*?\]);/)![1].replace(/,\s*]/, "]")) as string[];
+	const art = JSON.parse(readFileSync(new URL("../assets/brand/banner-art.json", import.meta.url), "utf8")) as { wordmark: string[]; isologo: string[]; letterWeights: number[] };
+	const logo = art.wordmark;
+	const weights = art.letterWeights;
+	const mark = art.isologo;
+	assert.deepEqual(weights, [9, 11, 11, 4, 6, 10, 3]);
+	assert.ok(weights.every((w) => Number.isInteger(w) && w > 0), "weights are positive integers");
 	assert.equal(logo.length, 7, "wordmark is traced at seven rows");
 	assert.equal(mark.length, 7, "isologo is traced at seven rows, so both sit side by side");
 	assert.equal(weights.length, 7, "one variable-width span per n-u-b-i-r-a-l letter");
@@ -30,6 +32,68 @@ test("startup artwork is the traced Nubiral wordmark and isologo with aligned an
 	assert.equal(logo[0].trim().split(/\s+/).length, 3, "b ascender, i dot, and l reach the top row");
 	assert.equal(logo[1].trim().split(/\s+/).length, 3, "the i dot's underside shows on row 1 above the gap");
 	assert.ok(Math.max(...logo.map((line) => line.length)) <= 60, "wordmark width stays terminal friendly");
+});
+
+async function renderDefaultBanner(t: import("node:test").TestContext, width: number): Promise<string> {
+	const home = mkdtempSync(join(tmpdir(), "gp-banner-snapshot-"));
+	writeFileSync(join(home, "animations.json"), '{"schema":"nub-ia.animations/v1","policy":"potato"}');
+	const previousHome = process.env.NUB_IA_CONFIG_HOME;
+	process.env.NUB_IA_CONFIG_HOME = home;
+	const argv = process.argv;
+	process.argv = ["node"];
+	for (const [key, value] of [["rows", 40], ["columns", 200]] as const) {
+		const descriptor = Object.getOwnPropertyDescriptor(process.stdout, key);
+		Object.defineProperty(process.stdout, key, { configurable: true, writable: true, value });
+		t.after(() => descriptor ? Object.defineProperty(process.stdout, key, descriptor) : Reflect.deleteProperty(process.stdout, key));
+	}
+	let boot: () => void;
+	t.mock.method(globalThis, "setTimeout", (callback: () => void, ms: number) => {
+		if (ms === 50) boot = callback; // Never run operational stats/home reads.
+		return {};
+	});
+	t.after(() => {
+		process.argv = argv;
+		if (previousHome === undefined) delete process.env.NUB_IA_CONFIG_HOME;
+		else process.env.NUB_IA_CONFIG_HOME = previousHome;
+		rmSync(home, { recursive: true, force: true });
+	});
+	let start: (event: unknown, ctx: unknown) => Promise<void>;
+	let header: { render(width: number): string[]; dispose(): void };
+	startup({ on: (name: string, fn: typeof start) => { if (name === "session_start") start = fn; }, registerCommand() {}, getCommands: () => [], getAllTools: () => [] } as unknown as ExtensionAPI);
+	await start!({}, { hasUI: true, cwd: "/fixture", ui: { setHeader(factory: (tui: unknown, theme: unknown) => typeof header) {
+		header = factory({ requestRender() {} }, { fg: (_role: string, text: string) => text });
+	} } });
+	boot!();
+	const out = header!.render(width).join("\n");
+	header!.dispose();
+	// Keep ANSI colors (palette must not change); mask the release-dependent version row.
+	return out.replace(/VER:.*$/m, "VER:").replace(/\x1b\[[0-9;]*m/g, (m) => m) + "\n";
+}
+
+test("default-brand banner at width 120 matches the committed snapshot", async (t) => {
+	const fixture = new URL("./fixtures/banner-default.txt", import.meta.url);
+	const actual = await renderDefaultBanner(t, 120);
+	if (process.env.UPDATE_BANNER_SNAPSHOT === "1") writeFileSync(fixture, actual);
+	assert.equal(actual, readFileSync(fixture, "utf8"));
+});
+
+test("letter spans cover the bounds without gaps for any art", () => {
+	const spans = buildLetterSpans({ start: 4, end: 33 }, [5, 5, 5]);
+	assert.equal(spans.length, 3);
+	assert.equal(spans[0].start, 4);
+	assert.equal(spans[2].end, 33);
+	spans.forEach((span, i) => {
+		assert.ok(Number.isInteger(span.start) && Number.isInteger(span.end) && span.end >= span.start);
+		if (i > 0) assert.equal(span.start, spans[i - 1].end + 1);
+	});
+	assert.deepEqual(buildLetterSpans({ start: 2, end: 20 }, []), [{ start: 2, end: 20 }], "no weights means one span");
+});
+
+test("a wordmark wider than the terminal does not throw", async (t) => {
+	const wide = ["#".repeat(90), "#".repeat(90)];
+	const bounds = computeLogoBounds(wide);
+	assert.equal(buildLetterSpans(bounds, [1, 2, 3]).at(-1)!.end, bounds.end);
+	await renderDefaultBanner(t, 40); // narrower than the real wordmark: it is hidden, not clipped
 });
 
 test("startup branch lookup uses direct git argv and hides its Windows child", async () => {
