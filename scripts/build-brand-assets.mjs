@@ -10,7 +10,7 @@
 // (it knows the previous name from assets/brand/.applied.json).
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brand } from "../lib/brand.ts";
 import { deriveTheme } from "../lib/brand-colors.ts";
@@ -28,7 +28,12 @@ if ((mode !== "--write" && mode !== "--check") || (dirFlag >= 0 && !themesDir)) 
 }
 
 const expected = `${JSON.stringify(deriveTheme(JSON.parse(readFileSync(TEMPLATE, "utf8")), brand), null, 2)}\n`;
-const target = join(themesDir, `${brand.name}.json`);
+const themeFile = `${brand.name}.json`;
+if (basename(themeFile) !== themeFile) {
+	console.error(`brand.name ${JSON.stringify(brand.name)} is not usable as a file name`);
+	process.exit(2);
+}
+const target = join(themesDir, themeFile);
 
 if (mode === "--write") {
 	mkdirSync(themesDir, { recursive: true });
