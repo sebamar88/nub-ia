@@ -117,6 +117,7 @@ import { routerDoctorLines } from "./nub-ia-router.ts";
 import { resolveRtkBinary } from "./rtk-rewrite.ts";
 import { nubiaDoctorLines } from "../lib/nubia-doctor.ts";
 import { buildMinimalPrompt, isPromptProfile, PROMPT_PROFILES, type PromptProfile, resolvePromptProfile, writePromptProfile } from "../lib/prompt-profile.ts";
+import { cmd, cmdSlash, brand } from "../lib/brand.ts";
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const ASSETS_DIR = join(PACKAGE_ROOT, "assets");
@@ -180,7 +181,7 @@ function packageAssetDiagnosticLines(cwd: string): string[] {
 		const local = localAgentOverrideCount(cwd, owner);
 		const lines = [`${stale > 0 ? "warn" : "pass"}: Global ${label} assets stale: ${stale} file(s)`];
 		if (stale > 0) {
-			lines[0] += ` — run /nubia:install-${owner} --force to refresh managed assets`;
+			lines[0] += ` — run ${cmdSlash(`install-${owner}`)} --force to refresh managed assets`;
 		}
 		if (overrides > 0) {
 			lines.push(`info: Global ${label} user overrides: ${overrides} file(s); preserved, not package drift`);
@@ -677,14 +678,14 @@ function buildNubiaPrompt(
 			reviewAvailable: activeTools === undefined || activeTools.includes("nub_review"),
 		});
 	}
-	return `## Nub-IA Identity and Harness
+	return `## ${brand.name} Identity and Harness
 
 Current persona mode: ${persona}
 
-You are Nub-IA: the Nubiral team's Pi coding-agent harness for controlled development work.
+You are ${brand.name}: the Nubiral team's Pi coding-agent harness for controlled development work.
 
 Identity contract:
-- When the user asks who or what you are, answer as Nub-IA, not as a generic assistant, and never introduce yourself as only "your assistant" or "the default assistant". Convey this meaning, translated into the user's language: "I am Nub-IA: a Pi-specific coding-agent harness for controlled development, with a senior architect persona. I run Organic Driven Development, coordinate subagents, track substantial work, run commands, and edit files. I am not a generic chatbot."
+- When the user asks who or what you are, answer as ${brand.name}, not as a generic assistant, and never introduce yourself as only "your assistant" or "the default assistant". Convey this meaning, translated into the user's language: "I am ${brand.name}: a Pi-specific coding-agent harness for controlled development, with a senior architect persona. I run Organic Driven Development, coordinate subagents, track substantial work, run commands, and edit files. I am not a generic chatbot."
 - Follow the currently selected persona mode.
 - Mention ODD as the development workflow and subagents as a core capability.
 - Mention memory only when memory packages or callable memory tools are actually active; never invent persistent memory.
@@ -703,11 +704,11 @@ Organic Driven Development (ODD) is the predefined workflow of this orchestrator
 5. **Track before the first write.** For large authorized implementation, create \`odd/tasks/<feature-name>.md\` and its Engram mirror \`odd/<feature-name>/tasks\` automatically, then create or rebuild the visible \`todo\` list from the reconciled feature tasks, all before the first source write and without asking permission for tasks or storage. Tell the user in one line which feature document was created and how many tasks it holds. The document is the specification subagents read, in this order: a two- or three-line header; \`## Specs\` with numbered \`S#\` that quote the user's exact strings, error messages, and examples verbatim, never summarized and never adding unrequested requirements; \`## Tasks\` with one line per task (ID, linked \`S#\`, route, commit); \`## Log\` last, where \`L1\` is the user's original request verbatim and later user corrections, evidence, and decisions are appended. A requirement change appends its verbatim Log entry, rewrites only the affected \`S#\`, and reopens only its task.
 6. **Implement task by task.** Hand off by reference, never by paraphrase: name the document, task, and specs (for example \`Spec: odd/tasks/<feature>.md, T2, S3-S4\`), tell workers to read until \`## Log\`, and ask which \`S#\` were covered. Without a feature document, include the user's request verbatim. Verify reads the whole document, runs the spec's examples the parent authorized, against isolated state when they mutate data, and returns a verdict per \`S#\`. When the user reports a failure, reproduce it before deciding it already works. Each test asserts every observable effect of the rule it covers (exit code, exact stdout and stderr, and that rejected input leaves stored data and counters unchanged), covers the cases the rule itself names (its examples, boundaries, and errors), and checks through the public interface, never internal storage. When you add or change a command, option, or message, update the help text and docs that describe it. Route each task through the orchestrator's Mechanisms, honoring its mandatory delegation triggers, with applicable test-first development and checks. These triggers are mandatory, not advisory: executing past a fired trigger inline is a routing defect even if the work succeeds. Check an item off only after its outcome and checks were observed; update the file, mirror, and visible \`todo\` projection after every task transition and material plan change. Every tracked task closes with at least one work-unit commit on the feature branch, branch first when on the default branch, with tests and docs alongside the behavior, using a Conventional Commit message; record the commit identity in the feature document as evidence. Work-unit commits on the feature branch are part of authorized large ODD implementation; push, pull request creation, and merge remain the user's decisions.
 7. **Close.** Report the verified outcome, every failed, skipped, or pending check, and the next step. Before writing \`Risk: none\`, check whether your diff changes code that existing behavior the request did not mention also uses (shared options, parsers, helpers); if it does, that is item 3. Never end with a tracked task pending unless you quote the user's explicit stop. An applicable quick check runs once; an unavailable verifier or subagent is reported as unavailable, never retried or escalated into extra ceremony. Partial, blocked, unavailable, or exhausted proof becomes one **Needs your decision** result naming the open blockers or missing proof, never more verification; that result is a valid stop, hedged wording is not. For a non-trivial change, run \`nub_review\` over the diff before delivery and address its BLOCKER/CRITICAL findings; the push gate asks for confirmation when changes were not reviewed or were blocked.
-Phase reporting: the Nub-IA prompt label is inferred automatically from the primary session's tool activity (reads show \`exploring\`, edits \`implementing\`, test runs \`checking\`, user questions \`deciding\`). When the \`nubia_odd_phase\` tool is available, use it to refine that label with phases tools cannot show (\`authorizing\`, \`researching\`, \`deciding\`, \`closing\`): call \`nubia_odd_phase\` only when the primary session's ODD phase actually changes, never per tool call or on a fixed cadence, and never from a subagent. It drives the Nub-IA prompt label only.
+Phase reporting: the ${brand.name} prompt label is inferred automatically from the primary session's tool activity (reads show \`exploring\`, edits \`implementing\`, test runs \`checking\`, user questions \`deciding\`). When the \`nubia_odd_phase\` tool is available, use it to refine that label with phases tools cannot show (\`authorizing\`, \`researching\`, \`deciding\`, \`closing\`): call \`nubia_odd_phase\` only when the primary session's ODD phase actually changes, never per tool call or on a fixed cadence, and never from a subagent. It drives the ${brand.name} prompt label only.
 Resume an interrupted feature with \`mem_context\`, then project- and feature-scoped \`mem_search\`, then \`mem_get_observation\` for the full document, then the task file itself; reconcile before continuing the next unfinished task. Detail for steps 3–7: \`orchestrator-delegation.md\` and \`orchestrator-memory.md\`.
 
 Harness principles:
-- Nub-IA is not prompt engineering. It is runtime discipline around powerful agents.
+- ${brand.name} is not prompt engineering. It is runtime discipline around powerful agents.
 - Organic Driven Development (ODD) is the predefined workflow for every request: authorize, explore, resolve uncertainty, classify, track large work before the first write, implement task by task with proportionate checks, close each tracked task with a work-unit commit, and close.
 - Clarify scope, constraints, acceptance criteria, and non-goals before implementation.
 - Use subagents when available for exploration, planning, implementation, and review, while keeping one parent session responsible for orchestration.
@@ -1136,7 +1137,7 @@ function evaluateSensitivePathTool(
 	if (!sensitivePath) return undefined;
 	return {
 		block: true,
-		reason: `Nub-IA safety policy blocked access to sensitive path: ${sanitizeTerminalText(sensitivePath)}. Ask the user for an explicit safer plan.`,
+		reason: `${brand.name} safety policy blocked access to sensitive path: ${sanitizeTerminalText(sensitivePath)}. Ask the user for an explicit safer plan.`,
 	};
 }
 
@@ -1255,7 +1256,7 @@ async function confirmCommand(
 		return {
 			block: true,
 			reason:
-				"Nub-IA safety policy blocked a destructive shell command. Ask the user for an explicit safer plan.",
+				`${brand.name} safety policy blocked a destructive shell command. Ask the user for an explicit safer plan.`,
 		};
 	}
 
@@ -1272,7 +1273,7 @@ async function confirmCommand(
 		return {
 			block: true,
 			reason:
-				"Nub-IA safety policy requires interactive confirmation before this command.",
+				`${brand.name} safety policy requires interactive confirmation before this command.`,
 		};
 	}
 	const title = evaluation.dataLoss
@@ -1287,7 +1288,7 @@ async function confirmCommand(
 			requestId,
 			state,
 			source: "tool_call",
-			message: "Nub-IA safety policy requires confirmation for this tool call.",
+			message: `${brand.name} safety policy requires confirmation for this tool call.`,
 			toolName: "bash",
 		});
 	};
@@ -1313,7 +1314,7 @@ async function confirmCommand(
 	return {
 		block: true,
 		reason:
-			"Nub-IA safety policy blocked the command because it was not confirmed.",
+			`${brand.name} safety policy blocked the command because it was not confirmed.`,
 	};
 }
 
@@ -2841,7 +2842,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 	);
 	if (savedConfig.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA cannot open model config because ${savedConfig.path} is invalid JSON or not an object. Fix or remove the file, then run /nubia:models again.`,
+			`${brand.name} cannot open model config because ${savedConfig.path} is invalid JSON or not an object. Fix or remove the file, then run ${cmdSlash("models")} again.`,
 			"warning",
 		);
 		return;
@@ -2854,7 +2855,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 		if (result.type === "export") {
 			try {
 				const count = await exportSavedModelConfig(ctx);
-				ctx.ui.notify(`Nub-IA exported ${count} saved model routing entr${count === 1 ? "y" : "ies"} to ${modelExportPath(ctx.cwd)}.`, "info");
+				ctx.ui.notify(`${brand.name} exported ${count} saved model routing entr${count === 1 ? "y" : "ies"} to ${modelExportPath(ctx.cwd)}.`, "info");
 			} catch (error) {
 				ctx.ui.notify(`Model routing export failed: ${error instanceof Error ? error.message : String(error)}`, "warning");
 			}
@@ -2881,14 +2882,14 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 				try {
 					const applyResult = await applyModelConfigAsync(ctx.cwd, restored);
 					ctx.ui.notify([
-						"Nub-IA restored global model config.",
+						`${brand.name} restored global model config.`,
 						`Import: ${modelExportPath(ctx.cwd)}`,
 						`Global config: ${modelConfigPath(ctx.cwd)}`,
 						`Agents updated: ${applyResult.updated}`,
 					].join("\n"), "info");
 				} catch (error) {
 					ctx.ui.notify([
-						"Nub-IA restored global model config, but applying it to agents failed.",
+						`${brand.name} restored global model config, but applying it to agents failed.`,
 						`Global config: ${modelConfigPath(ctx.cwd)}`,
 						`Apply error: ${error instanceof Error ? error.message : String(error)}`,
 					].join("\n"), "warning");
@@ -2943,7 +2944,7 @@ async function handleModelsCommand(ctx: ExtensionContext, pi: ExtensionAPI): Pro
 	const applyResult = await applyModelConfigAsync(ctx.cwd, result.config);
 	ctx.ui.notify(
 		[
-			"Nub-IA global model config saved.",
+			`${brand.name} global model config saved.`,
 			`Global config: ${modelConfigPath(ctx.cwd)}`,
 			`Agents updated: ${applyResult.updated}`,
 			...describeModelConfig(ctx.cwd, result.config),
@@ -2991,7 +2992,7 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 	const read = readProfilesFileResult(profilesReadFilePath(nubiaDefaultConfigHome()));
 	if (read.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
+			`${brand.name} saved the global routing, but cannot update a profile because ${sanitizeTerminalText(path)} is invalid JSON or not a profiles file. Fix or remove the file, then run ${cmdSlash("profiles")} again.`,
 			"warning",
 		);
 		return;
@@ -3013,19 +3014,19 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 			writeProfilesFileSync(path, bootstrapProfilesFile(snapshot));
 		} catch (error) {
 			ctx.ui.notify(
-				`Nub-IA saved the global routing, but could not create ${sanitizeTerminalText(path)}: ${profilesErrorMessage(error)}`,
+				`${brand.name} saved the global routing, but could not create ${sanitizeTerminalText(path)}: ${profilesErrorMessage(error)}`,
 				"warning",
 			);
 			return;
 		}
-		ctx.ui.notify(`Nub-IA seeded the "current" profile in ${sanitizeTerminalText(path)} from the routing just saved.`, "info");
+		ctx.ui.notify(`${brand.name} seeded the "current" profile in ${sanitizeTerminalText(path)} from the routing just saved.`, "info");
 		return;
 	}
 	reportProfilesDrops(ctx, path, read.drops);
 	const target = resolveCurrentProfileTarget(ctx.cwd, read);
 	if (!target) {
 		ctx.ui.notify(
-			"Nub-IA saved the global routing, but no profile is current: none is active and this repository pins none. Apply or create one with /nubia:profiles, then press u here or s there.",
+			`${brand.name} saved the global routing, but no profile is current: none is active and this repository pins none. Apply or create one with ${cmdSlash("profiles")}, then press u here or s there.`,
 			"warning",
 		);
 		return;
@@ -3034,14 +3035,14 @@ function updateCurrentProfileFromSavedRouting(ctx: ExtensionContext, pi: Extensi
 		writeProfilesFileSync(path, updateProfile(read.file, target.name, snapshot));
 	} catch (error) {
 		ctx.ui.notify(
-			`Nub-IA saved the global routing, but profile "${target.name}" was not updated: ${profilesErrorMessage(error)}`,
+			`${brand.name} saved the global routing, but profile "${target.name}" was not updated: ${profilesErrorMessage(error)}`,
 			"warning",
 		);
 		return;
 	}
 	ctx.ui.notify(
 		[
-			`Nub-IA: Profile "${target.name}" updated from the routing just saved (${target.source === "pinned" ? "this repository's pinned profile" : "the active profile"}).`,
+			`${brand.name}: Profile "${target.name}" updated from the routing just saved (${target.source === "pinned" ? "this repository's pinned profile" : "the active profile"}).`,
 			`Profiles store: ${sanitizeTerminalText(path)}`,
 		].join("\n"),
 		"info",
@@ -3138,7 +3139,7 @@ function profilePinDetailLines(
 		lines.push(`              the ${issue.source} pin names "${issue.profile}", which this store does not define; ignoring it (${issue.path}).`);
 	}
 	if (evaluation.winner) {
-		lines.push("              This repository's subagent routing comes from the pin; the globally active profile and /nubia:models writes do not apply here.");
+		lines.push(`              This repository's subagent routing comes from the pin; the globally active profile and ${cmdSlash("models")} writes do not apply here.`);
 	}
 	return lines;
 }
@@ -3185,7 +3186,7 @@ function profilePinScopeNote(cwd: string): string | undefined {
 	const resolution = resolveProfilePin({ cwd, configHome: nubiaDefaultConfigHome() });
 	if (!resolution) return undefined;
 	return sanitizeTerminalText(
-		`This repository pins profile "${resolution.profile}" (${resolution.source} pin at ${resolution.path}), so its subagent launches resolve that profile instead of the global routing. Change or remove the pin with /nubia:profiles (p or P).`,
+		`This repository pins profile "${resolution.profile}" (${resolution.source} pin at ${resolution.path}), so its subagent launches resolve that profile instead of the global routing. Change or remove the pin with ${cmdSlash("profiles")} (p or P).`,
 	);
 }
 
@@ -3635,7 +3636,7 @@ function reportProfilesDrops(ctx: ExtensionContext, path: string, drops: Profile
 	}
 	if (parts.length > 0) {
 		ctx.ui.notify(
-			`Nub-IA dropped invalid entries while loading ${sanitizeTerminalText(path)} — ${parts.join("; ")}.`,
+			`${brand.name} dropped invalid entries while loading ${sanitizeTerminalText(path)} — ${parts.join("; ")}.`,
 			"warning",
 		);
 	}
@@ -3714,14 +3715,14 @@ async function runProfilesPanelAction(
 			const sessionId = ctx.sessionManager?.getSessionId?.();
 			if (typeof sessionId !== "string" || sessionId.length === 0) {
 				ctx.ui.notify(
-					`Nub-IA cannot bind profile "${result.name}" to this session: no parent session id is available here. Set it as the global default with a instead.`,
+					`${brand.name} cannot bind profile "${result.name}" to this session: no parent session id is available here. Set it as the global default with a instead.`,
 					"warning",
 				);
 				return file;
 			}
 			bindSessionProfile(sessionId, result.name, normalizeModelConfig(file.profiles[result.name]) ?? {});
 			ctx.ui.notify(
-				`Nub-IA bound profile "${result.name}" to this session — shown as "${result.name} (session)". The binding is stored for this session; launch routing is unchanged. Nothing was written: the global routing, pins, and materialized stores are untouched. Set as global default with a.`,
+				`${brand.name} bound profile "${result.name}" to this session — shown as "${result.name} (session)". The binding is stored for this session; launch routing is unchanged. Nothing was written: the global routing, pins, and materialized stores are untouched. Set as global default with a.`,
 				"info",
 			);
 			return file;
@@ -3739,10 +3740,10 @@ async function runProfilesPanelAction(
 				let pinNote: string;
 				try {
 					writeProfilePinSync(localPath, result.name);
-					pinNote = `Nub-IA applied profile "${result.name}" repo-scoped: this clone now pins it in ${sanitizeTerminalText(localPath)}.\nSubagent launches here keep resolving the pin; no global routing or orchestrator was written.`;
+					pinNote = `${brand.name} applied profile "${result.name}" repo-scoped: this clone now pins it in ${sanitizeTerminalText(localPath)}.\nSubagent launches here keep resolving the pin; no global routing or orchestrator was written.`;
 				} catch (error) {
 					ctx.ui.notify(
-						`Nub-IA could not pin profile "${result.name}" in ${sanitizeTerminalText(localPath)}: ${profilesErrorMessage(error)}`,
+						`${brand.name} could not pin profile "${result.name}" in ${sanitizeTerminalText(localPath)}: ${profilesErrorMessage(error)}`,
 						"warning",
 					);
 					return file;
@@ -3889,7 +3890,7 @@ async function runProfilesPanelAction(
 				writeProfilesFileSync(path, claimed);
 			} catch (error) {
 				ctx.ui.notify(
-					`Nub-IA could not update ${sanitizeTerminalText(path)}: ${profilesErrorMessage(error)}`,
+					`${brand.name} could not update ${sanitizeTerminalText(path)}: ${profilesErrorMessage(error)}`,
 					"warning",
 				);
 				return file;
@@ -3938,7 +3939,7 @@ async function runProfilesPanelAction(
 						? ` ${sanitizeTerminalText(modelConfigPath(ctx.cwd))} still holds this profile's routing because no previously active profile was recorded to restore.`
 						: "";
 				ctx.ui.notify(
-					`Nub-IA could not apply profile "${result.name}". Restored: ${restored}.${unresolved}`,
+					`${brand.name} could not apply profile "${result.name}". Restored: ${restored}.${unresolved}`,
 					"warning",
 				);
 				return file;
@@ -3947,7 +3948,7 @@ async function runProfilesPanelAction(
 				await writeModelConfigAsync(ctx.cwd, normalized);
 			} catch (error) {
 				ctx.ui.notify(
-					`Nub-IA could not write ${sanitizeTerminalText(modelConfigPath(ctx.cwd))}: ${profilesErrorMessage(error)}`,
+					`${brand.name} could not write ${sanitizeTerminalText(modelConfigPath(ctx.cwd))}: ${profilesErrorMessage(error)}`,
 					"warning",
 				);
 				return revertClaim(false);
@@ -3963,7 +3964,7 @@ async function runProfilesPanelAction(
 				);
 			} catch (error) {
 				ctx.ui.notify(
-					`Nub-IA could not materialize profile "${result.name}": ${profilesErrorMessage(error)}`,
+					`${brand.name} could not materialize profile "${result.name}": ${profilesErrorMessage(error)}`,
 					"warning",
 				);
 				return revertClaim(true);
@@ -3974,7 +3975,7 @@ async function runProfilesPanelAction(
 				const written = applyOrchestratorSettings(settingsPath, orchestratorEntry);
 				if (written.status === "invalid") {
 					ctx.ui.notify(
-						`Nub-IA could not set the orchestrator from profile "${result.name}": ${sanitizeTerminalText(written.reason)}. ${sanitizeTerminalText(settingsPath)} was left unchanged.`,
+						`${brand.name} could not set the orchestrator from profile "${result.name}": ${sanitizeTerminalText(written.reason)}. ${sanitizeTerminalText(settingsPath)} was left unchanged.`,
 						"warning",
 					);
 					return revertClaim(true);
@@ -3999,7 +4000,7 @@ async function runProfilesPanelAction(
 			}
 			ctx.ui.notify(
 				[
-					`Nub-IA applied profile "${result.name}" — ${applyResult.updated} agent${applyResult.updated === 1 ? "" : "s"} updated.`,
+					`${brand.name} applied profile "${result.name}" — ${applyResult.updated} agent${applyResult.updated === 1 ? "" : "s"} updated.`,
 					"New routing takes effect on the next subagent launch.",
 				].join("\n") + orchestratorNote + pinNote,
 				"info",
@@ -4042,7 +4043,7 @@ async function runProfilesPanelAction(
 				const next = updateProfile(file, result.name, snapshot);
 				writeProfilesFileSync(path, next);
 				ctx.ui.notify(
-					`Nub-IA updated profile "${result.name}" from the current routing in ${modelConfigPath(ctx.cwd)}.`,
+					`${brand.name} updated profile "${result.name}" from the current routing in ${modelConfigPath(ctx.cwd)}.`,
 					"info",
 				);
 				return next;
@@ -4092,7 +4093,7 @@ async function runProfilesPanelAction(
 				// returns those repositories to the global routing.
 				const follow = followRenamedPin(ctx.cwd, result.name, name);
 				ctx.ui.notify(
-					`Nub-IA renamed profile "${result.name}" to "${name}".` +
+					`${brand.name} renamed profile "${result.name}" to "${name}".` +
 						(follow.followed.length > 0 ? `\nUpdated the clone pin: ${follow.followed.map((entry) => sanitizeTerminalText(entry)).join(", ")}.` : "") +
 						(follow.stillDeclared.length > 0 ? `\nThe committed repository declaration ${follow.stillDeclared.map((entry) => sanitizeTerminalText(entry)).join(", ")} still names "${result.name}"; press P on "${name}" to republish it.` : ""),
 					"info",
@@ -4126,7 +4127,7 @@ async function runProfilesPanelAction(
 			}
 			if (namedLayers.length > 0) {
 				ctx.ui.notify(
-					`Profile "${result.name}" is pinned for this repository (${namedLayers.join(" and ")}). Remove the pin first with /nubia:profiles (p removes the clone pin, P removes the declaration), then delete it.`,
+					`Profile "${result.name}" is pinned for this repository (${namedLayers.join(" and ")}). Remove the pin first with ${cmdSlash("profiles")} (p removes the clone pin, P removes the declaration), then delete it.`,
 					"warning",
 				);
 				return file;
@@ -4156,7 +4157,7 @@ async function runProfilesPanelAction(
 			const status = readProfilePinStatus(ctx.cwd);
 			if (!status) {
 				ctx.ui.notify(
-					"Nub-IA cannot pin a profile because this session is not inside a Git worktree. Pinning is per repository; apply the profile globally instead.",
+					`${brand.name} cannot pin a profile because this session is not inside a Git worktree. Pinning is per repository; apply the profile globally instead.`,
 					"warning",
 				);
 				return file;
@@ -4170,7 +4171,7 @@ async function runProfilesPanelAction(
 				else writeProfilePinSync(pinPath, result.name);
 			} catch (error) {
 				ctx.ui.notify(
-					`Nub-IA could not update profile pin ${sanitizeTerminalText(pinPath)}: ${profilesErrorMessage(error)}`,
+					`${brand.name} could not update profile pin ${sanitizeTerminalText(pinPath)}: ${profilesErrorMessage(error)}`,
 					"warning",
 				);
 				return file;
@@ -4178,7 +4179,7 @@ async function runProfilesPanelAction(
 			if (currentlyPinned) {
 				ctx.ui.notify(
 					[
-						`Nub-IA removed the ${result.source} pin for this ${scope} from ${sanitizeTerminalText(pinPath)}.`,
+						`${brand.name} removed the ${result.source} pin for this ${scope} from ${sanitizeTerminalText(pinPath)}.`,
 						result.source === "local"
 							? "This clone falls back to the repository declaration, then to the global routing."
 							: "This worktree falls back to the global routing; a local pin in the clone still outranks it.",
@@ -4193,11 +4194,11 @@ async function runProfilesPanelAction(
 			ctx.ui.notify(
 				result.source === "local"
 					? [
-						`Nub-IA pinned profile "${result.name}" for this clone in ${sanitizeTerminalText(pinPath)}.`,
+						`${brand.name} pinned profile "${result.name}" for this clone in ${sanitizeTerminalText(pinPath)}.`,
 						"Subagent launches in this repository resolve that profile at launch; the orchestrator and every other repository keep their global routing. Press p again to unpin.",
 					].join("\n")
 					: [
-						`Nub-IA declared profile "${result.name}" for this worktree in ${sanitizeTerminalText(pinPath)}.`,
+						`${brand.name} declared profile "${result.name}" for this worktree in ${sanitizeTerminalText(pinPath)}.`,
 						"Subagent launches resolve it at launch. Commit the file to share the routing; a local pin takes precedence over it. Press P again to remove the declaration.",
 					].join("\n") + sharingNote,
 				"info",
@@ -4211,7 +4212,7 @@ async function runProfilesPanelAction(
 				const text = serializeProfileExport(result.name, file.profiles[result.name]);
 				await mkdir(dirname(exportPath), { recursive: true });
 				await writeFile(exportPath, text);
-				ctx.ui.notify(`Nub-IA exported profile "${result.name}" to ${exportPath}.`, "info");
+				ctx.ui.notify(`${brand.name} exported profile "${result.name}" to ${exportPath}.`, "info");
 			} catch (error) {
 				ctx.ui.notify(`Profile export failed: ${profilesErrorMessage(error)}`, "warning");
 			}
@@ -4244,7 +4245,7 @@ async function runProfilesPanelAction(
 			}
 			if (parsed.droppedAgents.length > 0) {
 				ctx.ui.notify(
-					`Nub-IA dropped invalid routing entries while importing profile "${parsed.name}": ${parsed.droppedAgents.join(", ")}.`,
+					`${brand.name} dropped invalid routing entries while importing profile "${parsed.name}": ${parsed.droppedAgents.join(", ")}.`,
 					"warning",
 				);
 			}
@@ -4262,7 +4263,7 @@ async function runProfilesPanelAction(
 				writeProfilesFileSync(path, next);
 				const entries = Object.keys(parsed.config).length;
 				ctx.ui.notify(
-					`Nub-IA imported profile "${parsed.name}" (${entries} routing ${entries === 1 ? "entry" : "entries"}) from ${importPath}.`,
+					`${brand.name} imported profile "${parsed.name}" (${entries} routing ${entries === 1 ? "entry" : "entries"}) from ${importPath}.`,
 					"info",
 				);
 				return next;
@@ -4280,7 +4281,7 @@ async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): 
 	const read = readProfilesFileResult(profilesReadFilePath(nubiaDefaultConfigHome()));
 	if (read.status === "invalid") {
 		ctx.ui.notify(
-			`Nub-IA cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run /nubia:profiles again.`,
+			`${brand.name} cannot open agent profiles because ${path} is invalid JSON or not a profiles file. Fix or remove the file, then run ${cmdSlash("profiles")} again.`,
 			"warning",
 		);
 		return;
@@ -4292,12 +4293,12 @@ async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): 
 			writeProfilesFileSync(path, file);
 		} catch (error) {
 			ctx.ui.notify(
-				`Nub-IA could not create ${path}: ${profilesErrorMessage(error)}`,
+				`${brand.name} could not create ${path}: ${profilesErrorMessage(error)}`,
 				"warning",
 			);
 			return;
 		}
-		ctx.ui.notify(`Nub-IA seeded the "current" profile in ${path} from the routing currently in effect.`, "info");
+		ctx.ui.notify(`${brand.name} seeded the "current" profile in ${path} from the routing currently in effect.`, "info");
 	} else {
 		file = read.file;
 		reportProfilesDrops(ctx, path, read.drops);
@@ -4355,14 +4356,14 @@ async function handleProfilesCommand(ctx: ExtensionContext, live: LiveSession): 
 async function handlePersonaCommand(ctx: ExtensionContext): Promise<void> {
 	const current = readPersonaMode(ctx.cwd);
 	const selected = await ctx.ui.select(
-		`Nub-IA persona (current: ${current})`,
+		`${brand.name} persona (current: ${current})`,
 		[...PERSONA_OPTIONS],
 	);
 	if (selected !== "gentleman" && selected !== "neutral") return;
 	const writtenPaths = writePersonaMode(ctx.cwd, selected);
 	ctx.ui.notify(
 		[
-			`Nub-IA persona set to: ${selected}`,
+			`${brand.name} persona set to: ${selected}`,
 			`Global config: ${personaConfigPath(ctx.cwd)}`,
 			...(writtenPaths.length > 1
 				? [`Project override updated: ${projectPersonaConfigPath(ctx.cwd)}`]
@@ -4457,8 +4458,8 @@ function createNubiaExtensionForTesting(
 	pi.registerTool({
 		name: "nubia_odd_phase",
 		renderShell: "self",
-		label: "Nub-IA ODD Phase",
-		description: "Refine the primary session's current ODD phase for the Nub-IA prompt's working label, which is otherwise inferred automatically from tool activity. Best-effort UI only; never a source of truth for orchestration logic.",
+		label: `${brand.name} ODD Phase`,
+		description: `Refine the primary session's current ODD phase for the ${brand.name} prompt's working label, which is otherwise inferred automatically from tool activity. Best-effort UI only; never a source of truth for orchestration logic.`,
 		promptSnippet: "Refine the automatically inferred working label with authorizing/exploring/researching/deciding/planning/implementing/checking/closing only at real ODD phase transitions of the primary turn; never poll or report per tool call.",
 		promptGuidelines: [
 			`phase must be exactly one of ${ODD_PHASES.join(", ")}, or "clear" to leave the current phase before its turn ends. Call this only when the ODD phase actually changes for the primary session's active turn, not on every tool call or thought.`,
@@ -4523,7 +4524,7 @@ function createNubiaExtensionForTesting(
 			const modelResult = await applySavedModelConfig(ctx);
 			if (ctx.hasUI && modelResult.invalidPath) {
 				ctx.ui.notify(
-					`Nub-IA skipped model config because ${modelResult.invalidPath} is invalid JSON or not an object. Fix or remove the file, then run /nubia:models again.`,
+					`${brand.name} skipped model config because ${modelResult.invalidPath} is invalid JSON or not an object. Fix or remove the file, then run ${cmdSlash("models")} again.`,
 					"warning",
 				);
 				return;
@@ -4537,7 +4538,7 @@ function createNubiaExtensionForTesting(
 				const message =
 					error instanceof Error ? error.message : String(error);
 				ctx.ui.notify(
-					`Nub-IA model config sweep failed: ${message}`,
+					`${brand.name} model config sweep failed: ${message}`,
 					"warning",
 				);
 			}
@@ -4599,43 +4600,43 @@ function createNubiaExtensionForTesting(
 
 	for (const owner of ["delegation", "review"] as const) {
 		const label = owner;
-		pi.registerCommand(`nubia:install-${owner}`, {
-			description: `Repair or refresh only the global Nub-IA ${label} assets.`,
+		pi.registerCommand(cmd(`install-${owner}`), {
+			description: `Repair or refresh only the global ${brand.name} ${label} assets.`,
 			handler: async (args, ctx) => {
 				const force = args.includes("--force");
 				const result = installPackageAssets(ctx.cwd, force, [owner]);
 				ctx.ui.notify(
-					`Global Nub-IA ${label} assets installed: ${result.agents} agent(s), ${result.chains} chain(s), ${result.support} support file(s), ${result.skipped} already present.`,
+					`Global ${brand.name} ${label} assets installed: ${result.agents} agent(s), ${result.chains} chain(s), ${result.support} support file(s), ${result.skipped} already present.`,
 					"info",
 				);
 			},
 		});
 	}
 
-	pi.registerCommand("nubia:models", {
-		description: "Configure global per-agent models for Nub-IA agents.",
+	pi.registerCommand(cmd("models"), {
+		description: `Configure global per-agent models for ${brand.name} agents.`,
 		handler: async (_args, ctx) => {
 			await handleModelsCommand(ctx, pi);
 		},
 	});
 
-	pi.registerCommand("nubia:profiles", {
-		description: "Create, switch, and manage global agent-model profiles for Nub-IA agents.",
+	pi.registerCommand(cmd("profiles"), {
+		description: `Create, switch, and manage global agent-model profiles for ${brand.name} agents.`,
 		handler: async (_args, ctx) => {
 			await handleProfilesCommand(ctx, pi);
 		},
 	});
 
-	pi.registerCommand("nubia:persona", {
-		description: "Switch Nub-IA persona between gentleman and neutral.",
+	pi.registerCommand(cmd("persona"), {
+		description: `Switch ${brand.name} persona between gentleman and neutral.`,
 		handler: async (_args, ctx) => {
 			await handlePersonaCommand(ctx);
 		},
 	});
 
 	// T5.0: how much Nub-IA adds to Pi's system prompt, and the switch.
-	pi.registerCommand("nubia:prompt", {
-		description: "Show the size of the Nub-IA system-prompt addition and its profile, or set it: minimal (default, ~0.6k tokens) | full (complete harness text, ~4k tokens). Saved per user; a repository can pin one in .pi/nub-ia/prompt-profile.json.",
+	pi.registerCommand(cmd("prompt"), {
+		description: `Show the size of the ${brand.name} system-prompt addition and its profile, or set it: minimal (default, ~0.6k tokens) | full (complete harness text, ~4k tokens). Saved per user; a repository can pin one in .pi/nub-ia/prompt-profile.json.`,
 		handler: async (args, ctx) => {
 			const action = args.trim();
 			const current = resolvePromptProfile({ env: permissionEnvironment, cwd: ctx.cwd });
@@ -4645,10 +4646,10 @@ function createNubiaExtensionForTesting(
 					const bytes = Buffer.byteLength(text, "utf8");
 					return `  ${profile.padEnd(8)} ${String(bytes).padStart(6)} bytes ≈ ${String(Math.round(bytes / 4)).padStart(5)} tokens${profile === current.profile ? "  ← active" : ""}`;
 				});
-				ctx.ui.notify([`Nub-IA prompt profile: ${current.profile} (${current.source})`, "Addition to Pi's own system prompt per profile:", ...sizes, "Mode and YOLO directives add a line only while active. /nubia:prompt minimal|full switches (next turn)."].join("\n"), "info");
+				ctx.ui.notify([`${brand.name} prompt profile: ${current.profile} (${current.source})`, "Addition to Pi's own system prompt per profile:", ...sizes, `Mode and YOLO directives add a line only while active. ${cmdSlash("prompt")} minimal|full switches (next turn).`].join("\n"), "info");
 				return;
 			}
-			if (!isPromptProfile(action)) { ctx.ui.notify("Use /nubia:prompt minimal|full (no argument shows sizes).", "warning"); return; }
+			if (!isPromptProfile(action)) { ctx.ui.notify(`Use ${cmdSlash("prompt")} minimal|full (no argument shows sizes).`, "warning"); return; }
 			try {
 				const path = writePromptProfile(action);
 				const after = resolvePromptProfile({ env: permissionEnvironment, cwd: ctx.cwd });
@@ -4659,8 +4660,8 @@ function createNubiaExtensionForTesting(
 		},
 	});
 
-	pi.registerCommand("nubia:doctor", {
-		description: "Run read-only Nub-IA diagnostics for this Pi workspace.",
+	pi.registerCommand(cmd("doctor"), {
+		description: `Run read-only ${brand.name} diagnostics for this Pi workspace.`,
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);
 			const skillRegistryPresent = existsSync(
@@ -4669,7 +4670,7 @@ function createNubiaExtensionForTesting(
 			const modelConfig = await readSavedModelConfigAsync(ctx.cwd);
 			const engramActive = hasWritableEngramTool(pi);
 			const lines = [
-				"Nub-IA doctor",
+				`${brand.name} doctor`,
 				...assetLines,
 				"pass: Organic Driven Development (ODD): active",
 				`${skillRegistryPresent ? "pass" : "warn"}: Skill registry ${skillRegistryPresent ? "present" : "missing"}`,
@@ -4695,7 +4696,7 @@ function createNubiaExtensionForTesting(
 	// It matters more here than there, because this policy governs whether
 	// background subagents may be launched at all, so nothing in Pi may write
 	// it. The only writer is this handler, reached only by explicit invocation.
-	pi.registerCommand("nubia:background-subagents", {
+	pi.registerCommand(cmd("background-subagents"), {
 		description: "Show or set the managed background-subagents policy; no argument opens a selectable menu (status|enable|disable). Every sub-action is user-initiated only; Pi automation never toggles it.",
 		// No argument opens a selectable menu when an interactive UI is present;
 		// headless callers and fakes without ui.select keep the status fallback.
@@ -4707,7 +4708,7 @@ function createNubiaExtensionForTesting(
 				subAction = selected;
 			}
 			if (subAction !== "status" && subAction !== "enable" && subAction !== "disable") {
-				ctx.ui.notify(`Unknown /nubia:background-subagents sub-action "${subAction}". Use status, enable, or disable.`, "warning");
+				ctx.ui.notify(`Unknown ${cmdSlash("background-subagents")} sub-action "${subAction}". Use status, enable, or disable.`, "warning");
 				return;
 			}
 			try {
@@ -4723,8 +4724,8 @@ function createNubiaExtensionForTesting(
 		},
 	});
 
-	pi.registerCommand("nubia:status", {
-		description: "Show Nub-IA package status for this project.",
+	pi.registerCommand(cmd("status"), {
+		description: `Show ${brand.name} package status for this project.`,
 		handler: async (_args, ctx) => {
 			const assetLines = packageAssetDiagnosticLines(ctx.cwd);
 			const savedConfig = await readModelRoutingAuthorityAsync(
@@ -4733,7 +4734,7 @@ function createNubiaExtensionForTesting(
 			);
 			ctx.ui.notify(
 				[
-					"Nub-IA package is active.",
+					`${brand.name} package is active.`,
 					`Persona: ${readPersonaMode(ctx.cwd)}`,
 					...assetLines,
 					"Organic Driven Development (ODD): active",

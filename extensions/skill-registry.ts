@@ -16,6 +16,7 @@ import { basename, delimiter, dirname, join, normalize, relative, resolve, sep }
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { brand } from "../lib/brand.ts";
 
 const REGISTRY_REL_PATH = ".atl/skill-registry.md";
 const CACHE_REL_PATH = ".atl/.skill-registry.cache.json";
@@ -626,7 +627,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerFlag(NO_SKILL_REGISTRY_FLAG, {
-		description: "Skip the Nub-IA skill registry refresh and watcher on startup.",
+		description: `Skip the ${brand.name} skill registry refresh and watcher on startup.`,
 		type: "boolean",
 		default: false,
 	});

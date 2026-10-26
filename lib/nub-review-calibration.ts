@@ -5,6 +5,7 @@
 
 import type { ReviewFindingRow, ReviewMetricRow, ReviewVerdictRow } from "./nub-review-metrics.ts";
 import { REVIEW_LENSES, type ReviewLens, SEVERITIES, type Severity } from "./nub-review.ts";
+import { cmdSlash, brand } from "./brand.ts";
 
 export interface LensCalibration {
 	lens: ReviewLens;
@@ -94,10 +95,10 @@ const pct = (part: number, whole: number): string => (whole === 0 ? "–" : `${M
 
 /** Compact human report for `/nubia:review stats`. */
 export function renderCalibration(calibration: ReviewCalibration, source: string): string {
-	if (calibration.reviews === 0) return `No review metrics yet in ${source}. Run /nubia:review a few times first.`;
+	if (calibration.reviews === 0) return `No review metrics yet in ${source}. Run ${cmdSlash("review")} a few times first.`;
 	const v = calibration.verdicts;
 	const lines = [
-		`Nub-IA review calibration · ${calibration.reviews} review${calibration.reviews === 1 ? "" : "s"} in ${source}`,
+		`${brand.name} review calibration · ${calibration.reviews} review${calibration.reviews === 1 ? "" : "s"} in ${source}`,
 		`Verdicts: ${v.approve} approve · ${v.warn} warn · ${v.block} block · ${v.incomplete} incomplete`,
 		"",
 	];

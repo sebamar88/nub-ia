@@ -5,6 +5,7 @@
 // the remote-tracking refs with a detached background `git fetch`, so the next
 // launch sees what was pushed meanwhile. A Pi-managed install (`pi install
 // git:`) or an npm install has no upstream and stays silent.
+import { brand } from "../runtime/brand.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -53,7 +54,7 @@ export function formatUpdateNotice(update) {
 		instruction: released
 			? `New version ${update.remoteVersion} is available${update.localVersion ? ` (you have ${update.localVersion})` : ""}. Run `
 			: `${commits} on ${update.upstream} (${update.remoteSha}) since ${update.localVersion ? `v${update.localVersion}` : "your checkout"}. Run `,
-		command: "nub-ia update",
+		command: `${brand.bin} update`,
 	};
 	if (released && update.webUrl) lines.changelog = `${update.webUrl}/releases/tag/v${update.remoteVersion}`;
 	else if (update.compareUrl) lines.changelog = update.compareUrl;

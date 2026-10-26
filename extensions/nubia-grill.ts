@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { cmd, cmdSlash } from "../lib/brand.ts";
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 export const GRILL_SKILL_PATH = join(PACKAGE_ROOT, "skills", "nubia-grill-me", "SKILL.md");
@@ -22,7 +23,7 @@ export function grillRequest(topic: string, skillPath: string = GRILL_SKILL_PATH
 }
 
 export default function registerNubiaGrill(pi: ExtensionAPI): void {
-	for (const [name, note] of [["nubia:grill", ""], ["nubia:quiz", " (alias of /nubia:grill)"]] as const) {
+	for (const [name, note] of [[cmd("grill"), ""], [cmd("quiz"), ` (alias of ${cmdSlash("grill")})`]] as const) {
 		pi.registerCommand(name, {
 			description: `Grill me: a relentless round-based interview about a plan, design or decision before anything is built${note}. Optional argument: the topic.`,
 			handler: async (args, ctx) => {

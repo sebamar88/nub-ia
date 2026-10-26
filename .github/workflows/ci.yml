@@ -41,6 +41,9 @@ jobs:
       - name: Verify generated runtime modules
         run: pnpm run check:runtime-modules
 
+      - name: Verify generated brand theme
+        run: pnpm run check:brand
+
       - name: Verify package contents
         run: node scripts/verify-package-files.mjs
 
@@ -75,3 +78,6 @@ jobs:
 
       - name: Verify generated runtime modules
         run: pnpm run check:runtime-modules
+
+      - name: Verify generated brand theme
+        run: pnpm run check:brand

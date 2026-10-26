@@ -1,0 +1,12 @@
+{
+  "name": "Acme",
+  "prefix": "acme",
+  "homeDir": ".acme",
+  "bin": "acme",
+  "colors": { "primary": "#2255FF", "accent": "#FF8800" },
+  "logos": {
+    "wordmark": "assets/brand/nubiral-logo.png",
+    "isologo": "assets/brand/nubiral-isologo.png"
+  },
+  "artwork": "assets/brand/banner-art.json"
+}

@@ -1,9 +1,10 @@
 import type { ExtensionAPI, ToolCallEventResult } from "@earendil-works/pi-coding-agent";
 import { recognizeDestructiveCommands } from "../lib/destructive-command-guard.ts";
+import { brand } from "../lib/brand.ts";
 
 export function blockChildDestructiveCommand(command: string): ToolCallEventResult | undefined {
 	if (recognizeDestructiveCommands(command).length === 0) return undefined;
-	return { block: true, reason: "Nub-IA child safety blocked a recognized destructive command. Return an explicit safer plan to the parent; children cannot authorize data loss." };
+	return { block: true, reason: `${brand.name} child safety blocked a recognized destructive command. Return an explicit safer plan to the parent; children cannot authorize data loss.` };
 }
 
 // Explicitly loaded by package-owned children; package auto-discovery in the

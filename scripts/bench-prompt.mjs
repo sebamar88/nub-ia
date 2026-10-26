@@ -18,6 +18,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, write
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { brand } from "../runtime/brand.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DUMP = `import { writeFileSync } from "node:fs";
@@ -49,7 +50,7 @@ export function bench({ tokens = false } = {}) {
 	try {
 		const agent = join(work, "agent");
 		mkdirSync(agent);
-		const sourceAgent = process.env.NUB_IA_AGENT_HOME || join(homedir(), ".nub-ia", "agent");
+		const sourceAgent = process.env.NUB_IA_AGENT_HOME || join(homedir(), brand.homeDir, "agent");
 		for (const file of ["auth.json", "models-store.json"]) if (existsSync(join(sourceAgent, file))) cpSync(join(sourceAgent, file), join(agent, file));
 		writeFileSync(join(agent, "settings.json"), JSON.stringify({ defaultProvider: process.env.BENCH_PROVIDER ?? "amazon-bedrock", defaultModel: process.env.BENCH_MODEL ?? "us.anthropic.claude-sonnet-5-5" }));
 		const dumpExt = join(work, "dump.mjs");

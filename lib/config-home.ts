@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { brand } from "./brand.ts";
 
 // Nub-IA config homes. WRITES always go to the nub-ia home (`~/.pi/nub-ia/`,
 // `.pi/nub-ia/`); READS look there first and then fall back to the legacy
@@ -45,7 +46,7 @@ export function resetLegacyHintForTests(): void {
 function hintLegacyRead(legacyPath: string, file: string, writeHome: string): void {
 	if (hintShown) return;
 	hintShown = true;
-	const message = `Nub-IA reads ${legacyPath}; it will be written to ${join(writeHome, file)} on the next save.`;
+	const message = `${brand.name} reads ${legacyPath}; it will be written to ${join(writeHome, file)} on the next save.`;
 	if (hintNotifier) hintNotifier(message);
 	else process.stderr.write(`${message}\n`);
 }

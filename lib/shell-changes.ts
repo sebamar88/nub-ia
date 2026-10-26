@@ -1,4 +1,5 @@
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { cmdSlash } from "./brand.ts";
 
 // Nub-IA changes: the working tree against HEAD, new files included.
 // Git is the source of truth; this module turns raw `git diff --numstat` and
@@ -45,7 +46,7 @@ interface NumstatEntry {
 	deleted: number;
 }
 
-export const CHANGES_COMMAND = "/nubia:changes";
+export const CHANGES_COMMAND = cmdSlash("changes");
 const WIDGET_GLYPH = "✎";
 const STATUS_BY_CODE: Record<string, ChangeStatus> = {
 	A: CHANGE_STATUS.ADDED,

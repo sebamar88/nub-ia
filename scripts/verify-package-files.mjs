@@ -8,6 +8,10 @@ const root = join(fileURLToPath(new URL("..", import.meta.url)));
 
 const requiredPaths = [
   "bin/nub-ia.mjs",
+  "brand.json",
+  "assets/brand/banner-art.json",
+  "assets/brand/theme-template.json",
+  "assets/brand/.applied.json",
   "assets/orchestrator.md",
   "assets/orchestrator-delegation.md",
   "assets/orchestrator-tracking.md",
@@ -60,6 +64,7 @@ const requiredPaths = [
   "extensions/skill-registry.ts",
   "lib/child-package-injection.ts",
   "lib/nubia-launcher.ts",
+  "lib/brand-colors.ts",
   "lib/nubia-resume-hint.ts",
   "lib/agent-assets.ts",
   "lib/agent-name-migration.ts",
@@ -67,6 +72,7 @@ const requiredPaths = [
 	"runtime/nubia-launcher.mjs",
 	"runtime/nubia-resume-hint.mjs",
 	"runtime/usage-report.mjs",
+	"runtime/brand.mjs",
 	"lib/usage-report.ts",
 	"lib/team-metrics-sink.ts",
 	"lib/prompt-profile.ts",
@@ -75,6 +81,11 @@ const requiredPaths = [
 	"docs/CONTRIBUTING.md",
 	"scripts/usage-cli.mjs",
   "scripts/install-tui-mode-setting.mjs",
+  "scripts/brand-guard.mjs",
+  "scripts/build-brand-assets.mjs",
+  "scripts/brand-trace.mjs",
+  "scripts/trace-brand.mjs",
+  "scripts/rebrand.mjs",
   "scripts/install-keybindings.mjs",
   "scripts/org-policy-fetch.mjs",
   "scripts/approved-packages.mjs",
@@ -83,6 +94,7 @@ const requiredPaths = [
   "scripts/bump-pins.mjs",
   "scripts/bench-prompt.mjs",
   "docs/nub-ia-overview.md",
+  "docs/branding.md",
   "assets/maintainers.allowed_signers",
   "lib/nubia-status-blocks.ts",
   "lib/approved-packages.ts",
@@ -172,6 +184,17 @@ async function main() {
       console.error(`- ${relativePath}`);
     }
     console.error("\nRefusing to pack/publish an incomplete npm package.");
+    process.exit(1);
+  }
+
+  // Existence on disk is not enough: npm only ships what package.json "files" covers.
+  const packageFiles = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).files ?? [];
+  const uncovered = requiredPaths.filter(
+    (relativePath) => !packageFiles.some((entry) => entry === relativePath || (entry.endsWith("/") && relativePath.startsWith(entry))),
+  );
+  if (uncovered.length > 0) {
+    console.error('Required paths not covered by package.json "files" (they would not be packed):');
+    for (const relativePath of uncovered) console.error(`- ${relativePath}`);
     process.exit(1);
   }
 

@@ -15,6 +15,7 @@
 
 import type { AppendableSystemPromptOptions } from "./append-system-prompt.ts";
 import { appendSystemPromptOnce } from "./append-system-prompt.ts";
+import { cmdSlash } from "./brand.ts";
 
 export const PERMISSION_MODES = ["plan", "manual", "accept-edits", "auto", "yolo"] as const;
 export type PermissionMode = (typeof PERMISSION_MODES)[number];
@@ -173,13 +174,13 @@ export function decide(input: DecideInput): Decision {
 	if (kind === "delegate") {
 		const agent = record(input.input) && typeof input.input.agent === "string" ? input.input.agent : "";
 		const readOnly = (input.readOnlyAgents ?? ["nubia-explore"]).includes(agent) || /explore/i.test(agent);
-		if (mode === "plan" && !readOnly) return { action: "deny", reason: `${label} mode: only exploration subagents may run; delegating "${agent || "a writer"}" would change files. Ask the human to switch mode (Shift+Tab or /nubia:mode).` };
+		if (mode === "plan" && !readOnly) return { action: "deny", reason: `${label} mode: only exploration subagents may run; delegating "${agent || "a writer"}" would change files. Ask the human to switch mode (Shift+Tab or ${cmdSlash("mode")}).` };
 		if (mode === "manual" && !readOnly) return { action: "ask", reason: `Delegate to ${agent || "a subagent"}?` };
 		return { action: "allow", reason: `${label}: delegation` };
 	}
 	if (kind === "write") {
 		const path = record(input.input) && typeof input.input.path === "string" ? input.input.path : "a file";
-		if (mode === "plan") return { action: "deny", reason: `${label} mode is read-only: writing ${path} is not allowed. Propose the change instead, or ask the human to switch mode (Shift+Tab or /nubia:mode).` };
+		if (mode === "plan") return { action: "deny", reason: `${label} mode is read-only: writing ${path} is not allowed. Propose the change instead, or ask the human to switch mode (Shift+Tab or ${cmdSlash("mode")}).` };
 		if (mode === "manual") return { action: "ask", reason: `Write ${path}?` };
 		if (mode === "accept-edits" && input.insideRepository === false) return { action: "ask", reason: `Write ${path} (outside the repository)?` };
 		return { action: "allow", reason: `${label}: edits accepted` };
@@ -188,7 +189,7 @@ export function decide(input: DecideInput): Decision {
 	const command = record(input.input) && typeof input.input.command === "string" ? input.input.command : "";
 	const bashClass = classifyBashCommand(command);
 	if (bashClass === "read-only") return { action: "allow", reason: `${label}: read-only command` };
-	if (mode === "plan") return { action: "deny", reason: `${label} mode is read-only: this command may change files or state. Describe what you would run, or ask the human to switch mode (Shift+Tab or /nubia:mode).` };
+	if (mode === "plan") return { action: "deny", reason: `${label} mode is read-only: this command may change files or state. Describe what you would run, or ask the human to switch mode (Shift+Tab or ${cmdSlash("mode")}).` };
 	if (mode === "manual" || mode === "accept-edits") return { action: "ask", reason: "Run this command?" };
 	return { action: "allow", reason: `${label}: commands run; guardrails still apply` };
 }
@@ -203,7 +204,7 @@ const DIRECTIVE_CLOSE = "</nubia-permission-mode>";
  * default behaviour and adds nothing, so the system prompt stays as lean as Pi's.
  */
 export function modeDirective(mode: PermissionMode): string | undefined {
-	const tail = "The human changes it (Shift+Tab or /nubia:mode); guardrails and ask_user still apply.";
+	const tail = `The human changes it (Shift+Tab or ${cmdSlash("mode")}); guardrails and ask_user still apply.`;
 	switch (mode) {
 		case "plan":
 			return `${DIRECTIVE_OPEN} mode="plan">Permission mode PLAN: read-only. Analyse and propose as text; write/edit, mutating commands and writer delegation are rejected. ${tail}${DIRECTIVE_CLOSE}`;

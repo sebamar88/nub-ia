@@ -91,6 +91,7 @@ import {
   type PromptEntry,
   type PromptRecord,
 } from "./selector-helpers.ts";
+import { brand } from "../../lib/brand.ts";
 
 const SHORTCUT = "ctrl+shift+r";
 const MAX_VISIBLE = 10;
@@ -170,13 +171,13 @@ function captureDisabledMessage(
   configHome: string,
 ): string {
   if (historyCaptureEnvOverride(env) === "off") {
-    return "Prompt history is disabled by NUB_IA_HISTORY_CAPTURE, which overrides the Nub-IA → Customize → History preference.";
+    return `Prompt history is disabled by NUB_IA_HISTORY_CAPTURE, which overrides the ${brand.name} → Customize → History preference.`;
   }
   const preference = resolveHistoryCapturePolicy({ nubiaConfigHome: configHome });
   if (preference.malformed) {
-    return `Prompt history is disabled because the Nub-IA → Customize → History preference is invalid or unreadable: ${preference.globalFile}. Fix or remove that file, or set NUB_IA_HISTORY_CAPTURE=1.`;
+    return `Prompt history is disabled because the ${brand.name} → Customize → History preference is invalid or unreadable: ${preference.globalFile}. Fix or remove that file, or set NUB_IA_HISTORY_CAPTURE=1.`;
   }
-  return "Prompt history is disabled. Turn on \"Prompt history capture\" in Nub-IA → Customize → History, or set NUB_IA_HISTORY_CAPTURE=1.";
+  return `Prompt history is disabled. Turn on "Prompt history capture" in ${brand.name} → Customize → History, or set NUB_IA_HISTORY_CAPTURE=1.`;
 }
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@
 // resolution, pi resolution order, the version gate, and the pi invocation —
 // lives in that pure, unit-tested module; this file only wires it to the real
 // process, filesystem, and child process.
+import "../scripts/brand-guard.mjs"; // first on purpose: turns an invalid brand.json into a clean exit 2
 import {
 	accessSync,
 	chmodSync,
@@ -69,6 +70,9 @@ import { PI_VERSION_CACHE_FILE, cachedPiVersion, createStartupTrace, piRuntimeFi
 import { clearOrgPolicy, describeStatus as describeOrgPolicyStatus, fetchOrgPolicy, parseSource as parseOrgPolicySourceDescriptor, resolveSource as resolveOrgPolicySource, saveSource as saveOrgPolicySource } from "../scripts/org-policy-fetch.mjs";
 import { DEFAULT_THEME_NAME, installIsolatedTuiModeSetting } from "../scripts/install-tui-mode-setting.mjs";
 
+import { brand } from "../runtime/brand.mjs";
+
+const BIN = brand.bin;
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
 const RTK_SELF_HEAL_TIMEOUT_MS = 60 * 1000;
@@ -88,7 +92,7 @@ async function ensureRtkInstalled() {
 		if (existsSync(real.packageLocalRtkPath(packageRoot))) return;
 		const override = process.env.NUB_IA_RTK_INSTALLER;
 		const installer = override ? await import(pathToFileURL(resolvePath(override)).href) : real;
-		process.stderr.write(`nub-ia: rtk v${real.RTK_VERSION} is missing; installing it once (set NUB_IA_SKIP_RTK_INSTALL=1 to skip)\n`);
+		process.stderr.write(`${BIN}: rtk v${real.RTK_VERSION} is missing; installing it once (set NUB_IA_SKIP_RTK_INSTALL=1 to skip)\n`);
 		await Promise.race([
 			installer.installRtk({ root: packageRoot }),
 			new Promise((_, reject) => {
@@ -97,7 +101,7 @@ async function ensureRtkInstalled() {
 			}),
 		]);
 	} catch (error) {
-		process.stderr.write(`nub-ia: could not install rtk (${error instanceof Error ? error.message : String(error)}); continuing without it\n`);
+		process.stderr.write(`${BIN}: could not install rtk (${error instanceof Error ? error.message : String(error)}); continuing without it\n`);
 	} finally {
 		if (timer !== undefined) clearTimeout(timer);
 	}
@@ -107,7 +111,7 @@ async function ensureRtkInstalled() {
 function printProviderHint() {
 	process.stderr.write(
 		[
-			"nub-ia: sign in to at least one provider inside the shell:",
+			`${BIN}: sign in to at least one provider inside the shell:`,
 			"  /login github-copilot · /login openai (ChatGPT/Codex subscription)",
 			"  /login opencode · /login nvidia · /login llama.cpp",
 			"  Amazon Bedrock uses your AWS_* credentials",
@@ -288,7 +292,7 @@ const looseExtensionFs = {
 			// example EACCES) is a real read failure, not a missing directory.
 			// Warn instead of silently dropping every loose extension it would
 			// have contributed (R4-loose-extension-enumeration-fails-silently).
-			process.stderr.write(`nub-ia: could not read loose extension directory ${dir}: ${error.message} (skipping)\n`);
+			process.stderr.write(`${BIN}: could not read loose extension directory ${dir}: ${error.message} (skipping)\n`);
 			return [];
 		}
 		return names.map((name) => {
@@ -417,9 +421,9 @@ function handleHomeCommand(commandArgs) {
 		process.stdout.write(`${resolved.mode} ${resolved.dir}\n`);
 		process.exit(0);
 	}
-	if (commandArgs.length > 1) fail("nub-ia home accepts at most one argument. Run 'nub-ia --help'.", 2);
+	if (commandArgs.length > 1) fail(`${BIN} home accepts at most one argument. Run '${BIN} --help'.`, 2);
 	const [value] = commandArgs;
-	if (value.length === 0) fail("nub-ia home requires a non-empty argument. Run 'nub-ia --help'.", 2);
+	if (value.length === 0) fail(`${BIN} home requires a non-empty argument. Run '${BIN} --help'.`, 2);
 
 	const configPath = resolveConfigPath();
 	const existing = readRawConfig(configPath);
@@ -599,7 +603,7 @@ function safely(label, path, fallback, fn) {
 	try {
 		return fn();
 	} catch (error) {
-		process.stderr.write(`nub-ia: could not ${label} at ${path} (${error.message}); continuing\n`);
+		process.stderr.write(`${BIN}: could not ${label} at ${path} (${error.message}); continuing\n`);
 		return fallback;
 	}
 }
@@ -667,10 +671,10 @@ function ensureBuiltinCodemodeExcluded(settingsPath) {
 // threaded into every child this flow spawns -- manual `setup` never passes it,
 // so it never times out; the automatic flow does.
 async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
-	process.stderr.write(`nub-ia: provisioning ${home.dir} with the team packages\n`);
+	process.stderr.write(`${BIN}: provisioning ${home.dir} with the team packages\n`);
 	if (dryRun) {
 		for (const source of resolveTeamPackageSources(process.env)) {
-			process.stderr.write(`nub-ia: setup would then install team package ${source} unless the home already declares it\n`);
+			process.stderr.write(`${BIN}: setup would then install team package ${source} unless the home already declares it\n`);
 		}
 		return { ok: true, exitCode: 0 };
 	}
@@ -690,9 +694,9 @@ async function runSetupFlow(home, runtime, { dryRun, stdio, timeoutMs }) {
 	} finally {
 		const themeOutcome = trackTheme ? safely("apply the default Nub-IA theme", settingsPath, false, () => enforceDefaultThemeField(settingsPath, originalSettingsText)) : false;
 		if (themeOutcome === "forced") {
-			process.stderr.write(`nub-ia: set the default ${DEFAULT_THEME_NAME} theme for ${home.dir} (no theme was set before this run)\n`);
+			process.stderr.write(`${BIN}: set the default ${DEFAULT_THEME_NAME} theme for ${home.dir} (no theme was set before this run)\n`);
 		} else if (themeOutcome === "restored") {
-			process.stderr.write(`nub-ia: kept your Pi theme unchanged (pi rewrote ${settingsPath})\n`);
+			process.stderr.write(`${BIN}: kept your Pi theme unchanged (pi rewrote ${settingsPath})\n`);
 		}
 	}
 }
@@ -710,11 +714,11 @@ async function installTeamPackages(home, runtime, stdio, timeoutMs) {
 async function installTeamPackageSources(sources, index, home, runtime, stdio, timeoutMs) {
 	if (index >= sources.length) return { ok: true, exitCode: 0 };
 	const source = sources[index];
-	process.stderr.write(`nub-ia: installing team package ${source} into ${home.dir}\n`);
+	process.stderr.write(`${BIN}: installing team package ${source} into ${home.dir}\n`);
 	const env = buildSetupEnv(home, runtime);
 	const result = await spawnAndWait(runtime.command, [...runtime.args, "install", source], env, stdio, timeoutMs);
 	if (result.timedOut) {
-		return { ok: false, exitCode: 1, message: `nub-ia: pi install ${source} timed out after ${formatTimeoutCeiling(timeoutMs)}` };
+		return { ok: false, exitCode: 1, message: `${BIN}: pi install ${source} timed out after ${formatTimeoutCeiling(timeoutMs)}` };
 	}
 	if (result.error) {
 		return { ok: false, exitCode: 1, message: `Could not run the pi runtime to install ${source}: ${result.error.message}` };
@@ -722,7 +726,7 @@ async function installTeamPackageSources(sources, index, home, runtime, stdio, t
 	if (!result.ok) {
 		if (result.interrupted) return result;
 		const remediation = [...homeSelectorFlags(home).map(shellQuote), "install", source].join(" ");
-		return { ok: false, exitCode: result.exitCode, message: `nub-ia: could not install ${source}; run \`nub-ia ${remediation}\` to retry` };
+		return { ok: false, exitCode: result.exitCode, message: `${BIN}: could not install ${source}; run \`${BIN} ${remediation}\` to retry` };
 	}
 	return installTeamPackageSources(sources, index + 1, home, runtime, stdio, timeoutMs);
 }
@@ -738,7 +742,7 @@ async function handleSetupCommand(commandArgs, home, runtime) {
 			dryRun = true;
 			continue;
 		}
-		fail(`Unrecognized argument for 'nub-ia setup': ${arg}\nRun 'nub-ia --help' for usage.`, 2);
+		fail(`Unrecognized argument for '${BIN} setup': ${arg}\nRun '${BIN} --help' for usage.`, 2);
 	}
 
 	const result = await runSetupFlow(home, runtime, { dryRun, stdio: "inherit" });
@@ -763,7 +767,7 @@ function defaultPiAgentDir() {
 
 function printForeignHomeHint(home, reason) {
 	const remediation = [...homeSelectorFlags(home).map(shellQuote), "setup"].join(" ");
-	process.stderr.write(`nub-ia: ${home.dir} ${reason}; run \`nub-ia ${remediation}\` to provision it\n`);
+	process.stderr.write(`${BIN}: ${home.dir} ${reason}; run \`${BIN} ${remediation}\` to provision it\n`);
 }
 
 // Ownership marker (R3-001): written into a home's own directory by the
@@ -837,7 +841,7 @@ function acquireSetupLock(lockPath) {
 		}
 		if (age < SETUP_LOCK_STALE_MS) {
 			process.stderr.write(
-				`nub-ia: another nub-ia process is already provisioning ${dirname(lockPath)}; skipping automatic setup for this run\n`,
+				`${BIN}: another ${BIN} process is already provisioning ${dirname(lockPath)}; skipping automatic setup for this run\n`,
 			);
 			return false;
 		}
@@ -915,8 +919,8 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 	if (homeIsForeign(home, previous, homeHadContentBeforeBootstrap)) {
 		const reason =
 			safeRealpath(home.dir) === safeRealpath(defaultPiAgentDir())
-				? "is pi's own default agent home; nub-ia never auto-provisions it"
-				: "already has content and was not set up by nub-ia";
+				? `is pi's own default agent home; ${BIN} never auto-provisions it`
+				: `already has content and was not set up by ${BIN}`;
 		printForeignHomeHint(home, reason);
 		return undefined;
 	}
@@ -927,14 +931,14 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 	try {
 		if (previous === undefined) {
 			process.stderr.write(
-				`nub-ia: first run in ${home.dir}: installing the team packages (one time; set ${AUTO_SETUP_OPT_OUT_ENV}=1 to skip)\n`,
+				`${BIN}: first run in ${home.dir}: installing the team packages (one time; set ${AUTO_SETUP_OPT_OUT_ENV}=1 to skip)\n`,
 			);
 		} else {
 			// A marker written before launcher version tracking (or by a build that
 			// provisioned the nub-ia binary) has no `nubiaVersion` field or still
 			// carries a legacy `gentleAi` one: needsProvisioning above treats that
 			// as changed, so this reports "unknown" as its prior version.
-			process.stderr.write(`nub-ia changed (${previous.nubiaVersion ?? "unknown"} -> ${nubiaVersion}): updating ${home.dir}\n`);
+			process.stderr.write(`${BIN} changed (${previous.nubiaVersion ?? "unknown"} -> ${nubiaVersion}): updating ${home.dir}\n`);
 		}
 
 		const result = await runSetupFlow(home, runtime, { dryRun: false, stdio: ["ignore", 2, 2], timeoutMs: resolveAutoSetupTimeoutMs() });
@@ -946,7 +950,7 @@ async function maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBoots
 		if (!result.ok) {
 			const remediation = [...homeSelectorFlags(home).map(shellQuote), "setup"].join(" ");
 			process.stderr.write(
-				`nub-ia: automatic setup failed (exit ${result.exitCode}); starting anyway and retrying next run. Run \`nub-ia ${remediation}\` to see the full output.\n`,
+				`${BIN}: automatic setup failed (exit ${result.exitCode}); starting anyway and retrying next run. Run \`${BIN} ${remediation}\` to see the full output.\n`,
 			);
 			if (result.message !== undefined) process.stderr.write(`${result.message}\n`);
 			return undefined;
@@ -984,37 +988,37 @@ async function selfUpdatePackage(root) {
 	if (originProbe.status !== 0) return;
 	const dirty = spawnSync("git", ["-C", root, "status", "--porcelain", "--untracked-files=no"], { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true });
 	if ((dirty.stdout ?? "").trim().length > 0) {
-		process.stderr.write(`nub-ia: skipping self-update, ${root} has local changes\n`);
+		process.stderr.write(`${BIN}: skipping self-update, ${root} has local changes\n`);
 		return;
 	}
 	const before = spawnSync("git", ["-C", root, "rev-parse", "--short", "HEAD"], { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true }).stdout?.trim();
-	process.stderr.write(`nub-ia: updating ${root} (git pull --ff-only)\n`);
+	process.stderr.write(`${BIN}: updating ${root} (git pull --ff-only)\n`);
 	const pull = spawnSync("git", ["-C", root, "pull", "--ff-only", "--quiet"], { stdio: ["ignore", "inherit", "inherit"], windowsHide: true, timeout: 120_000 });
 	if (pull.status !== 0) {
-		process.stderr.write(`nub-ia: self-update failed (git pull exit ${pull.status ?? "signal"}); continuing with the installed version\n`);
+		process.stderr.write(`${BIN}: self-update failed (git pull exit ${pull.status ?? "signal"}); continuing with the installed version\n`);
 		return;
 	}
 	const after = spawnSync("git", ["-C", root, "rev-parse", "--short", "HEAD"], { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true }).stdout?.trim();
 	if (before === after) {
-		process.stderr.write("nub-ia: package already up to date\n");
+		process.stderr.write(`${BIN}: package already up to date\n`);
 		return;
 	}
 	// Integrity: the new HEAD must be signed by a listed maintainer once keys
 	// exist (assets/maintainers.allowed_signers). On failure the checkout goes
 	// back to the previous commit; the tree was clean, so --keep loses nothing.
 	const verification = verifyCommit(root, "HEAD", join(root, "assets", ALLOWED_SIGNERS_FILE));
-	process.stderr.write(`nub-ia: ${describeVerification(verification)}\n`);
+	process.stderr.write(`${BIN}: ${describeVerification(verification)}\n`);
 	if (!verification.ok) {
 		spawnSync("git", ["-C", root, "reset", "--keep", "--quiet", before], { stdio: "ignore", windowsHide: true });
-		process.stderr.write(`nub-ia: self-update rejected; back on ${before}. Verify the remote, or set ${SKIP_VERIFY_ENV}=1 to accept this once.\n`);
+		process.stderr.write(`${BIN}: self-update rejected; back on ${before}. Verify the remote, or set ${SKIP_VERIFY_ENV}=1 to accept this once.\n`);
 		return;
 	}
-	process.stderr.write(`nub-ia: package updated ${before} -> ${after}; installing dependencies\n`);
+	process.stderr.write(`${BIN}: package updated ${before} -> ${after}; installing dependencies\n`);
 	const pm = ["pnpm", ["install", "--frozen-lockfile"]];
 	const plan = planSpawn({ command: pm[0], args: pm[1], platform: process.platform });
 	const install = spawnSync(plan.command, plan.args, { cwd: root, stdio: ["ignore", "inherit", "inherit"], shell: plan.shell, windowsHide: true, timeout: 15 * 60_000 });
 	if (install.status !== 0) {
-		process.stderr.write("nub-ia: dependency install failed after the update; run `pnpm install` (or `npx pnpm@11 install`) in the package directory\n");
+		process.stderr.write(`${BIN}: dependency install failed after the update; run \`pnpm install\` (or \`npx pnpm@11 install\`) in the package directory\n`);
 	}
 }
 
@@ -1022,7 +1026,7 @@ async function main() {
 	const stage = createStartupTrace(process.env);
 	stage("launcher loaded");
 	const args = parseLauncherArgs(process.argv.slice(2));
-	if (args.error !== undefined) fail(`${args.error}\nRun 'nub-ia --help' for usage.`, 2);
+	if (args.error !== undefined) fail(`${args.error}\nRun '${BIN} --help' for usage.`, 2);
 	if (args.help) {
 		process.stdout.write(`${helpText()}\n`);
 		process.exit(0);
@@ -1102,7 +1106,7 @@ async function main() {
 		// Frees Shift+Tab for the permission-mode cycle (extensions/nubia-permission-mode.ts).
 		try { installIsolatedKeybindings(home.dir); } catch { /* advisory: /nubia:mode always works */ }
 		writeHomeOwnershipMarker(home); // R3-001: lets a failed first auto-provision attempt still be retried later
-		process.stderr.write(`nub-ia: using a separate home at ${home.dir}. Run 'nub-ia --link' to reuse your pi sign-ins and chats.\n`);
+		process.stderr.write(`${BIN}: using a separate home at ${home.dir}. Run '${BIN} --link' to reuse your pi sign-ins and chats.\n`);
 	}
 
 	if (args.command === "setup") {
@@ -1133,8 +1137,8 @@ async function main() {
 		for (const source of args.passthrough.slice(1).filter((token) => !token.startsWith("-"))) {
 			const check = checkPackageSource(source, approved);
 			if (check.approved) continue;
-			if (check.mode === "enforce") fail(`nub-ia: ${check.message}. Ask the policy owner to approve it (nub-ia policy status).`, 2);
-			process.stderr.write(`nub-ia: warning: ${check.message}\n`);
+			if (check.mode === "enforce") fail(`${BIN}: ${check.message}. Ask the policy owner to approve it (${BIN} policy status).`, 2);
+			process.stderr.write(`${BIN}: warning: ${check.message}\n`);
 		}
 	}
 	if (args.piSubcommand === "update" && process.env.NUB_IA_NO_SELF_UPDATE !== "1") {
@@ -1144,7 +1148,7 @@ async function main() {
 	// configured; a failed fetch keeps the previous policy and only warns.
 	if (args.piSubcommand === "update") {
 		const configured = resolveOrgPolicySource();
-		if (configured) process.stderr.write(`nub-ia: ${fetchOrgPolicy(configured.source, process.env, { signersPath: join(packageRoot, "assets", ALLOWED_SIGNERS_FILE) }).message}\n`);
+		if (configured) process.stderr.write(`${BIN}: ${fetchOrgPolicy(configured.source, process.env, { signersPath: join(packageRoot, "assets", ALLOWED_SIGNERS_FILE) }).message}\n`);
 	}
 
 	if (args.command === "usage") {
@@ -1160,9 +1164,9 @@ async function main() {
 
 	if (args.command === "init") {
 		const unknown = args.commandArgs.find((token) => token !== "--no-review-gate");
-		if (unknown) fail(`Unrecognized argument for 'nub-ia init': ${unknown}\nOnly --no-review-gate is accepted.`, 2);
+		if (unknown) fail(`Unrecognized argument for '${BIN} init': ${unknown}\nOnly --no-review-gate is accepted.`, 2);
 		const result = initRepo(process.cwd(), { reviewGate: !args.commandArgs.includes("--no-review-gate") });
-		process.stdout.write(`nub-ia: ${result.dir}\n${result.created.map((name) => `  created ${name}`).join("\n")}${result.created.length && result.kept.length ? "\n" : ""}${result.kept.map((name) => `  kept    ${name} (already present)`).join("\n")}\nEvery file is inert until edited; commit the ones you want the team to share.\n`);
+		process.stdout.write(`${BIN}: ${result.dir}\n${result.created.map((name) => `  created ${name}`).join("\n")}${result.created.length && result.kept.length ? "\n" : ""}${result.kept.map((name) => `  kept    ${name} (already present)`).join("\n")}\nEvery file is inert until edited; commit the ones you want the team to share.\n`);
 		return;
 	}
 
@@ -1174,9 +1178,9 @@ async function main() {
 			if (token === "--json") json = true;
 			else if (token === "--month") month = args.commandArgs[++i];
 			else if (token.startsWith("--month=")) month = token.slice("--month=".length);
-			else fail(`Unrecognized argument for 'nub-ia audit': ${token}\nUse --month YYYY-MM and/or --json.`, 2);
+			else fail(`Unrecognized argument for '${BIN} audit': ${token}\nUse --month YYYY-MM and/or --json.`, 2);
 		}
-		if (month !== undefined && !/^\d{4}-\d{2}$/.test(month)) fail("nub-ia audit: --month must be YYYY-MM", 2);
+		if (month !== undefined && !/^\d{4}-\d{2}$/.test(month)) fail(`${BIN} audit: --month must be YYYY-MM`, 2);
 		const home = process.env.NUB_IA_CONFIG_HOME || join(homedir(), ".pi", "nub-ia");
 		const stamp = month ?? new Date().toISOString().slice(0, 7);
 		const path = join(home, "audit", `audit-${stamp}.jsonl`);
@@ -1205,26 +1209,26 @@ async function main() {
 		if (action === "status") { for (const line of describeOrgPolicyStatus()) process.stdout.write(`${line}\n`); return; }
 		if (action === "pull") {
 			const configured = resolveOrgPolicySource();
-			if (!configured) fail("nub-ia policy pull: no source configured. Run: nub-ia policy set git:github.com/<org>/<repo>", 2);
+			if (!configured) fail(`${BIN} policy pull: no source configured. Run: ${BIN} policy set git:github.com/<org>/<repo>`, 2);
 			const result = fetchOrgPolicy(configured.source, process.env, { signersPath: join(packageRoot, "assets", ALLOWED_SIGNERS_FILE) });
-			process.stderr.write(`nub-ia: ${result.message}\n`);
+			process.stderr.write(`${BIN}: ${result.message}\n`);
 			process.exit(result.ok ? 0 : 1);
 		}
 		if (action === "set") {
 			const descriptor = rest.join(" ").trim();
-			if (!parseOrgPolicySourceDescriptor(descriptor)) fail("nub-ia policy set: expected git:host/org/repo[#ref][:path], a Git URL, a directory, or a JSON descriptor", 2);
+			if (!parseOrgPolicySourceDescriptor(descriptor)) fail(`${BIN} policy set: expected git:host/org/repo[#ref][:path], a Git URL, a directory, or a JSON descriptor`, 2);
 			const saved = saveOrgPolicySource(descriptor);
-			process.stderr.write(`nub-ia: org policy source saved to ${saved}\n`);
+			process.stderr.write(`${BIN}: org policy source saved to ${saved}\n`);
 			const result = fetchOrgPolicy(parseOrgPolicySourceDescriptor(descriptor), process.env, { signersPath: join(packageRoot, "assets", ALLOWED_SIGNERS_FILE) });
-			process.stderr.write(`nub-ia: ${result.message}\n`);
+			process.stderr.write(`${BIN}: ${result.message}\n`);
 			process.exit(result.ok ? 0 : 1);
 		}
 		if (action === "clear") {
 			const removed = clearOrgPolicy();
-			process.stderr.write(removed.length ? `nub-ia: removed ${removed.join(", ")}\n` : "nub-ia: no org policy to remove\n");
+			process.stderr.write(removed.length ? `${BIN}: removed ${removed.join(", ")}\n` : `${BIN}: no org policy to remove\n`);
 			return;
 		}
-		fail(`Unrecognized argument for 'nub-ia policy': ${action}\nUse status, pull, set <source>, or clear.`, 2);
+		fail(`Unrecognized argument for '${BIN} policy': ${action}\nUse status, pull, set <source>, or clear.`, 2);
 	}
 
 	// Auto-provision (S7): a plain launch against an isolated or --home home
@@ -1247,7 +1251,7 @@ async function main() {
 		try {
 			autoProvisionResult = await maybeAutoProvisionHome(home, runtime, { homeHadContentBeforeBootstrap });
 		} catch (error) {
-			process.stderr.write(`nub-ia: automatic setup failed unexpectedly (${error.message}); starting anyway and retrying next run.\n`);
+			process.stderr.write(`${BIN}: automatic setup failed unexpectedly (${error.message}); starting anyway and retrying next run.\n`);
 			autoProvisionResult = undefined;
 		}
 		// Only an interrupt reaching the spawned child (SIGINT/SIGTERM/SIGHUP)
@@ -1269,7 +1273,7 @@ async function main() {
 			return !homeIsForeign(home, previous, homeHadContentBeforeBootstrap) && ensureBuiltinCodemodeExcluded(settingsPath);
 		});
 		if (excluded) {
-			process.stderr.write(`nub-ia: disabled Pi's builtin codemode in ${settingsPath} (Nub-IA ships its own codemode tool)\n`);
+			process.stderr.write(`${BIN}: disabled Pi's builtin codemode in ${settingsPath} (Nub-IA ships its own codemode tool)\n`);
 		}
 	}
 
@@ -1317,7 +1321,7 @@ async function main() {
 		// once so an operator does not assume --package-root took effect.
 		if (packageRootExplicit && home.mode !== "link" && declaration !== undefined) {
 			process.stderr.write(
-				`nub-ia: --package-root only forces a take-over in --link mode; ${home.dir} declares the Nub-IA package, so the installed package is used and ${args.packageRoot} is ignored\n`,
+				`${BIN}: --package-root only forces a take-over in --link mode; ${home.dir} declares the Nub-IA package, so the installed package is used and ${args.packageRoot} is ignored\n`,
 			);
 		}
 		const realEffectivePackageRoot = safeRealpath(effectivePackageRoot);
@@ -1347,7 +1351,7 @@ async function main() {
 			looseExtensionEntries = [join(home.dir, "extensions"), join(process.cwd(), ".pi", "extensions")].flatMap(resolveLooseExtensionEntries);
 			const declaredFrom = declaration === undefined ? "the requested package root" : declaration.kind === "npm" ? "npm:gentle-pi" : declaration.dir;
 			process.stderr.write(
-				`nub-ia: taking over the Nub-IA package declared in ${declaredFrom} for this run (settings unchanged; its skills, prompts, and themes still load alongside this launcher's).\n`,
+				`${BIN}: taking over the Nub-IA package declared in ${declaredFrom} for this run (settings unchanged; its skills, prompts, and themes still load alongside this launcher's).\n`,
 			);
 		}
 	}

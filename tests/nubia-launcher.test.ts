@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -1890,4 +1892,65 @@ test("parseLauncherArgs recognises init as a launcher command", () => {
 test("parseLauncherArgs recognises usage as a launcher command", () => {
 	assert.equal(parseLauncherArgs(["usage", "--month", "2026-10"]).command, "usage");
 	assert.match(helpText(), /nub-ia usage \[--month YYYY-MM\] \[--json\]/);
+});
+
+// --- brand-derived home and binary name ---------------------------------------
+
+const BRAND_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const ACME_BRAND = join(BRAND_ROOT, "tests", "fixtures", "brand-acme.json");
+const BIN_PATH = join(BRAND_ROOT, "bin", "nub-ia.mjs");
+
+function runBin(brandFile: string | undefined, argv: string[]) {
+	const home = mkdtempSync(join(tmpdir(), "nubia-brand-home-"));
+	const env: Record<string, string> = { HOME: home, USERPROFILE: home, PATH: "", NUB_IA_NO_AUTO_SETUP: "1", NUB_IA_SKIP_RTK_INSTALL: "1" };
+	if (brandFile !== undefined) env.NUB_IA_BRAND_FILE = brandFile;
+	return spawnSync(process.execPath, [BIN_PATH, ...argv], { env, encoding: "utf8" });
+}
+
+test("default brand keeps the historical home and config paths", () => {
+	const resolved = resolveHome({ args: args({}), env: {}, homedir: "/home/alan", config: undefined });
+	assert.equal(resolved.dir, "/home/alan/.nub-ia/agent");
+	assert.equal(launcherConfigPath("/home/alan"), "/home/alan/.nub-ia/config.json");
+});
+
+test("brand homeDir drives resolveHome and launcherConfigPath", () => {
+	const code = [
+		'const m = await import("./runtime/nubia-launcher.mjs");',
+		'const r = m.resolveHome({ args: { link: false, isolated: false, help: false, version: false, setup: false, dryRun: false, passthrough: [], commandArgs: [] }, env: {}, homedir: "/h", config: undefined });',
+		"console.log(JSON.stringify([r.dir, m.launcherConfigPath('/h')]));",
+	].join("\n");
+	const out = spawnSync(process.execPath, ["--input-type=module", "-e", code], { cwd: BRAND_ROOT, env: { ...process.env, NUB_IA_BRAND_FILE: ACME_BRAND }, encoding: "utf8" });
+	assert.equal(out.status, 0, out.stderr);
+	assert.deepEqual(JSON.parse(out.stdout), ["/h/.acme/agent", "/h/.acme/config.json"]);
+});
+
+test("--help names the branded binary and home, not nub-ia", () => {
+	const result = runBin(ACME_BRAND, ["--help"]);
+	assert.equal(result.status, 0, result.stderr);
+	const lines = result.stdout.split("\n");
+	assert.equal(lines[0], "Usage: acme [options] [-- pi-args...]");
+	assert.match(result.stdout, /~\/\.acme\/agent home \(default\)/);
+	assert.match(result.stdout, /\(default: ~\/\.acme\/agent\)/);
+	const leftovers = lines.filter((line) => /nub-ia/.test(line.replace(/NUB_IA_\w+/g, "").replace(/\.pi\/nub-ia/g, "")));
+	assert.deepEqual(leftovers, []);
+});
+
+test("--help with the default brand keeps the nub-ia usage line", () => {
+	const result = runBin(undefined, ["--help"]);
+	assert.equal(result.status, 0, result.stderr);
+	assert.equal(result.stdout.split("\n")[0], "Usage: nub-ia [options] [-- pi-args...]");
+	assert.match(result.stdout, /~\/\.nub-ia\/agent home \(default\)/);
+});
+
+test("an invalid brand file exits 2 with the field path and no stack trace", () => {
+	const dir = mkdtempSync(join(tmpdir(), "nubia-brand-bad-"));
+	const bad = join(dir, "brand.json");
+	writeFileSync(bad, JSON.stringify({ ...JSON.parse(readFileSync(ACME_BRAND, "utf8")), name: 3 }));
+	for (const file of [bad, join(dir, "missing.json")]) {
+		const result = runBin(file, ["--help"]);
+		assert.equal(result.status, 2, result.stderr);
+		assert.match(result.stderr, /^nub-ia: /);
+		assert.match(result.stderr, file === bad ? /name/ : /missing\.json|brand/);
+		assert.doesNotMatch(result.stderr, /\n\s+at /);
+	}
 });

@@ -21,7 +21,7 @@ import { VisualCustomizeView, type CustomizeCategory, type CustomizeRow, type Pr
 import { deleteVisualProfile, getVisualProfile, listVisualProfiles, resetVisualProfiles, saveVisualProfile } from "../lib/visual-profiles.ts";
 import { sourcePalettePreview } from "../lib/theme-customization.ts";
 import { DEFAULT_VISUAL_SETTINGS, DENSITY, HEADER_PLACEMENT, STATUS_PLACEMENT, VISUAL_SECTION_KEYS, resolveVisualSettings, writeVisualSettings } from "../lib/visual-customization-policy.ts";
-import { BANNER_COLORS, DEFAULT_BANNER_CONFIG, readBannerConfig, readBannerConfigForEdit, writeBannerConfig } from "./startup-banner.ts";
+import { BANNER_COLORS, BANNER_PALETTES, DEFAULT_BANNER_CONFIG, readBannerConfig, readBannerConfigForEdit, writeBannerConfig } from "./startup-banner.ts";
 import { agentsViewKey } from "../lib/agents-keys.ts";
 import { DOUBLE_ESC_CANCEL_HINT, floatPromptRow, framePromptLines, resolvePromptLayout, IDLE_ESC_CLEAR_HINT, PROMPT_HINT, PROMPT_STATE, SHELL_PULSE_MS, withPromptHint, type PromptState } from "../lib/shell-prompt.ts";
 import { oddPhaseRegistry } from "../lib/odd-phase.ts";
@@ -127,6 +127,7 @@ import { NubiaStatusBlocks } from "../lib/nubia-status-blocks.ts";
 import { pushDiffHash, readLastReview } from "./nub-ia-review.ts";
 import { modeChip, PERMISSION_MODE_REQUEST } from "./nubia-permission-mode.ts";
 import { PERMISSION_MODES } from "../lib/permission-mode-policy.ts";
+import { cmd, cmdSlash, brand } from "../lib/brand.ts";
 
 
 // Nub-IA: the visual layer nub-ia puts on top of pi. It installs the
@@ -436,7 +437,7 @@ export class NubiaPromptEditor extends CustomEditor {
 				this.vimRejected = true;
 				if (!this.compatibilityNotified) {
 					this.compatibilityNotified = true;
-					this.deps.notifyCompatibility?.("Nub-IA Vim unsupported by this Pi editor layout/version; ordinary editing remains active.");
+					this.deps.notifyCompatibility?.(`${brand.name} Vim unsupported by this Pi editor layout/version; ordinary editing remains active.`);
 				}
 				policy = "off";
 			}
@@ -486,7 +487,7 @@ export class NubiaPromptEditor extends CustomEditor {
 				try { this.setVimPolicy("off"); this.vimRejected = true; } finally { this.disablingUnsupportedVim = false; }
 				if (!this.compatibilityNotified) {
 					this.compatibilityNotified = true;
-					this.deps.notifyCompatibility?.("Nub-IA Vim unsupported by this Pi editor layout/version; ordinary editing remains active.");
+					this.deps.notifyCompatibility?.(`${brand.name} Vim unsupported by this Pi editor layout/version; ordinary editing remains active.`);
 				}
 			}
 			throw error;
@@ -1132,7 +1133,7 @@ function installPrompt(
 	return true;
 }
 
-const DOUBLE_ESC_CANCEL_COMMAND_NAME = "nubia:double-esc-cancel";
+const DOUBLE_ESC_CANCEL_COMMAND_NAME = cmd("double-esc-cancel");
 
 function describeDoubleEscCancelSource(resolution: DoubleEscCancelResolution): string {
 	switch (resolution.source) {
@@ -1173,11 +1174,11 @@ function renderDoubleEscCancelReport(
 
 const CHANGES_WIDGET_KEY = "nubia-shell-changes";
 const HEADER_WIDGET_KEY = "nubia-shell-below-input-header";
-const CHANGES_COMMAND_NAME = "nubia:changes";
+const CHANGES_COMMAND_NAME = cmd("changes");
 const CHANGES_SHORTCUT_DEFAULT = "alt+g";
 const CHANGES_POLL_DEFAULT_MS = 2000;
 const GIT_TIMEOUT_MS = 5000;
-const COMMANDS_COMMAND_NAME = "nubia:commands";
+const COMMANDS_COMMAND_NAME = cmd("commands");
 const OVERLAY_HEIGHT_RATIO = 0.8;
 const OVERLAY_MIN_ROWS = 8;
 
@@ -1326,11 +1327,11 @@ async function showChangesOverlay(ctx: ExtensionContext, deps: OverlayDeps): Pro
 async function showCommandPalette(pi: ExtensionAPI, ctx: ExtensionContext, env: NodeJS.ProcessEnv): Promise<void> {
 	if (!ctx.hasUI) return;
 	const groups = buildCommandPaletteGroups(pi.getCommands(), {
-		"nubia:changes": changesShortcut(env),
-		"nubia:agents": agentsViewKey(env),
+		[cmd("changes")]: changesShortcut(env),
+		[cmd("agents")]: agentsViewKey(env),
 	});
 	if (groups.length === 0) {
-		ctx.ui.notify("No Nub-IA commands are registered.", "info");
+		ctx.ui.notify(`No ${brand.name} commands are registered.`, "info");
 		return;
 	}
 	const result = await ctx.ui.custom<CommandPaletteResult>(
@@ -1357,7 +1358,7 @@ function showChanges(ctx: ExtensionContext, model: ChangesModel, visible = true,
 	);
 }
 
-const USAGE_COMMAND_NAME = "nubia:usage";
+const USAGE_COMMAND_NAME = cmd("usage");
 const USAGE_SHORTCUT_DEFAULT = "alt+u";
 
 const USAGE_REFRESH_MS = 5 * 60_000;
@@ -1620,7 +1621,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 			const monthFlag = tokens.indexOf("--month");
 			if (monthFlag === -1) return openUsage(ctx);
 			const month = tokens[monthFlag + 1] ?? new Date().toISOString().slice(0, 7);
-			if (!/^\d{4}-\d{2}$/.test(month)) { ctx.ui.notify("Use /nubia:usage --month YYYY-MM", "warning"); return; }
+			if (!/^\d{4}-\d{2}$/.test(month)) { ctx.ui.notify(`Use ${cmdSlash("usage")} --month YYYY-MM`, "warning"); return; }
 			const inputs = collectUsageInputs(month, env);
 			ctx.ui.notify(renderUsageReport(buildUsageReport(inputs), inputs.source), "info");
 		},
@@ -1657,7 +1658,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 	const reportVim = (ctx: ExtensionContext, result: ReturnType<typeof resolveVimPolicy>) => {
 		const source = result.source === "default" ? "built-in default" : `global file ${result.globalFile}`;
 		const effective = prompt?.effectiveVimPolicy;
-		const state = effective === undefined ? "No active Nub-IA prompt; preference applies when one starts" :
+		const state = effective === undefined ? `No active ${brand.name} prompt; preference applies when one starts` :
 			effective !== result.policy ? `Effective prompt: ${effective}; saved preference and prompt differ; ordinary editing remains active` :
 			result.policy === "off" ? "Prompt applies now; ordinary editing active" : "Prompt applies now";
 		ctx.ui.notify(`vim: ${result.policy} (decided by ${source})${result.malformed ? "; malformed or unreadable file, falling back to off" : ""}. ${state}.`, result.malformed || (effective !== undefined && effective !== result.policy) ? "warning" : "info");
@@ -1884,7 +1885,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 		});
 	}
 	pi.registerCommand(COMMANDS_COMMAND_NAME, {
-		description: "Open the command palette: a curated, grouped menu of Nub-IA commands.",
+		description: `Open the command palette: a curated, grouped menu of ${brand.name} commands.`,
 		handler: async (_args, ctx) => showCommandPalette(pi, ctx, env),
 	});
 	const commandsShortcut = commandsKey(env);
@@ -1894,7 +1895,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 			handler: async (ctx) => showCommandPalette(pi, ctx, env),
 		});
 	}
-	pi.registerCommand("nubia:customize", {
+	pi.registerCommand(cmd("customize"), {
 		description: "Configure appearance, global Vim prompt editing, session-only YOLO permission and prompt history capture.",
 		handler: async (_args, ctx) => {
 			if (ctx.mode !== "tui" || !ctx.hasUI) {
@@ -1937,9 +1938,8 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 				() => ({ title: `${policy} · static animation sample`, sample: policy === "potato" ? "∞  idle → working (no pulse)" : policy === "performance" ? "∞  short pulse → settle (static)" : "∞  gentle wave → settle (static)" }),
 			);
 			category = "Banner";
-			const bannerColors = { lime: [214, 255, 0], pink: [255, 118, 195], cyan: [95, 210, 255], yellow: [255, 210, 95], green: [110, 220, 145] } as const;
 			const bannerPreview = (next: typeof banner) => {
-				const [r, g, b] = bannerColors[next.color];
+				const [r, g, b] = BANNER_PALETTES[next.color].rose;
 				return { title: `Banner · ${next.color} (static)`, sample: `${next.showRose ? `\x1b[38;2;${r};${g};${b}m∞\x1b[0m` : "·"}  ${next.showTextLogo ? "nubiral" : "(logo hidden)"}` };
 			};
 			add(() => `Banner isologo: ${banner.showRose ? "on" : "off"}`, "Banner saved; applies at next startup.", async () => {
@@ -2224,17 +2224,17 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 			} finally { close(); }
 		},
 	});
-	pi.registerCommand("nubia:vim", {
+	pi.registerCommand(cmd("vim"), {
 		description: "Show or set global Vim prompt editing (status|enable|disable); no argument opens a menu.",
 		handler: async (args, ctx) => {
 			let action = args.trim() || "status";
 			if (!args.trim() && ctx.hasUI && typeof ctx.ui.select === "function") {
-				const selected = await ctx.ui.select(`Nub-IA Vim (current: ${vimPolicy})`, ["enable", "disable", "status"]);
+				const selected = await ctx.ui.select(`${brand.name} Vim (current: ${vimPolicy})`, ["enable", "disable", "status"]);
 				if (selected === undefined) return;
 				action = selected;
 			}
 			if (action !== "status" && action !== "enable" && action !== "disable") {
-				ctx.ui.notify("Use /nubia:vim status|enable|disable.", "warning");
+				ctx.ui.notify(`Use ${cmdSlash("vim")} status|enable|disable.`, "warning");
 				return;
 			}
 			try {
@@ -2248,7 +2248,7 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 			}
 		},
 	});
-	pi.registerCommand("nubia:animations", {
+	pi.registerCommand(cmd("animations"), {
 		description: "Show or set global animations; no argument opens a selectable menu (quality|performance|potato, plus status).",
 		// No argument opens a selectable menu when an interactive UI is present;
 		// headless callers and fakes without ui.select keep the status fallback.
@@ -2256,14 +2256,14 @@ export default function nubiaShell(pi: ExtensionAPI, env: NodeJS.ProcessEnv = pr
 			let action = args.trim() || "status";
 			if (args.trim().length === 0 && ctx.hasUI && typeof ctx.ui.select === "function") {
 				const selected = await ctx.ui.select(
-					`Nub-IA animations (current: ${animationPolicy})`,
+					`${brand.name} animations (current: ${animationPolicy})`,
 					["quality", "performance", "potato", "status"],
 				);
 				if (selected === undefined) return;
 				action = selected;
 			}
 			if (action !== "status" && action !== "quality" && action !== "performance" && action !== "potato") {
-				ctx.ui.notify("Use /nubia:animations status|quality|performance|potato.", "warning");
+				ctx.ui.notify(`Use ${cmdSlash("animations")} status|quality|performance|potato.`, "warning");
 				return;
 			}
 			try {

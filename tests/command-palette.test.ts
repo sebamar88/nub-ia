@@ -390,7 +390,7 @@ test("retired SDD commands are absent from the palette and extension registratio
 		assert.ok(!catalogCommands.includes(command), `${command} must not appear in the palette`);
 		assert.ok(!source.includes(`registerCommand("${command}"`), `${command} must not be registered`);
 	}
-	assert.match(source, /for \(const owner of \["delegation", "review"\] as const\) \{\s*const label = owner;\s*pi\.registerCommand\(`nubia:install-\$\{owner\}`/);
+	assert.match(source, /for \(const owner of \["delegation", "review"\] as const\) \{\s*const label = owner;\s*pi\.registerCommand\(cmd\(`install-\$\{owner\}`\)/);
 	assert.ok(catalogCommands.includes("nubia:review"), "the in-process 4R review is reachable from the palette");
 	for (const retiredNative of ["nubia:review-session-permission", "nubia:dev-binary", "nubia:telemetry"]) {
 		assert.ok(!catalogCommands.includes(retiredNative), `${retiredNative} belonged to the removed nub-ia binary`);

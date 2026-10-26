@@ -2202,6 +2202,7 @@ test("nub-ia update fast-forwards a Git checkout before forwarding update to pi,
 	cpSync(new URL("../bin/", import.meta.url), join(seed, "bin"), { recursive: true });
 	cpSync(new URL("../runtime/", import.meta.url), join(seed, "runtime"), { recursive: true });
 	cpSync(new URL("../scripts/", import.meta.url), join(seed, "scripts"), { recursive: true });
+	cpSync(new URL("../brand.json", import.meta.url), join(seed, "brand.json"));
 	writeFileSync(join(seed, "package.json"), JSON.stringify({ name: "nub-ia", version: "0.1.0", type: "module" }));
 	git(seed, "init", "-q", "-b", "trunk"); git(seed, "add", "-A"); git(seed, "commit", "-qm", "v1");
 	spawnSync("git", ["clone", "-q", "--bare", seed, origin]);

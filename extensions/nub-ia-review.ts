@@ -67,6 +67,7 @@ import {
 	splitDiff,
 	summarizeReport,
 } from "../lib/nub-review.ts";
+import { cmd, cmdSlash, brand } from "../lib/brand.ts";
 
 const execFileAsync = promisify(execFile);
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -137,7 +138,7 @@ export function excludeFromRepository(cwd: string, relativeToCwd: string): void 
 		}
 		if (current.split(/\r?\n/).some((line) => line.trim() === pattern)) return;
 		const separator = current === "" || current.endsWith("\n") ? "" : "\n";
-		writeFileSync(excludePath, `${current}${separator}# Nub-IA review reports (contain diffs)\n${pattern}\n`, "utf8");
+		writeFileSync(excludePath, `${current}${separator}# ${brand.name} review reports (contain diffs)\n${pattern}\n`, "utf8");
 	} catch {
 		// Best effort: an unwritable exclude file must not fail the review.
 	}
@@ -445,17 +446,17 @@ async function runHeadless(ctx: ExtensionContext, raw: string): Promise<never> {
 	try { argv = JSON.parse(raw); } catch { argv = undefined; }
 	const options = Array.isArray(argv) && argv.every((item) => typeof item === "string") ? parseHeadlessArgs(argv) : { error: `${HEADLESS_ENV} must be a JSON array of arguments` };
 	if ("error" in options) {
-		process.stderr.write(`nub-ia review: ${options.error}\n`);
+		process.stderr.write(`${brand.bin} review: ${options.error}\n`);
 		process.exit(2);
 	}
 	const result = await runReview(ctx, options.scope);
 	if (!result.ok) {
 		if (options.json) out(JSON.stringify({ schema: "nub-ia.review-report/v1", verdict: null, error: result.error }));
-		else process.stderr.write(`nub-ia review: ${result.error}\n`);
+		else process.stderr.write(`${brand.bin} review: ${result.error}\n`);
 		process.exit(2);
 	}
 	const pr = options.pr ? await publishToPr(ctx, result) : undefined;
-	if (pr) process.stderr.write(`nub-ia review: ${pr}\n`);
+	if (pr) process.stderr.write(`${brand.bin} review: ${pr}\n`);
 	out(options.json ? JSON.stringify({ ...reportToJson(result.report, result.reportPath || undefined), ...(pr ? { prComment: pr } : {}) }) : result.summary);
 	process.exit(headlessExitCode(result.report.verdict, options.failOn));
 }
@@ -508,8 +509,8 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 
 	pi.registerTool({
 		name: "nub_review",
-		label: "Nub-IA review",
-		description: "Run the Nub-IA 4R code review (risk, reliability, resilience, readability) over the current diff in parallel and write a consolidated report under .pi/nub-ia/reviews/. Returns the verdict and top findings. Also available to the user as /nubia:review. Run it before pushing; the push gate asks for confirmation when the changes were not reviewed or were blocked.",
+		label: `${brand.name} review`,
+		description: `Run the ${brand.name} 4R code review (risk, reliability, resilience, readability) over the current diff in parallel and write a consolidated report under .pi/nub-ia/reviews/. Returns the verdict and top findings. Also available to the user as ${cmdSlash("review")}. Run it before pushing; the push gate asks for confirmation when the changes were not reviewed or were blocked.`,
 		parameters: Type.Object({
 			scope: Type.Optional(Type.Union([Type.Literal("auto"), Type.Literal("staged"), Type.Literal("working")], { description: "auto (default): with a clean tree and unpushed commits, the range the push gate judges (upstream...HEAD); otherwise staged changes if any, else the working tree vs HEAD." })),
 			baseRef: Type.Optional(Type.String({ description: "Review the committed range <baseRef>...HEAD instead (for example main or origin/main)." })),
@@ -523,7 +524,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 		},
 	});
 
-	pi.registerCommand("nubia:review", {
+	pi.registerCommand(cmd("review"), {
 		description: "Review the current diff with the 4R lenses (optional: staged | working | <baseRef>; add --pr to post the report on the branch's pull request). Also: `fix` (hand the last BLOCKER/CRITICAL findings to the agent and re-review), `stats` (per-lens calibration from local metrics), `eval` (run the packaged fixtures through the real lenses).",
 		handler: async (args, ctx) => {
 			const tokens = args.trim().split(/\s+/).filter(Boolean);
@@ -531,7 +532,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 			const arg = tokens.filter((token) => token !== "--pr").join(" ");
 			if (arg === "stats") { if (ctx.hasUI) ctx.ui.notify(reviewStats(), "info"); return; }
 			if (arg === "eval") {
-				if (!ctx.hasUI || !(await ctx.ui.confirm("Nub-IA review eval", "Run every packaged review fixture through the real lenses (fixtures × 4 model calls)?"))) return;
+				if (!ctx.hasUI || !(await ctx.ui.confirm(`${brand.name} review eval`, "Run every packaged review fixture through the real lenses (fixtures × 4 model calls)?"))) return;
 				ctx.ui.notify(await reviewEval(ctx, undefined), "info");
 				return;
 			}
@@ -542,20 +543,20 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 				const last = readLastReview(ctx.cwd);
 				const plan = fixBrief(last);
 				if ("reason" in plan) { if (ctx.hasUI) ctx.ui.notify(plan.reason, "warning"); return; }
-				if (!ctx.hasUI || !(await ctx.ui.confirm("Nub-IA review fix", `Hand ${last!.severe!.length} severe finding(s) to the agent (round ${plan.round} of ${FIX_ROUNDS_MAX}) and re-review afterwards?`))) return;
+				if (!ctx.hasUI || !(await ctx.ui.confirm(`${brand.name} review fix`, `Hand ${last!.severe!.length} severe finding(s) to the agent (round ${plan.round} of ${FIX_ROUNDS_MAX}) and re-review afterwards?`))) return;
 				writeFileSync(lastReviewPath(ctx.cwd), `${JSON.stringify({ ...last, fixRounds: plan.round, fixPending: true } satisfies LastReview, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
 				pi.sendUserMessage(plan.brief, { deliverAs: "followUp" });
 				return;
 			}
 			const scope: DiffScope | { kind: "auto" } = arg === "" || arg === "auto" ? { kind: "auto" } : arg === "staged" || arg === "working" ? { kind: arg } : { kind: "base", ref: arg };
-			if (ctx.hasUI) ctx.ui.notify("Nub-IA review started…", "info");
+			if (ctx.hasUI) ctx.ui.notify(`${brand.name} review started…`, "info");
 			const result = await runReview(ctx, scope);
 			if (!ctx.hasUI) return;
 			if (!result.ok) { ctx.ui.notify(result.error, "warning"); return; }
 			ctx.ui.notify(result.summary, result.findings.some((finding) => finding.severity === "BLOCKER" || finding.severity === "CRITICAL") ? "warning" : "info");
 			// Posting to the PR writes to GitHub on the user's behalf: it is only
 			// ever triggered by this explicit flag and confirmed first.
-			if (toPr && (await ctx.ui.confirm("Nub-IA review", "Post this report as a comment on the branch's pull request (gh)?"))) {
+			if (toPr && (await ctx.ui.confirm(`${brand.name} review`, "Post this report as a comment on the branch's pull request (gh)?"))) {
 				const outcome = await publishToPr(ctx, result);
 				ctx.ui.notify(outcome, outcome.startsWith("PR comment not") ? "warning" : "info");
 			}
@@ -564,7 +565,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 
 	// /nubia:review-mode — the gate switch (status | enable | strict | disable),
 	// persisted in <configHome>/review-gate.json; user-initiated only.
-	pi.registerCommand("nubia:review-mode", {
+	pi.registerCommand(cmd("review-mode"), {
 		description: "Show or set the push review gate: status | enable (confirm) | strict (refuse unreviewed pushes) | disable. No argument opens a menu.",
 		handler: async (args, ctx) => {
 			let action = args.trim().length === 0 ? "status" : args.trim();
@@ -580,7 +581,7 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 			}
 			const mode = REVIEW_MODE_ACTIONS[action];
 			if (mode === undefined) {
-				ctx.ui.notify(`Unknown /nubia:review-mode action "${action}". Use status, enable, strict, or disable.`, "warning");
+				ctx.ui.notify(`Unknown ${cmdSlash("review-mode")} action "${action}". Use status, enable, strict, or disable.`, "warning");
 				return;
 			}
 			try {
@@ -606,10 +607,10 @@ export default function registerNubIaReview(pi: ExtensionAPI): void {
 		if (question === undefined) return;
 		const auditPush = (outcome: "approved" | "denied" | "blocked") => void appendMetricRows("audit", [auditRow({ kind: "push.gate", outcome, by: outcome === "blocked" ? "review-gate" : "human", subject: question, detail: `gate ${gate.mode}`, repository: ctx.cwd })]).catch(() => undefined);
 		if (gate.mode === "strict") auditPush("blocked");
-		if (gate.mode === "strict") return { block: true, reason: `${question} Refused: the review gate is strict. Run nub_review until the verdict is APPROVE or WARN, or /nubia:review-mode enable to be asked instead.` };
-		if (!ctx.hasUI) return { block: true, reason: `${question} No UI to confirm the push; run nub_review first, or /nubia:review-mode disable.` };
-		const confirmed = await ctx.ui.confirm("Nub-IA push gate", `${question} Push anyway?`);
+		if (gate.mode === "strict") return { block: true, reason: `${question} Refused: the review gate is strict. Run nub_review until the verdict is APPROVE or WARN, or ${cmdSlash("review-mode")} enable to be asked instead.` };
+		if (!ctx.hasUI) return { block: true, reason: `${question} No UI to confirm the push; run nub_review first, or ${cmdSlash("review-mode")} disable.` };
+		const confirmed = await ctx.ui.confirm(`${brand.name} push gate`, `${question} Push anyway?`);
 		auditPush(confirmed ? "approved" : "denied");
-		if (!confirmed) return { block: true, reason: "Push cancelled at the Nub-IA review gate." };
+		if (!confirmed) return { block: true, reason: `Push cancelled at the ${brand.name} review gate.` };
 	});
 }

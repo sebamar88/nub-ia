@@ -42,6 +42,7 @@ import { resolveNubiaAgentHome } from "../lib/agent-home.ts";
 import { auditRow, type AuditRow } from "../lib/audit-log.ts";
 import { appendMetricRows } from "../lib/runtime-metrics-sink.ts";
 import { relative } from "node:path";
+import { brand, cmd, cmdSlash } from "../lib/brand.ts";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
 /** Trusted inter-extension request: `{ mode, context }` from the shell's customize menu. */
@@ -223,7 +224,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 			const org = loadEffectiveOrgPolicy(env, ctx.cwd).policy;
 			const approved = org ? parseApprovedPackages({ approvedPackages: org.sections.approvedPackages }) : undefined;
 			const unapproved = unapprovedInSettings(readText(join(resolveNubiaAgentHome(env), "settings.json")), approved);
-			if (unapproved.length) ctx.ui.notify(`Org policy${approved?.mode === "enforce" ? " (enforce)" : ""}: packages not in the approved list are loaded: ${unapproved.join(", ")}. Remove them with nub-ia remove <source> or ask to have them approved.`, "warning");
+			if (unapproved.length) ctx.ui.notify(`Org policy${approved?.mode === "enforce" ? " (enforce)" : ""}: packages not in the approved list are loaded: ${unapproved.join(", ")}. Remove them with ${brand.bin} remove <source> or ask to have them approved.`, "warning");
 		}
 	});
 	pi.on("session_shutdown", () => { mode = config.initial; });
@@ -271,7 +272,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 		let approved = false;
 		try {
 			const preview = event.toolName === "bash" ? String((input as { command?: unknown })?.command ?? "").slice(0, 400) : String((input as { path?: unknown })?.path ?? "");
-			approved = (await ctx.ui.confirm(`${MODE_GLYPH[mode]} ${MODE_LABEL[mode]} · ${ask}`, `${preview}\n\n(Shift+Tab or /nubia:mode changes the mode)`)) === true;
+			approved = (await ctx.ui.confirm(`${MODE_GLYPH[mode]} ${MODE_LABEL[mode]} · ${ask}`, `${preview}\n\n(Shift+Tab or ${cmdSlash("mode")} changes the mode)`)) === true;
 		} finally {
 			emit(approved ? "approved" : "denied");
 			audit({ kind: "tool.ask", outcome: approved ? "approved" : "denied", by: "human", tool: event.toolName, subject: subjectOf(), detail: hit?.rule === "confirm" && decision.action === "allow" ? `protected path ${hit.path}` : undefined });
@@ -305,7 +306,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 		},
 	});
 
-	pi.registerCommand("nubia:mode", {
+	pi.registerCommand(cmd("mode"), {
 		description: "Show or set the permission mode: plan | manual | accept-edits | auto | yolo | status | default <mode> (saves the startup mode). No argument opens a menu. Shift+Tab cycles.",
 		handler: async (args, ctx) => {
 			const tokens = args.trim().split(/\s+/).filter(Boolean);
@@ -322,14 +323,14 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 					`Startup mode: ${MODE_LABEL[config.initial]} (${config.sources.initial})${config.max ? ` · cap: ${MODE_LABEL[config.max]} (${config.sources.max})` : ""}`,
 					...(() => { const org = loadEffectiveOrgPolicy(env, ctx.cwd); return org.policy ? [`Org policy: ${org.policy.name ?? "unnamed"}${org.role ? ` · role ${org.role.role} (${org.role.source})` : ""}`] : []; })(),
 					"plan: read-only · manual: every write/command asks · accept-edits: edits run, commands ask · auto: guardrails only · yolo: + commits/push/PR",
-					`Shift+Tab cycles (isolated home); /nubia:mode <mode> sets; /nubia:mode default <mode> saves the startup mode in ${join(nubIaConfigHome(env), "permission-mode-default.json")}.`,
+					`Shift+Tab cycles (isolated home); ${cmdSlash("mode")} <mode> sets; ${cmdSlash("mode")} default <mode> saves the startup mode in ${join(nubIaConfigHome(env), "permission-mode-default.json")}.`,
 				];
 				ctx.ui.notify(lines.join("\n"), "info");
 				return;
 			}
 			if (action === "default") {
 				const wanted = tokens[1];
-				if (!isPersistableMode(wanted)) { ctx.ui.notify("Use /nubia:mode default plan|manual|accept-edits|auto (yolo is never a default).", "warning"); return; }
+				if (!isPersistableMode(wanted)) { ctx.ui.notify(`Use ${cmdSlash("mode")} default plan|manual|accept-edits|auto (yolo is never a default).`, "warning"); return; }
 				const path = join(nubIaConfigHome(env), "permission-mode-default.json");
 				try {
 					mkdirSync(dirname(path), { recursive: true });

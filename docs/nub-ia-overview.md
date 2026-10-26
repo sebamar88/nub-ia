@@ -43,6 +43,8 @@ con identidad propia.
 - **Shell**: banner y tema Nubiral, Status con Review / Subagentes / Router / Mode / Audit, `/nubia:*`, perfil de prompt minimal.
 - **Operación**: launcher `nub-ia` con home aislado, `nub-ia init|update|setup|policy|audit|usage|review`, rtk pinneado con SHA-256, releases semver automáticas por Conventional Commits y bumps de pins (`pin-bumps.yml`).
 
+Para cambiar nombre, prefijo de comandos, colores y logos (demo o venta con otra marca) ver [branding.md](branding.md).
+
 ## Arquitectura en diez líneas
 
 ```
