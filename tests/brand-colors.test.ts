@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { parseBrand } from "../lib/brand.ts";
 import { contrastRatio, deriveBannerPalette, deriveTheme } from "../lib/brand-colors.ts";
 
+const baseRawEarly = JSON.parse(readFileSync(new URL("../brand.json", import.meta.url), "utf8"));
 const repoBrand = parseBrand(JSON.parse(readFileSync(new URL("../brand.json", import.meta.url), "utf8")));
 const themeJson = JSON.parse(readFileSync(new URL("../assets/brand/theme-template.json", import.meta.url), "utf8"));
 
@@ -28,12 +29,26 @@ test("dark primary without overrides still meets 4.5 contrast on the banner back
 	assert.ok(contrastRatio(palette.value, [10, 11, 8]) >= 4.5);
 });
 
+const hexRgb = (h: string): [number, number, number] => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
+
+test("navy brand without overrides lifts rose, theme accent and activePink to 4.5", () => {
+	const colors = { primary: "#003366", accent: "#002244" };
+	const rose = deriveBannerPalette(colors).rose;
+	assert.ok(contrastRatio(rose, [10, 11, 8]) >= 4.5);
+	const vars = (deriveTheme(themeJson, parseBrand({ ...baseRawEarly, colors })) as any).vars;
+	for (const key of ["accent", "activePink"]) assert.ok(contrastRatio(hexRgb(vars[key]), hexRgb(themeJson.vars.bg)) >= 4.5, key);
+});
+
+test("an override on rose is returned untouched even when unreadable", () => {
+	assert.deepEqual(deriveBannerPalette({ primary: "#003366", accent: "#002244", overrides: { banner: { rose: [0, 51, 102] } } }).rose, [0, 51, 102]);
+});
+
 test("a new brand changes the theme name and tint vars but keeps other vars", () => {
 	const brand = parseBrand({ ...JSON.parse(readFileSync(new URL("../brand.json", import.meta.url), "utf8")), name: "Acme", colors: { primary: "#0A0A40", accent: "#3030A0" } });
 	const theme = deriveTheme(themeJson, brand) as any;
 	assert.equal(theme.name, "Acme");
-	assert.equal(theme.vars.accent, "#0A0A40");
-	assert.equal(theme.vars.activePink, "#3030A0");
+	assert.ok(contrastRatio(hexRgb(theme.vars.accent), hexRgb(themeJson.vars.bg)) >= 4.5);
+	assert.ok(contrastRatio(hexRgb(theme.vars.activePink), hexRgb(themeJson.vars.bg)) >= 4.5);
 	assert.equal(theme.vars.text, themeJson.vars.text);
 	assert.deepEqual(theme.colors, themeJson.colors);
 });

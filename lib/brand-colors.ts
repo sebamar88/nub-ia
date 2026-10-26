@@ -73,7 +73,7 @@ function mix(color: RGB, base: RGB, amount: number): RGB {
 export function deriveBannerPalette(colors: Brand["colors"]): BannerPalette {
 	const rose = parseHex(colors.primary);
 	const derived: BannerPalette = {
-		rose,
+		rose: ensureContrast(rose, BANNER_BG),
 		label: ensureContrast(withLightness(rose, 0.8), BANNER_BG),
 		value: ensureContrast(withLightness(rose, 1.25), BANNER_BG),
 		logoFresh: [240, 240, 240],
@@ -86,15 +86,16 @@ export function deriveTheme(template: Record<string, unknown>, brand: Brand): Re
 	const vars = template.vars as Record<string, string>;
 	const bg = parseHex(vars.bg);
 	const primary = parseHex(brand.colors.primary);
+	const readable = (hex: string) => toHex(ensureContrast(parseHex(hex), bg));
 	const tint = (amount: number) => toHex(mix(primary, bg, amount));
 	return {
 		...template,
 		name: brand.name,
 		vars: {
 			...vars,
-			accent: brand.colors.primary,
+			accent: readable(brand.colors.primary),
 			deepPink: toHex(withLightness(primary, 0.75)),
-			activePink: brand.colors.accent,
+			activePink: readable(brand.colors.accent),
 			border: tint(0.25),
 			borderSubtle: tint(0.12),
 			bgPanel: tint(0.06),
