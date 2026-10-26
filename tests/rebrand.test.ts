@@ -1,40 +1,8 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-
-const repo = new URL("..", import.meta.url).pathname;
-const fixtures = join(repo, "tests", "fixtures");
-const acme = join(fixtures, "brand-acme.json");
-const SKILLS = ["skills/nubia-spec-design-tasks/SKILL.md", "skills/nubia-svsd-spec/SKILL.md"];
-
-// Temp copy of the files rebrand touches; the script resolves its root from its own location.
-function tempRepo() {
-	const dir = mkdtempSync(join(tmpdir(), "rebrand-"));
-	for (const p of ["scripts", "lib", "brand.json", "package.json", "assets/brand", "themes", ...SKILLS]) {
-		mkdirSync(join(dir, p, ".."), { recursive: true });
-		cpSync(join(repo, p), join(dir, p), { recursive: true });
-	}
-	git(dir, "init", "-q");
-	git(dir, "add", "-A");
-	git(dir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base");
-	return dir;
-}
-
-function git(dir: string, ...args: string[]) {
-	return spawnSync("git", args, { cwd: dir, encoding: "utf8" }).stdout;
-}
-
-function rebrand(dir: string, brandFile?: string, ...args: string[]) {
-	const env = { ...process.env };
-	delete env.NUB_IA_BRAND_FILE;
-	if (brandFile) env.NUB_IA_BRAND_FILE = brandFile;
-	return spawnSync(process.execPath, ["--experimental-strip-types", join(dir, "scripts", "rebrand.mjs"), ...args], { cwd: dir, encoding: "utf8", env });
-}
-
-const png = (name: string) => join(fixtures, "brand", name);
+import { acme, git, png, rebrand, SKILLS, tempRepo } from "./support/brand-temp-repo.ts";
 
 test("transparent PNGs rewrite banner-art.json with one weight per letter", () => {
 	const dir = tempRepo();
