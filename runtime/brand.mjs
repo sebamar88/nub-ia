@@ -48,15 +48,18 @@ function matching(parent                         , key        , path        , re
 	return value;
 }
 
+// Widest wordmark (columns) the banner logo column holds before it clips.
+export const MAX_WORDMARK_WIDTH = 60;
+
 export function parseBrand(raw         )        {
 	const root = obj(raw, "brand");
 	const colors = obj(root.colors, "colors");
 	const logos = obj(root.logos, "logos");
 	const hex = /^#[0-9A-Fa-f]{6}$/;
 	const brandValue        = {
-		name: str(root, "name", ""),
+		name: matching(root, "name", "", /^[^\p{Cc}/\\:]{1,40}$/u, "must be one printable line of 1-40 characters without '/', '\\' or ':'"),
 		prefix: matching(root, "prefix", "", /^[a-z][a-z0-9-]*$/, "must be lowercase letters, digits or '-' (no spaces or ':')"),
-		homeDir: matching(root, "homeDir", "", /^\.[^/\\\s]+$/, "must start with '.' and contain no path separators"),
+		homeDir: matching(root, "homeDir", "", /^\.[A-Za-z0-9_-][A-Za-z0-9._-]*$/, "must be a single path segment starting with '.' (letters, digits, '.', '_', '-'; not '.' or '..')"),
 		bin: matching(root, "bin", "", /^[a-z][a-z0-9-]*$/, "must be lowercase letters, digits or '-'"),
 		colors: {
 			primary: matching(colors, "primary", "colors.", hex, "must be #RRGGBB"),
