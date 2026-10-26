@@ -76,7 +76,7 @@ export function orgReviewGate(policy: OrgPolicy | undefined): "confirm" | "stric
 
 /** Human summary for /nubia:status and /nubia:doctor. */
 export function describeOrgPolicy(policy: OrgPolicy | undefined, path: string): string[] {
-	if (!policy) return [`Org policy: none (${path} absent; set ${ORG_POLICY_ENV} or ${ORG_POLICY_SOURCE_FILE} and run nub-ia update)`];
+	if (!policy) return [`Org policy: none (${path} absent; set ${ORG_POLICY_ENV} or ${ORG_POLICY_SOURCE_FILE} and run ${brand.bin} update)`];
 	const present = ORG_POLICY_SECTIONS.filter((section) => policy.sections[section] !== undefined);
 	return [
 		`Org policy: ${policy.name ?? "unnamed"}${policy.fetched ? ` · from ${policy.fetched.source}${policy.fetched.commit ? `@${policy.fetched.commit.slice(0, 7)}` : ""} at ${policy.fetched.at}` : ""}`,
@@ -189,6 +189,7 @@ export function applyRole(policy: OrgPolicy | undefined, resolved: ResolvedRole 
 
 // --- effective policy loader (shared by every consumer) ---------------------------------
 
+import { brand } from "./brand.ts";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

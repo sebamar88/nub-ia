@@ -4,6 +4,7 @@
 // from the launcher only when the command runs). Kept out of bin/nub-ia.mjs so
 // the launcher's startup path stays lean.
 
+import { brand } from "../runtime/brand.mjs";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -38,8 +39,8 @@ export function parseUsageArgs(argv) {
 		if (token === "--json") json = true;
 		else if (token === "--month") month = argv[++i];
 		else if (token.startsWith("--month=")) month = token.slice("--month=".length);
-		else return { error: `Unrecognized argument for 'nub-ia usage': ${token}\nUse --month YYYY-MM and/or --json.` };
+		else return { error: `Unrecognized argument for '${brand.bin} usage': ${token}\nUse --month YYYY-MM and/or --json.` };
 	}
-	if (month !== undefined && !/^\d{4}-\d{2}$/.test(month)) return { error: "nub-ia usage: --month must be YYYY-MM" };
+	if (month !== undefined && !/^\d{4}-\d{2}$/.test(month)) return { error: `${brand.bin} usage: --month must be YYYY-MM` };
 	return { month: month ?? new Date().toISOString().slice(0, 7), json };
 }

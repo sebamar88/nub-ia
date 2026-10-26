@@ -2,6 +2,7 @@
 // one pure-ish module the harness doctor appends. Each line is `pass: …`,
 // `warn: …` or `fail: …`, like the upstream doctor's own.
 
+import { brand } from "./brand.ts";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -65,11 +66,11 @@ export function nubiaDoctorLines(input: DoctorInput): string[] {
 	if (inside === "true") {
 		const head = git(["rev-parse", "--short", "HEAD"], input.packageRoot);
 		const upstream = git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], input.packageRoot);
-		if (!upstream) lines.push(`warn: package checkout ${head ?? "?"} has no tracking branch; nub-ia update cannot fast-forward it`);
+		if (!upstream) lines.push(`warn: package checkout ${head ?? "?"} has no tracking branch; ${brand.bin} update cannot fast-forward it`);
 		else {
 			const counts = git(["rev-list", "--left-right", "--count", `HEAD...${upstream}`], input.packageRoot);
 			const [ahead, behind] = (counts ?? "0\t0").split(/\s+/).map(Number);
-			if (behind > 0) lines.push(`warn: package checkout ${head} is ${behind} commit(s) behind ${upstream}; run nub-ia update`);
+			if (behind > 0) lines.push(`warn: package checkout ${head} is ${behind} commit(s) behind ${upstream}; run ${brand.bin} update`);
 			else if (ahead > 0) lines.push(`warn: package checkout ${head} is ${ahead} commit(s) ahead of ${upstream} (local changes)`);
 			else lines.push(`pass: package checkout ${head} matches ${upstream}`);
 		}

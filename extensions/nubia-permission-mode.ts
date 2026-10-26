@@ -42,7 +42,7 @@ import { resolveNubiaAgentHome } from "../lib/agent-home.ts";
 import { auditRow, type AuditRow } from "../lib/audit-log.ts";
 import { appendMetricRows } from "../lib/runtime-metrics-sink.ts";
 import { relative } from "node:path";
-import { cmd, cmdSlash } from "../lib/brand.ts";
+import { brand, cmd, cmdSlash } from "../lib/brand.ts";
 
 export const PERMISSION_MODE_EVENT = "nubia:permission-mode/v1";
 /** Trusted inter-extension request: `{ mode, context }` from the shell's customize menu. */
@@ -224,7 +224,7 @@ export default function registerPermissionMode(pi: ExtensionAPI, env: NodeJS.Pro
 			const org = loadEffectiveOrgPolicy(env, ctx.cwd).policy;
 			const approved = org ? parseApprovedPackages({ approvedPackages: org.sections.approvedPackages }) : undefined;
 			const unapproved = unapprovedInSettings(readText(join(resolveNubiaAgentHome(env), "settings.json")), approved);
-			if (unapproved.length) ctx.ui.notify(`Org policy${approved?.mode === "enforce" ? " (enforce)" : ""}: packages not in the approved list are loaded: ${unapproved.join(", ")}. Remove them with nub-ia remove <source> or ask to have them approved.`, "warning");
+			if (unapproved.length) ctx.ui.notify(`Org policy${approved?.mode === "enforce" ? " (enforce)" : ""}: packages not in the approved list are loaded: ${unapproved.join(", ")}. Remove them with ${brand.bin} remove <source> or ask to have them approved.`, "warning");
 		}
 	});
 	pi.on("session_shutdown", () => { mode = config.initial; });

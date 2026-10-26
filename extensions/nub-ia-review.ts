@@ -446,17 +446,17 @@ async function runHeadless(ctx: ExtensionContext, raw: string): Promise<never> {
 	try { argv = JSON.parse(raw); } catch { argv = undefined; }
 	const options = Array.isArray(argv) && argv.every((item) => typeof item === "string") ? parseHeadlessArgs(argv) : { error: `${HEADLESS_ENV} must be a JSON array of arguments` };
 	if ("error" in options) {
-		process.stderr.write(`nub-ia review: ${options.error}\n`);
+		process.stderr.write(`${brand.bin} review: ${options.error}\n`);
 		process.exit(2);
 	}
 	const result = await runReview(ctx, options.scope);
 	if (!result.ok) {
 		if (options.json) out(JSON.stringify({ schema: "nub-ia.review-report/v1", verdict: null, error: result.error }));
-		else process.stderr.write(`nub-ia review: ${result.error}\n`);
+		else process.stderr.write(`${brand.bin} review: ${result.error}\n`);
 		process.exit(2);
 	}
 	const pr = options.pr ? await publishToPr(ctx, result) : undefined;
-	if (pr) process.stderr.write(`nub-ia review: ${pr}\n`);
+	if (pr) process.stderr.write(`${brand.bin} review: ${pr}\n`);
 	out(options.json ? JSON.stringify({ ...reportToJson(result.report, result.reportPath || undefined), ...(pr ? { prComment: pr } : {}) }) : result.summary);
 	process.exit(headlessExitCode(result.report.verdict, options.failOn));
 }

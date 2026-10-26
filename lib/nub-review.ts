@@ -457,7 +457,7 @@ export function parseHeadlessArgs(argv: readonly string[]): HeadlessOptions | { 
 			if (typeof level !== "string") return level;
 			if (level !== "block" && level !== "warn" && level !== "never") return { error: `--fail-on must be block, warn, or never (got ${JSON.stringify(level)})` };
 			failOn = level;
-		} else return { error: `unknown argument ${JSON.stringify(arg)}; usage: nub-ia review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]` };
+		} else return { error: `unknown argument ${JSON.stringify(arg)}; usage: ${brand.bin} review [--base <ref>|--staged|--working] [--json] [--pr] [--fail-on block|warn|never]` };
 	}
 	return { scope, json, failOn, pr };
 }

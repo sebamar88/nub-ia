@@ -5,6 +5,7 @@
 // failed fetch leaves the previous policy in place (fail closed on the stricter
 // side: an org policy never silently disappears because the network blinked).
 
+import { brand } from "../runtime/brand.mjs";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -112,7 +113,7 @@ export function describeStatus(env = process.env) {
 	const target = join(configHome(env), ORG_POLICY_FILE);
 	const source = resolveSource(env);
 	const lines = [];
-	lines.push(source ? `source: ${source.source.repository}${source.source.ref ? `#${source.source.ref}` : ""}${source.source.path !== ORG_POLICY_FILE ? `:${source.source.path}` : ""} (from ${source.origin})` : `source: none (set ${ORG_POLICY_ENV} or run: nub-ia policy set git:github.com/<org>/<repo>)`);
+	lines.push(source ? `source: ${source.source.repository}${source.source.ref ? `#${source.source.ref}` : ""}${source.source.path !== ORG_POLICY_FILE ? `:${source.source.path}` : ""} (from ${source.origin})` : `source: none (set ${ORG_POLICY_ENV} or run: ${brand.bin} policy set git:github.com/<org>/<repo>)`);
 	if (existsSync(target)) {
 		try {
 			const policy = JSON.parse(readFileSync(target, "utf8"));
