@@ -47,6 +47,7 @@
 		"build:runtime-modules": "node scripts/build-runtime-modules.mjs --write",
 		"check:runtime-modules": "node scripts/build-runtime-modules.mjs --check",
 		"build:brand": "node --experimental-strip-types scripts/build-brand-assets.mjs --write",
+		"rebrand": "node --experimental-strip-types scripts/rebrand.mjs",
 		"check:brand": "node --experimental-strip-types scripts/build-brand-assets.mjs --check",
 		"test:packed-package": "node scripts/test-packed-runner.mjs",
 		"prepack": "pnpm test && pnpm run check:runtime-modules && node scripts/verify-package-files.mjs",

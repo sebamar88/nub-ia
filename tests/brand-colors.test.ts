@@ -5,7 +5,7 @@ import { parseBrand } from "../lib/brand.ts";
 import { contrastRatio, deriveBannerPalette, deriveTheme } from "../lib/brand-colors.ts";
 
 const repoBrand = parseBrand(JSON.parse(readFileSync(new URL("../brand.json", import.meta.url), "utf8")));
-const themeJson = JSON.parse(readFileSync(new URL("../themes/Nub-IA.json", import.meta.url), "utf8"));
+const themeJson = JSON.parse(readFileSync(new URL("../assets/brand/theme-template.json", import.meta.url), "utf8"));
 
 test("default brand reproduces the lime banner palette exactly", () => {
 	assert.deepEqual(deriveBannerPalette(repoBrand.colors), {
@@ -17,7 +17,7 @@ test("default brand reproduces the lime banner palette exactly", () => {
 	});
 });
 
-test("default brand reproduces themes/Nub-IA.json exactly", () => {
+test("default brand reproduces the theme template exactly", () => {
 	assert.deepEqual(deriveTheme(themeJson, repoBrand), themeJson);
 });
 
