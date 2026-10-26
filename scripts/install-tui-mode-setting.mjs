@@ -4,6 +4,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
+import { brand } from "../runtime/brand.mjs";
 
 // The two directory layouts Pi's own package manager creates when it installs
 // a package into an agent home: the npm-backed `npm/node_modules/<package>`
@@ -21,7 +22,7 @@ const PI_MANAGED_SEGMENT_SEQUENCES = [
 // "Nub-IA"): applied by withIsolatedHomeDefaults below whenever a
 // home's settings do not already declare one, never overriding a user's own
 // choice.
-export const DEFAULT_THEME_NAME = "Nub-IA";
+export const DEFAULT_THEME_NAME = brand.name;
 
 // Startup model of a freshly bootstrapped home: the balanced tier of the
 // Nub-IA router (extensions/nub-ia-router.ts), resolved per machine.

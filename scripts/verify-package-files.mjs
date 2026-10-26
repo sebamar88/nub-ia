@@ -79,6 +79,7 @@ const requiredPaths = [
 	"docs/CONTRIBUTING.md",
 	"scripts/usage-cli.mjs",
   "scripts/install-tui-mode-setting.mjs",
+  "scripts/build-brand-assets.mjs",
   "scripts/install-keybindings.mjs",
   "scripts/org-policy-fetch.mjs",
   "scripts/approved-packages.mjs",
