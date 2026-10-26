@@ -8,6 +8,7 @@ const root = join(fileURLToPath(new URL("..", import.meta.url)));
 
 const requiredPaths = [
   "bin/nub-ia.mjs",
+  "brand.json",
   "assets/orchestrator.md",
   "assets/orchestrator-delegation.md",
   "assets/orchestrator-tracking.md",
@@ -67,6 +68,7 @@ const requiredPaths = [
 	"runtime/nubia-launcher.mjs",
 	"runtime/nubia-resume-hint.mjs",
 	"runtime/usage-report.mjs",
+	"runtime/brand.mjs",
 	"lib/usage-report.ts",
 	"lib/team-metrics-sink.ts",
 	"lib/prompt-profile.ts",

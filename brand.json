@@ -1,0 +1,15 @@
+{
+  "name": "Nub-IA",
+  "prefix": "nubia",
+  "homeDir": ".nub-ia",
+  "bin": "nub-ia",
+  "colors": {
+    "primary": "#D6FF00",
+    "accent": "#E9FF5C"
+  },
+  "logos": {
+    "wordmark": "assets/brand/nubiral-logo.png",
+    "isologo": "assets/brand/nubiral-isologo.png"
+  },
+  "artwork": "assets/brand/banner-art.json"
+}
