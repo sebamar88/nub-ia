@@ -25,7 +25,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-export const RTK_VERSION = "1.0.1";
+export const RTK_VERSION = "1.2.0";
 export const RTK_RELEASE_BASE_URL = `https://github.com/rtk-ai/rtk/releases/download/v${RTK_VERSION}/`;
 const MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
@@ -37,20 +37,20 @@ const REQUEST_TIMEOUT_MS = 30_000;
 // for that platform, in which case the archive digest alone protects the
 // download and a present binary is re-verified by size only.
 export const RTK_BINARY_SHA256 = Object.freeze({
-	"linux-x64": "2e7508fe33f5fa336df8784158fafffa9bca09d060de22f7b4c6246ede96c4c4",
+	"linux-x64": undefined,
 	"linux-arm64": undefined,
 	"darwin-x64": undefined,
 	"darwin-arm64": undefined,
 	"win32-x64": undefined,
 });
 
-// Archive digests from the release's checksums.txt (v1.0.1).
+// Archive digests from the release's checksums.txt (v1.2.0).
 export const RTK_ASSETS = Object.freeze({
-	"linux-x64": { file: "rtk-x86_64-unknown-linux-musl.tar.gz", sha256: "5b919c3bccb799b67a61866d0e617410a4fcdf173e2614440e59de2fa2003436" },
-	"linux-arm64": { file: "rtk-aarch64-unknown-linux-gnu.tar.gz", sha256: "cd627c4091ad90b5e5aca83ca5af66ee4b8aa8537a736533fa90544f461f1c2b" },
-	"darwin-x64": { file: "rtk-x86_64-apple-darwin.tar.gz", sha256: "4b716b2f45d677de41c99f77d9a71199ad060b98ec2f78ef712885312b3a6578" },
-	"darwin-arm64": { file: "rtk-aarch64-apple-darwin.tar.gz", sha256: "4aae2f60cfc49c9e81b8c8c57020aa0cb824da608c78b4f0cf5c0988e19e824e" },
-	"win32-x64": { file: "rtk-x86_64-pc-windows-msvc.zip", sha256: "64b4807c50b61dddf2ac1e86751dbda9117ab94ed02bf266e6584da571c39896" },
+	"linux-x64": { file: "rtk-x86_64-unknown-linux-musl.tar.gz", sha256: "70fee7b4a548c43dde94c77e2335550981b0bc2fb013691d8c8109b5bd0eda37" },
+	"linux-arm64": { file: "rtk-aarch64-unknown-linux-gnu.tar.gz", sha256: "93c1dcd37fd5fcae8fa772a5b5c34a30af142ace4f4081c8f98319146b7a10a4" },
+	"darwin-x64": { file: "rtk-x86_64-apple-darwin.tar.gz", sha256: "1484ae6fffd0da180d65434eeca32e014a86a6e21dcfc7a0004fe82b7bb0a9b9" },
+	"darwin-arm64": { file: "rtk-aarch64-apple-darwin.tar.gz", sha256: "a2c411ffa49a8595b408c151ea47c9a812268924a76eaeecbc3a5065b02207ff" },
+	"win32-x64": { file: "rtk-x86_64-pc-windows-msvc.zip", sha256: "b291b4e53d37f84b7f1696bc20559207396fb0190f20ed3c949db1b7e1c0c378" },
 });
 
 export class RtkInstallerError extends Error {
